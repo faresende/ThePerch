@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Displays daily calorie intake as a circular progress gauge toward a target.
 /// Features animated fill ring and count-up number animation.
@@ -10,6 +11,9 @@ struct CaloriesCard: View {
 
     @State private var animatedProgress: Double = 0
     @State private var animatedConsumed: Double = 0
+    @State private var hasCompletedGoal = false
+    @State private var glowPulse = false
+    @State private var percentageScale: CGFloat = 1.0
 
     private var progress: Double {
         guard target > 0 else { return 0 }
@@ -96,6 +100,7 @@ struct CaloriesCard: View {
                     Text("\(Int(min(animatedProgress, 1.0) * 100))%")
                         .font(PerchTheme.Font.captionNumeric)
                         .foregroundColor(progressColor)
+                        .scaleEffect(percentageScale)
                         .padding(.top, 2)
                 }
 
@@ -110,12 +115,46 @@ struct CaloriesCard: View {
         }
         .padding(PerchTheme.Spacing.large)
         .cardStyle()
+        .shadow(
+            color: PerchTheme.accent.opacity(glowPulse ? 0.30 : 0.0),
+            radius: glowPulse ? 12 : 0
+        )
         .onAppear {
             withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
                 animatedProgress = progress
             }
             withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
                 animatedConsumed = consumed
+            }
+        }
+        .onChange(of: animatedProgress) { _, newValue in
+            guard newValue >= 1.0, !hasCompletedGoal else { return }
+            hasCompletedGoal = true
+            triggerGoalFeedback()
+        }
+    }
+    private func triggerGoalFeedback() {
+        // Haptic
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+
+        // Glow pulse: 0 → 0.30 → 0 over ~400ms
+        withAnimation(.easeIn(duration: 0.2)) {
+            glowPulse = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.easeOut(duration: 0.2)) {
+                glowPulse = false
+            }
+        }
+
+        // Percentage scale pop: 1.0 → 1.1 → 1.0
+        withAnimation(.easeOut(duration: 0.15)) {
+            percentageScale = 1.1
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                percentageScale = 1.0
             }
         }
     }
