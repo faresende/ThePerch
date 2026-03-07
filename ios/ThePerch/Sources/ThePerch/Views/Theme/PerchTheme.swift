@@ -61,9 +61,14 @@ struct PerchTheme {
         Color(red: 0.22, green: 0.75, blue: 0.45)  // #38bf73
     }
 
-    /// Warning (same family as accent)
+    /// Warning — warm orange, visually distinct from accent amber
     static var warning: Color {
-        accent
+        Color(red: 0.922, green: 0.600, blue: 0.149)  // #EB9926
+    }
+
+    /// Subtle warning background tint
+    static var warningBackground: Color {
+        warning.opacity(0.15)
     }
 
     /// Error
