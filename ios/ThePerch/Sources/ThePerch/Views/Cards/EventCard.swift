@@ -74,7 +74,7 @@ struct EventCard: View {
                         .padding(.top, 6)
                     }
                 }
-                .padding(.horizontal, PerchTheme.Card.padding + 4)
+                .padding(.horizontal, PerchTheme.Spacing.large)
                 .padding(.vertical, 18)
             }
             .cardStyle()
