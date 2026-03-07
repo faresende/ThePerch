@@ -268,7 +268,7 @@ struct ChartCard: View {
                 }
             }
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
 }
