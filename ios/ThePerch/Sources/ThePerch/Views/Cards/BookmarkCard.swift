@@ -19,7 +19,7 @@ struct BookmarkCard: View {
                     .frame(width: 36, height: 36)
                     .overlay(
                         Text(domainInitial)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.accent)
                     )
 
@@ -27,7 +27,7 @@ struct BookmarkCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     // Title (2 lines max)
                     Text(bookmark.displayTitle)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(PerchTheme.Font.heading)
                         .foregroundColor(PerchTheme.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -35,15 +35,15 @@ struct BookmarkCard: View {
                     // Domain + reading time
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text(bookmark.domain ?? "Unknown")
-                            .font(.system(size: 12))
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textSecondary)
 
                         if let readingTime = bookmark.readingTimeMinutes {
                             HStack(spacing: 3) {
                                 Image(systemName: "clock")
-                                    .font(.system(size: 10))
+                                    .font(PerchTheme.Font.micro)
                                 Text("\(readingTime) min")
-                                    .font(.system(size: 11))
+                                    .font(PerchTheme.Font.micro)
                             }
                             .foregroundColor(PerchTheme.textSecondary)
                             .padding(.horizontal, 7)
@@ -58,7 +58,7 @@ struct BookmarkCard: View {
                         HStack(spacing: 6) {
                             ForEach(bookmark.tags.prefix(3), id: \.self) { tag in
                                 Text(tag)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(PerchTheme.Font.micro)
                                     .foregroundColor(PerchTheme.accent)
                                     .padding(.horizontal, PerchTheme.Spacing.xSmall)
                                     .padding(.vertical, PerchTheme.Spacing.xxxSmall)
@@ -68,7 +68,7 @@ struct BookmarkCard: View {
 
                             if bookmark.tags.count > 3 {
                                 Text("+\(bookmark.tags.count - 3)")
-                                    .font(.system(size: 11))
+                                    .font(PerchTheme.Font.micro)
                                     .foregroundColor(PerchTheme.textTertiary)
                             }
                         }

@@ -22,7 +22,7 @@ struct SettingsView: View {
                         // User profile section
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Profile")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             CardContainer {
@@ -47,7 +47,7 @@ struct SettingsView: View {
                         // Preferences section
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Preferences")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             CardContainer {
@@ -74,7 +74,7 @@ struct SettingsView: View {
                         // Section management
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Sections")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.xSmall) {
@@ -87,7 +87,7 @@ struct SettingsView: View {
                                         Spacer()
 
                                         Image(systemName: "eye\(section.isVisible ? "" : ".slash")")
-                                            .font(.system(size: PerchTheme.Icon.medium))
+                                            .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
                                             .foregroundColor(
                                                 section.isVisible
                                                     ? PerchTheme.accent
@@ -105,7 +105,7 @@ struct SettingsView: View {
                         // About section
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("About")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             CardContainer {
@@ -154,7 +154,7 @@ struct SettingsView: View {
                                     }
 
                                     Text("Sign Out")
-                                        .font(PerchTheme.Font.headline)
+                                        .font(PerchTheme.Font.heading)
                                         .foregroundColor(PerchTheme.error)
                                 }
                             }
@@ -176,7 +176,7 @@ struct SettingsView: View {
                     Button(action: { dismiss() }) {
                         HStack(spacing: PerchTheme.Spacing.xSmall) {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: PerchTheme.Icon.small))
+                                .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
                             Text("Back")
                         }
                         .foregroundColor(PerchTheme.accent)

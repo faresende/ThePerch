@@ -64,24 +64,24 @@ struct SingleValueCard: View {
             // Source icon
             if let sourceIcon {
                 Text(sourceIcon)
-                    .font(.system(size: 22))
+                    .font(PerchTheme.Font.title)
             }
 
             // Label + value + unit — larger value
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textSecondary)
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(value)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(PerchTheme.Font.titleNumeric)
                         .foregroundColor(PerchTheme.textPrimary)
                         .contentTransition(.numericText())
 
                     if let unit {
                         Text(unit)
-                            .font(.system(size: 14))
+                            .font(PerchTheme.Font.body)
                             .foregroundColor(PerchTheme.textSecondary)
                     }
                 }
@@ -93,9 +93,11 @@ struct SingleValueCard: View {
             if let trend {
                 HStack(spacing: 4) {
                     Image(systemName: trend.icon)
-                        .font(.system(size: 11, weight: .bold))
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(.bold)
                     Text(trend.text)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(.semibold)
                 }
                 .foregroundColor(trend.color)
                 .padding(.horizontal, PerchTheme.Spacing.xSmall)
@@ -106,7 +108,7 @@ struct SingleValueCard: View {
 
             // Timestamp
             Text(lastUpdated.relativeTime)
-                .font(.system(size: 11))
+                .font(PerchTheme.Font.micro)
                 .foregroundColor(PerchTheme.textTertiary)
         }
         .padding(.horizontal, PerchTheme.Spacing.large)

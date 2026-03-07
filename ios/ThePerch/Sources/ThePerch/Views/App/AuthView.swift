@@ -18,16 +18,16 @@ struct AuthView: View {
                 // App name and icon
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     Image(systemName: "bird.fill")
-                        .font(.system(size: 48))
+                        .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                         .foregroundColor(PerchTheme.accent)
 
                     VStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text("The Perch")
-                            .font(PerchTheme.Font.largeTitle)
+                            .font(PerchTheme.Font.display)
                             .foregroundColor(PerchTheme.textPrimary)
 
                         Text("Your personal AI dashboard")
-                            .font(PerchTheme.Font.subheadline)
+                            .font(PerchTheme.Font.body)
                             .foregroundColor(PerchTheme.textSecondary)
                     }
                 }
@@ -39,7 +39,7 @@ struct AuthView: View {
                     // Email field
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                         Text("Email")
-                            .font(PerchTheme.Font.caption1)
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textSecondary)
 
                         TextField("you@example.com", text: $vm.email)
@@ -59,7 +59,7 @@ struct AuthView: View {
                     if isSignUp {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                             Text("Display Name")
-                                .font(PerchTheme.Font.caption1)
+                                .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textSecondary)
 
                             TextField("Fabio", text: $vm.displayName)
@@ -76,7 +76,7 @@ struct AuthView: View {
                     // Password field
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                         Text("Password")
-                            .font(PerchTheme.Font.caption1)
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textSecondary)
 
                         SecureField("••••••••", text: $vm.password)
@@ -93,9 +93,9 @@ struct AuthView: View {
                     if let error = authViewModel.error {
                         HStack(spacing: PerchTheme.Spacing.small) {
                             Image(systemName: "exclamationmark.circle.fill")
-                                .font(.system(size: PerchTheme.Icon.small))
+                                .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
                             Text(error.errorDescription ?? "Unknown error")
-                                .font(PerchTheme.Font.caption1)
+                                .font(PerchTheme.Font.caption)
                             Spacer()
                         }
                         .foregroundColor(PerchTheme.error)
@@ -118,7 +118,7 @@ struct AuthView: View {
                             }
 
                             Text(isSignUp ? "Create Account" : "Sign In")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(.white)
                         }
                     }

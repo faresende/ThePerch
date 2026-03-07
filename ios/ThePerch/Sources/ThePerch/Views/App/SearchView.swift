@@ -68,7 +68,7 @@ struct SearchView: View {
                             selectedCategory = nil
                         } label: {
                             Text("All")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(PerchTheme.Font.caption)
                                 .foregroundColor(selectedCategory == nil ? .black : PerchTheme.accent)
                                 .padding(.horizontal, PerchTheme.Spacing.small)
                                 .padding(.vertical, 6)
@@ -81,7 +81,7 @@ struct SearchView: View {
                                 selectedCategory = selectedCategory == category ? nil : category
                             } label: {
                                 Text(category.displayName)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(PerchTheme.Font.caption)
                                     .foregroundColor(selectedCategory == category ? .black : PerchTheme.accent)
                                     .padding(.horizontal, PerchTheme.Spacing.small)
                                     .padding(.vertical, 6)
@@ -102,10 +102,10 @@ struct SearchView: View {
             } else if filteredRecords.isEmpty {
                 VStack(spacing: PerchTheme.Spacing.small) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 36))
+                        .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                         .foregroundColor(PerchTheme.textTertiary)
                     Text("No results for \"\(searchText)\"")
-                        .font(PerchTheme.Font.subheadline)
+                        .font(PerchTheme.Font.body)
                         .foregroundColor(PerchTheme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, minHeight: 150)
@@ -138,19 +138,19 @@ struct SearchResultRow: View {
                 .frame(width: 32, height: 32)
                 .overlay(
                     Image(systemName: iconForType)
-                        .font(.system(size: 14))
+                        .font(PerchTheme.Font.body)
                         .foregroundColor(PerchTheme.accent)
                 )
 
             // Title + subtitle
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayTitle)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(PerchTheme.Font.body)
                     .foregroundColor(PerchTheme.textPrimary)
                     .lineLimit(1)
 
                 Text(subtitle)
-                    .font(.system(size: 11))
+                    .font(PerchTheme.Font.micro)
                     .foregroundColor(PerchTheme.textTertiary)
                     .lineLimit(1)
             }
@@ -159,7 +159,7 @@ struct SearchResultRow: View {
 
             // Category badge
             Text(record.category.displayName)
-                .font(.system(size: 10, weight: .medium))
+                .font(PerchTheme.Font.micro)
                 .foregroundColor(PerchTheme.textSecondary)
                 .padding(.horizontal, PerchTheme.Spacing.xSmall)
                 .padding(.vertical, 3)
@@ -168,7 +168,7 @@ struct SearchResultRow: View {
 
             // Age
             Text(record.relativeTime)
-                .font(.system(size: 11))
+                .font(PerchTheme.Font.micro)
                 .foregroundColor(PerchTheme.textTertiary)
         }
         .padding(.horizontal, PerchTheme.Spacing.medium)
