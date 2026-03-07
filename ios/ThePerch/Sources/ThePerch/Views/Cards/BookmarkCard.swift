@@ -60,8 +60,8 @@ struct BookmarkCard: View {
                                 Text(tag)
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(PerchTheme.accent)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
+                                    .padding(.horizontal, PerchTheme.Spacing.xSmall)
+                                    .padding(.vertical, PerchTheme.Spacing.xxxSmall)
                                     .background(PerchTheme.accentMuted)
                                     .cornerRadius(6)
                             }
@@ -72,13 +72,13 @@ struct BookmarkCard: View {
                                     .foregroundColor(PerchTheme.textTertiary)
                             }
                         }
-                        .padding(.top, 4)
+                        .padding(.top, PerchTheme.Spacing.xxSmall)
                     }
                 }
 
                 Spacer(minLength: 0)
             }
-            .padding(PerchTheme.Card.padding + 4)
+            .padding(PerchTheme.Spacing.large)
             .cardStyle()
         }
         .buttonStyle(CardPressStyle())

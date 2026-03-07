@@ -108,7 +108,7 @@ struct CaloriesCard: View {
 
             Spacer()
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
         .onAppear {
             withAnimation(.easeOut(duration: 0.8).delay(0.2)) {

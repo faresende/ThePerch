@@ -98,8 +98,8 @@ struct SingleValueCard: View {
                         .font(.system(size: 11, weight: .semibold))
                 }
                 .foregroundColor(trend.color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, PerchTheme.Spacing.xSmall)
+                .padding(.vertical, PerchTheme.Spacing.xxSmall)
                 .background(trend.color.opacity(0.12))
                 .cornerRadius(8)
             }
@@ -109,8 +109,8 @@ struct SingleValueCard: View {
                 .font(.system(size: 11))
                 .foregroundColor(PerchTheme.textTertiary)
         }
-        .padding(.horizontal, PerchTheme.Card.padding + 4)
-        .padding(.vertical, 16)
+        .padding(.horizontal, PerchTheme.Spacing.large)
+        .padding(.vertical, PerchTheme.Spacing.medium)
         .cardStyle()
     }
 }
