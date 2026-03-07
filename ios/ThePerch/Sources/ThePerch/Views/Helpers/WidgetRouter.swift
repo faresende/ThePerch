@@ -1,12 +1,35 @@
 import SwiftUI
 
 /// Dispatches to the correct card view based on a Record's displayHint.
+///
+/// When `isInteractive` is true, we also show a small "details" affordance that opens
+/// an in-app detail view without breaking internal gestures (charts, toggles, etc.).
 struct WidgetRouter: View {
     let record: Record
+
     /// Optional: additional records of the same type for chart aggregation
     var relatedRecords: [Record] = []
 
+    /// When false, disables the detail affordance (used inside RecordDetailView to avoid recursion)
+    var isInteractive: Bool = true
+
+    @State private var showDetail = false
+
     var body: some View {
+        cardWithDetailOverlay {
+            routedContent
+        }
+        .sheet(isPresented: $showDetail) {
+            NavigationStack {
+                RecordDetailView(record: record)
+            }
+        }
+    }
+
+    // MARK: - Routing
+
+    @ViewBuilder
+    private var routedContent: some View {
         switch record.displayHint {
         case .chart:
             chartView
@@ -40,6 +63,36 @@ struct WidgetRouter: View {
             macrosBarView
         }
     }
+
+    @ViewBuilder
+    private func cardWithDetailOverlay(@ViewBuilder content: () -> some View) -> some View {
+        ZStack(alignment: .topTrailing) {
+            content()
+
+            if isInteractive {
+                Button {
+                    PerchHaptics.selection()
+                    showDetail = true
+                } label: {
+                    Image(systemName: "info.circle.fill")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.accent)
+                        .padding(8)
+                        .background(PerchTheme.cardBackground.opacity(0.95))
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(PerchTheme.border, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(10)
+                .accessibilityLabel("Show details")
+            }
+        }
+    }
+
+    // MARK: - Card Views
 
     @ViewBuilder
     private var chartView: some View {
