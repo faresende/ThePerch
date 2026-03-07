@@ -51,7 +51,7 @@ struct DeliveriesView: View {
                     if !activeDeliveries.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Active Deliveries")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.medium) {
@@ -88,7 +88,7 @@ struct DeliveriesView: View {
                             }) {
                                 HStack {
                                     Text("Completed Deliveries")
-                                        .font(PerchTheme.Font.headline)
+                                        .font(PerchTheme.Font.heading)
                                         .foregroundColor(PerchTheme.textPrimary)
 
                                     Spacer()
@@ -146,12 +146,12 @@ struct DeliveriesView: View {
     private var emptyStateView: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "shippingbox")
-                .font(.system(size: 48))
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
                 Text("No deliveries")
-                    .font(PerchTheme.Font.headline)
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
                 Text("Your deliveries will appear here")

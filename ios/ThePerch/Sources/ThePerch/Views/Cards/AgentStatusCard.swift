@@ -56,7 +56,7 @@ struct AgentStatusCard: View {
                 .frame(width: 44, height: 44)
                 .overlay(
                     Text(agent.emoji ?? "🤖")
-                        .font(.system(size: 24))
+                        .font(PerchTheme.Font.title)
                 )
 
             // Info
@@ -64,7 +64,7 @@ struct AgentStatusCard: View {
                 // Name + status dot
                 HStack(spacing: 8) {
                     Text(agent.displayName)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(PerchTheme.Font.heading)
                         .foregroundColor(PerchTheme.textPrimary)
 
                     // Status indicator
@@ -78,20 +78,21 @@ struct AgentStatusCard: View {
                             )
 
                         Text(agentState.label)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(PerchTheme.Font.micro)
+                            .fontWeight(.semibold)
                             .foregroundColor(agentState.color)
                     }
                 }
 
                 // Uptime
                 Text("Uptime: \(uptimeText)")
-                    .font(.system(size: 12))
+                    .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
 
                 // Current task
                 if let task = statusData?.currentTask, !task.isEmpty {
                     Text(task)
-                        .font(.system(size: 13))
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textSecondary)
                         .lineLimit(1)
                         .padding(.horizontal, 10)

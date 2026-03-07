@@ -31,12 +31,12 @@ struct EventCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     // Time
                     Text(timeFormatted)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textSecondary)
 
                     // Title
                     Text(event.title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(PerchTheme.Font.heading)
                         .foregroundColor(PerchTheme.textPrimary)
                         .lineLimit(1)
 
@@ -44,9 +44,9 @@ struct EventCard: View {
                     if let location = event.location, !location.isEmpty {
                         HStack(spacing: 4) {
                             Image(systemName: "mappin.circle.fill")
-                                .font(.system(size: 12))
+                                .font(PerchTheme.Font.caption)
                             Text(location)
-                                .font(.system(size: 12))
+                                .font(PerchTheme.Font.caption)
                         }
                         .foregroundColor(PerchTheme.textSecondary)
                         .padding(.top, 2)
@@ -56,10 +56,10 @@ struct EventCard: View {
                     if let agentNote = event.agentNotes, !agentNote.isEmpty {
                         HStack(alignment: .top, spacing: 6) {
                             Text("🤖")
-                                .font(.system(size: 12))
+                                .font(PerchTheme.Font.caption)
 
                             Text(agentNote)
-                                .font(.system(size: 12))
+                                .font(PerchTheme.Font.caption)
                                 .italic()
                                 .foregroundColor(PerchTheme.textSecondary)
                                 .lineLimit(2)

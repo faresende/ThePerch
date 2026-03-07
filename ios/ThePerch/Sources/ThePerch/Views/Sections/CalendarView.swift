@@ -52,7 +52,7 @@ struct CalendarView: View {
                     if !todayEvents.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Today")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.medium) {
@@ -74,7 +74,7 @@ struct CalendarView: View {
                     if !upcomingEvents.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Upcoming")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.small) {
@@ -112,12 +112,12 @@ struct CalendarView: View {
     private var emptyStateView: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "calendar")
-                .font(.system(size: 48))
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
                 Text("No events")
-                    .font(PerchTheme.Font.headline)
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
                 Text("Your calendar events will appear here")
@@ -157,11 +157,12 @@ struct UpcomingEventRow: View {
                 // Date badge
                 VStack(spacing: 2) {
                     Text(dayLabel)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(.semibold)
                         .foregroundColor(PerchTheme.accent)
 
                     Text(event.start.formatted(date: .omitted, time: .shortened))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textPrimary)
                 }
                 .frame(width: 60)
@@ -174,13 +175,13 @@ struct UpcomingEventRow: View {
                 // Event info
                 VStack(alignment: .leading, spacing: 2) {
                     Text(event.title)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(PerchTheme.Font.body)
                         .foregroundColor(PerchTheme.textPrimary)
                         .lineLimit(1)
 
                     if let location = event.location {
                         Text(location)
-                            .font(.system(size: 12))
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textTertiary)
                             .lineLimit(1)
                     }
@@ -189,7 +190,7 @@ struct UpcomingEventRow: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12))
+                    .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
             }
             .padding(.horizontal, PerchTheme.Spacing.medium)

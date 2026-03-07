@@ -21,11 +21,11 @@ struct HomeHighlightsView: View {
                 // Header
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                     Text("Home")
-                        .font(PerchTheme.Font.largeTitle)
+                        .font(PerchTheme.Font.display)
                         .foregroundColor(PerchTheme.textPrimary)
 
                     Text("Your pinned items and highlights")
-                        .font(PerchTheme.Font.subheadline)
+                        .font(PerchTheme.Font.body)
                         .foregroundColor(PerchTheme.textSecondary)
                 }
                 .padding(.horizontal, PerchTheme.Spacing.large)
@@ -37,11 +37,11 @@ struct HomeHighlightsView: View {
                 } else if pinnedRecords.isEmpty && recentRecords.isEmpty {
                     VStack(spacing: PerchTheme.Spacing.medium) {
                         Image(systemName: "bird.fill")
-                            .font(.system(size: 48))
+                            .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                             .foregroundColor(PerchTheme.accent.opacity(0.5))
 
                         Text("Welcome to The Perch")
-                            .font(PerchTheme.Font.headline)
+                            .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
 
                         Text("Swipe to explore your sections")
@@ -55,7 +55,7 @@ struct HomeHighlightsView: View {
                     if !pinnedRecords.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Pinned")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
                                 .padding(.horizontal, PerchTheme.Spacing.large)
 
@@ -72,7 +72,7 @@ struct HomeHighlightsView: View {
                     if !recentRecords.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Recent")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
                                 .padding(.horizontal, PerchTheme.Spacing.large)
 

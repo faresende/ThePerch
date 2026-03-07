@@ -148,12 +148,12 @@ struct SectionView: View {
     private var emptyStateView: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "square.stack.3d.up.slash")
-                .font(.system(size: 48))
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
                 Text("No items yet")
-                    .font(PerchTheme.Font.headline)
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
                 Text("Data from \(section.displayName) will appear here")

@@ -20,19 +20,19 @@ struct ChecklistCard: View {
         VStack(alignment: .leading, spacing: 20) {
             // Title
             Text(title)
-                .font(.system(size: 20, weight: .bold))
+                .font(PerchTheme.Font.title)
                 .foregroundColor(PerchTheme.textPrimary)
 
             // Subtitle row: count left, percentage right
             HStack {
                 Text("\(completedCount) of \(items.count) completed")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(PerchTheme.Font.body)
                     .foregroundColor(PerchTheme.textSecondary)
 
                 Spacer()
 
                 Text("\(Int(progressPercent * 100))%")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(PerchTheme.Font.headingNumeric)
                     .foregroundColor(PerchTheme.accent)
             }
 
@@ -71,7 +71,8 @@ struct ChecklistCard: View {
                                         )
 
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(PerchTheme.Font.caption)
+                                        .fontWeight(.bold)
                                         .foregroundColor(.black)
                                 } else {
                                     Circle()
@@ -85,7 +86,7 @@ struct ChecklistCard: View {
 
                             // Item text
                             Text(item.text)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(PerchTheme.Font.body)
                                 .foregroundColor(
                                     item.done
                                         ? PerchTheme.textTertiary

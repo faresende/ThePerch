@@ -68,7 +68,7 @@ struct TimelineItemRow: View {
             // Content
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
                 Text(item.time)
-                    .font(PerchTheme.Font.caption1)
+                    .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textSecondary)
 
                 Text(item.title)
@@ -77,7 +77,7 @@ struct TimelineItemRow: View {
 
                 if let subtitle = item.subtitle {
                     Text(subtitle)
-                        .font(PerchTheme.Font.caption1)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)
                         .lineLimit(2)
                 }

@@ -68,13 +68,13 @@ struct AdminView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(PerchTheme.error)
                             Text(loadError)
-                                .font(PerchTheme.Font.caption1)
+                                .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textSecondary)
                             Spacer()
                             Button("Retry") {
                                 Task { await loadData() }
                             }
-                            .font(PerchTheme.Font.caption1)
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.accent)
                         }
                         .padding(PerchTheme.Spacing.medium)
@@ -89,7 +89,8 @@ struct AdminView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text("OpenClaw")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(PerchTheme.Font.body)
+                                    .fontWeight(.bold)
                                     .foregroundColor(PerchTheme.textPrimary)
                                 Spacer()
                                 Circle()
@@ -99,11 +100,12 @@ struct AdminView: View {
                             }
 
                             Text(gatewayIsRunning ? "Running" : "Offline")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .font(PerchTheme.Font.titleNumeric)
+                                .fontWeight(.bold)
                                 .foregroundColor(gatewayIsRunning ? PerchTheme.success : PerchTheme.error)
 
                             Text("\(activeAgents.count) of \(agents.count) agents active")
-                                .font(.system(size: 11))
+                                .font(PerchTheme.Font.micro)
                                 .foregroundColor(PerchTheme.textTertiary)
                         }
                         .padding(PerchTheme.Card.padding)
@@ -113,26 +115,27 @@ struct AdminView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text("Heartbeat")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(PerchTheme.Font.body)
+                                    .fontWeight(.bold)
                                     .foregroundColor(PerchTheme.textPrimary)
                                 Spacer()
                                 Image(systemName: "heart.fill")
-                                    .font(.system(size: 12))
+                                    .font(PerchTheme.Font.caption)
                                     .foregroundColor(PerchTheme.accent)
                             }
 
                             if let heartbeat = latestHeartbeat {
                                 Text(heartbeat.relativeTime)
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(PerchTheme.Font.heading)
                                     .foregroundColor(PerchTheme.textPrimary)
                             } else {
                                 Text("No pulse")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(PerchTheme.Font.heading)
                                     .foregroundColor(PerchTheme.textTertiary)
                             }
 
                             Text("Last gateway pulse")
-                                .font(.system(size: 11))
+                                .font(PerchTheme.Font.micro)
                                 .foregroundColor(PerchTheme.textTertiary)
                         }
                         .padding(PerchTheme.Card.padding)
@@ -144,7 +147,7 @@ struct AdminView: View {
                     if let status = gatewayStatus, let models = status.activeModels, !models.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Active Models")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             activeModelsCard(models: models)
@@ -156,7 +159,7 @@ struct AdminView: View {
                     if !agents.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Agents")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.small) {
@@ -175,7 +178,7 @@ struct AdminView: View {
                     if !cronRecords.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Upcoming Crons")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             upcomingCronsCard
@@ -188,7 +191,7 @@ struct AdminView: View {
                        let costData = costRecord.asCostSummary() {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Today's Costs")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             let items = costData.breakdown.map { agentId, cost in
@@ -235,7 +238,7 @@ struct AdminView: View {
             ForEach(Array(models.prefix(5).enumerated()), id: \.offset) { _, model in
                 HStack(spacing: 10) {
                     Text(model.modelId)
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .font(PerchTheme.Font.captionMono)
                         .foregroundColor(PerchTheme.textPrimary)
                         .lineLimit(1)
 
@@ -266,13 +269,14 @@ struct AdminView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(cron.name)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(PerchTheme.Font.caption)
+                                .fontWeight(.semibold)
                                 .foregroundColor(PerchTheme.textPrimary)
                                 .lineLimit(1)
 
                             if let model = cron.model {
                                 Text(model)
-                                    .font(.system(size: 11, design: .monospaced))
+                                    .font(PerchTheme.Font.microMono)
                                     .foregroundColor(PerchTheme.textTertiary)
                                     .lineLimit(1)
                             }
@@ -282,7 +286,8 @@ struct AdminView: View {
 
                         if let nextRun = cron.nextRunAt {
                             Text(nextRun.relativeTime)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(PerchTheme.Font.caption)
+                                .fontWeight(.medium)
                                 .foregroundColor(PerchTheme.accent)
                         }
                     }
