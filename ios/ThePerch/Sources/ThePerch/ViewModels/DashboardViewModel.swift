@@ -28,33 +28,33 @@ final class DashboardViewModel {
     // MARK: - Loading Data
 
     /// Loads the dashboard sections and widgets in parallel.
-    func loadDashboard() async {
+    func loadDashboard(forceRefresh: Bool = false) async {
         isLoading = true
         defer { isLoading = false }
 
-        // Fire both fetches in parallel — they're independent
-        async let sectionsTask = supabaseService.fetchSections()
-        async let widgetsTask = supabaseService.fetchHomeWidgets()
+        // Fire both fetches in parallel
+        async let sectionsResult: Result<[Section], Error> = {
+            do { return .success(try await supabaseService.fetchSections(forceRefresh: forceRefresh)) }
+            catch { return .failure(error) }
+        }()
+        async let widgetsResult: Result<[HomeWidget], Error> = {
+            do { return .success(try await supabaseService.fetchHomeWidgets(forceRefresh: forceRefresh)) }
+            catch { return .failure(error) }
+        }()
 
-        do {
-            let loadedSections = try await sectionsTask
-            self.sections = loadedSections
-            print("[DashboardVM] Loaded \(loadedSections.count) sections")
-        } catch {
-            print("[DashboardVM] fetchSections threw: \(error)")
-            self.error = .unknownError(error.localizedDescription)
-        }
+        let (sections, widgets) = await (sectionsResult, widgetsResult)
 
-        // Widgets are optional — don't let failure break the dashboard
-        do {
-            let loadedWidgets = try await widgetsTask
-            self.homeWidgets = loadedWidgets
-        } catch {
-            print("[DashboardVM] fetchHomeWidgets threw: \(error)")
-        }
-
-        if self.error == nil {
+        switch sections {
+        case .success(let loaded):
+            self.sections = loaded
             self.error = nil
+        case .failure(let err):
+            print("[DashboardVM] fetchSections threw: \(err)")
+            self.error = .unknownError(err.localizedDescription)
+        }
+
+        if case .success(let loaded) = widgets {
+            self.homeWidgets = loaded
         }
     }
 
@@ -118,22 +118,37 @@ final class DashboardViewModel {
     // MARK: - Realtime Subscriptions
 
     /// Sets up realtime subscriptions to listen for dashboard changes.
+    /// When records change, we re-fetch the relevant data to keep the UI fresh.
     func setupRealtimeSubscriptions() async {
         do {
-            try await supabaseService.subscribeToRecords { [weak self] _ in
-                // TODO: Update sections based on new record data
-                // This callback will be invoked whenever records change in realtime
+            try await supabaseService.subscribeToRecords { [weak self] change in
+                guard let self else { return }
+                print("[DashboardVM] Realtime record change: \(change.action)")
+                Task { @MainActor in
+                    await self.loadDashboard()
+                    if let record = change.record {
+                        NotificationService.shared.handleRecordChange(record: record, action: change.action)
+                    }
+                }
             }
 
-            try await supabaseService.subscribeToAgents { [weak self] _ in
-                // TODO: Update agent information in realtime
-                // This callback will be invoked whenever agents change in realtime
+            try await supabaseService.subscribeToAgents { [weak self] action in
+                guard let self else { return }
+                print("[DashboardVM] Realtime agent change: \(action)")
+                Task { @MainActor in
+                    await self.loadDashboard()
+                }
             }
         } catch let error as SupabaseServiceError {
             self.error = error
         } catch {
             self.error = .unknownError(error.localizedDescription)
         }
+    }
+
+    /// Tears down realtime subscriptions.
+    func teardownRealtimeSubscriptions() async {
+        await supabaseService.unsubscribeAll()
     }
 
     // MARK: - Error Handling

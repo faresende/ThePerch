@@ -3,6 +3,7 @@ import SwiftUI
 /// Calendar section showing upcoming events with the new EventCard design.
 struct CalendarView: View {
     @State private var viewModel = SectionViewModel(category: .calendar)
+    @State private var cardsAppeared = false
 
     var todayEvents: [Record] {
         let calendar = Calendar.current
@@ -35,16 +36,15 @@ struct CalendarView: View {
             PerchTheme.background.ignoresSafeArea()
 
             if viewModel.isLoading && viewModel.records.isEmpty {
-                ProgressView()
-                    .tint(PerchTheme.accent)
+                SkeletonCalendarSection()
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+                    .padding(.top, 60)
             }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Section header
-                    Text("Calendar")
-                        .font(PerchTheme.Font.largeTitle)
-                        .foregroundColor(PerchTheme.textPrimary)
+                    // Section header with freshness
+                    SectionHeader(title: "Calendar", freshnessKey: "calendar")
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
@@ -56,11 +56,15 @@ struct CalendarView: View {
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.medium) {
-                                ForEach(todayEvents) { record in
+                                ForEach(Array(todayEvents.enumerated()), id: \.element.id) { index, record in
                                     if let eventData = record.asEvent() {
                                         EventCard(event: eventData)
+                                            .cardAppear(index: index, appeared: cardsAppeared)
                                     }
                                 }
+                            }
+                            .onAppear {
+                                withAnimation { cardsAppeared = true }
                             }
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
@@ -74,9 +78,10 @@ struct CalendarView: View {
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.small) {
-                                ForEach(upcomingEvents) { record in
+                                ForEach(Array(upcomingEvents.enumerated()), id: \.element.id) { index, record in
                                     if let eventData = record.asEvent() {
                                         UpcomingEventRow(event: eventData)
+                                            .cardAppear(index: index + todayEvents.count, appeared: cardsAppeared)
                                     }
                                 }
                             }
@@ -93,7 +98,9 @@ struct CalendarView: View {
                 }
             }
             .refreshable {
+                PerchHaptics.medium()
                 await viewModel.refresh()
+                PerchHaptics.success()
             }
         }
         .task {
@@ -145,49 +152,59 @@ struct UpcomingEventRow: View {
     }
 
     var body: some View {
-        HStack(spacing: PerchTheme.Spacing.small) {
-            // Date badge
-            VStack(spacing: 2) {
-                Text(dayLabel)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(PerchTheme.accent)
+        Button(action: openInCalendar) {
+            HStack(spacing: PerchTheme.Spacing.small) {
+                // Date badge
+                VStack(spacing: 2) {
+                    Text(dayLabel)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(PerchTheme.accent)
 
-                Text(event.start.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(PerchTheme.textPrimary)
-            }
-            .frame(width: 60)
-
-            // Left accent line
-            RoundedRectangle(cornerRadius: 1)
-                .fill(PerchTheme.border)
-                .frame(width: 2, height: 36)
-
-            // Event info
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .lineLimit(1)
-
-                if let location = event.location {
-                    Text(location)
-                        .font(.system(size: 12))
-                        .foregroundColor(PerchTheme.textTertiary)
-                        .lineLimit(1)
+                    Text(event.start.formatted(date: .omitted, time: .shortened))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(PerchTheme.textPrimary)
                 }
+                .frame(width: 60)
+
+                // Left accent line
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(PerchTheme.border)
+                    .frame(width: 2, height: 36)
+
+                // Event info
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(event.title)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(PerchTheme.textPrimary)
+                        .lineLimit(1)
+
+                    if let location = event.location {
+                        Text(location)
+                            .font(.system(size: 12))
+                            .foregroundColor(PerchTheme.textTertiary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12))
+                    .foregroundColor(PerchTheme.textTertiary)
             }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12))
-                .foregroundColor(PerchTheme.textTertiary)
+            .padding(.horizontal, PerchTheme.Spacing.medium)
+            .padding(.vertical, PerchTheme.Spacing.small)
+            .background(PerchTheme.cardBackground)
+            .cornerRadius(PerchTheme.Card.cornerRadius)
         }
-        .padding(.horizontal, PerchTheme.Spacing.medium)
-        .padding(.vertical, PerchTheme.Spacing.small)
-        .background(PerchTheme.cardBackground)
-        .cornerRadius(PerchTheme.Card.cornerRadius)
+        .buttonStyle(CardPressStyle())
+    }
+
+    private func openInCalendar() {
+        let interval = event.start.timeIntervalSinceReferenceDate
+        if let url = URL(string: "calshow:\(interval)") {
+            UIApplication.shared.open(url)
+        }
     }
 }
 

@@ -1,11 +1,12 @@
 import SwiftUI
 
 /// The main app entry point for The Perch dashboard.
-/// Manages authentication state and routes to the appropriate view.
+/// Manages authentication state, realtime subscriptions, notifications, and background refresh.
 @main
 struct ThePerchApp: App {
     @State private var authViewModel = AuthViewModel()
     @State private var dashboardViewModel = DashboardViewModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,20 @@ struct ThePerchApp: App {
             MainTabView()
                 .environment(authViewModel)
                 .environment(dashboardViewModel)
+                .task {
+                    // Request notification permission on first launch
+                    await NotificationService.shared.requestPermission()
+                    // Set up realtime subscriptions
+                    await dashboardViewModel.setupRealtimeSubscriptions()
+                }
+                .onChange(of: scenePhase) { oldPhase, newPhase in
+                    if newPhase == .active && oldPhase != .active {
+                        // Refresh data when app comes to foreground
+                        Task {
+                            await dashboardViewModel.loadDashboard()
+                        }
+                    }
+                }
             // } else {
             //     AuthView()
             //         .environment(authViewModel)

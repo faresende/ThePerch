@@ -20,63 +20,75 @@ struct EventCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Colored left border
-            RoundedRectangle(cornerRadius: 2)
-                .fill(borderColor)
-                .frame(width: 4)
+        Button(action: openInCalendar) {
+            HStack(spacing: 0) {
+                // Colored left border
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(borderColor)
+                    .frame(width: 4)
 
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                // Time
-                Text(timeFormatted)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(PerchTheme.textSecondary)
+                // Content
+                VStack(alignment: .leading, spacing: 4) {
+                    // Time
+                    Text(timeFormatted)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(PerchTheme.textSecondary)
 
-                // Title
-                Text(event.title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .lineLimit(1)
+                    // Title
+                    Text(event.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(PerchTheme.textPrimary)
+                        .lineLimit(1)
 
-                // Location
-                if let location = event.location, !location.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 12))
-                        Text(location)
-                            .font(.system(size: 12))
+                    // Location
+                    if let location = event.location, !location.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: 12))
+                            Text(location)
+                                .font(.system(size: 12))
+                        }
+                        .foregroundColor(PerchTheme.textSecondary)
+                        .padding(.top, 2)
                     }
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .padding(.top, 2)
-                }
 
-                // Agent note
-                if let agentNote = event.agentNotes, !agentNote.isEmpty {
-                    HStack(alignment: .top, spacing: 6) {
-                        Text("🤖")
-                            .font(.system(size: 12))
+                    // Agent note
+                    if let agentNote = event.agentNotes, !agentNote.isEmpty {
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("🤖")
+                                .font(.system(size: 12))
 
-                        Text(agentNote)
-                            .font(.system(size: 12))
-                            .italic()
-                            .foregroundColor(PerchTheme.textSecondary)
-                            .lineLimit(2)
+                            Text(agentNote)
+                                .font(.system(size: 12))
+                                .italic()
+                                .foregroundColor(PerchTheme.textSecondary)
+                                .lineLimit(2)
+                        }
+                        .padding(10)
+                        .background(PerchTheme.cardInnerBackground)
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(PerchTheme.accent.opacity(0.15), lineWidth: 1)
+                        )
+                        .padding(.top, 6)
                     }
-                    .padding(10)
-                    .background(PerchTheme.cardInnerBackground)
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(PerchTheme.accent.opacity(0.15), lineWidth: 1)
-                    )
-                    .padding(.top, 6)
                 }
+                .padding(.horizontal, PerchTheme.Card.padding + 4)
+                .padding(.vertical, 18)
             }
-            .padding(.horizontal, PerchTheme.Card.padding + 4)
-            .padding(.vertical, 18)
+            .cardStyle()
         }
-        .cardStyle()
+        .buttonStyle(CardPressStyle())
+    }
+
+    /// Opens Apple Calendar at the event's date.
+    private func openInCalendar() {
+        // calshow: opens Calendar app at a specific date (seconds since reference date)
+        let interval = event.start.timeIntervalSinceReferenceDate
+        if let url = URL(string: "calshow:\(interval)") {
+            UIApplication.shared.open(url)
+        }
     }
 }
 

@@ -32,8 +32,8 @@ struct HomeHighlightsView: View {
                 .padding(.top, PerchTheme.Spacing.medium)
 
                 if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, minHeight: 200)
+                    SkeletonHomeSection()
+                        .padding(.horizontal, PerchTheme.Spacing.large)
                 } else if pinnedRecords.isEmpty && recentRecords.isEmpty {
                     VStack(spacing: PerchTheme.Spacing.medium) {
                         Image(systemName: "bird.fill")
@@ -88,6 +88,13 @@ struct HomeHighlightsView: View {
 
                 Spacer()
                     .frame(height: PerchTheme.Spacing.large)
+            }
+        }
+        .refreshable {
+            do {
+                records = try await supabaseService.fetchRecords(forceRefresh: true)
+            } catch {
+                print("[HomeHighlightsView] Refresh failed: \(error)")
             }
         }
         .task {

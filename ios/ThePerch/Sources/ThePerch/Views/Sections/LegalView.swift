@@ -9,16 +9,17 @@ struct LegalView: View {
             PerchTheme.background.ignoresSafeArea()
 
             if viewModel.isLoading && viewModel.records.isEmpty {
-                ProgressView()
-                    .tint(PerchTheme.accent)
+                VStack(spacing: PerchTheme.Spacing.medium) {
+                    SkeletonRect(height: 200, cornerRadius: PerchTheme.Card.cornerRadius)
+                }
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .padding(.top, 60)
             }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Section header
-                    Text("Legal")
-                        .font(PerchTheme.Font.largeTitle)
-                        .foregroundColor(PerchTheme.textPrimary)
+                    // Section header with freshness
+                    SectionHeader(title: "Legal", freshnessKey: "legal")
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
@@ -50,7 +51,9 @@ struct LegalView: View {
                 }
             }
             .refreshable {
+                PerchHaptics.medium()
                 await viewModel.refresh()
+                PerchHaptics.success()
             }
         }
         .task {
