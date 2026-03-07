@@ -206,6 +206,7 @@ struct HomeView: View {
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
                 .stroke(PerchTheme.accent.opacity(0.3), lineWidth: 1)
         )
+        .staleBorder(tier: freshnessTracker.urgencyTier(for: "all_records"))
     }
 
     @ViewBuilder
