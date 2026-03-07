@@ -202,6 +202,11 @@ extension View {
             )
     }
 
+    /// Urgency border overlay for stale data tiers
+    func staleBorder(tier: UrgencyTier) -> some View {
+        self.modifier(StaleBorderModifier(tier: tier))
+    }
+
     /// Subtle scale on press for interactive cards
     func cardTapScale(_ isPressed: Bool) -> some View {
         self
@@ -266,5 +271,36 @@ struct CardPressStyle: ButtonStyle {
                     PerchHaptics.light()
                 }
             }
+    }
+}
+
+// MARK: - Stale Data Border Modifier
+
+struct StaleBorderModifier: ViewModifier {
+    let tier: UrgencyTier
+    @State private var pulseOpacity: Double = 0.3
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(borderOverlay)
+    }
+
+    @ViewBuilder
+    private var borderOverlay: some View {
+        switch tier {
+        case .fresh, .stale:
+            EmptyView()
+        case .warning:
+            RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                .stroke(PerchTheme.accent.opacity(pulseOpacity), lineWidth: 1.5)
+                .onAppear { pulseOpacity = 0.7 }
+                .animation(
+                    .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
+                    value: pulseOpacity
+                )
+        case .critical:
+            RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                .stroke(PerchTheme.warning, lineWidth: 1.5)
+        }
     }
 }
