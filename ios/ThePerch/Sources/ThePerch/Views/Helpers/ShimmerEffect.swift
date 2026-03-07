@@ -13,9 +13,9 @@ struct ShimmerModifier: ViewModifier {
                     LinearGradient(
                         colors: [
                             .clear,
-                            Color.white.opacity(0.08),
-                            Color.white.opacity(0.15),
-                            Color.white.opacity(0.08),
+                            PerchTheme.accent.opacity(0.04),
+                            PerchTheme.accent.opacity(0.10),
+                            PerchTheme.accent.opacity(0.04),
                             .clear,
                         ],
                         startPoint: .leading,
