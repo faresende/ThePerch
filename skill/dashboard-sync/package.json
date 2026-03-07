@@ -1,0 +1,24 @@
+{
+  "name": "@theperch/dashboard-sync",
+  "version": "1.0.0",
+  "description": "OpenClaw skill for persisting structured data to Supabase dashboard",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test dist/**/*.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=25.4.0"
+  },
+  "author": "The Perch",
+  "license": "MIT"
+}
