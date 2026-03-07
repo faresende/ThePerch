@@ -154,58 +154,73 @@ struct HomeView: View {
 
     // MARK: - Quick Glance Bar
 
-    private var quickGlanceBar: some View {
-        HStack(spacing: 0) {
-            // Calories %
-            quickGlanceItem(
-                icon: "flame.fill",
-                value: caloriesPercentText,
-                label: "Calories",
-                color: caloriesColor
-            )
+    /// Items to display in the Quick Glance bar, filtering out zero-value entries.
+    private var quickGlanceItems: [(icon: String, value: String, label: String, color: Color)] {
+        var items: [(icon: String, value: String, label: String, color: Color)] = []
 
-            divider
-
-            // Next event
-            quickGlanceItem(
-                icon: "calendar",
-                value: nextEventTimeText,
-                label: "Next event",
-                color: PerchTheme.accent
-            )
-
-            divider
-
-            // Active deliveries
-            quickGlanceItem(
-                icon: "shippingbox.fill",
-                value: "\(activeDeliveryCount)",
-                label: activeDeliveryCount == 1 ? "Delivery" : "Deliveries",
-                color: activeDeliveryCount > 0 ? PerchTheme.success : PerchTheme.textTertiary
-            )
+        // Calories — always show unless no data at all
+        let calText = caloriesPercentText
+        if calText != "--%" {
+            items.append((icon: "flame.fill", value: calText, label: "Calories", color: caloriesColor))
         }
-        .padding(.vertical, PerchTheme.Spacing.small)
+
+        // Next event — hide when there are none
+        let eventText = nextEventTimeText
+        if eventText != "None" {
+            items.append((icon: "calendar", value: eventText, label: "Next event", color: PerchTheme.accent))
+        }
+
+        // Deliveries — hide when zero
+        let count = activeDeliveryCount
+        if count > 0 {
+            items.append((icon: "shippingbox.fill", value: "\(count)", label: count == 1 ? "Delivery" : "Deliveries", color: PerchTheme.success))
+        }
+
+        return items
+    }
+
+    private var quickGlanceBar: some View {
+        let items = quickGlanceItems
+        return HStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                if index > 0 { divider }
+                quickGlanceItem(
+                    icon: item.icon,
+                    value: item.value,
+                    label: item.label,
+                    color: item.color
+                )
+            }
+        }
+        .padding(.vertical, PerchTheme.Spacing.medium)
+        .background(
+            LinearGradient(
+                colors: [PerchTheme.accent.opacity(0.03), Color.clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
         .background(PerchTheme.cardBackground)
         .cornerRadius(PerchTheme.Card.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                .stroke(PerchTheme.border, lineWidth: 1)
+                .stroke(PerchTheme.accent.opacity(0.3), lineWidth: 1)
         )
     }
 
     @ViewBuilder
     private func quickGlanceItem(icon: String, value: String, label: String, color: Color) -> some View {
         VStack(spacing: 4) {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(PerchTheme.Font.micro)
+                    .font(PerchTheme.Font.caption)
                     .foregroundColor(color)
                 Text(value)
-                    .font(PerchTheme.Font.bodyNumeric)
+                    .font(PerchTheme.Font.titleNumeric)
                     .foregroundColor(PerchTheme.textPrimary)
             }
             Text(label)
-                .font(PerchTheme.Font.micro)
+                .font(PerchTheme.Font.caption)
                 .foregroundColor(PerchTheme.textTertiary)
         }
         .frame(maxWidth: .infinity)
@@ -214,7 +229,7 @@ struct HomeView: View {
     private var divider: some View {
         Rectangle()
             .fill(PerchTheme.border)
-            .frame(width: 1, height: 30)
+            .frame(width: 1, height: 40)
     }
 
     // MARK: - Quick Glance Data
