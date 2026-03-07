@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Supabase
+import Realtime
 
 // MARK: - Error Types
 
