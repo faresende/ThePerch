@@ -92,8 +92,8 @@ struct SkeletonSingleValueCard: View {
             Spacer()
             SkeletonLine(width: 40, height: 12)
         }
-        .padding(.horizontal, PerchTheme.Card.padding + 4)
-        .padding(.vertical, 16)
+        .padding(.horizontal, PerchTheme.Spacing.large)
+        .padding(.vertical, PerchTheme.Spacing.medium)
         .cardStyle()
     }
 }
@@ -116,7 +116,7 @@ struct SkeletonChartCard: View {
                 }
             }
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
 }
@@ -133,7 +133,7 @@ struct SkeletonCaloriesCard: View {
             }
             Spacer()
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
 }
@@ -159,7 +159,7 @@ struct SkeletonMacrosCard: View {
                 SkeletonLine(width: 60, height: 12)
             }
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
 }
@@ -178,7 +178,7 @@ struct SkeletonDeliveryCard: View {
             }
             SkeletonRect(height: 50, cornerRadius: 8)
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
 }
@@ -195,7 +195,7 @@ struct SkeletonEventCard: View {
                 SkeletonLine(width: 160, height: 14)
                 SkeletonLine(width: 80, height: 11)
             }
-            .padding(.horizontal, PerchTheme.Card.padding + 4)
+            .padding(.horizontal, PerchTheme.Spacing.large)
             .padding(.vertical, 18)
         }
         .cardStyle()
@@ -216,7 +216,7 @@ struct SkeletonBookmarkCard: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
 }
