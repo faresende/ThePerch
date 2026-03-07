@@ -53,7 +53,7 @@ struct PerchTheme {
 
     /// Accent glow — for ambient shadow/glow effects
     static var accentGlow: Color {
-        accent.opacity(0.10)
+        accent.opacity(0.13)
     }
 
     /// Success
@@ -168,7 +168,7 @@ extension View {
             // Wide horizontal amber glow (spread to the sides)
             .shadow(
                 color: PerchTheme.accentGlow,
-                radius: 30,
+                radius: 16,
                 x: 0,
                 y: 0
             )
