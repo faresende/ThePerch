@@ -62,7 +62,7 @@ struct MacrosCard: View {
                     .foregroundColor(PerchTheme.textSecondary)
             }
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
         .onAppear {
             withAnimation(.easeOut(duration: 0.7).delay(0.15)) {

@@ -114,7 +114,7 @@ struct DeliveryCard: View {
                 // Progress stepper
                 progressStepper
             }
-            .padding(PerchTheme.Card.padding + 4)
+            .padding(PerchTheme.Spacing.large)
             .cardStyle()
         }
         .buttonStyle(CardPressStyle())
@@ -203,7 +203,7 @@ struct DeliveryCard: View {
             }
         }
         .frame(height: 60)
-        .padding(.horizontal, 4)
+        .padding(.horizontal, PerchTheme.Spacing.xxSmall)
     }
 
     private func stepSystemImage(for key: String) -> String {
