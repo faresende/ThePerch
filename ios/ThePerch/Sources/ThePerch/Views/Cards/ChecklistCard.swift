@@ -97,8 +97,8 @@ struct ChecklistCard: View {
 
                             Spacer()
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, PerchTheme.Spacing.medium)
+                        .padding(.vertical, PerchTheme.Spacing.medium)
                         .background(PerchTheme.cardInnerBackground)
                         .cornerRadius(PerchTheme.Card.innerCornerRadius)
                         .overlay(
@@ -111,7 +111,7 @@ struct ChecklistCard: View {
                 }
             }
         }
-        .padding(PerchTheme.Card.padding + 4)
+        .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
 }

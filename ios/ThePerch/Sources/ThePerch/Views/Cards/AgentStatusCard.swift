@@ -98,7 +98,7 @@ struct AgentStatusCard: View {
                         .padding(.vertical, 6)
                         .background(PerchTheme.textSecondary.opacity(0.08))
                         .cornerRadius(8)
-                        .padding(.top, 4)
+                        .padding(.top, PerchTheme.Spacing.xxSmall)
                 }
             }
 
