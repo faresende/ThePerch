@@ -1,0 +1,192 @@
+import SwiftUI
+
+/// Displays delivery tracking with a horizontal step progress indicator.
+/// Matches the React DeliveryCard design with dots and connector lines.
+struct DeliveryCard: View {
+    let delivery: DeliveryData
+    let emoji: String
+
+    init(delivery: DeliveryData, emoji: String = "📦") {
+        self.delivery = delivery
+        self.emoji = emoji
+    }
+
+    private let steps: [(key: String, label: String)] = [
+        ("ordered", "Ordered"),
+        ("shipped", "Shipped"),
+        ("out_for_delivery", "Out"),
+        ("delivered", "Delivered"),
+    ]
+
+    private var activeIndex: Int {
+        let statusKey = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
+        // Map common API status values to step keys
+        let normalizedKey: String
+        switch statusKey {
+        case "in_transit", "shipped", "processing":
+            normalizedKey = "shipped"
+        case "out_for_delivery":
+            normalizedKey = "out_for_delivery"
+        case "delivered":
+            normalizedKey = "delivered"
+        case "pending", "ordered":
+            normalizedKey = "ordered"
+        default:
+            normalizedKey = statusKey
+        }
+        return steps.firstIndex(where: { $0.key == normalizedKey }) ?? 0
+    }
+
+    private var etaFormatted: String? {
+        guard let eta = delivery.eta else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: eta)
+    }
+
+    private var trackingSuffix: String? {
+        guard !delivery.trackingNumber.isEmpty else { return nil }
+        return "#" + String(delivery.trackingNumber.suffix(6))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack(spacing: 12) {
+                // Emoji icon
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(PerchTheme.accentMuted)
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Text(emoji)
+                            .font(.system(size: 22))
+                    )
+
+                // Item name + carrier
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(delivery.items.first?.name ?? "Package")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(PerchTheme.textPrimary)
+                        .lineLimit(1)
+
+                    HStack(spacing: 8) {
+                        Text(delivery.carrier)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(PerchTheme.textSecondary)
+
+                        if let suffix = trackingSuffix {
+                            Text(suffix)
+                                .font(.system(size: 12))
+                                .foregroundColor(PerchTheme.textTertiary)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // ETA badge
+                if let eta = etaFormatted {
+                    Text("ETA \(eta)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(PerchTheme.accent)
+                }
+            }
+
+            // Progress stepper
+            progressStepper
+        }
+        .padding(PerchTheme.Card.padding + 4)
+        .cardStyle()
+    }
+
+    private var progressStepper: some View {
+        GeometryReader { geometry in
+            let stepCount = CGFloat(steps.count)
+            let dotSize: CGFloat = 18       // 50% larger (was 12)
+            let activeDotSize: CGFloat = 24  // 50% larger (was 16)
+            let maxDot = activeDotSize
+            let totalWidth = geometry.size.width - maxDot
+            let stepSpacing = totalWidth / (stepCount - 1)
+            let lineY: CGFloat = maxDot / 2  // center line on largest dot
+
+            ZStack(alignment: .topLeading) {
+                // Connector line (background)
+                Path { path in
+                    path.move(to: CGPoint(x: maxDot / 2, y: lineY))
+                    path.addLine(to: CGPoint(x: totalWidth + maxDot / 2, y: lineY))
+                }
+                .stroke(PerchTheme.border, lineWidth: 3)
+
+                // Connector line (active portion)
+                if activeIndex > 0 {
+                    let activeWidth = stepSpacing * CGFloat(activeIndex)
+                    Path { path in
+                        path.move(to: CGPoint(x: maxDot / 2, y: lineY))
+                        path.addLine(to: CGPoint(x: activeWidth + maxDot / 2, y: lineY))
+                    }
+                    .stroke(PerchTheme.accent, lineWidth: 3)
+                }
+
+                // Step dots and labels
+                ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                    let isComplete = index <= activeIndex
+                    let isCurrent = index == activeIndex
+                    let x = stepSpacing * CGFloat(index) + maxDot / 2
+                    let size = isCurrent ? activeDotSize : dotSize
+
+                    // Dot — vertically centered on the connector line
+                    Circle()
+                        .fill(isComplete ? PerchTheme.accent : PerchTheme.border)
+                        .frame(width: size, height: size)
+                        .shadow(
+                            color: isCurrent ? PerchTheme.accent.opacity(0.5) : .clear,
+                            radius: isCurrent ? 8 : 0
+                        )
+                        .position(x: x, y: lineY)
+
+                    // Label — positioned below the dot
+                    Text(step.label)
+                        .font(.system(size: 10, weight: isCurrent ? .bold : .regular))
+                        .foregroundColor(isComplete ? PerchTheme.textPrimary : PerchTheme.textTertiary)
+                        .frame(width: 60)
+                        .position(x: x, y: lineY + maxDot / 2 + 14)
+                }
+            }
+        }
+        .frame(height: 60)
+        .padding(.horizontal, 4)
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    VStack(spacing: PerchTheme.Spacing.medium) {
+        DeliveryCard(
+            delivery: DeliveryData(
+                orderId: "12345",
+                carrier: "DHL Express",
+                trackingNumber: "DHL1234567890",
+                status: "in_transit",
+                eta: Date.now.addingTimeInterval(86400 * 2),
+                items: [DeliveryItem(name: "Wireless Headphones", quantity: 1, description: nil)],
+                trackingUrl: nil
+            )
+        )
+
+        DeliveryCard(
+            delivery: DeliveryData(
+                orderId: "67890",
+                carrier: "Correios",
+                trackingNumber: "BR9876543210",
+                status: "out_for_delivery",
+                eta: Date.now.addingTimeInterval(3600),
+                items: [DeliveryItem(name: "LED Desk Lamp", quantity: 1, description: nil)],
+                trackingUrl: nil
+            )
+        )
+    }
+    .padding(PerchTheme.Spacing.medium)
+    .background(PerchTheme.background)
+    .ignoresSafeArea()
+}

@@ -1,0 +1,135 @@
+import SwiftUI
+
+/// Displays a toggle-able checklist with progress bar and individual row cells.
+/// Precisely matches the 21st.dev reference: near-black card, each item in its
+/// own bordered cell, amber checkboxes, progress bar with percentage.
+struct ChecklistCard: View {
+    let title: String
+    @State var items: [ChecklistItem]
+
+    var completedCount: Int {
+        items.filter { $0.done }.count
+    }
+
+    var progressPercent: Double {
+        guard !items.isEmpty else { return 0 }
+        return Double(completedCount) / Double(items.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            // Title
+            Text(title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(PerchTheme.textPrimary)
+
+            // Subtitle row: count left, percentage right
+            HStack {
+                Text("\(completedCount) of \(items.count) completed")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(PerchTheme.textSecondary)
+
+                Spacer()
+
+                Text("\(Int(progressPercent * 100))%")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(PerchTheme.accent)
+            }
+
+            // Progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(PerchTheme.cardInnerBackground)
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(PerchTheme.accent)
+                        .frame(width: max(0, geometry.size.width * progressPercent))
+                        .animation(.easeInOut(duration: 0.3), value: progressPercent)
+                }
+            }
+            .frame(height: 8)
+
+            // Items
+            VStack(spacing: 10) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            items[index].done.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 14) {
+                            // Circular checkbox
+                            ZStack {
+                                if item.done {
+                                    Circle()
+                                        .fill(PerchTheme.accent)
+                                        .frame(width: 24, height: 24)
+                                        .shadow(
+                                            color: PerchTheme.accent.opacity(0.3),
+                                            radius: 4
+                                        )
+
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.black)
+                                } else {
+                                    Circle()
+                                        .strokeBorder(
+                                            PerchTheme.textTertiary,
+                                            lineWidth: 2
+                                        )
+                                        .frame(width: 24, height: 24)
+                                }
+                            }
+
+                            // Item text
+                            Text(item.text)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(
+                                    item.done
+                                        ? PerchTheme.textTertiary
+                                        : PerchTheme.textPrimary
+                                )
+                                .strikethrough(item.done, color: PerchTheme.textTertiary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 16)
+                        .background(PerchTheme.cardInnerBackground)
+                        .cornerRadius(PerchTheme.Card.innerCornerRadius)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
+                                .stroke(PerchTheme.border, lineWidth: 1)
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(PerchTheme.Card.padding + 4)
+        .cardStyle()
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    ChecklistCard(
+        title: "Daily Tasks",
+        items: [
+            ChecklistItem(text: "Review morning standup notes", done: true),
+            ChecklistItem(text: "Complete code review", done: true),
+            ChecklistItem(text: "Update project documentation", done: false),
+            ChecklistItem(text: "Prepare for client meeting", done: false),
+            ChecklistItem(text: "Deploy to staging environment", done: false),
+        ]
+    )
+    .padding(PerchTheme.Spacing.large)
+    .background(PerchTheme.background)
+    .ignoresSafeArea()
+}

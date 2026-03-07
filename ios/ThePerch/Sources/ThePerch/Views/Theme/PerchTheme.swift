@@ -1,0 +1,169 @@
+import SwiftUI
+
+/// Centralized theme configuration for The Perch app.
+/// Near-black dark theme with warm amber accent and ambient glow effects.
+/// Designed to match the 21st.dev card reference designs.
+struct PerchTheme {
+    // MARK: - Colors
+
+    /// Main background — near black, neutral (no blue/purple tint)
+    static var background: Color {
+        Color(red: 0.05, green: 0.05, blue: 0.055)  // #0d0d0e
+    }
+
+    /// Elevated surface for cards — neutral dark gray, no purple
+    static var cardBackground: Color {
+        Color(red: 0.09, green: 0.09, blue: 0.095)  // #171718
+    }
+
+    /// Inner surface for items within cards (checklist rows, selectors)
+    static var cardInnerBackground: Color {
+        Color(red: 0.12, green: 0.12, blue: 0.125)  // #1f1f20
+    }
+
+    /// Card hover/pressed state
+    static var cardHover: Color {
+        Color(red: 0.15, green: 0.15, blue: 0.155)  // #262627
+    }
+
+    /// Primary text — near white
+    static var textPrimary: Color {
+        Color(red: 0.95, green: 0.95, blue: 0.95)  // #f2f2f2
+    }
+
+    /// Secondary text — neutral gray
+    static var textSecondary: Color {
+        Color(red: 0.50, green: 0.50, blue: 0.52)  // #808085
+    }
+
+    /// Tertiary text — very dim
+    static var textTertiary: Color {
+        Color(red: 0.33, green: 0.33, blue: 0.35)  // #545459
+    }
+
+    /// Accent — bright warm amber/gold (punchy, not washed out)
+    static var accent: Color {
+        Color(red: 0.96, green: 0.68, blue: 0.15)  // #f5ad26
+    }
+
+    /// Muted accent for tinted backgrounds
+    static var accentMuted: Color {
+        accent.opacity(0.15)
+    }
+
+    /// Accent glow — for ambient shadow/glow effects
+    static var accentGlow: Color {
+        accent.opacity(0.10)
+    }
+
+    /// Success
+    static var success: Color {
+        Color(red: 0.22, green: 0.75, blue: 0.45)  // #38bf73
+    }
+
+    /// Warning (same family as accent)
+    static var warning: Color {
+        accent
+    }
+
+    /// Error
+    static var error: Color {
+        Color(red: 0.90, green: 0.33, blue: 0.33)  // #e65454
+    }
+
+    /// Border — subtle, neutral
+    static var border: Color {
+        Color(red: 0.16, green: 0.16, blue: 0.17)  // #29292b
+    }
+
+    // MARK: - Typography
+
+    enum Font {
+        static let largeTitle = SwiftUI.Font.system(size: 32, weight: .bold)
+        static let title1 = SwiftUI.Font.system(size: 28, weight: .bold)
+        static let title2 = SwiftUI.Font.system(size: 22, weight: .semibold)
+        static let title3 = SwiftUI.Font.system(size: 20, weight: .semibold)
+        static let headline = SwiftUI.Font.system(size: 17, weight: .semibold)
+        static let body = SwiftUI.Font.system(size: 17, weight: .regular)
+        static let callout = SwiftUI.Font.system(size: 16, weight: .regular)
+        static let subheadline = SwiftUI.Font.system(size: 15, weight: .regular)
+        static let caption1 = SwiftUI.Font.system(size: 13, weight: .regular)
+        static let caption2 = SwiftUI.Font.system(size: 12, weight: .regular)
+        static let footnote = SwiftUI.Font.system(size: 12, weight: .regular)
+    }
+
+    // MARK: - Spacing
+
+    enum Spacing {
+        static let xxxSmall: CGFloat = 2
+        static let xxSmall: CGFloat = 4
+        static let xSmall: CGFloat = 8
+        static let small: CGFloat = 12
+        static let medium: CGFloat = 16
+        static let large: CGFloat = 24
+        static let xLarge: CGFloat = 32
+        static let xxLarge: CGFloat = 48
+    }
+
+    // MARK: - Card Styling
+
+    enum Card {
+        static let cornerRadius: CGFloat = 18
+        static let innerCornerRadius: CGFloat = 12
+        static let padding: CGFloat = 20
+        static let shadowRadius: CGFloat = 12
+        static let shadowOpacity: Double = 0.4
+        static let borderWidth: CGFloat = 1
+    }
+
+    // MARK: - Icon Sizing
+
+    enum Icon {
+        static let xSmall: CGFloat = 12
+        static let small: CGFloat = 16
+        static let medium: CGFloat = 20
+        static let large: CGFloat = 24
+        static let xLarge: CGFloat = 32
+        static let xxLarge: CGFloat = 48
+    }
+}
+
+// MARK: - View Extensions for Common Styling
+
+extension View {
+    /// Apply card styling with ambient warm glow.
+    /// Glow spreads wide horizontally but is tight vertically so cards
+    /// don't bleed into each other in a vertical stack.
+    func cardStyle() -> some View {
+        self
+            .background(PerchTheme.cardBackground)
+            .cornerRadius(PerchTheme.Card.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                    .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
+            )
+            // Wide horizontal amber glow (spread to the sides)
+            .shadow(
+                color: PerchTheme.accentGlow,
+                radius: 30,
+                x: 0,
+                y: 0
+            )
+            // Dark depth shadow (tight, downward only)
+            .shadow(
+                color: Color.black.opacity(PerchTheme.Card.shadowOpacity),
+                radius: 6,
+                x: 0,
+                y: 2
+            )
+    }
+
+    /// Apply subtle border styling
+    func cardBorder() -> some View {
+        self
+            .overlay(
+                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                    .stroke(PerchTheme.border, lineWidth: 1)
+            )
+    }
+}
