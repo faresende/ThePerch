@@ -24,12 +24,12 @@ struct CardContainer<Content: View>: View {
                 HStack(spacing: PerchTheme.Spacing.xSmall) {
                     if let icon {
                         Image(systemName: icon)
-                            .font(.system(size: PerchTheme.Icon.medium))
+                            .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
                             .foregroundColor(PerchTheme.accent)
                     }
                     if let title {
                         Text(title)
-                            .font(PerchTheme.Font.headline)
+                            .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
                     }
                     Spacer()
@@ -51,10 +51,10 @@ struct CardContainer<Content: View>: View {
         CardContainer(title: "Weight", icon: "heart.fill") {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                 Text("81.5 kg")
-                    .font(PerchTheme.Font.title2)
+                    .font(PerchTheme.Font.title)
                     .foregroundColor(PerchTheme.textPrimary)
                 Text("Latest measurement")
-                    .font(PerchTheme.Font.caption1)
+                    .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textSecondary)
             }
         }

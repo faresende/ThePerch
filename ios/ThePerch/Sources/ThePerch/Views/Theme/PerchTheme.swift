@@ -79,17 +79,35 @@ struct PerchTheme {
     // MARK: - Typography
 
     enum Font {
-        static let largeTitle = SwiftUI.Font.system(size: 32, weight: .bold)
-        static let title1 = SwiftUI.Font.system(size: 28, weight: .bold)
-        static let title2 = SwiftUI.Font.system(size: 22, weight: .semibold)
-        static let title3 = SwiftUI.Font.system(size: 20, weight: .semibold)
-        static let headline = SwiftUI.Font.system(size: 17, weight: .semibold)
-        static let body = SwiftUI.Font.system(size: 17, weight: .regular)
-        static let callout = SwiftUI.Font.system(size: 16, weight: .regular)
-        static let subheadline = SwiftUI.Font.system(size: 15, weight: .regular)
-        static let caption1 = SwiftUI.Font.system(size: 13, weight: .regular)
-        static let caption2 = SwiftUI.Font.system(size: 12, weight: .regular)
-        static let footnote = SwiftUI.Font.system(size: 12, weight: .regular)
+        /// 32pt — large hero numbers, page titles
+        static let display = SwiftUI.Font.system(size: 32, weight: .bold)
+        /// 22pt — section titles
+        static let title = SwiftUI.Font.system(size: 22, weight: .semibold)
+        /// 17pt — card titles, emphasis
+        static let heading = SwiftUI.Font.system(size: 17, weight: .semibold)
+        /// 15pt — regular text
+        static let body = SwiftUI.Font.system(size: 15, weight: .regular)
+        /// 13pt — metadata, labels
+        static let caption = SwiftUI.Font.system(size: 13, weight: .regular)
+        /// 11pt — footnotes, timestamps
+        static let micro = SwiftUI.Font.system(size: 11, weight: .regular)
+
+        // Numeric variants — .rounded design for data displays
+        static let displayNumeric = SwiftUI.Font.system(size: 32, weight: .bold, design: .rounded)
+        static let titleNumeric = SwiftUI.Font.system(size: 22, weight: .bold, design: .rounded)
+        static let headingNumeric = SwiftUI.Font.system(size: 17, weight: .bold, design: .rounded)
+        static let bodyNumeric = SwiftUI.Font.system(size: 15, weight: .semibold, design: .rounded)
+        static let captionNumeric = SwiftUI.Font.system(size: 13, weight: .semibold, design: .rounded)
+        static let microNumeric = SwiftUI.Font.system(size: 11, weight: .semibold, design: .rounded)
+
+        // Icon variant — use for SF Symbol sizing (passes through PerchTheme.Icon constants)
+        static func icon(_ size: CGFloat) -> SwiftUI.Font {
+            SwiftUI.Font.system(size: size)
+        }
+
+        // Monospaced variants — for code/data displays
+        static let captionMono = SwiftUI.Font.system(size: 13, weight: .medium, design: .monospaced)
+        static let microMono = SwiftUI.Font.system(size: 11, weight: .regular, design: .monospaced)
     }
 
     // MARK: - Spacing

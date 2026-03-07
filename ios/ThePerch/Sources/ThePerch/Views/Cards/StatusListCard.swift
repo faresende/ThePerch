@@ -54,7 +54,7 @@ struct StatusItemRow: View {
             HStack(spacing: PerchTheme.Spacing.small) {
                 // Icon
                 Image(systemName: item.icon)
-                    .font(.system(size: PerchTheme.Icon.medium))
+                    .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
                     .foregroundColor(PerchTheme.accent)
                     .frame(width: PerchTheme.Icon.large)
 
@@ -66,7 +66,7 @@ struct StatusItemRow: View {
                         .lineLimit(1)
 
                     Text(item.timestamp.relativeTime)
-                        .font(PerchTheme.Font.caption2)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
 
@@ -75,7 +75,7 @@ struct StatusItemRow: View {
                 // Status badge
                 HStack(spacing: PerchTheme.Spacing.xxSmall) {
                     Text(item.status)
-                        .font(PerchTheme.Font.caption1)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(.white)
                         .padding(.horizontal, PerchTheme.Spacing.small)
                         .padding(.vertical, PerchTheme.Spacing.xxSmall)

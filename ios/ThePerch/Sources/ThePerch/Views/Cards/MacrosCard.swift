@@ -20,7 +20,7 @@ struct MacrosCard: View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
             Text("Daily Macros")
-                .font(.system(size: 17, weight: .bold))
+                .font(PerchTheme.Font.heading)
                 .foregroundColor(PerchTheme.textPrimary)
 
             // Macro rows with gradient colors
@@ -52,13 +52,13 @@ struct MacrosCard: View {
             HStack {
                 if let updated = lastUpdated {
                     Text("Updated \(updated.relativeTime)")
-                        .font(.system(size: 10))
+                        .font(PerchTheme.Font.micro)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
                 Spacer()
                 let total = protein + carbs + fat
                 Text("\(Int(total))g total")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(PerchTheme.Font.captionNumeric)
                     .foregroundColor(PerchTheme.textSecondary)
             }
         }
@@ -83,7 +83,7 @@ struct MacrosCard: View {
                         .fill(color)
                         .frame(width: 8, height: 8)
                     Text(label)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textPrimary)
                 }
 
@@ -94,19 +94,19 @@ struct MacrosCard: View {
                     HStack(spacing: 4) {
                         if isOver {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 11))
+                                .font(PerchTheme.Font.micro)
                                 .foregroundColor(PerchTheme.error)
                         }
                         Text("\(Int(value))")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .font(PerchTheme.Font.bodyNumeric)
                             .foregroundColor(isOver ? PerchTheme.error : PerchTheme.textPrimary)
                         + Text(" / \(Int(target))g")
-                            .font(.system(size: 12))
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textTertiary)
                     }
                 } else {
                     Text("\(Int(value))g")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(PerchTheme.Font.bodyNumeric)
                         .foregroundColor(PerchTheme.textPrimary)
                 }
             }
