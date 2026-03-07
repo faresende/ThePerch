@@ -6,6 +6,8 @@ struct DeliveryCard: View {
     let delivery: DeliveryData
     let emoji: String
 
+    @State private var animateTimeline = false
+
     init(delivery: DeliveryData, emoji: String = "📦") {
         self.delivery = delivery
         self.emoji = emoji
@@ -49,54 +51,84 @@ struct DeliveryCard: View {
         return "#" + String(delivery.trackingNumber.suffix(6))
     }
 
+    private var hasTrackingUrl: Bool {
+        guard let url = delivery.trackingUrl, !url.isEmpty else { return false }
+        return URL(string: url) != nil
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack(spacing: 12) {
-                // Emoji icon
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(PerchTheme.accentMuted)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Text(emoji)
-                            .font(.system(size: 22))
-                    )
+        Button(action: openTracking) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header
+                HStack(spacing: 12) {
+                    // Emoji icon
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(PerchTheme.accentMuted)
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Text(emoji)
+                                .font(.system(size: 22))
+                        )
 
-                // Item name + carrier
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(delivery.items.first?.name ?? "Package")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(PerchTheme.textPrimary)
-                        .lineLimit(1)
+                    // Item name + carrier
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(delivery.items.first?.name ?? "Package")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(PerchTheme.textPrimary)
+                            .lineLimit(1)
 
-                    HStack(spacing: 8) {
-                        Text(delivery.carrier)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(PerchTheme.textSecondary)
+                        HStack(spacing: 8) {
+                            Text(delivery.carrier)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(PerchTheme.textSecondary)
 
-                        if let suffix = trackingSuffix {
-                            Text(suffix)
-                                .font(.system(size: 12))
-                                .foregroundColor(PerchTheme.textTertiary)
+                            if let suffix = trackingSuffix {
+                                Text(suffix)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(PerchTheme.textTertiary)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    // ETA badge + tracking indicator
+                    VStack(alignment: .trailing, spacing: 4) {
+                        if let eta = etaFormatted {
+                            Text("ETA \(eta)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(PerchTheme.accent)
+                        }
+                        if hasTrackingUrl {
+                            HStack(spacing: 3) {
+                                Text("Track")
+                                    .font(.system(size: 10, weight: .medium))
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                            .foregroundColor(PerchTheme.textTertiary)
                         }
                     }
                 }
 
-                Spacer()
-
-                // ETA badge
-                if let eta = etaFormatted {
-                    Text("ETA \(eta)")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(PerchTheme.accent)
-                }
+                // Progress stepper
+                progressStepper
             }
-
-            // Progress stepper
-            progressStepper
+            .padding(PerchTheme.Card.padding + 4)
+            .cardStyle()
         }
-        .padding(PerchTheme.Card.padding + 4)
-        .cardStyle()
+        .buttonStyle(CardPressStyle())
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6).delay(0.2)) {
+                animateTimeline = true
+            }
+        }
+    }
+
+    private func openTracking() {
+        if let urlStr = delivery.trackingUrl, let url = URL(string: urlStr) {
+            UIApplication.shared.open(url)
+        }
     }
 
     private var progressStepper: some View {
@@ -117,32 +149,49 @@ struct DeliveryCard: View {
                 }
                 .stroke(PerchTheme.border, lineWidth: 3)
 
-                // Connector line (active portion)
+                // Connector line (active portion) — animated
                 if activeIndex > 0 {
                     let activeWidth = stepSpacing * CGFloat(activeIndex)
                     Path { path in
                         path.move(to: CGPoint(x: maxDot / 2, y: lineY))
-                        path.addLine(to: CGPoint(x: activeWidth + maxDot / 2, y: lineY))
+                        path.addLine(to: CGPoint(x: (animateTimeline ? activeWidth : 0) + maxDot / 2, y: lineY))
                     }
-                    .stroke(PerchTheme.accent, lineWidth: 3)
+                    .stroke(
+                        LinearGradient(
+                            colors: [PerchTheme.accent.opacity(0.7), PerchTheme.accent],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: 3
+                    )
                 }
 
-                // Step dots and labels
+                // Step dots with icons and labels
                 ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
                     let isComplete = index <= activeIndex
                     let isCurrent = index == activeIndex
                     let x = stepSpacing * CGFloat(index) + maxDot / 2
                     let size = isCurrent ? activeDotSize : dotSize
+                    let stepIcon = stepSystemImage(for: step.key)
 
-                    // Dot — vertically centered on the connector line
-                    Circle()
-                        .fill(isComplete ? PerchTheme.accent : PerchTheme.border)
-                        .frame(width: size, height: size)
-                        .shadow(
-                            color: isCurrent ? PerchTheme.accent.opacity(0.5) : .clear,
-                            radius: isCurrent ? 8 : 0
-                        )
-                        .position(x: x, y: lineY)
+                    // Dot with icon — vertically centered on the connector line
+                    ZStack {
+                        Circle()
+                            .fill(isComplete ? PerchTheme.accent : PerchTheme.border)
+                            .frame(width: size, height: size)
+                            .shadow(
+                                color: isCurrent ? PerchTheme.accent.opacity(0.5) : .clear,
+                                radius: isCurrent ? 8 : 0
+                            )
+
+                        if isCurrent || isComplete {
+                            Image(systemName: stepIcon)
+                                .font(.system(size: isCurrent ? 11 : 9, weight: .bold))
+                                .foregroundColor(.black)
+                        }
+                    }
+                    .position(x: x, y: lineY)
+                    .opacity(animateTimeline || index == 0 ? 1 : (isComplete ? 1 : 0.5))
 
                     // Label — positioned below the dot
                     Text(step.label)
@@ -155,6 +204,16 @@ struct DeliveryCard: View {
         }
         .frame(height: 60)
         .padding(.horizontal, 4)
+    }
+
+    private func stepSystemImage(for key: String) -> String {
+        switch key {
+        case "ordered": return "cart.fill"
+        case "shipped": return "shippingbox.fill"
+        case "out_for_delivery": return "truck.box.fill"
+        case "delivered": return "checkmark"
+        default: return "circle.fill"
+        }
     }
 }
 

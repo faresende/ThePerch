@@ -6,11 +6,12 @@ import Realtime
 // MARK: - Error Types
 
 /// Errors that can occur during Supabase operations.
-enum SupabaseServiceError: LocalizedError {
+enum SupabaseServiceError: LocalizedError, Sendable {
     case clientNotInitialized
     case authError(String)
     case queryError(String)
     case decodingError(String)
+    case networkError(String)
     case unknownError(String)
 
     var errorDescription: String? {
@@ -23,8 +24,58 @@ enum SupabaseServiceError: LocalizedError {
             return "Query error: \(message)"
         case .decodingError(let message):
             return "Decoding error: \(message)"
+        case .networkError(let message):
+            return "Network error: \(message)"
         case .unknownError(let message):
             return "Unknown error: \(message)"
+        }
+    }
+}
+
+// MARK: - Cache Entry
+
+/// A time-stamped cache entry for avoiding redundant network requests within 30 seconds.
+private struct CacheEntry<T> {
+    let value: T
+    let fetchedAt: Date
+
+    var isStale: Bool {
+        Date.now.timeIntervalSince(fetchedAt) > 30
+    }
+}
+
+// MARK: - Data Freshness Tracking
+
+/// Tracks when each data category was last fetched, for UI display and auto-refresh.
+@Observable
+@MainActor
+final class DataFreshnessTracker {
+    static let shared = DataFreshnessTracker()
+
+    private(set) var lastFetchTimes: [String: Date] = [:]
+
+    /// Auto-refresh threshold in seconds (5 minutes).
+    let staleThreshold: TimeInterval = 300
+
+    func recordFetch(for key: String) {
+        lastFetchTimes[key] = Date.now
+    }
+
+    func isStale(_ key: String) -> Bool {
+        guard let lastFetch = lastFetchTimes[key] else { return true }
+        return Date.now.timeIntervalSince(lastFetch) > staleThreshold
+    }
+
+    func relativeTimeString(for key: String) -> String? {
+        guard let lastFetch = lastFetchTimes[key] else { return nil }
+        let interval = Date.now.timeIntervalSince(lastFetch)
+        let minutes = Int(interval / 60)
+        if minutes < 1 {
+            return "Updated just now"
+        } else if minutes == 1 {
+            return "Updated 1 min ago"
+        } else {
+            return "Updated \(minutes) min ago"
         }
     }
 }
@@ -52,13 +103,33 @@ final class SupabaseService: ObservableObject {
     /// The Supabase client instance.
     private let client: SupabaseClient
 
-    /// Custom JSON decoder for Supabase responses (handles snake_case + ISO8601 dates).
-    private let snakeCaseDecoder: JSONDecoder = {
+    /// Active realtime channels for subscription management.
+    private var recordsChannel: RealtimeChannelV2?
+    private var agentsChannel: RealtimeChannelV2?
+
+    /// Tracks when each category was last fetched for data freshness.
+    @Published var lastFetchTimes: [RecordCategory: Date] = [:]
+    @Published var lastGlobalFetchTime: Date?
+
+    /// Shared JSON decoder for Supabase responses (ISO8601 dates).
+    private let recordDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }()
+
+    /// Retry configuration
+    private let maxRetries = 3
+    private let baseRetryDelay: TimeInterval = 1.0
+
+    // MARK: - Cache
+
+    private var sectionsCache: CacheEntry<[Section]>?
+    private var recordsCache: [String: CacheEntry<[Record]>] = [:]
+    private var agentsCache: CacheEntry<[Agent]>?
+    private var homeWidgetsCache: CacheEntry<[HomeWidget]>?
+
+    let freshnessTracker = DataFreshnessTracker.shared
 
     // MARK: - Initialization
 
@@ -68,6 +139,43 @@ final class SupabaseService: ObservableObject {
             supabaseURL: config.supabaseURL,
             supabaseKey: config.supabaseAnonKey
         )
+    }
+
+    // MARK: - Retry Logic
+
+    /// Executes an async operation with exponential backoff retry (3 attempts).
+    private func withRetry<T>(
+        operation: String,
+        body: @Sendable () async throws -> T
+    ) async throws -> T {
+        var lastError: Error?
+        for attempt in 0..<maxRetries {
+            do {
+                return try await body()
+            } catch {
+                lastError = error
+                if attempt < maxRetries - 1 {
+                    let delay = baseRetryDelay * pow(2.0, Double(attempt))
+                    print("[\(operation)] Attempt \(attempt + 1) failed, retrying in \(delay)s: \(error.localizedDescription)")
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+            }
+        }
+        throw lastError ?? SupabaseServiceError.unknownError("All retries exhausted")
+    }
+
+    // MARK: - Cache Helpers
+
+    private func recordsCacheKey(category: RecordCategory?, type: RecordType?, limit: Int) -> String {
+        "\(category?.rawValue ?? "all")_\(type?.rawValue ?? "all")_\(limit)"
+    }
+
+    /// Invalidates all caches.
+    func invalidateCache() {
+        sectionsCache = nil
+        recordsCache.removeAll()
+        agentsCache = nil
+        homeWidgetsCache = nil
     }
 
     // MARK: - Authentication Methods
@@ -130,6 +238,7 @@ final class SupabaseService: ObservableObject {
             try await client.auth.signOut()
             self.isAuthenticated = false
             self.error = nil
+            invalidateCache()
         } catch {
             throw SupabaseServiceError.authError(error.localizedDescription)
         }
@@ -154,147 +263,170 @@ final class SupabaseService: ObservableObject {
 
     // MARK: - Query Methods
 
-    /// Fetches records from the database, with optional filtering.
+    /// Fetches records with 30s cache and exponential backoff retry.
     func fetchRecords(
         category: RecordCategory? = nil,
         type: RecordType? = nil,
-        limit: Int = 100
+        limit: Int = 100,
+        forceRefresh: Bool = false
     ) async throws -> [Record] {
+        let cacheKey = recordsCacheKey(category: category, type: type, limit: limit)
+
+        if !forceRefresh, let cached = recordsCache[cacheKey], !cached.isStale {
+            return cached.value
+        }
+
         if useMockData {
             try await Task.sleep(nanoseconds: 300_000_000)
             var records = MockData.allRecords
             if let category { records = records.filter { $0.category == category } }
             if let type { records = records.filter { $0.type == type } }
-            return Array(records.prefix(limit))
+            let result = Array(records.prefix(limit))
+            recordsCache[cacheKey] = CacheEntry(value: result, fetchedAt: Date.now)
+            return result
         }
 
         do {
-            var query = client.from("dashboard_records").select()
+            let records: [Record] = try await withRetry(operation: "fetchRecords") { [client, recordDecoder] in
+                var query = client.from("dashboard_records").select()
+                if let category {
+                    query = query.eq("category", value: category.rawValue)
+                }
+                if let type {
+                    query = query.eq("type", value: type.rawValue)
+                }
+                let result = try await query
+                    .order("created_at", ascending: false)
+                    .limit(limit)
+                    .execute()
+                return try recordDecoder.decode([Record].self, from: result.data)
+            }
 
+            recordsCache[cacheKey] = CacheEntry(value: records, fetchedAt: Date.now)
             if let category {
-                query = query.eq("category", value: category.rawValue)
+                lastFetchTimes[category] = Date.now
+                freshnessTracker.recordFetch(for: category.rawValue)
+            } else {
+                lastGlobalFetchTime = Date.now
+                freshnessTracker.recordFetch(for: "all_records")
             }
-            if let type {
-                query = query.eq("type", value: type.rawValue)
-            }
-
-            let result = try await query
-                .order("created_at", ascending: false)
-                .limit(limit)
-                .execute()
-
-            let rawJSON = String(data: result.data, encoding: .utf8) ?? "nil"
-            print("[SupabaseService] fetchRecords raw (\(category?.rawValue ?? "all")): \(rawJSON.prefix(500))")
-
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let records = try decoder.decode([Record].self, from: result.data)
-            print("[SupabaseService] fetchRecords decoded \(records.count) records")
             return records
         } catch {
             print("[SupabaseService] fetchRecords error: \(error)")
-            // Fall back to mock data on failure
             useMockData = true
-            return try await fetchRecords(category: category, type: type, limit: limit)
+            return try await fetchRecords(category: category, type: type, limit: limit, forceRefresh: true)
         }
     }
 
-    /// Fetches all active agents.
-    func fetchAgents() async throws -> [Agent] {
+    /// Fetches all active agents with 30s cache and retry.
+    func fetchAgents(forceRefresh: Bool = false) async throws -> [Agent] {
+        if !forceRefresh, let cached = agentsCache, !cached.isStale {
+            return cached.value
+        }
+
         if useMockData {
             try await Task.sleep(nanoseconds: 200_000_000)
-            return MockData.agents
+            let result = MockData.agents
+            agentsCache = CacheEntry(value: result, fetchedAt: Date.now)
+            return result
         }
 
         do {
-            let response: [Agent] = try await client.from("agents")
-                .select()
-                .eq("is_active", value: true)
-                .execute()
-                .value
-            return response
+            let agents: [Agent] = try await withRetry(operation: "fetchAgents") { [client] in
+                try await client.from("agents")
+                    .select()
+                    .eq("is_active", value: true)
+                    .execute()
+                    .value
+            }
+            agentsCache = CacheEntry(value: agents, fetchedAt: Date.now)
+            freshnessTracker.recordFetch(for: "agents")
+            return agents
         } catch {
             print("[SupabaseService] fetchAgents error: \(error)")
             useMockData = true
-            return try await fetchAgents()
+            return try await fetchAgents(forceRefresh: true)
         }
     }
 
-    /// Fetches token usage statistics.
+    /// Fetches token usage statistics with retry.
     func fetchTokenUsage(agentId: String? = nil, days: Int = 30) async throws -> [TokenUsage] {
-        if useMockData {
-            return []
-        }
+        if useMockData { return [] }
 
         do {
-            var query = client.from("token_usage").select()
-
-            if let agentId {
-                query = query.eq("agent_id", value: agentId)
+            return try await withRetry(operation: "fetchTokenUsage") { [client] in
+                var query = client.from("token_usage").select()
+                if let agentId {
+                    query = query.eq("agent_id", value: agentId)
+                }
+                return try await query
+                    .order("date", ascending: false)
+                    .limit(days)
+                    .execute()
+                    .value
             }
-
-            let response: [TokenUsage] = try await query
-                .order("date", ascending: false)
-                .limit(days)
-                .execute()
-                .value
-            return response
         } catch {
             print("[SupabaseService] fetchTokenUsage error: \(error)")
             return []
         }
     }
 
-    /// Fetches all sections for the current user.
-    func fetchSections() async throws -> [Section] {
+    /// Fetches all sections with 30s cache and retry.
+    func fetchSections(forceRefresh: Bool = false) async throws -> [Section] {
+        if !forceRefresh, let cached = sectionsCache, !cached.isStale {
+            return cached.value
+        }
+
         if useMockData {
             try await Task.sleep(nanoseconds: 200_000_000)
-            print("[SupabaseService] Using mock sections")
-            return MockData.sections
+            let result = MockData.sections
+            sectionsCache = CacheEntry(value: result, fetchedAt: Date.now)
+            return result
         }
 
         do {
-            let result = try await client.from("sections")
-                .select()
-                .order("sort_order", ascending: true)
-                .execute()
+            let sections: [Section] = try await withRetry(operation: "fetchSections") { [client, recordDecoder] in
+                let result = try await client.from("sections")
+                    .select()
+                    .order("sort_order", ascending: true)
+                    .execute()
+                return try recordDecoder.decode([Section].self, from: result.data)
+            }
 
-            // Debug: print the raw JSON response
-            let rawJSON = String(data: result.data, encoding: .utf8) ?? "nil"
-            print("[SupabaseService] fetchSections raw response: \(rawJSON)")
-
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let sections = try decoder.decode([Section].self, from: result.data)
-            print("[SupabaseService] fetchSections decoded \(sections.count) sections")
-
-            // If Supabase returned empty (e.g., RLS blocking), fall back to mock
             if sections.isEmpty {
                 print("[SupabaseService] Sections empty, falling back to mock")
                 useMockData = true
-                return try await fetchSections()
+                return try await fetchSections(forceRefresh: true)
             }
+
+            sectionsCache = CacheEntry(value: sections, fetchedAt: Date.now)
+            freshnessTracker.recordFetch(for: "sections")
             return sections
         } catch {
             print("[SupabaseService] fetchSections error: \(error)")
             useMockData = true
-            return try await fetchSections()
+            return try await fetchSections(forceRefresh: true)
         }
     }
 
-    /// Fetches all home widget configurations for the current user.
-    func fetchHomeWidgets() async throws -> [HomeWidget] {
-        if useMockData {
-            return []
+    /// Fetches all home widget configurations with 30s cache and retry.
+    func fetchHomeWidgets(forceRefresh: Bool = false) async throws -> [HomeWidget] {
+        if !forceRefresh, let cached = homeWidgetsCache, !cached.isStale {
+            return cached.value
         }
 
+        if useMockData { return [] }
+
         do {
-            let response: [HomeWidget] = try await client.from("home_widgets")
-                .select()
-                .order("position", ascending: true)
-                .execute()
-                .value
-            return response
+            let widgets: [HomeWidget] = try await withRetry(operation: "fetchHomeWidgets") { [client] in
+                try await client.from("home_widgets")
+                    .select()
+                    .order("position", ascending: true)
+                    .execute()
+                    .value
+            }
+            homeWidgetsCache = CacheEntry(value: widgets, fetchedAt: Date.now)
+            return widgets
         } catch {
             print("[SupabaseService] fetchHomeWidgets error: \(error)")
             return []
@@ -314,6 +446,7 @@ final class SupabaseService: ObservableObject {
                 .update(PinUpdate(pinned: pinned))
                 .eq("id", value: id.uuidString)
                 .execute()
+            recordsCache.removeAll()
         } catch {
             throw SupabaseServiceError.queryError(error.localizedDescription)
         }
@@ -342,11 +475,13 @@ final class SupabaseService: ObservableObject {
                 throw SupabaseServiceError.queryError(error.localizedDescription)
             }
         }
+        sectionsCache = nil
     }
 
     /// Updates home widget configurations.
     func updateHomeWidgets(widgets: [HomeWidget]) async throws {
         if useMockData { return }
+        homeWidgetsCache = nil
         // TODO: Implement batch widget update
     }
 
@@ -395,6 +530,7 @@ final class SupabaseService: ObservableObject {
                 .insert(record)
                 .execute()
             print("[SupabaseService] Inserted record: \(title)")
+            recordsCache.removeAll()
         } catch {
             print("[SupabaseService] insertRecord error: \(error)")
             throw SupabaseServiceError.queryError(error.localizedDescription)
@@ -403,16 +539,134 @@ final class SupabaseService: ObservableObject {
 
     // MARK: - Realtime Subscriptions
 
-    /// Subscribes to realtime record changes.
-    func subscribeToRecords(onChange: @escaping @Sendable (Any) -> Void) async throws {
-        if useMockData { return }
-        // TODO: Implement Supabase Realtime channel subscription
+    /// Action types from Supabase Realtime postgres_changes.
+    enum RealtimeAction: String {
+        case insert = "INSERT"
+        case update = "UPDATE"
+        case delete = "DELETE"
     }
 
-    /// Subscribes to realtime agent status changes.
-    func subscribeToAgents(onChange: @escaping @Sendable (Any) -> Void) async throws {
+    /// Payload for realtime record changes.
+    struct RealtimeRecordChange: Sendable {
+        let action: RealtimeAction
+        let record: Record?
+        let oldId: UUID?
+    }
+
+    /// Subscribes to realtime record changes on `dashboard_records`.
+    /// Calls `onChange` on the main actor whenever an INSERT, UPDATE, or DELETE occurs.
+    func subscribeToRecords(onChange: @escaping @MainActor @Sendable (RealtimeRecordChange) -> Void) async throws {
         if useMockData { return }
-        // TODO: Implement Supabase Realtime channel subscription
+
+        // Remove existing channel if reconnecting
+        if let existing = recordsChannel {
+            await client.realtimeV2.removeChannel(existing)
+        }
+
+        let channel = client.realtimeV2.channel("dashboard_records_changes")
+
+        let insertions = channel.postgresChange(InsertAction.self, table: "dashboard_records")
+        let updates = channel.postgresChange(UpdateAction.self, table: "dashboard_records")
+        let deletions = channel.postgresChange(DeleteAction.self, table: "dashboard_records")
+
+        self.recordsChannel = channel
+
+        await channel.subscribe()
+        print("[SupabaseService] Subscribed to dashboard_records realtime")
+
+        // Listen for insertions
+        Task {
+            for await insertion in insertions {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                if let data = try? JSONSerialization.data(withJSONObject: insertion.record),
+                   let record = try? decoder.decode(Record.self, from: data) {
+                    await onChange(RealtimeRecordChange(action: .insert, record: record, oldId: nil))
+                } else {
+                    // Even if decode fails, notify so UI can refresh
+                    await onChange(RealtimeRecordChange(action: .insert, record: nil, oldId: nil))
+                }
+            }
+        }
+
+        // Listen for updates
+        Task {
+            for await update in updates {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                if let data = try? JSONSerialization.data(withJSONObject: update.record),
+                   let record = try? decoder.decode(Record.self, from: data) {
+                    await onChange(RealtimeRecordChange(action: .update, record: record, oldId: nil))
+                } else {
+                    await onChange(RealtimeRecordChange(action: .update, record: nil, oldId: nil))
+                }
+            }
+        }
+
+        // Listen for deletions
+        Task {
+            for await deletion in deletions {
+                let oldId: UUID? = {
+                    if let idStr = deletion.oldRecord["id"] as? String {
+                        return UUID(uuidString: idStr)
+                    }
+                    return nil
+                }()
+                await onChange(RealtimeRecordChange(action: .delete, record: nil, oldId: oldId))
+            }
+        }
+    }
+
+    /// Subscribes to realtime agent status changes on `agents`.
+    func subscribeToAgents(onChange: @escaping @MainActor @Sendable (RealtimeAction) -> Void) async throws {
+        if useMockData { return }
+
+        if let existing = agentsChannel {
+            await client.realtimeV2.removeChannel(existing)
+        }
+
+        let channel = client.realtimeV2.channel("agents_changes")
+
+        let changes = channel.postgresChange(AnyAction.self, table: "agents")
+
+        self.agentsChannel = channel
+
+        await channel.subscribe()
+        print("[SupabaseService] Subscribed to agents realtime")
+
+        Task {
+            for await change in changes {
+                let actionStr = String(describing: type(of: change)).lowercased()
+                let action: RealtimeAction = actionStr.contains("insert") ? .insert :
+                    actionStr.contains("delete") ? .delete : .update
+                await onChange(action)
+            }
+        }
+    }
+
+    /// Unsubscribes from all realtime channels.
+    func unsubscribeAll() async {
+        if let channel = recordsChannel {
+            await client.realtimeV2.removeChannel(channel)
+            recordsChannel = nil
+        }
+        if let channel = agentsChannel {
+            await client.realtimeV2.removeChannel(channel)
+            agentsChannel = nil
+        }
+        print("[SupabaseService] Unsubscribed from all realtime channels")
+    }
+
+    /// Minutes since last fetch for a given category (nil = global).
+    func minutesSinceLastFetch(category: RecordCategory? = nil) -> Int? {
+        let date: Date?
+        if let category {
+            date = lastFetchTimes[category]
+        } else {
+            date = lastGlobalFetchTime
+        }
+        guard let date else { return nil }
+        return Int(Date.now.timeIntervalSince(date) / 60)
     }
 }
 

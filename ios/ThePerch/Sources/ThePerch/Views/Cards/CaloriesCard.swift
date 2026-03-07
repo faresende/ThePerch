@@ -1,11 +1,15 @@
 import SwiftUI
 
 /// Displays daily calorie intake as a circular progress gauge toward a target.
+/// Features animated fill ring and count-up number animation.
 struct CaloriesCard: View {
     let consumed: Double
     let target: Double
     let unit: String
     let lastUpdated: Date?
+
+    @State private var animatedProgress: Double = 0
+    @State private var animatedConsumed: Double = 0
 
     private var progress: Double {
         guard target > 0 else { return 0 }
@@ -33,19 +37,25 @@ struct CaloriesCard: View {
                 Circle()
                     .stroke(PerchTheme.border, lineWidth: 8)
 
-                // Progress ring
+                // Progress ring with gradient
                 Circle()
-                    .trim(from: 0, to: min(progress, 1.0))
+                    .trim(from: 0, to: min(animatedProgress, 1.0))
                     .stroke(
-                        progressColor,
+                        AngularGradient(
+                            colors: [progressColor.opacity(0.5), progressColor],
+                            center: .center,
+                            startAngle: .degrees(-90),
+                            endAngle: .degrees(-90 + 360 * min(progress, 1.0))
+                        ),
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .shadow(color: progressColor.opacity(0.4), radius: 6)
 
-                // Center text
+                // Center text with count-up
                 VStack(spacing: 2) {
-                    Text("\(Int(consumed))")
+                    Text("\(Int(animatedConsumed))")
+                        .contentTransition(.numericText())
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(PerchTheme.textPrimary)
                     Text(unit)
@@ -83,7 +93,7 @@ struct CaloriesCard: View {
                     }
 
                     // Percentage
-                    Text("\(Int(min(progress, 1.0) * 100))%")
+                    Text("\(Int(min(animatedProgress, 1.0) * 100))%")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(progressColor)
                         .padding(.top, 2)
@@ -100,6 +110,14 @@ struct CaloriesCard: View {
         }
         .padding(PerchTheme.Card.padding + 4)
         .cardStyle()
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+                animatedProgress = progress
+            }
+            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+                animatedConsumed = consumed
+            }
+        }
     }
 }
 

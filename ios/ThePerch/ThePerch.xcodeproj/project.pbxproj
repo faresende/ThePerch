@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0385F06533E708330AFA01B0 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B954EE98DF57B9774F8D30 /* SearchView.swift */; };
 		353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */; };
 		353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */; };
 		356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 356EB7102F5251A3009D0A53 /* Assets.xcassets */; };
@@ -62,6 +63,10 @@
 		35F543AC2F52449100204F77 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543AB2F52449100204F77 /* Realtime */; };
 		35F543AE2F52449100204F77 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543AD2F52449100204F77 /* Storage */; };
 		35F543B12F52453F00204F77 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543B02F52453F00204F77 /* Supabase */; };
+		5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E4BAE3418A661ACF7991AE /* SectionHeader.swift */; };
+		6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */; };
+		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
+		B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC61D48E7054D783C5A2B /* NotificationService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -116,6 +121,11 @@
 		35F543792F52411F00204F77 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		35F543A22F5243A800204F77 /* HomeHighlightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHighlightsView.swift; sourceTree = "<group>"; };
+		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
+		49B954EE98DF57B9774F8D30 /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		571AC61D48E7054D783C5A2B /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
+		ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthDetailView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -136,12 +146,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0ED0468A0EC22FFB1C923F80 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F41256BEB4DAFEA3C7235882 /* Helpers */,
+				F7A98B0547DF8F41CD675CDB /* App */,
+				50E2DAC2E7213FC52067B201 /* Cards */,
+			);
+			name = Views;
+			path = Views;
+			sourceTree = "<group>";
+		};
 		35F542DA2F522B6D00204F77 = {
 			isa = PBXGroup;
 			children = (
 				35F5437B2F52411F00204F77 /* ThePerch */,
 				35F543AF2F52453F00204F77 /* Frameworks */,
 				35F542E42F522B6D00204F77 /* Products */,
+				8DB3C8496B82346C4D499E69 /* Sources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -314,6 +336,62 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		50E2DAC2E7213FC52067B201 /* Cards */ = {
+			isa = PBXGroup;
+			children = (
+				ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */,
+			);
+			name = Cards;
+			path = Cards;
+			sourceTree = "<group>";
+		};
+		5D7EB590EB720B1A3616B3BC /* ThePerch */ = {
+			isa = PBXGroup;
+			children = (
+				0ED0468A0EC22FFB1C923F80 /* Views */,
+				7847BFF91CB709C3562363C7 /* Services */,
+			);
+			name = ThePerch;
+			path = ThePerch;
+			sourceTree = "<group>";
+		};
+		7847BFF91CB709C3562363C7 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				571AC61D48E7054D783C5A2B /* NotificationService.swift */,
+			);
+			name = Services;
+			path = Services;
+			sourceTree = "<group>";
+		};
+		8DB3C8496B82346C4D499E69 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				5D7EB590EB720B1A3616B3BC /* ThePerch */,
+			);
+			name = Sources;
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		F41256BEB4DAFEA3C7235882 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */,
+				44E4BAE3418A661ACF7991AE /* SectionHeader.swift */,
+			);
+			name = Helpers;
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		F7A98B0547DF8F41CD675CDB /* App */ = {
+			isa = PBXGroup;
+			children = (
+				49B954EE98DF57B9774F8D30 /* SearchView.swift */,
+			);
+			name = App;
+			path = App;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -442,6 +520,11 @@
 				35F5439E2F52411F00204F77 /* PerchTheme.swift in Sources */,
 				35F5439F2F52411F00204F77 /* AuthView.swift in Sources */,
 				35F543A02F52411F00204F77 /* MockData.swift in Sources */,
+				6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */,
+				5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */,
+				0385F06533E708330AFA01B0 /* SearchView.swift in Sources */,
+				A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */,
+				B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

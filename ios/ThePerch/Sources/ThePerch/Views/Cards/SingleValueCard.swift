@@ -64,33 +64,44 @@ struct SingleValueCard: View {
             // Source icon
             if let sourceIcon {
                 Text(sourceIcon)
-                    .font(.system(size: 20))
+                    .font(.system(size: 22))
             }
 
-            // Label + value + unit
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            // Label + value + unit — larger value
+            VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(PerchTheme.textSecondary)
 
-                Text(value)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(PerchTheme.textPrimary)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(value)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(PerchTheme.textPrimary)
+                        .contentTransition(.numericText())
 
-                if let unit {
-                    Text(unit)
-                        .font(.system(size: 13))
-                        .foregroundColor(PerchTheme.textSecondary)
+                    if let unit {
+                        Text(unit)
+                            .font(.system(size: 14))
+                            .foregroundColor(PerchTheme.textSecondary)
+                    }
                 }
             }
 
             Spacer()
 
-            // Trend arrow
+            // Trend badge
             if let trend {
-                Image(systemName: trend.icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(trend.color)
+                HStack(spacing: 4) {
+                    Image(systemName: trend.icon)
+                        .font(.system(size: 11, weight: .bold))
+                    Text(trend.text)
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundColor(trend.color)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(trend.color.opacity(0.12))
+                .cornerRadius(8)
             }
 
             // Timestamp

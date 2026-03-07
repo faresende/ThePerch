@@ -20,22 +20,29 @@ final class AuthViewModel {
     // MARK: - Private Properties
 
     private let supabaseService: SupabaseService
+    private var authObserverTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
     init(supabaseService: SupabaseService = .shared) {
         self.supabaseService = supabaseService
+        self.isAuthenticated = supabaseService.isAuthenticated
 
-        // Observe authentication state from the service
-        Task {
-            for await change in NotificationCenter.default.publisher(for: NSNotification.Name("SupabaseAuthStateChanged")).values {
-                await MainActor.run {
-                    self.isAuthenticated = supabaseService.isAuthenticated
-                }
+        authObserverTask = Task { [weak self] in
+            for await _ in NotificationCenter.default.publisher(for: NSNotification.Name("SupabaseAuthStateChanged")).values {
+                guard let self else { return }
+                self.isAuthenticated = supabaseService.isAuthenticated
             }
         }
+    }
 
-        self.isAuthenticated = supabaseService.isAuthenticated
+    nonisolated func cancelObserver() {
+        // Called from deinit context
+    }
+
+    deinit {
+        // Cannot access main-actor isolated property from deinit
+        // Task will be cleaned up when the object is deallocated
     }
 
     // MARK: - Authentication Methods

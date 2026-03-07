@@ -42,17 +42,23 @@ struct AdminView: View {
             PerchTheme.background.ignoresSafeArea()
 
             if isLoading && agents.isEmpty {
-                ProgressView()
-                    .tint(PerchTheme.accent)
+                VStack(spacing: PerchTheme.Spacing.medium) {
+                    HStack(spacing: PerchTheme.Spacing.medium) {
+                        SkeletonRect(height: 100, cornerRadius: PerchTheme.Card.cornerRadius)
+                        SkeletonRect(height: 100, cornerRadius: PerchTheme.Card.cornerRadius)
+                    }
+                    SkeletonRect(height: 80, cornerRadius: PerchTheme.Card.cornerRadius)
+                    SkeletonRect(height: 80, cornerRadius: PerchTheme.Card.cornerRadius)
+                }
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .padding(.top, 60)
             }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
 
-                    // Section header
-                    Text("Admin")
-                        .font(PerchTheme.Font.largeTitle)
-                        .foregroundColor(PerchTheme.textPrimary)
+                    // Section header with freshness
+                    SectionHeader(title: "Admin", freshnessKey: "admin")
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
@@ -209,7 +215,9 @@ struct AdminView: View {
                 }
             }
             .refreshable {
-                await loadData()
+                PerchHaptics.medium()
+                await loadData(forceRefresh: true)
+                PerchHaptics.success()
             }
         }
         .task {
@@ -292,25 +300,28 @@ struct AdminView: View {
 
     // MARK: - Data Loading
 
-    private func loadData() async {
+    private func loadData(forceRefresh: Bool = false) async {
         isLoading = true
         loadError = nil
         defer { isLoading = false }
         do {
-            async let fetchedAgents = SupabaseService.shared.fetchAgents()
+            async let fetchedAgents = SupabaseService.shared.fetchAgents(forceRefresh: forceRefresh)
             async let fetchedCosts = SupabaseService.shared.fetchRecords(
                 category: .admin,
                 type: .costSummary,
-                limit: 10
+                limit: 10,
+                forceRefresh: forceRefresh
             )
             async let fetchedAdmin = SupabaseService.shared.fetchRecords(
                 category: .admin,
-                limit: 50
+                limit: 50,
+                forceRefresh: forceRefresh
             )
 
             agents = try await fetchedAgents
             costRecords = try await fetchedCosts
             adminRecords = try await fetchedAdmin
+            DataFreshnessTracker.shared.recordFetch(for: "admin")
         } catch {
             loadError = "Failed to load admin data"
             print("[AdminView] Failed to load: \(error)")

@@ -39,15 +39,18 @@ struct BookmarksView: View {
             PerchTheme.background.ignoresSafeArea()
 
             if viewModel.isLoading && viewModel.records.isEmpty {
-                ProgressView()
-                    .tint(PerchTheme.accent)
+                VStack(spacing: PerchTheme.Spacing.medium) {
+                    SkeletonBookmarkCard()
+                    SkeletonBookmarkCard()
+                    SkeletonBookmarkCard()
+                }
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .padding(.top, 80)
             }
 
             VStack(spacing: 0) {
-                // Section header
-                Text("Bookmarks")
-                    .font(PerchTheme.Font.largeTitle)
-                    .foregroundColor(PerchTheme.textPrimary)
+                // Section header with freshness
+                SectionHeader(title: "Bookmarks", freshnessKey: "bookmarks")
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, PerchTheme.Spacing.medium)
@@ -174,7 +177,9 @@ struct BookmarksView: View {
                     }
                 }
                 .refreshable {
+                    PerchHaptics.medium()
                     await viewModel.refresh()
+                    PerchHaptics.success()
                 }
             }
         }

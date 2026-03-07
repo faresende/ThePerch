@@ -166,4 +166,82 @@ extension View {
                     .stroke(PerchTheme.border, lineWidth: 1)
             )
     }
+
+    /// Staggered fade + slide-up card appear animation
+    func cardAppear(index: Int, appeared: Bool) -> some View {
+        self
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 20)
+            .animation(
+                .spring(response: 0.45, dampingFraction: 0.8)
+                .delay(Double(index) * 0.06),
+                value: appeared
+            )
+    }
+
+    /// Subtle scale on press for interactive cards
+    func cardTapScale(_ isPressed: Bool) -> some View {
+        self
+            .scaleEffect(isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+    }
+}
+
+// MARK: - Haptic Feedback
+
+enum PerchHaptics {
+    static func light() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    static func medium() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    static func selection() {
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
+    static func success() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+}
+
+// MARK: - Animated Number Count-Up
+
+struct AnimatedNumber: View {
+    let value: Double
+    let format: String
+    var duration: Double = 0.6
+
+    @State private var displayValue: Double = 0
+
+    var body: some View {
+        Text(String(format: format, displayValue))
+            .onAppear {
+                withAnimation(.easeOut(duration: duration)) {
+                    displayValue = value
+                }
+            }
+            .onChange(of: value) { _, newValue in
+                withAnimation(.easeOut(duration: duration)) {
+                    displayValue = newValue
+                }
+            }
+    }
+}
+
+// MARK: - Interactive Card Button Style
+
+struct CardPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    PerchHaptics.light()
+                }
+            }
+    }
 }
