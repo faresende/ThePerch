@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import UIKit
 
 /// Displays measurement data as a line chart with gradient fill.
 /// Darker theme with amber line and warm glow.
@@ -12,6 +13,10 @@ struct ChartCard: View {
     var higherIsBetter: Bool = false
 
     @State private var selectedRange: TimeRange?
+    @State private var selectedDataPoint: (date: Date, value: Double)?
+    @State private var lastSnappedIndex: Int?
+
+    private let hapticGenerator = UISelectionFeedbackGenerator()
 
     /// Auto-selects the best time range on first appearance.
     /// Picks the smallest range that contains at least 2 data points for a proper chart.
@@ -214,18 +219,64 @@ struct ChartCard: View {
                     .lineStyle(StrokeStyle(lineWidth: 2.5))
                     .interpolationMethod(.catmullRom)
 
-                    PointMark(
-                        x: .value("Date", item.date),
-                        y: .value("Value", item.value)
-                    )
-                    .foregroundStyle(PerchTheme.accent)
-                    .symbolSize(24)
+                    // Only show PointMark on most recent and selected data point
+                    let isLast = item.date == chartData.last?.date
+                    let isSelected = selectedDataPoint.map { $0.date == item.date } ?? false
+                    if isLast || isSelected {
+                        PointMark(
+                            x: .value("Date", item.date),
+                            y: .value("Value", item.value)
+                        )
+                        .foregroundStyle(PerchTheme.accent)
+                        .symbolSize(isSelected ? 40 : 24)
+                    }
+
+                    // Vertical rule line at selected point
+                    if isSelected {
+                        RuleMark(x: .value("Date", item.date))
+                            .foregroundStyle(PerchTheme.accent.opacity(0.6))
+                            .lineStyle(StrokeStyle(lineWidth: 1))
+                    }
                 }
                 .chartYScale(domain: yRange)
                 .chartYAxis(.hidden)
                 .chartXAxis(.hidden)
                 .chartPlotStyle { plot in
                     plot.background(Color.clear)
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { drag in
+                                        let origin = geometry[proxy.plotFrame!].origin
+                                        let locationX = drag.location.x - origin.x
+                                        guard let date: Date = proxy.value(atX: locationX) else { return }
+                                        // Snap to nearest data point
+                                        guard let closest = chartData.min(by: {
+                                            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+                                        }) else { return }
+                                        let closestIndex = chartData.firstIndex(where: { $0.date == closest.date })
+                                        if closestIndex != lastSnappedIndex {
+                                            lastSnappedIndex = closestIndex
+                                            hapticGenerator.selectionChanged()
+                                        }
+                                        selectedDataPoint = closest
+                                    }
+                                    .onEnded { _ in
+                                        selectedDataPoint = nil
+                                        lastSnappedIndex = nil
+                                    }
+                            )
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if let selected = selectedDataPoint {
+                        chartTooltip(for: selected)
+                    }
                 }
                 .frame(height: 110)
             } else {
@@ -272,6 +323,52 @@ struct ChartCard: View {
         .padding(PerchTheme.Spacing.large)
         .cardStyle()
     }
+
+    // MARK: - Tooltip
+
+    @ViewBuilder
+    private func chartTooltip(for point: (date: Date, value: Double)) -> some View {
+        let dateText = Self.tooltipDateFormatter.string(from: point.date)
+        let valueText: String = {
+            if formatAsTime {
+                return Self.formatHoursAsTime(point.value)
+            }
+            return String(format: "%.1f", point.value) + " " + unit
+        }()
+
+        VStack(spacing: 2) {
+            Text(valueText)
+                .font(PerchTheme.Font.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            Text(dateText)
+                .font(PerchTheme.Font.micro)
+                .foregroundColor(.white.opacity(0.7))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.black.opacity(0.85))
+        .cornerRadius(8)
+        .fixedSize()
+        // Position tooltip based on selected point's relative position in the data
+        .frame(maxWidth: .infinity, alignment: tooltipAlignment(for: point.date))
+    }
+
+    private func tooltipAlignment(for date: Date) -> Alignment {
+        guard let first = chartData.first?.date,
+              let last = chartData.last?.date,
+              last > first else { return .center }
+        let fraction = date.timeIntervalSince(first) / last.timeIntervalSince(first)
+        if fraction < 0.25 { return .leading }
+        if fraction > 0.75 { return .trailing }
+        return .center
+    }
+
+    private static let tooltipDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
 }
 
 // MARK: - Preview
