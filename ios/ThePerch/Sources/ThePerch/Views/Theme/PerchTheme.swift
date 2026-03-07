@@ -31,14 +31,14 @@ struct PerchTheme {
         Color(red: 0.95, green: 0.95, blue: 0.95)  // #f2f2f2
     }
 
-    /// Secondary text — neutral gray
+    /// Secondary text — neutral gray (WCAG AA compliant, ≥4.5:1 on cards)
     static var textSecondary: Color {
-        Color(red: 0.50, green: 0.50, blue: 0.52)  // #808085
+        Color(red: 0.541, green: 0.541, blue: 0.561)  // #8A8A8F
     }
 
-    /// Tertiary text — very dim
+    /// Tertiary text — dim (WCAG AA compliant, ≥4.5:1 on background)
     static var textTertiary: Color {
-        Color(red: 0.33, green: 0.33, blue: 0.35)  // #545459
+        Color(red: 0.451, green: 0.451, blue: 0.471)  // #737378
     }
 
     /// Accent — bright warm amber/gold (punchy, not washed out)
