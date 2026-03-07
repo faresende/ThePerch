@@ -38,13 +38,13 @@ struct HealthView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(PerchTheme.error)
                             Text("Failed to load health data")
-                                .font(PerchTheme.Font.caption1)
+                                .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textSecondary)
                             Spacer()
                             Button("Retry") {
                                 Task { await viewModel.loadRecords() }
                             }
-                            .font(PerchTheme.Font.caption1)
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.accent)
                         }
                         .padding(PerchTheme.Spacing.medium)
@@ -168,10 +168,10 @@ struct HealthView: View {
                             .scaleEffect(0.8)
                     } else {
                         Image(systemName: "heart.fill")
-                            .font(.system(size: PerchTheme.Icon.small))
+                            .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
                     }
                     Text(viewModel.isSyncing ? "Syncing..." : "Sync with Apple Health")
-                        .font(PerchTheme.Font.headline)
+                        .font(PerchTheme.Font.heading)
                 }
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
@@ -186,20 +186,20 @@ struct HealthView: View {
             HStack {
                 if let lastSync = viewModel.lastSyncFormatted {
                     Text("Last synced \(lastSync)")
-                        .font(PerchTheme.Font.caption2)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
                 Spacer()
                 if viewModel.syncedCount > 0 {
                     Text("\(viewModel.syncedCount) new records")
-                        .font(PerchTheme.Font.caption2)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.success)
                 }
             }
 
             if let syncError = viewModel.syncError {
                 Text(syncError)
-                    .font(PerchTheme.Font.caption1)
+                    .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.error)
                     .multilineTextAlignment(.center)
             }
@@ -214,18 +214,18 @@ struct HealthView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(emoji)
-                    .font(.system(size: 20))
+                    .font(PerchTheme.Font.title)
                 Text(title)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
             }
 
             Text("No data yet")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(PerchTheme.Font.displayNumeric)
                 .foregroundColor(PerchTheme.textTertiary)
 
             Text(hint)
-                .font(.system(size: 12))
+                .font(PerchTheme.Font.caption)
                 .foregroundColor(PerchTheme.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -252,11 +252,11 @@ struct HealthView: View {
     private var emptyState: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "heart.text.square")
-                .font(.system(size: 48))
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             Text("No health data yet")
-                .font(PerchTheme.Font.headline)
+                .font(PerchTheme.Font.heading)
                 .foregroundColor(PerchTheme.textSecondary)
 
             if viewModel.isHealthKitAvailable {

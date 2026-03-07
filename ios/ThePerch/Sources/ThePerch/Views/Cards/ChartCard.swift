@@ -98,16 +98,16 @@ struct ChartCard: View {
         let m = totalMinutes % 60
         HStack(alignment: .firstTextBaseline, spacing: 2) {
             Text("\(h)")
-                .font(.system(size: 30, weight: .bold))
+                .font(PerchTheme.Font.displayNumeric)
                 .foregroundColor(PerchTheme.textPrimary)
             Text("h")
-                .font(.system(size: 16, weight: .medium))
+                .font(PerchTheme.Font.heading)
                 .foregroundColor(PerchTheme.textSecondary)
             Text("\(m)")
-                .font(.system(size: 30, weight: .bold))
+                .font(PerchTheme.Font.displayNumeric)
                 .foregroundColor(PerchTheme.textPrimary)
             Text("m")
-                .font(.system(size: 16, weight: .medium))
+                .font(PerchTheme.Font.heading)
                 .foregroundColor(PerchTheme.textSecondary)
         }
     }
@@ -134,7 +134,7 @@ struct ChartCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(PerchTheme.Font.heading)
                         .foregroundColor(PerchTheme.textSecondary)
 
                     if formatAsTime, let latest = allChartData.last?.value {
@@ -142,11 +142,11 @@ struct ChartCard: View {
                     } else {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(latestValue)
-                                .font(.system(size: 30, weight: .bold))
+                                .font(PerchTheme.Font.displayNumeric)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             Text(unit)
-                                .font(.system(size: 14))
+                                .font(PerchTheme.Font.body)
                                 .foregroundColor(PerchTheme.textSecondary)
                         }
                     }
@@ -172,9 +172,10 @@ struct ChartCard: View {
 
                     HStack(spacing: 4) {
                         Image(systemName: icon)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(PerchTheme.Font.micro)
+                            .fontWeight(.bold)
                         Text(String(format: "%.1f%%", abs(trend)))
-                            .font(.system(size: 13, weight: .bold))
+                            .font(PerchTheme.Font.captionNumeric)
                     }
                     .foregroundColor(trendColor)
                     .padding(.horizontal, 10)
@@ -237,7 +238,7 @@ struct ChartCard: View {
                             .frame(width: 8, height: 8)
                             .shadow(color: PerchTheme.accent.opacity(0.4), radius: 4)
                         Text(chartData.isEmpty ? "No data yet" : "Single reading")
-                            .font(.system(size: 12))
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textTertiary)
                     }
                     Spacer()
@@ -250,7 +251,7 @@ struct ChartCard: View {
                 ForEach(TimeRange.allCases, id: \.self) { range in
                     Button(action: { selectedRange = range }) {
                         Text(range.rawValue)
-                            .font(.system(size: 13, weight: .bold))
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(
                                 resolvedRange == range
                                     ? .black

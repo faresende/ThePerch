@@ -28,15 +28,15 @@ struct CostBreakdownCard: View {
                 // Total cost display
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                     Text("Total Cost")
-                        .font(PerchTheme.Font.caption1)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textSecondary)
 
                     Text("$\(String(format: "%.2f", totalCost))")
-                        .font(PerchTheme.Font.title2)
+                        .font(PerchTheme.Font.titleNumeric)
                         .foregroundColor(PerchTheme.textPrimary)
 
                     Text(dateRange)
-                        .font(PerchTheme.Font.caption2)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
 
@@ -80,7 +80,7 @@ struct CostBreakdownRow: View {
             HStack(spacing: PerchTheme.Spacing.small) {
                 // Agent emoji/name
                 Text(agent.agentEmoji)
-                    .font(.system(size: PerchTheme.Icon.large))
+                    .font(PerchTheme.Font.icon(PerchTheme.Icon.large))
 
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
                     Text(agent.agentName)
@@ -92,11 +92,11 @@ struct CostBreakdownRow: View {
 
                 VStack(alignment: .trailing, spacing: PerchTheme.Spacing.xxSmall) {
                     Text("$\(String(format: "%.2f", agent.cost))")
-                        .font(PerchTheme.Font.body)
+                        .font(PerchTheme.Font.bodyNumeric)
                         .foregroundColor(PerchTheme.textPrimary)
 
                     Text(String(format: "%.1f%%", percentOfTotal))
-                        .font(PerchTheme.Font.caption2)
+                        .font(PerchTheme.Font.captionNumeric)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
             }

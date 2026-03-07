@@ -52,15 +52,15 @@ struct HealthDetailView: View {
                                 } else {
                                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                                         Text(String(format: "%.1f", latest.value))
-                                            .font(.system(size: 44, weight: .bold, design: .rounded))
+                                            .font(PerchTheme.Font.displayNumeric)
                                             .foregroundColor(PerchTheme.textPrimary)
                                         Text(unit)
-                                            .font(.system(size: 18))
+                                            .font(PerchTheme.Font.heading)
                                             .foregroundColor(PerchTheme.textSecondary)
                                     }
                                 }
                                 Text("Latest reading")
-                                    .font(.system(size: 13))
+                                    .font(PerchTheme.Font.caption)
                                     .foregroundColor(PerchTheme.textTertiary)
                             }
                             .padding(.horizontal, PerchTheme.Spacing.large)
@@ -139,18 +139,18 @@ struct HealthDetailView: View {
                         // All readings
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
                             Text("All Readings")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
                                 .padding(.horizontal, PerchTheme.Spacing.large)
 
                             ForEach(chartData.reversed(), id: \.date) { point in
                                 HStack {
                                     Text(point.date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.system(size: 13))
+                                        .font(PerchTheme.Font.caption)
                                         .foregroundColor(PerchTheme.textSecondary)
                                     Spacer()
                                     Text(formatValue(point.value))
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(PerchTheme.Font.bodyNumeric)
                                         .foregroundColor(PerchTheme.textPrimary)
                                 }
                                 .padding(.horizontal, PerchTheme.Spacing.large)
@@ -187,11 +187,11 @@ struct HealthDetailView: View {
     private func statRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 14))
+                .font(PerchTheme.Font.body)
                 .foregroundColor(PerchTheme.textSecondary)
             Spacer()
             Text(value)
-                .font(.system(size: 14, weight: .semibold))
+                .font(PerchTheme.Font.bodyNumeric)
                 .foregroundColor(PerchTheme.textPrimary)
         }
     }
