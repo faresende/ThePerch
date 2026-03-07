@@ -47,6 +47,13 @@ private struct CacheEntry<T> {
 // MARK: - Data Freshness Tracking
 
 /// Tracks when each data category was last fetched, for UI display and auto-refresh.
+enum UrgencyTier {
+    case fresh      // <5 min
+    case stale      // >5 min — warning dot
+    case warning    // >30 min — pulsing amber border
+    case critical   // >2 hours — solid warning border
+}
+
 @Observable
 @MainActor
 final class DataFreshnessTracker {
@@ -64,6 +71,15 @@ final class DataFreshnessTracker {
     func isStale(_ key: String) -> Bool {
         guard let lastFetch = lastFetchTimes[key] else { return true }
         return Date.now.timeIntervalSince(lastFetch) > staleThreshold
+    }
+
+    func urgencyTier(for key: String) -> UrgencyTier {
+        guard let lastFetch = lastFetchTimes[key] else { return .critical }
+        let elapsed = Date.now.timeIntervalSince(lastFetch)
+        if elapsed > 7200 { return .critical }
+        if elapsed > 1800 { return .warning }
+        if elapsed > 300 { return .stale }
+        return .fresh
     }
 
     func relativeTimeString(for key: String) -> String? {
