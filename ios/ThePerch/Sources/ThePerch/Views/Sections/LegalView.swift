@@ -26,7 +26,7 @@ struct LegalView: View {
                     // Checklists
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                         Text("Document Checklists")
-                            .font(PerchTheme.Font.headline)
+                            .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
 
                         VStack(spacing: PerchTheme.Spacing.medium) {
@@ -65,12 +65,12 @@ struct LegalView: View {
     private var emptyStateView: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "doc.text")
-                .font(.system(size: 48))
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
                 Text("No documents")
-                    .font(PerchTheme.Font.headline)
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
                 Text("Legal documents and checklists will appear here")

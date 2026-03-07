@@ -11,7 +11,7 @@ struct SectionHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
             Text(title)
-                .font(PerchTheme.Font.largeTitle)
+                .font(PerchTheme.Font.display)
                 .foregroundColor(PerchTheme.textPrimary)
 
             HStack(spacing: 6) {
@@ -23,7 +23,7 @@ struct SectionHeader: View {
                             .frame(width: 6, height: 6)
                     }
                     Text(timeStr)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(PerchTheme.Font.micro)
                         .foregroundColor(
                             freshnessTracker.isStale(freshnessKey)
                                 ? PerchTheme.warning

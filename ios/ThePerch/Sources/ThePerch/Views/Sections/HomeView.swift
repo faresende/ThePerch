@@ -22,11 +22,11 @@ struct HomeView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                             Text(greetingText)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(PerchTheme.Font.body)
                                 .foregroundColor(PerchTheme.textSecondary)
 
                             Text("Fabio")
-                                .font(.system(size: 28, weight: .bold))
+                                .font(PerchTheme.Font.display)
                                 .foregroundColor(PerchTheme.textPrimary)
                         }
 
@@ -34,7 +34,7 @@ struct HomeView: View {
 
                         Button(action: { showSettings = true }) {
                             Image(systemName: "gear")
-                                .font(.system(size: 22))
+                                .font(PerchTheme.Font.title)
                                 .foregroundColor(PerchTheme.textSecondary)
                                 .frame(width: 40, height: 40)
                                 .background(PerchTheme.cardBackground)
@@ -57,10 +57,10 @@ struct HomeView: View {
                     } else if records.isEmpty {
                         VStack(spacing: PerchTheme.Spacing.medium) {
                             Image(systemName: "tray")
-                                .font(.system(size: 48))
+                                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                                 .foregroundColor(PerchTheme.textTertiary)
                             Text("No data yet")
-                                .font(PerchTheme.Font.headline)
+                                .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textSecondary)
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
@@ -78,7 +78,7 @@ struct HomeView: View {
                                         .frame(width: 5, height: 5)
                                 }
                                 Text(timeStr)
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(PerchTheme.Font.micro)
                                     .foregroundColor(
                                         freshnessTracker.isStale("all_records")
                                             ? PerchTheme.warning
@@ -125,11 +125,11 @@ struct HomeView: View {
     private var searchBar: some View {
         HStack(spacing: PerchTheme.Spacing.small) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 16))
+                .font(PerchTheme.Font.heading)
                 .foregroundColor(PerchTheme.textSecondary)
 
             TextField("Search everything...", text: $searchText)
-                .font(.system(size: 15))
+                .font(PerchTheme.Font.body)
                 .foregroundColor(PerchTheme.textPrimary)
                 .autocorrectionDisabled()
 
@@ -138,7 +138,7 @@ struct HomeView: View {
                     searchText = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                        .font(PerchTheme.Font.heading)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
             }
@@ -198,14 +198,14 @@ struct HomeView: View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 11))
+                    .font(PerchTheme.Font.micro)
                     .foregroundColor(color)
                 Text(value)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(PerchTheme.Font.bodyNumeric)
                     .foregroundColor(PerchTheme.textPrimary)
             }
             Text(label)
-                .font(.system(size: 10))
+                .font(PerchTheme.Font.micro)
                 .foregroundColor(PerchTheme.textTertiary)
         }
         .frame(maxWidth: .infinity)
