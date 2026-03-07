@@ -42,14 +42,15 @@ final class SectionViewModel {
     // MARK: - Loading Data
 
     /// Loads records for the section's category.
-    func loadRecords() async {
+    func loadRecords(forceRefresh: Bool = false) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
             let loadedRecords = try await supabaseService.fetchRecords(
                 category: category,
-                limit: 100
+                limit: 100,
+                forceRefresh: forceRefresh
             )
             self.records = loadedRecords
             self.groupedRecords = groupRecordsByType(loadedRecords)
@@ -61,9 +62,9 @@ final class SectionViewModel {
         }
     }
 
-    /// Refreshes the records by reloading from the server.
+    /// Refreshes the records by force-reloading from the server.
     func refresh() async {
-        await loadRecords()
+        await loadRecords(forceRefresh: true)
     }
 
     // MARK: - Sorting & Grouping

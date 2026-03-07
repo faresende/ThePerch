@@ -42,14 +42,15 @@ final class HealthViewModel {
     // MARK: - Loading Records
 
     /// Loads health records from Supabase.
-    func loadRecords() async {
+    func loadRecords(forceRefresh: Bool = false) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
             let loadedRecords = try await supabaseService.fetchRecords(
                 category: .health,
-                limit: 100
+                limit: 100,
+                forceRefresh: forceRefresh
             )
             self.records = loadedRecords
             self.error = nil
@@ -76,7 +77,7 @@ final class HealthViewModel {
 
         // Reload records to show newly synced data
         if syncService.syncedCount > 0 {
-            await loadRecords()
+            await loadRecords(forceRefresh: true)
         }
     }
 

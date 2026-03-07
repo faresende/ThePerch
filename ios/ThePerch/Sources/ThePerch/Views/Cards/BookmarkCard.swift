@@ -81,7 +81,7 @@ struct BookmarkCard: View {
             .padding(PerchTheme.Card.padding + 4)
             .cardStyle()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CardPressStyle())
     }
 }
 

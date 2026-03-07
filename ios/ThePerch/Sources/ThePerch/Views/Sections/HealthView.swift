@@ -3,6 +3,17 @@ import SwiftUI
 /// Health section showing one chart card per metric, plus calories and macros cards.
 struct HealthView: View {
     @State private var viewModel = HealthViewModel()
+    @State private var selectedDetail: HealthDetailInfo?
+    @State private var cardsAppeared = false
+
+    struct HealthDetailInfo: Identifiable {
+        let id = UUID()
+        let title: String
+        let records: [Record]
+        let unit: String
+        let formatAsTime: Bool
+        let higherIsBetter: Bool
+    }
 
     var body: some View {
         ZStack {
@@ -10,10 +21,8 @@ struct HealthView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Section header
-                    Text("Health")
-                        .font(PerchTheme.Font.largeTitle)
-                        .foregroundColor(PerchTheme.textPrimary)
+                    // Section header with freshness
+                    SectionHeader(title: "Health", freshnessKey: "health")
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
@@ -45,9 +54,8 @@ struct HealthView: View {
                     }
 
                     if viewModel.isLoading && viewModel.records.isEmpty {
-                        ProgressView()
-                            .tint(PerchTheme.accent)
-                            .frame(maxWidth: .infinity, minHeight: 200)
+                        SkeletonHealthSection()
+                            .padding(.horizontal, PerchTheme.Spacing.large)
                     } else {
                         // Daily calories card
                         if let (record, measurement) = viewModel.latestByMetric["daily_calories"],
@@ -58,12 +66,13 @@ struct HealthView: View {
                                 unit: measurement.unit,
                                 lastUpdated: measurement.timestamp ?? record.updatedAt
                             )
+                            .cardAppear(index: 0, appeared: cardsAppeared)
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         } else {
                             placeholderCard(title: "Daily Calories", emoji: "🔥", hint: "Log food with Claudinho")
                         }
 
-                        // Daily macros card — show the date from the macros data
+                        // Daily macros card
                         if let (record, macros) = viewModel.latestMacros {
                             MacrosCard(
                                 protein: macros.protein,
@@ -74,23 +83,37 @@ struct HealthView: View {
                                 fatTarget: macros.fatTarget,
                                 lastUpdated: macros.dateAsDate ?? record.updatedAt
                             )
+                            .cardAppear(index: 1, appeared: cardsAppeared)
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         } else {
                             placeholderCard(title: "Daily Macros", emoji: "🥩", hint: "Log food with Claudinho")
                         }
 
-                        // One chart card per metric — always show all, with placeholder if no data
-                        ForEach(HealthViewModel.chartMetricOrder, id: \.key) { metricInfo in
+                        // One chart card per metric — tap to see full detail
+                        ForEach(Array(HealthViewModel.chartMetricOrder.enumerated()), id: \.element.key) { chartIndex, metricInfo in
                             let metricRecords = viewModel.recordsForMetric(metricInfo.key)
                             let isTimeBased = metricInfo.key == "sleep_duration" || metricInfo.key == "deep_sleep"
                             if !metricRecords.isEmpty {
-                                ChartCard(
-                                    title: metricInfo.title,
-                                    records: metricRecords,
-                                    unit: isTimeBased ? "" : metricInfo.unit,
-                                    formatAsTime: isTimeBased,
-                                    higherIsBetter: metricInfo.higherIsBetter
-                                )
+                                Button {
+                                    PerchHaptics.light()
+                                    selectedDetail = HealthDetailInfo(
+                                        title: metricInfo.title,
+                                        records: metricRecords,
+                                        unit: isTimeBased ? "" : metricInfo.unit,
+                                        formatAsTime: isTimeBased,
+                                        higherIsBetter: metricInfo.higherIsBetter
+                                    )
+                                } label: {
+                                    ChartCard(
+                                        title: metricInfo.title,
+                                        records: metricRecords,
+                                        unit: isTimeBased ? "" : metricInfo.unit,
+                                        formatAsTime: isTimeBased,
+                                        higherIsBetter: metricInfo.higherIsBetter
+                                    )
+                                }
+                                .buttonStyle(CardPressStyle())
+                                .cardAppear(index: chartIndex + 2, appeared: cardsAppeared)
                                 .padding(.horizontal, PerchTheme.Spacing.large)
                             } else {
                                 placeholderCard(
@@ -101,17 +124,33 @@ struct HealthView: View {
                             }
                         }
                     }
+                    Color.clear
+                        .frame(height: 0)
+                        .onAppear {
+                            withAnimation { cardsAppeared = true }
+                        }
 
                     Spacer()
                         .frame(height: PerchTheme.Spacing.large)
                 }
             }
             .refreshable {
-                await viewModel.loadRecords()
+                PerchHaptics.medium()
+                await viewModel.loadRecords(forceRefresh: true)
+                PerchHaptics.success()
             }
         }
         .task {
             await viewModel.loadRecords()
+        }
+        .sheet(item: $selectedDetail) { detail in
+            HealthDetailView(
+                title: detail.title,
+                records: detail.records,
+                unit: detail.unit,
+                formatAsTime: detail.formatAsTime,
+                higherIsBetter: detail.higherIsBetter
+            )
         }
     }
 

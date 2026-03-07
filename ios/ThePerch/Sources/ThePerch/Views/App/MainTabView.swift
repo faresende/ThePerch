@@ -25,13 +25,13 @@ struct MainTabView: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(maxHeight: .infinity)
 
-                // Page indicator dots at bottom
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                // Page indicator dots at bottom — active dot is a wider capsule
+                HStack(spacing: 6) {
                     ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, _ in
-                        Circle()
+                        Capsule()
                             .fill(selectedIndex == index ? PerchTheme.accent : PerchTheme.border)
-                            .frame(width: 8, height: 8)
-                            .animation(.easeInOut(duration: 0.2), value: selectedIndex)
+                            .frame(width: selectedIndex == index ? 20 : 8, height: 8)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedIndex)
                     }
                     Spacer()
                 }
@@ -41,6 +41,20 @@ struct MainTabView: View {
         }
         .task {
             await dashboardViewModel.loadDashboard()
+        }
+        .onChange(of: selectedIndex) {
+            // Haptic on tab switch
+            PerchHaptics.selection()
+
+            // Auto-refresh stale sections when swiped to
+            guard selectedIndex < visibleSections.count else { return }
+            let section = visibleSections[selectedIndex]
+            let key = section.slug
+            if DataFreshnessTracker.shared.isStale(key) {
+                Task {
+                    await dashboardViewModel.loadDashboard(forceRefresh: true)
+                }
+            }
         }
     }
 }
@@ -88,18 +102,10 @@ struct SectionView: View {
         if let viewModel = viewModel {
             ScrollView {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Section header
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
-                        Text(section.displayName)
-                            .font(PerchTheme.Font.largeTitle)
-                            .foregroundColor(PerchTheme.textPrimary)
-
-                        Text("Managed by \(section.slug.capitalized)")
-                            .font(PerchTheme.Font.subheadline)
-                            .foregroundColor(PerchTheme.textSecondary)
-                    }
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                    .padding(.top, PerchTheme.Spacing.medium)
+                    // Section header with freshness
+                    SectionHeader(title: section.displayName, freshnessKey: section.slug)
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                        .padding(.top, PerchTheme.Spacing.medium)
 
                     // Records
                     if viewModel.records.isEmpty {
@@ -121,14 +127,18 @@ struct SectionView: View {
                 await viewModel.refresh()
             }
         } else {
-            ProgressView()
-                .foregroundColor(PerchTheme.accent)
-                .onAppear {
+            VStack(spacing: PerchTheme.Spacing.medium) {
+                SkeletonSingleValueCard()
+                SkeletonSingleValueCard()
+                SkeletonChartCard()
+            }
+            .padding(.horizontal, PerchTheme.Spacing.large)
+            .padding(.top, 60)
+            .task {
                     if let category = section.category {
-                        viewModel = SectionViewModel(category: category)
-                        Task {
-                            await viewModel?.loadRecords()
-                        }
+                        let vm = SectionViewModel(category: category)
+                        viewModel = vm
+                        await vm.loadRecords()
                     }
                 }
         }
