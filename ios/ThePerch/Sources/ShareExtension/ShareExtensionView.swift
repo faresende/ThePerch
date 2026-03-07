@@ -22,7 +22,7 @@ struct ShareExtensionView: View {
                     Button(action: cancel) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.gray)
+                            .foregroundColor(PerchTheme.textSecondary)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -124,7 +124,7 @@ struct ShareExtensionView: View {
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding(12)
-                            .foregroundColor(.gray)
+                            .foregroundColor(PerchTheme.textSecondary)
                     }
                     .disabled(isLoading || showSuccess)
 
