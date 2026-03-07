@@ -67,24 +67,24 @@ struct DeliveryCard: View {
                         .frame(width: 40, height: 40)
                         .overlay(
                             Text(emoji)
-                                .font(.system(size: 22))
+                                .font(PerchTheme.Font.title)
                         )
 
                     // Item name + carrier
                     VStack(alignment: .leading, spacing: 3) {
                         Text(delivery.items.first?.name ?? "Package")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
                             .lineLimit(1)
 
                         HStack(spacing: 8) {
                             Text(delivery.carrier)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textSecondary)
 
                             if let suffix = trackingSuffix {
                                 Text(suffix)
-                                    .font(.system(size: 12))
+                                    .font(PerchTheme.Font.caption)
                                     .foregroundColor(PerchTheme.textTertiary)
                             }
                         }
@@ -96,15 +96,16 @@ struct DeliveryCard: View {
                     VStack(alignment: .trailing, spacing: 4) {
                         if let eta = etaFormatted {
                             Text("ETA \(eta)")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.accent)
                         }
                         if hasTrackingUrl {
                             HStack(spacing: 3) {
                                 Text("Track")
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(PerchTheme.Font.micro)
                                 Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(PerchTheme.Font.micro)
+                                    .fontWeight(.bold)
                             }
                             .foregroundColor(PerchTheme.textTertiary)
                         }
@@ -186,7 +187,8 @@ struct DeliveryCard: View {
 
                         if isCurrent || isComplete {
                             Image(systemName: stepIcon)
-                                .font(.system(size: isCurrent ? 11 : 9, weight: .bold))
+                                .font(PerchTheme.Font.micro)
+                                .fontWeight(.bold)
                                 .foregroundColor(.black)
                         }
                     }
@@ -195,7 +197,8 @@ struct DeliveryCard: View {
 
                     // Label — positioned below the dot
                     Text(step.label)
-                        .font(.system(size: 10, weight: isCurrent ? .bold : .regular))
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(isCurrent ? .bold : .regular)
                         .foregroundColor(isComplete ? PerchTheme.textPrimary : PerchTheme.textTertiary)
                         .frame(width: 60)
                         .position(x: x, y: lineY + maxDot / 2 + 14)

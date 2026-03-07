@@ -56,10 +56,10 @@ struct CaloriesCard: View {
                 VStack(spacing: 2) {
                     Text("\(Int(animatedConsumed))")
                         .contentTransition(.numericText())
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .font(PerchTheme.Font.titleNumeric)
                         .foregroundColor(PerchTheme.textPrimary)
                     Text(unit)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(PerchTheme.Font.micro)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
             }
@@ -68,40 +68,40 @@ struct CaloriesCard: View {
             // Stats
             VStack(alignment: .leading, spacing: 12) {
                 Text("Daily Calories")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Target")
-                            .font(.system(size: 13))
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textSecondary)
                         Spacer()
                         Text("\(Int(target)) \(unit)")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PerchTheme.Font.captionNumeric)
                             .foregroundColor(PerchTheme.textPrimary)
                     }
 
                     HStack {
                         Text("Remaining")
-                            .font(.system(size: 13))
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textSecondary)
                         Spacer()
                         Text("\(Int(remaining)) \(unit)")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(PerchTheme.Font.captionNumeric)
                             .foregroundColor(remaining > 0 ? PerchTheme.accent : PerchTheme.error)
                     }
 
                     // Percentage
                     Text("\(Int(min(animatedProgress, 1.0) * 100))%")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(PerchTheme.Font.captionNumeric)
                         .foregroundColor(progressColor)
                         .padding(.top, 2)
                 }
 
                 if let updated = lastUpdated {
                     Text("Updated \(updated.relativeTime)")
-                        .font(.system(size: 10))
+                        .font(PerchTheme.Font.micro)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
             }

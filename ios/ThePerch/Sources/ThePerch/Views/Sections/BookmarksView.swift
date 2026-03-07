@@ -60,7 +60,7 @@ struct BookmarksView: View {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     HStack(spacing: PerchTheme.Spacing.small) {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: PerchTheme.Icon.medium))
+                            .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
                             .foregroundColor(PerchTheme.textSecondary)
 
                         TextField("Search bookmarks", text: $searchText)
@@ -69,7 +69,7 @@ struct BookmarksView: View {
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: PerchTheme.Icon.small))
+                                    .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
                                     .foregroundColor(PerchTheme.textTertiary)
                             }
                         }
@@ -89,7 +89,7 @@ struct BookmarksView: View {
                                 ForEach(allTags, id: \.self) { tag in
                                     Button(action: { toggleTag(tag) }) {
                                         Text(tag)
-                                            .font(PerchTheme.Font.caption1)
+                                            .font(PerchTheme.Font.caption)
                                             .foregroundColor(
                                                 selectedTags.contains(tag)
                                                     ? .white
@@ -119,7 +119,7 @@ struct BookmarksView: View {
                         if !pendingBookmarks.isEmpty {
                             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                                 Text("Processing")
-                                    .font(PerchTheme.Font.headline)
+                                    .font(PerchTheme.Font.heading)
                                     .foregroundColor(PerchTheme.textPrimary)
 
                                 VStack(spacing: PerchTheme.Spacing.medium) {
@@ -144,7 +144,7 @@ struct BookmarksView: View {
                         if !processedBookmarks.isEmpty {
                             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                                 Text("Bookmarks")
-                                    .font(PerchTheme.Font.headline)
+                                    .font(PerchTheme.Font.heading)
                                     .foregroundColor(PerchTheme.textPrimary)
 
                                 VStack(spacing: PerchTheme.Spacing.medium) {
@@ -192,12 +192,12 @@ struct BookmarksView: View {
     private var emptyStateView: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "bookmark")
-                .font(.system(size: 48))
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
                 Text("No bookmarks yet")
-                    .font(PerchTheme.Font.headline)
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
                 Text("Share articles from Safari or the Share Sheet")
@@ -214,12 +214,12 @@ struct BookmarksView: View {
     private var emptySearchView: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 48))
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
                 Text("No results")
-                    .font(PerchTheme.Font.headline)
+                    .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
                 Text("Try different keywords or filters")
