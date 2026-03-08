@@ -79,7 +79,6 @@
 		3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOfDayAtmosphere.swift; sourceTree = "<group>"; };
 		E84531AD71195AC9C765C1C9 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */; };
 		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
-		8B92D6C4C0FD7A48FF83A469 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
 		ACMS0002ACMS0002ACMS0002 /* AdminCommandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */; };
 		B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC61D48E7054D783C5A2B /* NotificationService.swift */; };
@@ -153,17 +152,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				364018BE553B4FD19C5ABD37 /* PerchSharedKit.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		6232FF90FFB5A808E3372801 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				8B92D6C4C0FD7A48FF83A469 /* PerchSharedKit.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -733,7 +721,6 @@
 				74181201DAA04FC626BC416F /* Sources */,
 				14B53A84F0B9A8A0509D53F2 /* Frameworks */,
 				33CC87FF3CC80ED413D3C5B9 /* Resources */,
-				6232FF90FFB5A808E3372801 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
