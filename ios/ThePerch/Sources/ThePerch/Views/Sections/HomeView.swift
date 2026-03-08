@@ -76,9 +76,11 @@ struct HomeView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {
-                        // Daily brief card
-                        DailyBriefCard(records: viewModel.records)
-                            .padding(.horizontal, PerchTheme.Spacing.large)
+                        // Daily brief card (pre-computed data, no filtering in view body)
+                        if let briefData = viewModel.dailyBriefData {
+                            DailyBriefCard(data: briefData)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+                        }
 
                         // Quick Glance summary bar
                         quickGlanceBar
