@@ -168,24 +168,68 @@ struct Record: Identifiable, Codable {
         } else if days < 7 {
             return "\(days)d ago"
         } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            return formatter.string(from: createdAt)
+            return PerchFormatters.mediumDate.string(from: createdAt)
         }
+    }
+}
+
+// MARK: - Decoded Payload Cache
+
+/// Caches decoded JSON payloads keyed by record ID + type name.
+/// Avoids re-decoding the same record data on every view render.
+final class DecodingCache {
+    static let shared = DecodingCache()
+
+    private let cache = NSCache<NSString, AnyObject>()
+
+    private init() {
+        cache.countLimit = 500
+    }
+
+    func get<T>(_ recordId: UUID, as type: T.Type) -> T? {
+        let key = "\(recordId)-\(String(describing: type))" as NSString
+        return (cache.object(forKey: key) as? Box<T>)?.value
+    }
+
+    func set<T>(_ value: T, for recordId: UUID, as type: T.Type) {
+        let key = "\(recordId)-\(String(describing: type))" as NSString
+        cache.setObject(Box(value), forKey: key)
+    }
+
+    /// Clear all cached payloads (call on refresh).
+    func clear() {
+        cache.removeAllObjects()
+    }
+
+    /// Type-erased wrapper for storing value types in NSCache.
+    private class Box<T>: NSObject {
+        let value: T
+        init(_ value: T) { self.value = value }
     }
 }
 
 // MARK: - Record Extension for Type-Safe Data Decoding
 
 extension Record {
+    /// Shared encoder/decoder — avoids recreating on each call.
+    private static let jsonEncoder = JSONEncoder()
+    private static let jsonDecoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
     /// Attempts to decode the record's flexible JSON `data` field into a specific typed struct.
-    /// - Parameter type: The type to decode into.
-    /// - Returns: The decoded value, or nil if decoding fails.
+    /// Results are cached by record ID + type to avoid redundant decoding.
     func decodeData<T: Decodable>(as type: T.Type) -> T? {
-        let encoder = JSONEncoder()
-        guard let jsonData = try? encoder.encode(data) else { return nil }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(T.self, from: jsonData)
+        // Check cache first
+        if let cached: T = DecodingCache.shared.get(id, as: type) {
+            return cached
+        }
+        // Decode and cache
+        guard let jsonData = try? Self.jsonEncoder.encode(data),
+              let decoded = try? Self.jsonDecoder.decode(T.self, from: jsonData) else { return nil }
+        DecodingCache.shared.set(decoded, for: id, as: type)
+        return decoded
     }
 }
