@@ -7,7 +7,7 @@ import Observation
 /// Loads health records from Supabase and orchestrates HealthKit sync.
 @Observable
 @MainActor
-final class HealthViewModel {
+final class HealthViewModel: SectionViewModelProtocol {
     // MARK: - Properties
 
     var records: [Record] = []
@@ -59,6 +59,11 @@ final class HealthViewModel {
         } catch {
             self.error = .unknownError(error.localizedDescription)
         }
+    }
+
+    /// Refreshes the records by force-reloading from the server.
+    func refresh() async {
+        await loadRecords(forceRefresh: true)
     }
 
     // MARK: - HealthKit Sync
