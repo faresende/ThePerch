@@ -8,7 +8,7 @@ struct MainTabView: View {
     @State private var selectedIndex: Int = 0
 
     var visibleSections: [Section] {
-        dashboardViewModel.sections.filter { $0.isVisible }.sorted { $0.sortOrder < $1.sortOrder }
+        dashboardViewModel.sections.filter { $0.isVisible && $0.slug != "legal" }.sorted { $0.sortOrder < $1.sortOrder }
     }
 
     var sectionNames: [String] {
@@ -142,8 +142,6 @@ struct SectionView: View {
                     CalendarView()
                 case "admin":
                     AdminView()
-                case "legal":
-                    LegalView()
                 case "bookmarks":
                     BookmarksView()
                 default:
