@@ -274,6 +274,73 @@ struct BookmarkData: Codable {
     }
 }
 
+// MARK: - Medication Checklist Data
+
+/// Structured data for a daily medication checklist record.
+struct MedicationChecklistData: Codable {
+    let items: [MedicationItem]
+
+    struct MedicationItem: Codable, Identifiable {
+        let id: String
+        let name: String
+        var isChecked: Bool
+        let schedule: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, schedule
+            case isChecked = "is_checked"
+        }
+    }
+}
+
+// MARK: - Weather Data
+
+/// Structured data for a weather forecast record.
+struct WeatherData: Codable {
+    let temperature: Double
+    let feelsLike: Double?
+    let conditions: String
+    let icon: String
+    let rainProbability: Double?
+    let high: Double?
+    let low: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case temperature, conditions, icon, high, low
+        case feelsLike = "feels_like"
+        case rainProbability = "rain_probability"
+    }
+}
+
+// MARK: - Email Summary Data
+
+/// Structured data for an important emails summary record.
+struct EmailSummaryData: Codable {
+    let emails: [EmailItem]
+    let totalUnread: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case emails
+        case totalUnread = "total_unread"
+    }
+
+    struct EmailItem: Codable, Identifiable {
+        let id: String
+        let sender: String
+        let subject: String
+        let receivedAt: String
+        let isFlagged: Bool
+        let isUrgent: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case id, sender, subject
+            case receivedAt = "received_at"
+            case isFlagged = "is_flagged"
+            case isUrgent = "is_urgent"
+        }
+    }
+}
+
 // MARK: - Data Payload Decoding Extension
 
 /// Extension to Record for convenient typed data decoding.
@@ -336,5 +403,20 @@ extension Record {
     /// Decodes gateway status data from this record.
     func asGatewayStatus() -> GatewayStatusData? {
         decodeData(as: GatewayStatusData.self)
+    }
+
+    /// Decodes medication checklist data from this record.
+    func asMedications() -> MedicationChecklistData? {
+        decodeData(as: MedicationChecklistData.self)
+    }
+
+    /// Decodes weather data from this record.
+    func asWeather() -> WeatherData? {
+        decodeData(as: WeatherData.self)
+    }
+
+    /// Decodes email summary data from this record.
+    func asEmailSummary() -> EmailSummaryData? {
+        decodeData(as: EmailSummaryData.self)
     }
 }
