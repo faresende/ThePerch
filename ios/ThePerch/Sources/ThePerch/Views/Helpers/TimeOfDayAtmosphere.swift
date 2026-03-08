@@ -46,13 +46,13 @@ struct TimeOfDayAtmosphere: View {
         var topColor: Color {
             switch self {
             case .morning:
-                return Color(red: 0.95, green: 0.75, blue: 0.3).opacity(0.04)
+                return Color(red: 0.949, green: 0.690, blue: 0.290).opacity(0.035) // amber whisper
             case .midday:
-                return Color(red: 0.9, green: 0.85, blue: 0.7).opacity(0.025)
+                return Color(red: 0.95, green: 0.92, blue: 0.86).opacity(0.020) // warm near-clear
             case .evening:
-                return Color(red: 0.4, green: 0.35, blue: 0.75).opacity(0.04)
+                return Color(red: 0.655, green: 0.678, blue: 0.714).opacity(0.030) // steel whisper
             case .night:
-                return Color(red: 0.1, green: 0.12, blue: 0.3).opacity(0.05)
+                return Color(red: 0.10, green: 0.12, blue: 0.18).opacity(0.045) // steel-navy
             }
         }
 
@@ -60,13 +60,13 @@ struct TimeOfDayAtmosphere: View {
         var bottomColor: Color {
             switch self {
             case .morning:
-                return Color(red: 0.9, green: 0.6, blue: 0.2).opacity(0.03)
+                return Color(red: 0.949, green: 0.690, blue: 0.290).opacity(0.025)
             case .midday:
                 return Color.clear
             case .evening:
-                return Color(red: 0.3, green: 0.25, blue: 0.6).opacity(0.03)
+                return Color(red: 0.40, green: 0.44, blue: 0.52).opacity(0.022)
             case .night:
-                return Color(red: 0.05, green: 0.08, blue: 0.25).opacity(0.04)
+                return Color(red: 0.05, green: 0.07, blue: 0.12).opacity(0.040)
             }
         }
     }
