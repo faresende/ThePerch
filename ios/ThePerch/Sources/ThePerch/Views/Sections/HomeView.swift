@@ -82,24 +82,7 @@ struct HomeView: View {
                         quickGlanceBar
                             .padding(.horizontal, PerchTheme.Spacing.large)
 
-                        // Freshness indicator
-                        if let timeStr = freshnessTracker.relativeTimeString(for: "all_records") {
-                            HStack(spacing: 4) {
-                                if freshnessTracker.isStale("all_records") {
-                                    Circle()
-                                        .fill(PerchTheme.warning)
-                                        .frame(width: 5, height: 5)
-                                }
-                                Text(timeStr)
-                                    .font(PerchTheme.Font.micro)
-                                    .foregroundColor(
-                                        freshnessTracker.isStale("all_records")
-                                            ? PerchTheme.warning
-                                            : PerchTheme.textTertiary
-                                    )
-                            }
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-                        }
+
 
                         // Modular cards in time-of-day order
                         VStack(spacing: PerchTheme.Spacing.medium) {
@@ -221,7 +204,27 @@ struct HomeView: View {
                 )
             }
         }
-        .padding(.vertical, PerchTheme.Spacing.medium)
+        .padding(.top, PerchTheme.Spacing.medium)
+        .padding(.bottom, PerchTheme.Spacing.small)
+        .overlay(alignment: .bottom) {
+            if let timeStr = freshnessTracker.relativeTimeString(for: "all_records") {
+                HStack(spacing: 4) {
+                    if freshnessTracker.isStale("all_records") {
+                        Circle()
+                            .fill(PerchTheme.warning)
+                            .frame(width: 4, height: 4)
+                    }
+                    Text(timeStr)
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(
+                            freshnessTracker.isStale("all_records")
+                                ? PerchTheme.warning
+                                : PerchTheme.textTertiary
+                        )
+                }
+                .padding(.bottom, 6)
+            }
+        }
         .background(
             LinearGradient(
                 colors: [PerchTheme.accent.opacity(0.03), Color.clear],
