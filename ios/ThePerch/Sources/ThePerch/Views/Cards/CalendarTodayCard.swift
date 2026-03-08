@@ -94,11 +94,19 @@ struct CalendarTodayCard: View {
     // MARK: - Event Rows
 
     private func eventRow(event: EventData, isNext: Bool) -> some View {
-        HStack(spacing: PerchTheme.Spacing.small) {
-            // Status indicator
-            Circle()
-                .fill(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
-                .frame(width: 8, height: 8)
+        let isHappening = event.start <= now && event.end > now
+
+        return HStack(spacing: PerchTheme.Spacing.small) {
+            // Status indicator — green dot when event is happening now
+            if isHappening {
+                Circle()
+                    .fill(PerchTheme.success)
+                    .frame(width: 8, height: 8)
+            } else {
+                Circle()
+                    .fill(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
+                    .frame(width: 8, height: 8)
+            }
 
             // Time
             Text(PerchFormatters.time24h.string(from: event.start))
@@ -114,18 +122,32 @@ struct CalendarTodayCard: View {
 
             Spacer()
 
-            // Relative time
-            Text(relativeTimeLabel(for: event))
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
+            // Relative time — "Now" with green, countdown with accent
+            if isHappening {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(PerchTheme.success)
+                        .frame(width: 6, height: 6)
+                    Text("Now")
+                        .font(PerchTheme.Font.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(PerchTheme.success)
+                }
+            } else {
+                Text(relativeTimeLabel(for: event))
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
+            }
         }
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
-        .background(isNext ? PerchTheme.accentMuted : Color.clear)
+        .background(isHappening ? PerchTheme.success.opacity(0.08) : (isNext ? PerchTheme.accentMuted : Color.clear))
         .cornerRadius(PerchTheme.Card.innerCornerRadius)
     }
 
     private func pastEventRow(event: EventData) -> some View {
-        HStack(spacing: PerchTheme.Spacing.small) {
+        let endedMinutesAgo = Int(now.timeIntervalSince(event.end) / 60)
+
+        return HStack(spacing: PerchTheme.Spacing.small) {
             Image(systemName: "checkmark")
                 .font(PerchTheme.Font.micro)
                 .foregroundColor(PerchTheme.textTertiary)
@@ -143,11 +165,19 @@ struct CalendarTodayCard: View {
 
             Spacer()
 
-            Text("done")
-                .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+            // Show "Ended Xm ago" for recently ended, "done" for older
+            if endedMinutesAgo < 60 {
+                Text("Ended \(endedMinutesAgo)m ago")
+                    .font(PerchTheme.Font.micro)
+                    .foregroundColor(PerchTheme.textTertiary)
+            } else {
+                Text("done")
+                    .font(PerchTheme.Font.micro)
+                    .foregroundColor(PerchTheme.textTertiary)
+            }
         }
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
+        .opacity(endedMinutesAgo > 120 ? 0.6 : 0.8)
     }
 
     // MARK: - Helpers
