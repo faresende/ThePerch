@@ -107,6 +107,8 @@ struct AgentStatusCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Agent: \(agent.displayName), \(agentState.label.lowercased())")
     }
 }
 

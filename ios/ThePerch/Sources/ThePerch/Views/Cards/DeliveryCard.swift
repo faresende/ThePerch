@@ -119,6 +119,8 @@ struct DeliveryCard: View {
             .cardStyle()
         }
         .buttonStyle(CardPressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
         .onAppear {
             PerchMotion.withOptionalAnimation(.easeOut(duration: 0.6).delay(0.2)) {
                 animateTimeline = true
@@ -207,6 +209,16 @@ struct DeliveryCard: View {
         }
         .frame(height: 60)
         .padding(.horizontal, PerchTheme.Spacing.xxSmall)
+    }
+
+    private var accessibilitySummary: String {
+        let itemName = delivery.items.first?.name ?? "Package"
+        let status = steps[activeIndex].label.lowercased()
+        var summary = "Delivery: \(itemName) via \(delivery.carrier), \(status)"
+        if let eta = etaFormatted {
+            summary += ", arriving \(eta)"
+        }
+        return summary
     }
 
     private func stepSystemImage(for key: String) -> String {

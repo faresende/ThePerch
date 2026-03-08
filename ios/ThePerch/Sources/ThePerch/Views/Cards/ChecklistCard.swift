@@ -117,6 +117,8 @@ struct ChecklistCard: View {
         }
         .padding(PerchTheme.Spacing.large)
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Checklist: \(completedCount) of \(items.count) items complete")
     }
 }
 
