@@ -57,6 +57,12 @@ struct HealthView: View {
                         SkeletonHealthSection()
                             .padding(.horizontal, PerchTheme.Spacing.large)
                     } else {
+                        // Targets summary card
+                        if !viewModel.records.isEmpty {
+                            HealthSummaryCard(records: viewModel.records)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+                        }
+
                         // Daily calories card
                         if let (record, measurement) = viewModel.latestByMetric["daily_calories"],
                            let target = measurement.target {
