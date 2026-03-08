@@ -1,7 +1,9 @@
 import SwiftUI
 
 /// Health section showing one chart card per metric, plus calories and macros cards.
+/// Reads records from DashboardViewModel (single-fetch architecture).
 struct HealthView: View {
+    @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = HealthViewModel()
     @State private var selectedDetail: HealthDetailInfo?
     @State private var cardsAppeared = false
@@ -26,23 +28,17 @@ struct HealthView: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
-                    // NOTE: HealthKit sync button hidden for now — all data comes from Claudinho.
-                    // Uncomment to re-enable Apple Health sync:
-                    // if viewModel.isHealthKitAvailable {
-                    //     syncSection
-                    // }
-
                     // Error banner
                     if viewModel.error != nil {
                         ErrorBanner(
                             message: "Failed to load health data",
-                            retryAction: { Task { await viewModel.loadRecords() } },
+                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
                             onDismiss: { viewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 
-                    if viewModel.isLoading && viewModel.records.isEmpty {
+                    if dashboardViewModel.isLoading && viewModel.records.isEmpty {
                         SkeletonHealthSection()
                             .padding(.horizontal, PerchTheme.Spacing.large)
                     } else {
@@ -125,12 +121,17 @@ struct HealthView: View {
             }
             .refreshable {
                 PerchHaptics.medium()
-                await viewModel.loadRecords(forceRefresh: true)
+                await dashboardViewModel.refreshRecords()
                 PerchHaptics.success()
             }
         }
-        .task {
-            await viewModel.loadRecords()
+        .onChange(of: dashboardViewModel.healthRecords) { _, newRecords in
+            viewModel.records = newRecords
+        }
+        .onAppear {
+            if !dashboardViewModel.healthRecords.isEmpty {
+                viewModel.records = dashboardViewModel.healthRecords
+            }
         }
         .sheet(item: $selectedDetail) { detail in
             HealthDetailView(
@@ -269,4 +270,5 @@ struct HealthView: View {
 
 #Preview {
     HealthView()
+        .environment(DashboardViewModel())
 }
