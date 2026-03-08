@@ -102,8 +102,20 @@ final class HomeViewModel {
     func updateWidgetData() {
         guard let defaults = UserDefaults(suiteName: "group.com.theperch.shared") else { return }
 
+        // Existing quick glance data
         defaults.set(caloriesPercentText, forKey: "widget_calories_percent")
 
+        // New: calories consumed + target for lock screen widgets
+        if let record = todaysCaloriesRecord,
+           let m = record.asMeasurement() {
+            defaults.set(Int(m.value), forKey: "widget_calories_consumed")
+            defaults.set(Int(m.target ?? 0), forKey: "widget_calories_target")
+        } else {
+            defaults.removeObject(forKey: "widget_calories_consumed")
+            defaults.removeObject(forKey: "widget_calories_target")
+        }
+
+        // Next event data
         let futureEvents = records.compactMap { record -> EventData? in
             guard let event = record.asEvent(), event.start > .now else { return nil }
             return event
@@ -111,8 +123,13 @@ final class HomeViewModel {
 
         if let next = futureEvents.first {
             defaults.set("\(next.title) \(PerchFormatters.time24h.string(from: next.start))", forKey: "widget_next_event")
+            // New: separate title and time for lock screen widget
+            defaults.set(next.title, forKey: "widget_next_event_title")
+            defaults.set(PerchFormatters.time24h.string(from: next.start), forKey: "widget_next_event_time")
         } else {
             defaults.set("No events", forKey: "widget_next_event")
+            defaults.removeObject(forKey: "widget_next_event_title")
+            defaults.removeObject(forKey: "widget_next_event_time")
         }
 
         defaults.set(activeDeliveryCount, forKey: "widget_active_deliveries")
