@@ -9,6 +9,7 @@ struct SingleValueCard: View {
     let trend: TrendIndicator?
     let lastUpdated: Date
     let sourceIcon: String?
+    let sparklineData: [Double]?
 
     enum TrendIndicator {
         case up(Double)
@@ -49,7 +50,8 @@ struct SingleValueCard: View {
         unit: String? = nil,
         trend: TrendIndicator? = nil,
         lastUpdated: Date,
-        sourceIcon: String? = nil
+        sourceIcon: String? = nil,
+        sparklineData: [Double]? = nil
     ) {
         self.value = value
         self.label = label
@@ -57,6 +59,7 @@ struct SingleValueCard: View {
         self.trend = trend
         self.lastUpdated = lastUpdated
         self.sourceIcon = sourceIcon
+        self.sparklineData = sparklineData
     }
 
     var body: some View {
@@ -89,6 +92,14 @@ struct SingleValueCard: View {
 
             Spacer()
 
+            // Sparkline (7-day trend)
+            if let data = sparklineData, data.count >= 2 {
+                SparklineView(
+                    dataPoints: data,
+                    lineColor: trend?.color.opacity(0.6) ?? PerchTheme.accent.opacity(0.6)
+                )
+            }
+
             // Trend badge
             if let trend {
                 HStack(spacing: 4) {
@@ -114,6 +125,21 @@ struct SingleValueCard: View {
         .padding(.horizontal, PerchTheme.Spacing.large)
         .padding(.vertical, PerchTheme.Spacing.medium)
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = ["\(label): \(value)"]
+        if let unit { parts[0] += " \(unit)" }
+        if let trend {
+            switch trend {
+            case .up: parts.append("trending up")
+            case .down: parts.append("trending down")
+            case .neutral: parts.append("no change")
+            }
+        }
+        return parts.joined(separator: ", ")
     }
 }
 
@@ -159,7 +185,8 @@ extension Date {
             unit: "kg",
             trend: .down(2.3),
             lastUpdated: Date.now,
-            sourceIcon: "❤️"
+            sourceIcon: "❤️",
+            sparklineData: [82.0, 81.8, 81.5, 81.3, 81.2, 81.5, 81.5]
         )
 
         SingleValueCard(
@@ -168,7 +195,8 @@ extension Date {
             unit: "bpm",
             trend: .neutral,
             lastUpdated: Date.now.addingTimeInterval(-3600),
-            sourceIcon: "💓"
+            sourceIcon: "💓",
+            sparklineData: [70, 74, 71, 73, 72, 74, 72]
         )
 
         SingleValueCard(

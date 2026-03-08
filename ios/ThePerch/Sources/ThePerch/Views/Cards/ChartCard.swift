@@ -322,6 +322,18 @@ struct ChartCard: View {
         }
         .padding(PerchTheme.Spacing.large)
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        var summary = "\(title): \(latestValue) \(unit)"
+        if let trend = trendPercent {
+            let direction = trend > 0.5 ? "up" : (trend < -0.5 ? "down" : "stable")
+            summary += ", trending \(direction) \(String(format: "%.1f", abs(trend))) percent"
+        }
+        summary += ", \(chartData.count) data points over \(resolvedRange.rawValue)"
+        return summary
     }
 
     // MARK: - Tooltip
