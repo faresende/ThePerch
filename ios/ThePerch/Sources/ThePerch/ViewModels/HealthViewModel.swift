@@ -128,17 +128,10 @@ final class HealthViewModel: SectionViewModelProtocol {
     /// Resolves the effective date for a measurement, checking timestamp first,
     /// then context (which Claudinho uses for date strings like "2026-03-06"),
     /// then falling back to record.createdAt.
-    private static let contextDateFormatter: DateFormatter = {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = .current
-        return fmt
-    }()
-
     private func effectiveDate(for record: Record, measurement: MeasurementData) -> Date {
         if let ts = measurement.timestamp { return ts }
         if let ctx = measurement.context,
-           let parsed = Self.contextDateFormatter.date(from: ctx) {
+           let parsed = PerchFormatters.isoDate.date(from: ctx) {
             return parsed
         }
         return record.createdAt

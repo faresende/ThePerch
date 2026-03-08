@@ -50,10 +50,7 @@ struct MacrosData: Codable {
     /// Parses the date string (e.g. "2026-03-06") into a Date object.
     var dateAsDate: Date? {
         guard let date else { return nil }
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = .current
-        return fmt.date(from: date)
+        return PerchFormatters.isoDate.date(from: date)
     }
 }
 
