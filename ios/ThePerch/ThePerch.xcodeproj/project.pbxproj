@@ -88,6 +88,7 @@
 		DBCARD02DBCARD02DBCARD02 /* DailyBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */; };
 		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
 		ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */; };
+		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -203,6 +204,7 @@
 		DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefCard.swift; sourceTree = "<group>"; };
 		DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLiveActivityManager.swift; sourceTree = "<group>"; };
 		ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorBanner.swift; sourceTree = "<group>"; };
+		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -403,6 +405,7 @@
 		35F543772F52411F00204F77 /* Theme */ = {
 			isa = PBXGroup;
 			children = (
+				PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */,
 				35F543762F52411F00204F77 /* PerchTheme.swift */,
 			);
 			path = Theme;
@@ -786,6 +789,7 @@
 				A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */,
 				B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */,
 				ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */,
+				PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
