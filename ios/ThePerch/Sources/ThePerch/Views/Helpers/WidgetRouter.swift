@@ -271,6 +271,7 @@ struct WidgetRouter: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview {
     VStack(spacing: PerchTheme.Spacing.medium) {
         WidgetRouter(record: MockData.measurementRecords[0])
@@ -281,3 +282,4 @@ struct WidgetRouter: View {
     .background(PerchTheme.background)
     .ignoresSafeArea()
 }
+#endif
