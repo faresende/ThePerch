@@ -146,7 +146,7 @@ struct BookmarksView: View {
 
                 // Content
                 ScrollView {
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                    LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                         // Count indicator
                         if !filteredBookmarks.isEmpty {
                             Text("\(tabCount) \(selectedTab == .karakeep ? "bookmark" : "document")\(tabCount == 1 ? "" : "s")")

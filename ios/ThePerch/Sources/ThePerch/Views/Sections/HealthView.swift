@@ -20,7 +20,7 @@ struct HealthView: View {
             PerchTheme.background.ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Section header with freshness
                     SectionHeader(title: "Health", freshnessKey: "health")
                         .padding(.horizontal, PerchTheme.Spacing.large)

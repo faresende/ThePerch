@@ -154,7 +154,7 @@ struct HealthDetailView: View {
                 PerchTheme.background.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                    LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                         // Latest value + trend
                         if let latest = chartData.last {
                             VStack(alignment: .leading, spacing: 4) {
