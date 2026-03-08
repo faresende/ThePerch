@@ -229,6 +229,12 @@ enum BookmarkStatus: String, Codable {
     case failed      // Processing failed (page unreachable, etc.)
 }
 
+/// Source system for a bookmark (Karakeep for read-later, Paperless for documents).
+enum BookmarkSource: String, Codable {
+    case karakeep    // Read-later / articles
+    case paperless   // Documents / receipts
+}
+
 /// Structured data for a bookmark record.
 /// Bookmarks are submitted from the iOS Share Extension or Safari Extension,
 /// then asynchronously enriched by the Archie agent on OpenClaw.
@@ -244,6 +250,9 @@ struct BookmarkData: Codable {
     let readingTimeMinutes: Int?
     let submittedFrom: String?  // "ios_share", "safari_extension", "telegram"
     let processedAt: Date?
+    let source: BookmarkSource?
+    let fileType: String?
+    let fileName: String?
 
     enum CodingKeys: String, CodingKey {
         case url
@@ -257,6 +266,9 @@ struct BookmarkData: Codable {
         case readingTimeMinutes = "reading_time_minutes"
         case submittedFrom = "submitted_from"
         case processedAt = "processed_at"
+        case source
+        case fileType = "file_type"
+        case fileName = "file_name"
     }
 
     /// The best available title (enriched if available, otherwise original).
