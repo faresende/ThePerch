@@ -6,33 +6,41 @@ struct PerchQuickGlanceEntry: TimelineEntry {
     let caloriesPercent: String
     let nextEvent: String
     let activeDeliveries: Int
+    let lastUpdated: Date?
 }
 
 struct PerchQuickGlanceProvider: TimelineProvider {
+    private let sharedDefaults = UserDefaults(suiteName: "group.com.theperch.shared")
+
     func placeholder(in context: Context) -> PerchQuickGlanceEntry {
         PerchQuickGlanceEntry(
             date: .now,
             caloriesPercent: "62%",
-            nextEvent: "11:30",
-            activeDeliveries: 1
+            nextEvent: "Team Standup 10:00",
+            activeDeliveries: 1,
+            lastUpdated: .now
         )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PerchQuickGlanceEntry) -> Void) {
-        completion(placeholder(in: context))
+        completion(readEntry())
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<PerchQuickGlanceEntry>) -> Void) {
-        // v1: static timeline. Next iteration can read from an App Group or network.
-        let entry = PerchQuickGlanceEntry(
-            date: .now,
-            caloriesPercent: "--%",
-            nextEvent: "None",
-            activeDeliveries: 0
-        )
-
+        let entry = readEntry()
         let nextRefresh = Calendar.current.date(byAdding: .minute, value: 30, to: .now) ?? .now.addingTimeInterval(1800)
         completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
+    }
+
+    private func readEntry() -> PerchQuickGlanceEntry {
+        let defaults = sharedDefaults
+        return PerchQuickGlanceEntry(
+            date: .now,
+            caloriesPercent: defaults?.string(forKey: "widget_calories_percent") ?? "--%",
+            nextEvent: defaults?.string(forKey: "widget_next_event") ?? "No events",
+            activeDeliveries: defaults?.integer(forKey: "widget_active_deliveries") ?? 0,
+            lastUpdated: defaults?.object(forKey: "widget_last_updated") as? Date
+        )
     }
 }
 
@@ -69,12 +77,22 @@ private struct PerchQuickGlanceWidgetView: View {
 
                 Spacer(minLength: 0)
 
-                Text(entry.date, style: .time)
+                Text(updatedAgoText)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
             }
             .padding(14)
         }
+    }
+
+    private var updatedAgoText: String {
+        guard let lastUpdated = entry.lastUpdated else { return "Not yet updated" }
+        let interval = Date.now.timeIntervalSince(lastUpdated)
+        let minutes = Int(interval / 60)
+        if minutes < 1 { return "Updated just now" }
+        if minutes < 60 { return "Updated \(minutes)m ago" }
+        let hours = minutes / 60
+        return "Updated \(hours)h ago"
     }
 
     private struct Row: View {
@@ -98,5 +116,5 @@ private struct PerchQuickGlanceWidgetView: View {
 #Preview(as: .systemSmall) {
     PerchQuickGlanceWidget()
 } timeline: {
-    PerchQuickGlanceEntry(date: .now, caloriesPercent: "62%", nextEvent: "11:30", activeDeliveries: 1)
+    PerchQuickGlanceEntry(date: .now, caloriesPercent: "62%", nextEvent: "Team Standup 10:00", activeDeliveries: 1, lastUpdated: .now)
 }
