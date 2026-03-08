@@ -26,13 +26,6 @@ final class AmbienceManager {
         observeForeground()
     }
 
-    deinit {
-        timer?.invalidate()
-        if let obs = foregroundObserver {
-            NotificationCenter.default.removeObserver(obs)
-        }
-    }
-
     // MARK: - Timer
 
     private func startTimer() {
