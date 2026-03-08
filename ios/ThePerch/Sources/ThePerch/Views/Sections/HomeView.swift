@@ -59,6 +59,10 @@ struct HomeView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {
+                        // Daily brief card
+                        DailyBriefCard(records: records)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+
                         // Quick Glance summary bar
                         quickGlanceBar
                             .padding(.horizontal, PerchTheme.Spacing.large)
