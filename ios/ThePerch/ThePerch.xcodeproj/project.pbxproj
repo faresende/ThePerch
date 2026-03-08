@@ -94,6 +94,7 @@
 		NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */; };
 		CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */; };
 		CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACH0001CACH0001CACH0001 /* CacheService.swift */; };
+		JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */; };
 		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
 		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
 		HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */; };
@@ -230,6 +231,7 @@
 		NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		CACH0001CACH0001CACH0001 /* CacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheService.swift; sourceTree = "<group>"; };
+		JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueDecoder.swift; sourceTree = "<group>"; };
 		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
 		SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceProtocol.swift; sourceTree = "<group>"; };
 		HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceProtocol.swift; sourceTree = "<group>"; };
@@ -374,6 +376,7 @@
 				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
 				CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */,
 				CACH0001CACH0001CACH0001 /* CacheService.swift */,
+				JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */,
 				RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */,
 			);
 			path = Services;
@@ -890,6 +893,7 @@
 				NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */,
 				CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */,
 				CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */,
+				JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */,
 				RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */,
 				SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */,
 				HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */,
