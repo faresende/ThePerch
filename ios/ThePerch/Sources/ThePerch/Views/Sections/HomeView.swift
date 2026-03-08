@@ -462,10 +462,22 @@ struct HomeView: View {
         do {
             records = try await SupabaseService.shared.fetchRecords(limit: 50, forceRefresh: forceRefresh)
             updateWidgetData()
+            await syncLiveActivities()
         } catch {
             loadError = "Failed to load data"
             print("[HomeView] Failed to load records: \(error)")
         }
+    }
+
+    /// Syncs Live Activities with current active deliveries.
+    private func syncLiveActivities() async {
+        let activeDeliveries = records.compactMap { record -> DeliveryData? in
+            guard let d = record.asDelivery() else { return nil }
+            let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            guard s == "in_transit" || s == "shipped" || s == "out_for_delivery" || s == "processing" || s == "ordered" else { return nil }
+            return d
+        }
+        await DeliveryLiveActivityManager.shared.sync(activeDeliveries: activeDeliveries)
     }
 
     // MARK: - Widget Data
