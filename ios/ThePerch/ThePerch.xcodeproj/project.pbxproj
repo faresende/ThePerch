@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		06CAFBE9E741F0F8744E8709 /* SectionNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837659300DEF6DC763F7F917 /* SectionNavigator.swift */; };
 		0385F06533E708330AFA01B0 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B954EE98DF57B9774F8D30 /* SearchView.swift */; };
 		04D79066DBA65FB6D46550DD /* ThePerchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */; };
 		137B70EC203CFFD874359DBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
@@ -179,6 +180,7 @@
 		35F543722F52411F00204F77 /* LegalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalView.swift; sourceTree = "<group>"; };
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
+		837659300DEF6DC763F7F917 /* SectionNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionNavigator.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		49B954EE98DF57B9774F8D30 /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
@@ -397,12 +399,21 @@
 			children = (
 				35F5435F2F52411F00204F77 /* App */,
 				35F543682F52411F00204F77 /* Cards */,
+				89F1570CF26987B35512250E /* Components */,
 				35F5436B2F52411F00204F77 /* Helpers */,
 				35F543732F52411F00204F77 /* Sections */,
 				35F543752F52411F00204F77 /* Settings */,
 				35F543772F52411F00204F77 /* Theme */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		89F1570CF26987B35512250E /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				837659300DEF6DC763F7F917 /* SectionNavigator.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 		35F5437B2F52411F00204F77 /* ThePerch */ = {
@@ -743,6 +754,7 @@
 				35F5439B2F52411F00204F77 /* CostBreakdownCard.swift in Sources */,
 				35F5439C2F52411F00204F77 /* SettingsView.swift in Sources */,
 				35F5439D2F52411F00204F77 /* AuthViewModel.swift in Sources */,
+				06CAFBE9E741F0F8744E8709 /* SectionNavigator.swift in Sources */,
 				35F5439E2F52411F00204F77 /* PerchTheme.swift in Sources */,
 				35F5439F2F52411F00204F77 /* AuthView.swift in Sources */,
 				35F543A02F52411F00204F77 /* MockData.swift in Sources */,
