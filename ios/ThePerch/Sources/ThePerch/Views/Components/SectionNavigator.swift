@@ -18,7 +18,7 @@ struct SectionNavigator: View {
                             isActive: selectedIndex == index,
                             namespace: pillNamespace
                         ) {
-                            PerchHaptics.light()
+                            PerchHaptics.selection()
                             PerchMotion.withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                 selectedIndex = index
                             }
