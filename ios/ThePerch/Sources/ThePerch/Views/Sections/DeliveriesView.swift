@@ -47,6 +47,16 @@ struct DeliveriesView: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
+                    // Error banner
+                    if viewModel.error != nil {
+                        ErrorBanner(
+                            message: "Failed to load deliveries",
+                            retryAction: { Task { await viewModel.loadRecords() } },
+                            onDismiss: { viewModel.clearError() }
+                        )
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                    }
+
                     // Active deliveries
                     if !activeDeliveries.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
