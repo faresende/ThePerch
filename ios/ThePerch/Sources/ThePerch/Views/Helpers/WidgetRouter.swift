@@ -71,7 +71,7 @@ struct WidgetRouter: View {
 
             if isInteractive {
                 Button {
-                    PerchHaptics.selection()
+                    PerchHaptics.light()
                     showDetail = true
                 } label: {
                     Image(systemName: "info.circle.fill")

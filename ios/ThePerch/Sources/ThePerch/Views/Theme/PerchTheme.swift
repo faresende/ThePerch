@@ -329,20 +329,29 @@ private struct CardStyleModifier: ViewModifier {
 // MARK: - Haptic Feedback
 
 enum PerchHaptics {
+    /// Card tap, navigation, toggle collapse
     static func light() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
+    /// Pull-to-refresh start
     static func medium() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
+    /// Picker change, segment switch, tab change
     static func selection() {
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
+    /// Refresh complete, action succeeded, copy confirmed
     static func success() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    /// Error occurred
+    static func error() {
+        UINotificationFeedbackGenerator().notificationOccurred(.error)
     }
 }
 

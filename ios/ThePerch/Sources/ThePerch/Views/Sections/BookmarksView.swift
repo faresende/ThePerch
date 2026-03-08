@@ -93,6 +93,7 @@ struct BookmarksView: View {
                     }
                     .pickerStyle(.segmented)
                     .onChange(of: selectedTab) { _, _ in
+                        PerchHaptics.selection()
                         // Reset tag selection when switching tabs
                         selectedTags.removeAll()
                     }
@@ -291,6 +292,7 @@ struct BookmarksView: View {
     }
 
     private func toggleTag(_ tag: String) {
+        PerchHaptics.selection()
         if selectedTags.contains(tag) {
             selectedTags.remove(tag)
         } else {
