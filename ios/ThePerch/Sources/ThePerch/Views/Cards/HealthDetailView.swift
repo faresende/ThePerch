@@ -132,7 +132,7 @@ struct HealthDetailView: View {
         var streak = 0
         var date = Date()
         for _ in 0..<365 {
-            let key = fmt.string(from: date)
+            let key = PerchFormatters.isoDate.string(from: date)
             guard let value = dailyValues[key] else { break }
             if value >= goal {
                 streak += 1

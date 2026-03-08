@@ -41,9 +41,7 @@ struct DeliveryCard: View {
 
     private var etaFormatted: String? {
         guard let eta = delivery.eta else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: eta)
+        return PerchFormatters.shortDate.string(from: eta)
     }
 
     private var trackingSuffix: String? {
