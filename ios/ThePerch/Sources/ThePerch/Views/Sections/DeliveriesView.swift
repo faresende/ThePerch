@@ -11,25 +11,24 @@ struct DeliveriesView: View {
 
     private var records: [Record] { dashboardViewModel.deliveryRecords }
 
-    var activeDeliveries: [Record] {
-        records.filter { record in
-            if let delivery = record.asDelivery() {
-                let status = delivery.status.lowercased()
-                return status != "delivered" && status != "cancelled"
+    /// Single-pass decode: partition into active vs. completed deliveries.
+    private var partitionedDeliveries: (active: [Record], completed: [Record]) {
+        var active: [Record] = []
+        var completed: [Record] = []
+        for record in records {
+            guard let delivery = record.asDelivery() else { continue }
+            let status = delivery.status.lowercased()
+            if status == "delivered" || status == "cancelled" {
+                completed.append(record)
+            } else {
+                active.append(record)
             }
-            return false
         }
+        return (active, completed)
     }
 
-    var completedDeliveries: [Record] {
-        records.filter { record in
-            if let delivery = record.asDelivery() {
-                let status = delivery.status.lowercased()
-                return status == "delivered" || status == "cancelled"
-            }
-            return false
-        }
-    }
+    var activeDeliveries: [Record] { partitionedDeliveries.active }
+    var completedDeliveries: [Record] { partitionedDeliveries.completed }
 
     var body: some View {
         ZStack {

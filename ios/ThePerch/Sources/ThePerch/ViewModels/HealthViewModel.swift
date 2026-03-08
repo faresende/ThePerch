@@ -143,8 +143,6 @@ final class HealthViewModel {
     /// Formatted last sync string for display.
     var lastSyncFormatted: String? {
         guard let lastSyncDate else { return nil }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: lastSyncDate, relativeTo: Date())
+        return PerchFormatters.relativeDateTime.localizedString(for: lastSyncDate, relativeTo: Date())
     }
 }

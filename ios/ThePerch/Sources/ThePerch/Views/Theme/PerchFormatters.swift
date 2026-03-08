@@ -83,6 +83,13 @@ enum PerchFormatters {
         ISO8601DateFormatter()
     }()
 
+    /// Relative date/time — "2 min. ago", "3 hr. ago"
+    static let relativeDateTime: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return f
+    }()
+
     // MARK: - Number Formatters
 
     /// Decimal with up to 2 fraction digits — "1,234.56"
