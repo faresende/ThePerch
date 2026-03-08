@@ -20,25 +20,33 @@ struct HomeView: View {
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Header with greeting and settings
-                    HStack {
+                    // Compact header: greeting + date + settings
+                    HStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text("\(greetingText), Fabio")
                             .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
+
+                        Text("·")
+                            .font(PerchTheme.Font.heading)
+                            .foregroundColor(PerchTheme.textTertiary)
+
+                        Text(shortDateString)
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(PerchTheme.textSecondary)
 
                         Spacer()
 
                         Button(action: { showSettings = true }) {
                             Image(systemName: "gear")
-                                .font(PerchTheme.Font.title)
+                                .font(PerchTheme.Font.body)
                                 .foregroundColor(PerchTheme.textSecondary)
-                                .frame(width: 40, height: 40)
+                                .frame(width: 34, height: 34)
                                 .background(PerchTheme.cardBackground)
-                                .cornerRadius(12)
+                                .cornerRadius(10)
                         }
                     }
                     .padding(.horizontal, PerchTheme.Spacing.large)
-                    .padding(.top, PerchTheme.Spacing.medium)
+                    .padding(.top, PerchTheme.Spacing.small)
 
                     // Search bar
                     searchBar
@@ -555,6 +563,13 @@ struct HomeView: View {
         case 17..<22: return "Good evening"
         default: return "Good night"
         }
+    }
+
+    /// "Sun Mar 8" — short weekday + date for the compact header.
+    private var shortDateString: String {
+        let f = DateFormatter()
+        f.dateFormat = "EEE MMM d"
+        return f.string(from: Date.now)
     }
 }
 
