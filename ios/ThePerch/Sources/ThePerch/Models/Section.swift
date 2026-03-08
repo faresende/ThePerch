@@ -34,19 +34,19 @@ struct Section: Identifiable, Codable {
 struct HomeWidget: Identifiable, Codable {
     let id: UUID
     let userId: UUID
-    let position: Int
+    let sortOrder: Int
     let widgetType: String
     let config: JSONValue?
-    let isVisible: Bool
+    let size: String
     let createdAt: Date
     let updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id
-        case position
+        case sortOrder = "sort_order"
         case widgetType = "widget_type"
         case config
-        case isVisible = "is_visible"
+        case size
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case userId = "user_id"
