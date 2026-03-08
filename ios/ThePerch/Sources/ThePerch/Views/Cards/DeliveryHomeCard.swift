@@ -103,25 +103,27 @@ struct DeliveryHomeCard: View {
                     lineWidth: 1
                 )
         )
-        .opacity(isOutForDelivery ? pulseOpacity : 1.0)
-        .animation(
-            isOutForDelivery && !PerchMotion.prefersReduced
-                ? .easeInOut(duration: 2).repeatForever(autoreverses: true)
-                : .default,
-            value: isOutForDelivery
-        )
     }
 
-    @State private var pulseOpacity: Double = 0.85
+    @State private var isPulsing = false
 
     // MARK: - Status Badge
 
     private func statusBadge(status: String) -> some View {
         let (label, color) = statusInfo(status)
+        let isOutForDelivery = status == "out_for_delivery"
+
         return HStack(spacing: 4) {
             Circle()
                 .fill(color)
                 .frame(width: 7, height: 7)
+                .scaleEffect(isOutForDelivery && isPulsing ? 1.3 : 1.0)
+                .animation(
+                    isOutForDelivery && !PerchMotion.prefersReduced
+                        ? .easeInOut(duration: 2).repeatForever(autoreverses: true)
+                        : .default,
+                    value: isPulsing
+                )
             Text(label)
                 .font(PerchTheme.Font.caption)
                 .foregroundColor(color)
@@ -131,6 +133,9 @@ struct DeliveryHomeCard: View {
         .padding(.vertical, PerchTheme.Spacing.xxxSmall)
         .background(color.opacity(0.12))
         .cornerRadius(8)
+        .onAppear {
+            if isOutForDelivery { isPulsing = true }
+        }
     }
 
     private func statusInfo(_ status: String) -> (String, Color) {
