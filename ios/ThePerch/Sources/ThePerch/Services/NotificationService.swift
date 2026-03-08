@@ -12,9 +12,12 @@ final class NotificationService: ObservableObject {
     @Published var permissionRequested: Bool = false
 
     private let center = UNUserNotificationCenter.current()
+    private var initTask: Task<Void, Never>?
 
     private init() {
-        Task { await checkAuthorizationStatus() }
+        initTask = Task { [weak self] in
+            await self?.checkAuthorizationStatus()
+        }
     }
 
     // MARK: - Permissions

@@ -2,8 +2,7 @@ import Foundation
 
 /// Persists records and sections to local JSON files for offline access.
 /// Cache is keyed by user ID to support multi-user scenarios.
-@MainActor
-final class CacheService {
+final class CacheService: @unchecked Sendable {
     static let shared = CacheService()
 
     /// Maximum cache age in seconds (7 days).
