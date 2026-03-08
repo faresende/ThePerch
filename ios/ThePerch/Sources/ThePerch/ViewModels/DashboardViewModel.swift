@@ -275,6 +275,9 @@ final class DashboardViewModel {
 
     private let reconnectManager = RealtimeReconnectManager.shared
 
+    /// Debounce task for coalescing rapid realtime fallback refreshes.
+    private var refreshDebounceTask: Task<Void, Never>?
+
     /// Sets up realtime subscriptions to listen for dashboard changes.
     /// Merges changes locally (INSERT/UPDATE/DELETE) instead of full refetch.
     func setupRealtimeSubscriptions() async {
@@ -333,7 +336,7 @@ final class DashboardViewModel {
     }
 
     /// Merges a single realtime change into allRecords locally.
-    /// Falls back to full refetch only if the payload can't be decoded.
+    /// Falls back to debounced full refetch only if the payload can't be decoded.
     private func mergeRealtimeChange(_ change: SupabaseService.RealtimeRecordChange) {
         switch change.action {
         case .insert:
@@ -346,8 +349,7 @@ final class DashboardViewModel {
                     syncDeliveryLiveActivities()
                 }
             } else {
-                // Can't decode payload — fall back to full refetch
-                Task { await refreshRecords() }
+                scheduleDebouncedRefresh()
             }
 
         case .update:
@@ -361,15 +363,27 @@ final class DashboardViewModel {
                     syncDeliveryLiveActivities()
                 }
             } else {
-                Task { await refreshRecords() }
+                scheduleDebouncedRefresh()
             }
 
         case .delete:
             if let oldId = change.oldId {
                 allRecords.removeAll { $0.id == oldId }
             } else {
-                Task { await refreshRecords() }
+                scheduleDebouncedRefresh()
             }
+        }
+    }
+
+    /// Debounces rapid-fire realtime fallback refreshes into a single network call.
+    /// When multiple realtime events fire rapidly (e.g., batch data push), this coalesces
+    /// them into one refresh after 500ms of quiet.
+    private func scheduleDebouncedRefresh() {
+        refreshDebounceTask?.cancel()
+        refreshDebounceTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+            guard !Task.isCancelled else { return }
+            await self?.refreshRecords()
         }
     }
 
