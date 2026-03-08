@@ -353,6 +353,7 @@ struct HealthDetailView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     HealthDetailView(
         title: "Weight",
@@ -360,3 +361,4 @@ struct HealthDetailView: View {
         unit: "kg"
     )
 }
+#endif
