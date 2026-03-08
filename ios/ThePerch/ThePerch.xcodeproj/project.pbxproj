@@ -96,6 +96,7 @@
 		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
 		HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */; };
 		MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */; };
+		DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -219,6 +220,7 @@
 		SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceProtocol.swift; sourceTree = "<group>"; };
 		HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceProtocol.swift; sourceTree = "<group>"; };
 		MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSupabaseService.swift; sourceTree = "<group>"; };
+		DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCompletionOverlay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -389,6 +391,7 @@
 				353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */,
 				35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */,
 				35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */,
+				DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */,
 				35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */,
 				35F543602F52411F00204F77 /* BookmarkCard.swift */,
 				PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */,
@@ -826,6 +829,7 @@
 				SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */,
 				HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */,
 				MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */,
+				DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
