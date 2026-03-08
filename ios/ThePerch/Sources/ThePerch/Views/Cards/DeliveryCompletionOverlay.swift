@@ -65,8 +65,8 @@ struct DeliveryCompletionOverlay: View {
         let angle = Double(index) * (.pi / 4)
         let distance: CGFloat = expanded ? 36 : 0
         return CGSize(
-            width: cos(angle) * distance,
-            height: sin(angle) * distance
+            width: CGFloat(cos(angle)) * distance,
+            height: CGFloat(sin(angle)) * distance
         )
     }
 }
