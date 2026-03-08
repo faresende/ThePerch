@@ -18,26 +18,18 @@ enum DateFormatting {
         } else if days < 7 {
             return "\(days)d ago"
         } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            return formatter.string(from: date)
+            return PerchFormatters.mediumDate.string(from: date)
         }
     }
 
     /// Formats a date as a short date string (e.g., "Mar 15, 2026").
     static func shortDate(from date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
+        PerchFormatters.mediumDate.string(from: date)
     }
 
     /// Formats a date as a full date and time string.
     static func fullDateTime(from date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        PerchFormatters.mediumDateTime.string(from: date)
     }
 
     /// Formats a time interval (in seconds) as a human-readable duration.

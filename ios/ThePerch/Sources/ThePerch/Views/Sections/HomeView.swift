@@ -483,9 +483,7 @@ struct HomeView: View {
         }.sorted { $0.start < $1.start }
 
         if let next = futureEvents.first {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "HH:mm"
-            defaults.set("\(next.title) \(fmt.string(from: next.start))", forKey: "widget_next_event")
+            defaults.set("\(next.title) \(PerchFormatters.time24h.string(from: next.start))", forKey: "widget_next_event")
         } else {
             defaults.set("No events", forKey: "widget_next_event")
         }
@@ -502,11 +500,7 @@ struct HomeView: View {
     /// Find today's daily_calories record.
     private var todaysCaloriesRecord: Record? {
         let caloriesRecords = records.filter { $0.asMeasurement()?.metric == "daily_calories" }
-        let todayString = {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyy-MM-dd"
-            return fmt.string(from: Date.now)
-        }()
+        let todayString = PerchFormatters.isoDate.string(from: Date.now)
         if let today = caloriesRecords.first(where: { $0.asMeasurement()?.context == todayString }) {
             return today
         }
