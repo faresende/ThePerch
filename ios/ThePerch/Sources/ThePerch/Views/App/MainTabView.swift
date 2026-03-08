@@ -14,6 +14,9 @@ struct MainTabView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
+            // Time-of-day atmosphere gradient
+            TimeOfDayAtmosphere()
+
             VStack(spacing: 0) {
                 // Tab content
                 TabView(selection: $selectedIndex) {

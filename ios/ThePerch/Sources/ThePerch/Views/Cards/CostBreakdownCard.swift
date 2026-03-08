@@ -22,6 +22,11 @@ struct CostBreakdownCard: View {
         breakdown.max(by: { $0.cost < $1.cost })?.cost ?? 1
     }
 
+    private var accessibilitySummary: String {
+        let agentSummaries = breakdown.map { "\($0.agentName) $\(String(format: "%.2f", $0.cost))" }
+        return "Token costs: $\(String(format: "%.2f", totalCost)) total, \(dateRange). \(agentSummaries.joined(separator: ", "))"
+    }
+
     var body: some View {
         CardContainer(title: "Token Costs") {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
@@ -55,6 +60,8 @@ struct CostBreakdownCard: View {
                 }
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
     }
 }
 

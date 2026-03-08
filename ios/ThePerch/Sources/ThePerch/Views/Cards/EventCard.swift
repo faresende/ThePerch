@@ -80,6 +80,30 @@ struct EventCard: View {
             .cardStyle()
         }
         .buttonStyle(CardPressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "h:mm a"
+        let startTime = dateFormatter.string(from: event.start)
+
+        let relFormatter = RelativeDateTimeFormatter()
+        relFormatter.unitsStyle = .full
+        let dayRef: String = {
+            if Calendar.current.isDateInToday(event.start) { return "today" }
+            if Calendar.current.isDateInTomorrow(event.start) { return "tomorrow" }
+            let df = DateFormatter()
+            df.dateFormat = "EEEE"
+            return df.string(from: event.start)
+        }()
+
+        var summary = "Event: \(event.title) at \(startTime) \(dayRef)"
+        if let location = event.location, !location.isEmpty {
+            summary += ", at \(location)"
+        }
+        return summary
     }
 
     /// Opens Apple Calendar at the event's date.
