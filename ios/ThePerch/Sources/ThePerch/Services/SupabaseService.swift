@@ -102,7 +102,7 @@ final class DataFreshnessTracker {
 /// A singleton service for managing Supabase interactions.
 /// Connects to the real Supabase backend, with mock data fallback.
 @MainActor
-final class SupabaseService: ObservableObject {
+final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     static let shared = SupabaseService()
 
     // MARK: - Published Properties
@@ -154,6 +154,12 @@ final class SupabaseService: ObservableObject {
     private var homeWidgetsCache: CacheEntry<[HomeWidget]>?
 
     let freshnessTracker = DataFreshnessTracker.shared
+    private let cacheService = CacheService.shared
+
+    /// A default user ID for caching when auth is not enabled.
+    private var cacheUserId: String {
+        "default_user"
+    }
 
     // MARK: - Initialization
 
@@ -340,30 +346,47 @@ final class SupabaseService: ObservableObject {
         }
         #endif
 
-        let records: [Record] = try await withRetry(operation: "fetchRecords") { [client, recordDecoder] in
-            var query = client.from("dashboard_records").select()
-            if let category {
-                query = query.eq("category", value: category.rawValue)
+        do {
+            let records: [Record] = try await withRetry(operation: "fetchRecords") { [client, recordDecoder] in
+                var query = client.from("dashboard_records").select()
+                if let category {
+                    query = query.eq("category", value: category.rawValue)
+                }
+                if let type {
+                    query = query.eq("type", value: type.rawValue)
+                }
+                let result = try await query
+                    .order("created_at", ascending: false)
+                    .limit(limit)
+                    .execute()
+                return try recordDecoder.decode([Record].self, from: result.data)
             }
-            if let type {
-                query = query.eq("type", value: type.rawValue)
-            }
-            let result = try await query
-                .order("created_at", ascending: false)
-                .limit(limit)
-                .execute()
-            return try recordDecoder.decode([Record].self, from: result.data)
-        }
 
-        recordsCache[cacheKey] = CacheEntry(value: records, fetchedAt: Date.now)
-        if let category {
-            lastFetchTimes[category] = Date.now
-            freshnessTracker.recordFetch(for: category.rawValue)
-        } else {
-            lastGlobalFetchTime = Date.now
-            freshnessTracker.recordFetch(for: "all_records")
+            recordsCache[cacheKey] = CacheEntry(value: records, fetchedAt: Date.now)
+
+            // Persist to disk for offline access
+            cacheService.saveRecords(records, category: category, userId: cacheUserId)
+
+            if let category {
+                lastFetchTimes[category] = Date.now
+                freshnessTracker.recordFetch(for: category.rawValue)
+            } else {
+                lastGlobalFetchTime = Date.now
+                freshnessTracker.recordFetch(for: "all_records")
+            }
+            return records
+        } catch {
+            // Fallback to offline cache if network fetch fails
+            if let cached = cacheService.loadRecords(category: category, userId: cacheUserId) {
+                print("[SupabaseService] Network failed, using offline cache for \(category?.rawValue ?? "all")")
+                var filtered = cached
+                if let type { filtered = filtered.filter { $0.type == type } }
+                let result = Array(filtered.prefix(limit))
+                recordsCache[cacheKey] = CacheEntry(value: result, fetchedAt: Date.now)
+                return result
+            }
+            throw error
         }
-        return records
     }
 
     /// Fetches all active agents with 30s cache and retry.
@@ -432,17 +455,28 @@ final class SupabaseService: ObservableObject {
         }
         #endif
 
-        let sections: [Section] = try await withRetry(operation: "fetchSections") { [client, recordDecoder] in
-            let result = try await client.from("sections")
-                .select()
-                .order("sort_order", ascending: true)
-                .execute()
-            return try recordDecoder.decode([Section].self, from: result.data)
-        }
+        do {
+            let sections: [Section] = try await withRetry(operation: "fetchSections") { [client, recordDecoder] in
+                let result = try await client.from("sections")
+                    .select()
+                    .order("sort_order", ascending: true)
+                    .execute()
+                return try recordDecoder.decode([Section].self, from: result.data)
+            }
 
-        sectionsCache = CacheEntry(value: sections, fetchedAt: Date.now)
-        freshnessTracker.recordFetch(for: "sections")
-        return sections
+            sectionsCache = CacheEntry(value: sections, fetchedAt: Date.now)
+            cacheService.saveSections(sections, userId: cacheUserId)
+            freshnessTracker.recordFetch(for: "sections")
+            return sections
+        } catch {
+            // Fallback to offline cache
+            if let cached = cacheService.loadSections(userId: cacheUserId) {
+                print("[SupabaseService] Network failed, using offline cache for sections")
+                sectionsCache = CacheEntry(value: cached, fetchedAt: Date.now)
+                return cached
+            }
+            throw error
+        }
     }
 
     /// Fetches all home widget configurations with 30s cache and retry.
