@@ -7,6 +7,7 @@ struct CalendarTodayCard: View {
     let records: [Record]
 
     @State private var now = Date.now
+    @AppStorage("card_compact_calendar") private var isCompact = false
 
     private var todayEvents: [(record: Record, event: EventData)] {
         records.compactMap { record -> (Record, EventData)? in
@@ -26,24 +27,44 @@ struct CalendarTodayCard: View {
         todayEvents.filter { $0.event.end < now }
     }
 
+    /// Compact summary for calendar card
+    private var compactSummary: String {
+        let upcoming = upcomingEvents
+        if upcoming.isEmpty { return "\(todayEvents.count) events — all done" }
+        let next = upcoming.first!.event
+        return "\(upcoming.count) upcoming · Next: \(next.title) \(relativeTimeLabel(for: next))"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            // Header
-            HStack(spacing: PerchTheme.Spacing.xSmall) {
-                Image(systemName: "calendar")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.accent)
-                Text("TODAY")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .textCase(.uppercase)
-                Spacer()
-                if !todayEvents.isEmpty {
-                    Text("\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")")
+            // Tappable header
+            Button {
+                PerchHaptics.selection()
+                PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.3)) {
+                    isCompact.toggle()
+                }
+            } label: {
+                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Image(systemName: "calendar")
                         .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.accent)
+                    Text("TODAY")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                        .textCase(.uppercase)
+                    Spacer()
+                    if !todayEvents.isEmpty {
+                        Text("\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textTertiary)
+                    }
+                    Image(systemName: isCompact ? "chevron.down" : "chevron.up")
+                        .font(PerchTheme.Font.micro)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
             if todayEvents.isEmpty {
                 // Empty state
@@ -54,6 +75,11 @@ struct CalendarTodayCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, PerchTheme.Spacing.small)
+            } else if isCompact {
+                // Compact: single-line summary
+                Text(compactSummary)
+                    .font(PerchTheme.Font.body)
+                    .foregroundColor(PerchTheme.textSecondary)
             } else {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                     // Upcoming events (up to 5)
@@ -86,6 +112,7 @@ struct CalendarTodayCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+        .animation(.easeInOut(duration: 0.3), value: isCompact)
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
             now = Date.now
         }
