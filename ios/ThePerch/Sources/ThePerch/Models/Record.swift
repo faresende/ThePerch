@@ -211,24 +211,16 @@ final class DecodingCache {
 // MARK: - Record Extension for Type-Safe Data Decoding
 
 extension Record {
-    /// Shared encoder/decoder — avoids recreating on each call.
-    private static let jsonEncoder = JSONEncoder()
-    private static let jsonDecoder: JSONDecoder = {
-        let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
-        return d
-    }()
-
     /// Attempts to decode the record's flexible JSON `data` field into a specific typed struct.
+    /// Uses JSONValueDecoder to walk the JSONValue enum tree directly (no encode→Data round-trip).
     /// Results are cached by record ID + type to avoid redundant decoding.
     func decodeData<T: Decodable>(as type: T.Type) -> T? {
         // Check cache first
         if let cached: T = DecodingCache.shared.get(id, as: type) {
             return cached
         }
-        // Decode and cache
-        guard let jsonData = try? Self.jsonEncoder.encode(data),
-              let decoded = try? Self.jsonDecoder.decode(T.self, from: jsonData) else { return nil }
+        // Decode directly from JSONValue tree (skips encode→Data→decode round-trip)
+        guard let decoded = JSONValueDecoder.decode(type, from: data) else { return nil }
         DecodingCache.shared.set(decoded, for: id, as: type)
         return decoded
     }
