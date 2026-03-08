@@ -7,7 +7,7 @@ import Observation
 /// Handles fetching, filtering, sorting, and grouping of records.
 @Observable
 @MainActor
-final class SectionViewModel {
+final class SectionViewModel: SectionViewModelProtocol {
     // MARK: - Published Properties
 
     var records: [Record] = []
