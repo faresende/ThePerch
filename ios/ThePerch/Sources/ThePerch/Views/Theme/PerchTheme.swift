@@ -19,7 +19,7 @@ struct PerchTheme {
     static var background: Color {
         adaptive(
             light: UIColor(red: 0.973, green: 0.969, blue: 0.961, alpha: 1),  // #F8F7F5
-            dark: UIColor(red: 0.05, green: 0.05, blue: 0.055, alpha: 1)      // #0d0d0e
+            dark: UIColor(red: 0.071, green: 0.071, blue: 0.075, alpha: 1)    // #121213
         )
     }
 
@@ -27,7 +27,7 @@ struct PerchTheme {
     static var cardBackground: Color {
         adaptive(
             light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1),        // #FFFFFF
-            dark: UIColor(red: 0.09, green: 0.09, blue: 0.095, alpha: 1)      // #171718
+            dark: UIColor(red: 0.098, green: 0.102, blue: 0.106, alpha: 1)    // #191A1B
         )
     }
 
@@ -35,7 +35,7 @@ struct PerchTheme {
     static var cardInnerBackground: Color {
         adaptive(
             light: UIColor(red: 0.949, green: 0.945, blue: 0.937, alpha: 1),  // #F2F1EF
-            dark: UIColor(red: 0.12, green: 0.12, blue: 0.125, alpha: 1)      // #1f1f20
+            dark: UIColor(red: 0.129, green: 0.133, blue: 0.145, alpha: 1)    // #212225
         )
     }
 
@@ -43,7 +43,7 @@ struct PerchTheme {
     static var cardHover: Color {
         adaptive(
             light: UIColor(red: 0.929, green: 0.925, blue: 0.918, alpha: 1),  // #EDECEB
-            dark: UIColor(red: 0.15, green: 0.15, blue: 0.155, alpha: 1)      // #262627
+            dark: UIColor(red: 0.149, green: 0.153, blue: 0.169, alpha: 1)    // #26272B
         )
     }
 
@@ -51,7 +51,7 @@ struct PerchTheme {
     static var textPrimary: Color {
         adaptive(
             light: UIColor(red: 0.102, green: 0.102, blue: 0.102, alpha: 1),  // #1A1A1A
-            dark: UIColor(red: 0.95, green: 0.95, blue: 0.95, alpha: 1)       // #f2f2f2
+            dark: UIColor(red: 0.949, green: 0.941, blue: 0.922, alpha: 1)    // #F2F0EB
         )
     }
 
@@ -59,7 +59,7 @@ struct PerchTheme {
     static var textSecondary: Color {
         adaptive(
             light: UIColor(red: 0.420, green: 0.420, blue: 0.440, alpha: 1),  // #6B6B70
-            dark: UIColor(red: 0.541, green: 0.541, blue: 0.561, alpha: 1)    // #8A8A8F
+            dark: UIColor(red: 0.635, green: 0.616, blue: 0.584, alpha: 1)    // #A29D95
         )
     }
 
@@ -67,15 +67,15 @@ struct PerchTheme {
     static var textTertiary: Color {
         adaptive(
             light: UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 1),  // #8E8E93
-            dark: UIColor(red: 0.451, green: 0.451, blue: 0.471, alpha: 1)    // #737378
+            dark: UIColor(red: 0.490, green: 0.471, blue: 0.443, alpha: 1)    // #7D7871
         )
     }
 
     /// Accent — warm amber/gold, slightly deeper in light mode for contrast
     static var accent: Color {
         adaptive(
-            light: UIColor(red: 0.831, green: 0.580, blue: 0.051, alpha: 1),  // #D4940D
-            dark: UIColor(red: 0.96, green: 0.68, blue: 0.15, alpha: 1)       // #f5ad26
+            light: UIColor(red: 0.784, green: 0.518, blue: 0.039, alpha: 1),  // #C8840A
+            dark: UIColor(red: 0.949, green: 0.690, blue: 0.290, alpha: 1)    // #F2B04A
         )
     }
 
@@ -83,7 +83,7 @@ struct PerchTheme {
     static var accentForeground: Color {
         adaptive(
             light: UIColor(red: 0.15, green: 0.10, blue: 0.0, alpha: 1),     // #261A00 — dark brown
-            dark: UIColor(red: 0.12, green: 0.08, blue: 0.0, alpha: 1)       // #1F1400 — near-black brown
+            dark: UIColor(red: 0.102, green: 0.071, blue: 0.024, alpha: 1)   // #1A1206 — near-black warm
         )
     }
 
@@ -99,7 +99,7 @@ struct PerchTheme {
     static var accentGlow: Color {
         adaptive(
             light: UIColor(red: 0, green: 0, blue: 0, alpha: 0),              // transparent
-            dark: UIColor(red: 0.96, green: 0.68, blue: 0.15, alpha: 0.13)    // amber glow
+            dark: UIColor(red: 0.949, green: 0.690, blue: 0.290, alpha: 0.14) // amber glow
         )
     }
 
@@ -107,7 +107,7 @@ struct PerchTheme {
     static var success: Color {
         adaptive(
             light: UIColor(red: 0.114, green: 0.541, blue: 0.235, alpha: 1),  // #1D8A3C
-            dark: UIColor(red: 0.22, green: 0.75, blue: 0.45, alpha: 1)       // #38bf73
+            dark: UIColor(red: 0.220, green: 0.788, blue: 0.478, alpha: 1)    // #38C97A
         )
     }
 
@@ -115,7 +115,7 @@ struct PerchTheme {
     static var warning: Color {
         adaptive(
             light: UIColor(red: 0.769, green: 0.498, blue: 0.039, alpha: 1),  // #C47F0A
-            dark: UIColor(red: 0.922, green: 0.600, blue: 0.149, alpha: 1)    // #EB9926
+            dark: UIColor(red: 0.941, green: 0.635, blue: 0.290, alpha: 1)    // #F0A24A
         )
     }
 
@@ -131,7 +131,7 @@ struct PerchTheme {
     static var error: Color {
         adaptive(
             light: UIColor(red: 0.769, green: 0.169, blue: 0.169, alpha: 1),  // #C42B2B
-            dark: UIColor(red: 0.90, green: 0.33, blue: 0.33, alpha: 1)       // #e65454
+            dark: UIColor(red: 0.910, green: 0.353, blue: 0.353, alpha: 1)    // #E85A5A
         )
     }
 
@@ -139,7 +139,39 @@ struct PerchTheme {
     static var border: Color {
         adaptive(
             light: UIColor(red: 0.847, green: 0.839, blue: 0.827, alpha: 1),  // #D8D6D3
-            dark: UIColor(red: 0.16, green: 0.16, blue: 0.17, alpha: 1)       // #29292b
+            dark: UIColor(red: 0.173, green: 0.180, blue: 0.200, alpha: 1)    // #2C2E33
+        )
+    }
+
+    /// Secondary accent — cool steel gray from icon tips
+    static var steel: Color {
+        adaptive(
+            light: UIColor(red: 0.357, green: 0.380, blue: 0.420, alpha: 1),  // #5B616B
+            dark: UIColor(red: 0.655, green: 0.678, blue: 0.714, alpha: 1)    // #A7ADB6
+        )
+    }
+
+    /// Low-contrast steel tint for dividers and subtle iconography
+    static var steelMuted: Color {
+        adaptive(
+            light: UIColor(red: 0.357, green: 0.380, blue: 0.420, alpha: 0.10),
+            dark: UIColor(red: 0.655, green: 0.678, blue: 0.714, alpha: 0.16)
+        )
+    }
+
+    /// Hairline dividers (especially inside cards)
+    static var divider: Color {
+        adaptive(
+            light: UIColor(red: 0.898, green: 0.882, blue: 0.859, alpha: 1),  // #E5E1DB
+            dark: UIColor(red: 0.165, green: 0.169, blue: 0.184, alpha: 1)    // #2A2B2F
+        )
+    }
+
+    /// Focus ring for selected controls (dark mode only)
+    static var focusRing: Color {
+        adaptive(
+            light: UIColor(red: 0, green: 0, blue: 0, alpha: 0),
+            dark: UIColor(red: 0.949, green: 0.690, blue: 0.290, alpha: 0.28)
         )
     }
 
@@ -213,6 +245,55 @@ struct PerchTheme {
     }
 }
 
+// MARK: - Glow
+
+enum PerchGlowLevel {
+    case none
+    case ambient
+    case attention
+    case urgent
+}
+
+private struct PerchGlowModifier: ViewModifier {
+    let level: PerchGlowLevel
+    @Environment(\.colorScheme) private var colorScheme
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if colorScheme != .dark || level == .none {
+            content
+        } else {
+            let alpha: Double = {
+                switch level {
+                case .none: return 0.0
+                case .ambient: return 0.14
+                case .attention: return 0.22
+                case .urgent: return 0.34
+                }
+            }()
+            let r1: CGFloat = {
+                switch level {
+                case .none: return 0
+                case .ambient: return 18
+                case .attention: return 16
+                case .urgent: return 14
+                }
+            }()
+            let r2: CGFloat = {
+                switch level {
+                case .none: return 0
+                case .ambient: return 6
+                case .attention: return 5
+                case .urgent: return 4
+                }
+            }()
+            content
+                .shadow(color: PerchTheme.accent.opacity(alpha), radius: r1, x: 0, y: 0)
+                .shadow(color: Color.black.opacity(0.35), radius: r2, x: 0, y: 2)
+        }
+    }
+}
+
 // MARK: - Reduce Motion Support
 
 /// Environment-based reduce motion check.
@@ -254,10 +335,13 @@ enum CardProminence {
 
 extension View {
     /// Apply card styling with adaptive shadows.
-    /// Dark mode: ambient amber glow + deep shadow.
-    /// Light mode: subtle neutral shadow, no glow.
+    /// Default cards use neutral depth; glow is applied selectively.
     func cardStyle() -> some View {
         modifier(CardStyleModifier())
+    }
+
+    func perchGlow(_ level: PerchGlowLevel) -> some View {
+        modifier(PerchGlowModifier(level: level))
     }
 
     /// Apply subtle border styling
@@ -323,13 +407,12 @@ private struct CardStyleModifier: ViewModifier {
                 RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
                     .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
             )
+            // Default shadow: neutral depth. Glow is applied selectively.
             .shadow(
-                color: colorScheme == .dark
-                    ? PerchTheme.accentGlow        // amber glow in dark
-                    : Color.black.opacity(0.04),   // subtle neutral in light
-                radius: colorScheme == .dark ? 16 : 8,
+                color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.06),
+                radius: colorScheme == .dark ? 10 : 8,
                 x: 0,
-                y: colorScheme == .dark ? 0 : 2
+                y: colorScheme == .dark ? 4 : 2
             )
             .shadow(
                 color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.06),
@@ -430,6 +513,7 @@ struct StaleBorderModifier: ViewModifier {
         case .warning:
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
                 .stroke(PerchTheme.accent.opacity(PerchMotion.prefersReduced ? 0.7 : pulseOpacity), lineWidth: 1.5)
+                .shadow(color: PerchTheme.accent.opacity(0.18), radius: 10, x: 0, y: 0)
                 .onAppear {
                     if !PerchMotion.prefersReduced { pulseOpacity = 0.7 }
                 }
@@ -442,6 +526,7 @@ struct StaleBorderModifier: ViewModifier {
         case .critical:
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
                 .stroke(PerchTheme.warning, lineWidth: 1.5)
+                .shadow(color: PerchTheme.warning.opacity(0.20), radius: 10, x: 0, y: 0)
         }
     }
 }
@@ -478,9 +563,14 @@ private struct HeroCardModifier: ViewModifier {
         content
             .padding(.vertical, PerchTheme.Spacing.xSmall)
             .overlay(alignment: .top) {
-                // Subtle accent-colored top border (2pt)
-                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                    .stroke(ambientColor.opacity(0.35), lineWidth: 2)
+                LinearGradient(
+                    colors: [PerchTheme.steel.opacity(0.35), PerchTheme.accent.opacity(0.50)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(height: 2)
+                .clipShape(RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius))
             }
+            .perchGlow(.ambient)
     }
 }

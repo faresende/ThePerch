@@ -713,7 +713,7 @@
 				F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */,
 				63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */,
 			);
-			path = Sources/ThePerch/Views/Cards/UniversalCard;
+			path = UniversalCard;
 			sourceTree = "<group>";
 		};
 		3FBBCE373D0B4F9A9B10CA71 /* Renderers */ = {
@@ -726,7 +726,7 @@
 				525629949349400A9FE8F436 /* TextCardRenderer.swift */,
 				971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */,
 			);
-			path = Sources/ThePerch/Views/Cards/Renderers;
+			path = Renderers;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

@@ -148,7 +148,7 @@ struct HomeView: View {
         HStack(spacing: PerchTheme.Spacing.small) {
             Image(systemName: "magnifyingglass")
                 .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(PerchTheme.steel)
 
             TextField("Search everything...", text: $searchText)
                 .font(PerchTheme.Font.body)
@@ -166,12 +166,13 @@ struct HomeView: View {
             }
         }
         .padding(PerchTheme.Spacing.small)
-        .background(PerchTheme.cardBackground)
+        .background(PerchTheme.cardInnerBackground)
         .cornerRadius(PerchTheme.Card.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                .stroke(PerchTheme.border, lineWidth: 1)
+                .stroke(PerchTheme.focusRing, lineWidth: 1)
         )
+        .perchGlow(.attention)
     }
 
     // MARK: - Quick Glance Bar
