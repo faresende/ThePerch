@@ -193,21 +193,26 @@ struct HomeView: View {
 
     private var quickGlanceBar: some View {
         let items = quickGlanceItems
-        return HStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                if index > 0 { divider }
-                quickGlanceItem(
-                    icon: item.icon,
-                    value: item.value,
-                    label: item.label,
-                    color: colorForKey(item.colorKey)
-                )
+        return VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    if index > 0 { divider }
+                    quickGlanceItem(
+                        icon: item.icon,
+                        value: item.value,
+                        label: item.label,
+                        color: colorForKey(item.colorKey)
+                    )
+                }
             }
-        }
-        .padding(.top, PerchTheme.Spacing.medium)
-        .padding(.bottom, PerchTheme.Spacing.small)
-        .overlay(alignment: .bottom) {
+            .padding(.vertical, PerchTheme.Spacing.medium)
+
             if let timeStr = freshnessTracker.relativeTimeString(for: "all_records") {
+                Rectangle()
+                    .fill(PerchTheme.divider)
+                    .frame(height: 0.5)
+                    .padding(.horizontal, PerchTheme.Spacing.medium)
+
                 HStack(spacing: 4) {
                     if freshnessTracker.isStale("all_records") {
                         Circle()
@@ -222,7 +227,7 @@ struct HomeView: View {
                                 : PerchTheme.textTertiary
                         )
                 }
-                .padding(.bottom, 6)
+                .padding(.vertical, 6)
             }
         }
         .background(
