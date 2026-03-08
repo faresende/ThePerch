@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 
 /// Mock data for previews and testing before real data flows in.
@@ -528,3 +529,4 @@ struct MockData {
 
     static let allRecords: [Record] = measurementRecords + deliveryRecords + bookmarkRecords + eventRecords + costSummaryRecords + checklistRecords
 }
+#endif
