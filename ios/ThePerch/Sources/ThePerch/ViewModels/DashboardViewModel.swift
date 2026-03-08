@@ -124,6 +124,8 @@ final class DashboardViewModel {
 
     // MARK: - Realtime Subscriptions
 
+    private let reconnectManager = RealtimeReconnectManager.shared
+
     /// Sets up realtime subscriptions to listen for dashboard changes.
     /// When records change, we re-fetch the relevant data to keep the UI fresh.
     func setupRealtimeSubscriptions() async {
@@ -146,10 +148,44 @@ final class DashboardViewModel {
                     await self.loadDashboard()
                 }
             }
+
+            reconnectManager.didConnect()
         } catch let error as SupabaseServiceError {
             self.error = error
+            reconnectManager.didDisconnect { [weak self] in
+                await self?.attemptRealtimeReconnect() ?? false
+            }
         } catch {
             self.error = .unknownError(error.localizedDescription)
+            reconnectManager.didDisconnect { [weak self] in
+                await self?.attemptRealtimeReconnect() ?? false
+            }
+        }
+    }
+
+    /// Attempts to re-establish realtime subscriptions. Returns true on success.
+    func attemptRealtimeReconnect() async -> Bool {
+        do {
+            await supabaseService.unsubscribeAll()
+            try await supabaseService.subscribeToRecords { [weak self] change in
+                guard let self else { return }
+                Task { @MainActor in
+                    await self.loadDashboard()
+                    if let record = change.record {
+                        NotificationService.shared.handleRecordChange(record: record, action: change.action)
+                    }
+                }
+            }
+            try await supabaseService.subscribeToAgents { [weak self] action in
+                guard let self else { return }
+                Task { @MainActor in
+                    await self.loadDashboard()
+                }
+            }
+            return true
+        } catch {
+            print("[DashboardVM] Realtime reconnect failed: \(error.localizedDescription)")
+            return false
         }
     }
 
