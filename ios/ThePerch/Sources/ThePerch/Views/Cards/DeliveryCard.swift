@@ -120,7 +120,7 @@ struct DeliveryCard: View {
         }
         .buttonStyle(CardPressStyle())
         .onAppear {
-            withAnimation(.easeOut(duration: 0.6).delay(0.2)) {
+            PerchMotion.withOptionalAnimation(.easeOut(duration: 0.6).delay(0.2)) {
                 animateTimeline = true
             }
         }

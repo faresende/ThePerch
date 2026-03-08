@@ -31,7 +31,10 @@ struct MainTabView: View {
                         Capsule()
                             .fill(selectedIndex == index ? PerchTheme.accent : PerchTheme.border)
                             .frame(width: selectedIndex == index ? 20 : 8, height: 8)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedIndex)
+                            .animation(
+                                PerchMotion.prefersReduced ? .none : .spring(response: 0.3, dampingFraction: 0.7),
+                                value: selectedIndex
+                            )
                     }
                     Spacer()
                 }
@@ -66,6 +69,7 @@ struct SectionView: View {
     let section: Section
 
     @State private var viewModel: SectionViewModel?
+    @State private var appeared = false
 
     var body: some View {
         ZStack {
@@ -73,25 +77,37 @@ struct SectionView: View {
 
             // Dispatch to custom section views based on section slug.
             // "home" has no RecordCategory so we also check category == nil.
-            switch section.slug {
-            case _ where section.category == nil:
-                HomeView()
-            case "health":
-                HealthView()
-            case "deliveries":
-                DeliveriesView()
-            case "calendar":
-                CalendarView()
-            case "admin":
-                AdminView()
-            case "legal":
-                LegalView()
-            case "bookmarks":
-                BookmarksView()
-            default:
-                // Generic fallback for unknown section types
-                genericSectionView
+            Group {
+                switch section.slug {
+                case _ where section.category == nil:
+                    HomeView()
+                case "health":
+                    HealthView()
+                case "deliveries":
+                    DeliveriesView()
+                case "calendar":
+                    CalendarView()
+                case "admin":
+                    AdminView()
+                case "legal":
+                    LegalView()
+                case "bookmarks":
+                    BookmarksView()
+                default:
+                    // Generic fallback for unknown section types
+                    genericSectionView
+                }
             }
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : (PerchMotion.prefersReduced ? 0 : 12))
+            .animation(
+                PerchMotion.prefersReduced
+                    ? .none
+                    : .spring(response: 0.25, dampingFraction: 0.85),
+                value: appeared
+            )
+            .onAppear { appeared = true }
+            .onDisappear { appeared = false }
         }
     }
 

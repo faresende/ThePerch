@@ -65,7 +65,7 @@ struct MacrosCard: View {
         .padding(PerchTheme.Spacing.large)
         .cardStyle()
         .onAppear {
-            withAnimation(.easeOut(duration: 0.7).delay(0.15)) {
+            PerchMotion.withOptionalAnimation(.easeOut(duration: 0.7).delay(0.15)) {
                 animateProgress = true
             }
         }

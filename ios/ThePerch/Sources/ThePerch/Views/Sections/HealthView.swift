@@ -127,7 +127,7 @@ struct HealthView: View {
                     Color.clear
                         .frame(height: 0)
                         .onAppear {
-                            withAnimation { cardsAppeared = true }
+                            PerchMotion.withOptionalAnimation { cardsAppeared = true }
                         }
 
                     Spacer()
