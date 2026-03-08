@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(AuthViewModel.self) var authViewModel
     @Environment(DashboardViewModel.self) var dashboardViewModel
 
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @State private var isSigningOut = false
 
     var appVersion: String {
@@ -52,20 +53,16 @@ struct SettingsView: View {
 
                             CardContainer {
                                 VStack(spacing: 0) {
-                                    SettingsToggleRow(
-                                        label: "Notifications",
-                                        isOn: true,
-                                        onChange: { _ in }
-                                    )
+                                    HStack {
+                                        Text("Dark Mode")
+                                            .font(PerchTheme.Font.body)
+                                            .foregroundColor(PerchTheme.textPrimary)
 
-                                    Divider()
-                                        .padding(.vertical, PerchTheme.Spacing.xSmall)
+                                        Spacer()
 
-                                    SettingsToggleRow(
-                                        label: "Dark Mode",
-                                        isOn: false,
-                                        onChange: { _ in }
-                                    )
+                                        Toggle("", isOn: $darkModeEnabled)
+                                    }
+                                    .padding(PerchTheme.Spacing.small)
                                 }
                             }
                         }
@@ -213,30 +210,6 @@ struct ProfileField: View {
                 .font(PerchTheme.Font.body)
                 .foregroundColor(PerchTheme.textPrimary)
         }
-    }
-}
-
-// MARK: - Settings Toggle Row
-
-struct SettingsToggleRow: View {
-    let label: String
-    @State var isOn: Bool
-    let onChange: (Bool) -> Void
-
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textPrimary)
-
-            Spacer()
-
-            Toggle("", isOn: $isOn)
-                .onChange(of: isOn) { _, newValue in
-                    onChange(newValue)
-                }
-        }
-        .padding(PerchTheme.Spacing.small)
     }
 }
 
