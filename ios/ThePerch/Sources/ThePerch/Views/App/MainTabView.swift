@@ -168,7 +168,7 @@ struct SectionView: View {
     private var genericSectionView: some View {
         if let viewModel = viewModel {
             ScrollView {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Section header with freshness
                     SectionHeader(title: section.displayName, freshnessKey: section.slug)
                         .padding(.horizontal, PerchTheme.Spacing.large)

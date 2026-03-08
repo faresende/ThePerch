@@ -18,7 +18,7 @@ struct HomeView: View {
             PerchTheme.background.ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Header with greeting and settings
                     HStack {
                         Text("\(greetingText), Fabio")
