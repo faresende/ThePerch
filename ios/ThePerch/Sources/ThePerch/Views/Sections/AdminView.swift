@@ -6,6 +6,8 @@ import SwiftUI
 struct AdminView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = AdminViewModel()
+    @State private var showRestartConfirmation = false
+    @State private var showDoctorFixConfirmation = false
 
     var body: some View {
         ZStack {
@@ -44,7 +46,7 @@ struct AdminView: View {
 
                     // MARK: - Gateway Status + Heartbeat row
                     HStack(spacing: PerchTheme.Spacing.medium) {
-                        // Status card
+                        // Status card with freshness
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text("OpenClaw")
@@ -53,19 +55,20 @@ struct AdminView: View {
                                     .foregroundColor(PerchTheme.textPrimary)
                                 Spacer()
                                 Circle()
-                                    .fill(viewModel.gatewayIsRunning ? PerchTheme.success : PerchTheme.error)
+                                    .fill(viewModel.gatewayFreshness.color)
                                     .frame(width: 10, height: 10)
-                                    .shadow(color: (viewModel.gatewayIsRunning ? PerchTheme.success : PerchTheme.error).opacity(0.6), radius: 4)
+                                    .shadow(color: viewModel.gatewayFreshness.color.opacity(0.6), radius: 4)
                             }
 
-                            Text(viewModel.gatewayIsRunning ? "Running" : "Offline")
+                            Text(gatewayStatusTitle)
                                 .font(PerchTheme.Font.titleNumeric)
                                 .fontWeight(.bold)
-                                .foregroundColor(viewModel.gatewayIsRunning ? PerchTheme.success : PerchTheme.error)
+                                .foregroundColor(viewModel.gatewayFreshness.color)
 
-                            Text("\(viewModel.activeAgents.count) of \(viewModel.agents.count) agents active")
+                            Text(viewModel.gatewayFreshness.label)
                                 .font(PerchTheme.Font.micro)
                                 .foregroundColor(PerchTheme.textTertiary)
+                                .lineLimit(2)
                         }
                         .padding(PerchTheme.Card.padding)
                         .cardStyle()
@@ -101,6 +104,10 @@ struct AdminView: View {
                         .cardStyle()
                     }
                     .padding(.horizontal, PerchTheme.Spacing.large)
+
+                    // MARK: - Remote Controls
+                    remoteControlsSection
+                        .padding(.horizontal, PerchTheme.Spacing.large)
 
                     // MARK: - Active Models
                     if let status = viewModel.gatewayStatus, let models = status.activeModels, !models.isEmpty {
@@ -183,6 +190,22 @@ struct AdminView: View {
                 PerchHaptics.success()
             }
         }
+        .alert("Restart Gateway", isPresented: $showRestartConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Restart", role: .destructive) {
+                Task { await viewModel.executeCommand(.restartGateway) }
+            }
+        } message: {
+            Text("Are you sure? This will restart the OpenClaw gateway. Active sessions may be interrupted.")
+        }
+        .alert("Run Doctor Fix", isPresented: $showDoctorFixConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Run", role: .none) {
+                Task { await viewModel.executeCommand(.doctorFix) }
+            }
+        } message: {
+            Text("This will run diagnostics and attempt to fix common issues.")
+        }
         .task {
             // Agents come from a different table — fetch separately
             await dashboardViewModel.loadAgents()
@@ -200,6 +223,196 @@ struct AdminView: View {
             if !dashboardViewModel.agents.isEmpty {
                 viewModel.agents = dashboardViewModel.agents
             }
+        }
+    }
+
+    // MARK: - Gateway Status Title
+
+    private var gatewayStatusTitle: String {
+        switch viewModel.gatewayFreshness {
+        case .fresh: return "Running"
+        case .stale: return "Running"
+        case .possiblyOffline: return "Unknown"
+        case .offline: return "Offline"
+        }
+    }
+
+    // MARK: - Remote Controls Section
+
+    private var remoteControlsSection: some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            Text("Remote Controls")
+                .font(PerchTheme.Font.heading)
+                .foregroundColor(PerchTheme.textPrimary)
+
+            // Command buttons
+            HStack(spacing: PerchTheme.Spacing.medium) {
+                // Restart Gateway button
+                commandButton(
+                    icon: "arrow.clockwise.circle.fill",
+                    label: "Restart Gateway",
+                    state: viewModel.restartState,
+                    isDestructive: true
+                ) {
+                    PerchHaptics.medium()
+                    showRestartConfirmation = true
+                }
+
+                // Doctor Fix button
+                commandButton(
+                    icon: "stethoscope.circle.fill",
+                    label: "Run Doctor Fix",
+                    state: viewModel.doctorFixState,
+                    isDestructive: false
+                ) {
+                    PerchHaptics.medium()
+                    showDoctorFixConfirmation = true
+                }
+            }
+
+            // Rate limit indicator
+            if !viewModel.canSendCommand {
+                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Image(systemName: "clock")
+                        .font(PerchTheme.Font.micro)
+                    Text("Rate limited — wait \(viewModel.rateLimitRemainingSeconds)s")
+                        .font(PerchTheme.Font.micro)
+                }
+                .foregroundColor(PerchTheme.textTertiary)
+            }
+
+            // Command history
+            if !viewModel.recentCommands.isEmpty {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+                    Text("Recent Commands")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+
+                    ForEach(Array(viewModel.recentCommands.prefix(5))) { record in
+                        if let cmd = record.asAdminCommand() {
+                            commandHistoryRow(record: record, command: cmd)
+                        }
+                    }
+                }
+                .padding(.top, PerchTheme.Spacing.xSmall)
+            }
+        }
+        .padding(PerchTheme.Card.padding)
+        .cardStyle()
+    }
+
+    @ViewBuilder
+    private func commandButton(
+        icon: String,
+        label: String,
+        state: AdminViewModel.CommandExecutionState,
+        isDestructive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        let isExecuting: Bool = {
+            if case .executing = state { return true }
+            return false
+        }()
+
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack {
+                    switch state {
+                    case .idle:
+                        Image(systemName: icon)
+                            .font(.system(size: 24))
+                    case .confirming:
+                        Image(systemName: icon)
+                            .font(.system(size: 24))
+                    case .executing(let message):
+                        VStack(spacing: 4) {
+                            ProgressView()
+                                .tint(isDestructive ? PerchTheme.error : PerchTheme.accent)
+                            Text(message)
+                                .font(PerchTheme.Font.micro)
+                                .lineLimit(1)
+                        }
+                    case .completed(let message):
+                        VStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(PerchTheme.success)
+                            Text(message)
+                                .font(PerchTheme.Font.micro)
+                                .foregroundColor(PerchTheme.success)
+                                .lineLimit(2)
+                        }
+                    case .failed(let message):
+                        VStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(PerchTheme.error)
+                            Text(message)
+                                .font(PerchTheme.Font.micro)
+                                .foregroundColor(PerchTheme.error)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+                .frame(height: 50)
+
+                if case .idle = state {
+                    Text(label)
+                        .font(PerchTheme.Font.caption)
+                        .fontWeight(.medium)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(PerchTheme.Spacing.medium)
+            .background(
+                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                    .fill(isDestructive ? PerchTheme.error.opacity(0.15) : PerchTheme.accent.opacity(0.15))
+            )
+            .foregroundColor(isDestructive ? PerchTheme.error : PerchTheme.accent)
+        }
+        .disabled(isExecuting || !viewModel.canSendCommand)
+        .opacity(isExecuting || !viewModel.canSendCommand ? 0.6 : 1.0)
+        .animation(.easeInOut(duration: 0.3), value: state)
+    }
+
+    private func commandHistoryRow(record: Record, command: AdminCommandData) -> some View {
+        HStack {
+            Image(systemName: command.command.icon)
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textSecondary)
+
+            Text(command.command.displayName)
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textPrimary)
+
+            Spacer()
+
+            Text(record.relativeTime)
+                .font(PerchTheme.Font.micro)
+                .foregroundColor(PerchTheme.textTertiary)
+
+            commandStatusBadge(command.status)
+        }
+    }
+
+    private func commandStatusBadge(_ status: AdminCommandData.CommandStatus) -> some View {
+        Text(status.displayName)
+            .font(PerchTheme.Font.micro)
+            .fontWeight(.medium)
+            .foregroundColor(commandStatusColor(status))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(commandStatusColor(status).opacity(0.15))
+            )
+    }
+
+    private func commandStatusColor(_ status: AdminCommandData.CommandStatus) -> Color {
+        switch status {
+        case .completed: return PerchTheme.success
+        case .failed: return PerchTheme.error
+        case .pending, .executing: return PerchTheme.warning
         }
     }
 
