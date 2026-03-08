@@ -334,9 +334,6 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             return cached.value
         }
 
-        // Clear decoded payload cache when fetching fresh data
-        DecodingCache.shared.clear()
-
         #if DEBUG
         if useMockData {
             try await Task.sleep(nanoseconds: 300_000_000)
