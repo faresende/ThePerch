@@ -112,6 +112,7 @@
 		EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */; };
 		HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */; };
 		AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */; };
+		CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -259,6 +260,7 @@
 		EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailSummaryCard.swift; sourceTree = "<group>"; };
 		HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardOrdering.swift; sourceTree = "<group>"; };
 		AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbienceManager.swift; sourceTree = "<group>"; };
+		CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFreshnessLabel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -478,6 +480,7 @@
 				35F5436A2F52411F00204F77 /* WidgetRouter.swift */,
 				HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */,
 				AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */,
+				CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -937,6 +940,7 @@
 				EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */,
 				HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */,
 				AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */,
+				CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

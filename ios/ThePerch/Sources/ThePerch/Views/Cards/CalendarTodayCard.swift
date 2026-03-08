@@ -27,6 +27,13 @@ struct CalendarTodayCard: View {
         todayEvents.filter { $0.event.end < now }
     }
 
+    private var latestUpdate: Date? {
+        records
+            .filter { $0.category == .calendar && $0.type == .event }
+            .map(\.updatedAt)
+            .max()
+    }
+
     /// Compact summary for calendar card
     private var compactSummary: String {
         let upcoming = upcomingEvents
@@ -53,6 +60,7 @@ struct CalendarTodayCard: View {
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
                     Spacer()
+                    CardFreshnessLabel(date: latestUpdate)
                     if !todayEvents.isEmpty {
                         Text("\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")")
                             .font(PerchTheme.Font.caption)

@@ -5,6 +5,13 @@ import SwiftUI
 struct EmailSummaryCard: View {
     let records: [Record]
 
+    private var emailRecord: Record? {
+        records.first { record in
+            record.category == .admin &&
+            record.title.localizedCaseInsensitiveContains("email")
+        }
+    }
+
     private var emailSummary: EmailSummaryData? {
         records.compactMap { record -> EmailSummaryData? in
             guard record.category == .admin,
@@ -27,6 +34,7 @@ struct EmailSummaryCard: View {
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
                     Spacer()
+                    CardFreshnessLabel(date: emailRecord?.updatedAt)
                     if let unread = summary.totalUnread, unread > 0 {
                         Text("\(unread) unread")
                             .font(PerchTheme.Font.caption)
