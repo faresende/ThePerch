@@ -35,6 +35,7 @@ struct MedicationsCard: View {
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
                     Spacer()
+                    CardFreshnessLabel(date: medicationRecord?.updatedAt)
                     if allChecked {
                         Text("All taken")
                             .font(PerchTheme.Font.caption)

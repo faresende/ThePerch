@@ -5,6 +5,13 @@ import SwiftUI
 struct DeliveryHomeCard: View {
     let records: [Record]
 
+    private var latestUpdate: Date? {
+        records
+            .filter { $0.category == .deliveries && $0.type == .delivery }
+            .map(\.updatedAt)
+            .max()
+    }
+
     private var activeDeliveries: [(record: Record, delivery: DeliveryData)] {
         records.compactMap { record -> (Record, DeliveryData)? in
             guard record.category == .deliveries,
@@ -31,6 +38,7 @@ struct DeliveryHomeCard: View {
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
                     Spacer()
+                    CardFreshnessLabel(date: latestUpdate)
                     Text("\(activeDeliveries.count) active")
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)

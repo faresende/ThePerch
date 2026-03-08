@@ -67,6 +67,13 @@ struct NutritionHomeCard: View {
         return PerchTheme.accent
     }
 
+    private var latestUpdate: Date? {
+        records
+            .filter { $0.asMeasurement()?.metric == "daily_calories" || $0.asMacros() != nil }
+            .map(\.updatedAt)
+            .max()
+    }
+
     // Macro colors
     private static let proteinColor = Color(red: 0.35, green: 0.6, blue: 0.95)
     private static let carbsColor = PerchTheme.accent
@@ -104,6 +111,7 @@ struct NutritionHomeCard: View {
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
                     Spacer()
+                    CardFreshnessLabel(date: latestUpdate)
                     Image(systemName: isCompact ? "chevron.down" : "chevron.up")
                         .font(PerchTheme.Font.micro)
                         .foregroundColor(PerchTheme.textTertiary)

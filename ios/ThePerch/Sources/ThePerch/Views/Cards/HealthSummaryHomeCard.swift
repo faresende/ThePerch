@@ -35,6 +35,13 @@ struct HealthSummaryHomeCard: View {
 
     private var hasData: Bool { sleepDuration != nil }
 
+    private var latestUpdate: Date? {
+        records
+            .filter { $0.category == .health && $0.type == .measurement }
+            .map(\.updatedAt)
+            .max()
+    }
+
     /// Compact summary text for single-line display
     private var compactSummary: String {
         var parts: [String] = []
@@ -61,6 +68,7 @@ struct HealthSummaryHomeCard: View {
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
                     Spacer()
+                    CardFreshnessLabel(date: latestUpdate)
                     Image(systemName: isCompact ? "chevron.down" : "chevron.up")
                         .font(PerchTheme.Font.micro)
                         .foregroundColor(PerchTheme.textTertiary)
