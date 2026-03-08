@@ -71,6 +71,13 @@ enum PerchFormatters {
         return f
     }()
 
+    /// "Sun Mar 8" — short weekday + month + day
+    static let shortWeekdayDate: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE MMM d"
+        return f
+    }()
+
     /// ISO 8601 formatter
     static let iso8601: ISO8601DateFormatter = {
         ISO8601DateFormatter()

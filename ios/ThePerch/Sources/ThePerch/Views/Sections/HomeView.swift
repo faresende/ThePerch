@@ -269,9 +269,7 @@ struct HomeView: View {
 
     /// "Sun Mar 8" — short weekday + date for the compact header.
     private var shortDateString: String {
-        let f = DateFormatter()
-        f.dateFormat = "EEE MMM d"
-        return f.string(from: Date.now)
+        PerchFormatters.shortWeekdayDate.string(from: Date.now)
     }
 }
 
