@@ -8,31 +8,25 @@ struct CalendarView: View {
 
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
-    var todayEvents: [Record] {
+    /// Single-pass decode: partition into today vs. upcoming, sort upcoming by start.
+    private var categorizedEvents: (today: [Record], upcoming: [Record]) {
         let calendar = Calendar.current
-        return records.filter { record in
-            if let eventData = record.asEvent() {
-                return calendar.isDateInToday(eventData.start)
+        var today: [Record] = []
+        var upcoming: [(Record, Date)] = []
+        for record in records {
+            guard let event = record.asEvent() else { continue }
+            if calendar.isDateInToday(event.start) {
+                today.append(record)
+            } else if event.start > Date.now {
+                upcoming.append((record, event.start))
             }
-            return false
         }
+        upcoming.sort { $0.1 < $1.1 }
+        return (today, upcoming.map(\.0))
     }
 
-    var upcomingEvents: [Record] {
-        let calendar = Calendar.current
-        return records.filter { record in
-            if let eventData = record.asEvent() {
-                return !calendar.isDateInToday(eventData.start) && eventData.start > Date.now
-            }
-            return false
-        }.sorted { record1, record2 in
-            guard let event1 = record1.asEvent(),
-                  let event2 = record2.asEvent() else {
-                return false
-            }
-            return event1.start < event2.start
-        }
-    }
+    var todayEvents: [Record] { categorizedEvents.today }
+    var upcomingEvents: [Record] { categorizedEvents.upcoming }
 
     var body: some View {
         ZStack {
