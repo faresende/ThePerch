@@ -117,6 +117,7 @@ struct DeliveryCard: View {
             .cardStyle()
         }
         .buttonStyle(CardPressStyle())
+        .deliveryCompletionCelebration(isDelivered: activeIndex == steps.count - 1)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
         .onAppear {
