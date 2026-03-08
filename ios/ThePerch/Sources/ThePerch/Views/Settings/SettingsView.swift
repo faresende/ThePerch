@@ -19,7 +19,7 @@ struct SettingsView: View {
                 PerchTheme.background.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                    LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                         // User profile section
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Profile")

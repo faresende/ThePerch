@@ -55,7 +55,7 @@ struct AdminView: View {
             }
 
             ScrollView {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
 
                     // Section header with freshness
                     SectionHeader(title: "Admin", freshnessKey: "admin")
