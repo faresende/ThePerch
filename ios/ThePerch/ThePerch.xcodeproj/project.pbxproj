@@ -103,6 +103,12 @@
 		TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */; };
 		TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */; };
 		TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0031TEST0031TEST0031 /* RecordTests.swift */; };
+		HSHC0002HSHC0002HSHC0002 /* HealthSummaryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */; };
+		CLTD0002CLTD0002CLTD0002 /* CalendarTodayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */; };
+		CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */; };
+		NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */; };
+		DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */; };
+		HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -241,6 +247,12 @@
 		TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormattersTests.swift; sourceTree = "<group>"; };
 		TEST0031TEST0031TEST0031 /* RecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTests.swift; sourceTree = "<group>"; };
 		TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThePerchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryHomeCard.swift; sourceTree = "<group>"; };
+		CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTodayCard.swift; sourceTree = "<group>"; };
+		CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTomorrowCard.swift; sourceTree = "<group>"; };
+		NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionHomeCard.swift; sourceTree = "<group>"; };
+		DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryHomeCard.swift; sourceTree = "<group>"; };
+		HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardOrdering.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -442,6 +454,11 @@
 				35F543632F52411F00204F77 /* ChecklistCard.swift */,
 				35F543642F52411F00204F77 /* CostBreakdownCard.swift */,
 				35F543652F52411F00204F77 /* SingleValueCard.swift */,
+				HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */,
+				CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */,
+				CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */,
+				NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */,
+				DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */,
 			);
 			path = Cards;
 			sourceTree = "<group>";
@@ -451,6 +468,7 @@
 			children = (
 				35F543692F52411F00204F77 /* MockData.swift */,
 				35F5436A2F52411F00204F77 /* WidgetRouter.swift */,
+				HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -901,6 +919,12 @@
 				DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */,
 				ADVM0002ADVM0002ADVM0002 /* AdminViewModel.swift in Sources */,
 				HMVM0002HMVM0002HMVM0002 /* HomeViewModel.swift in Sources */,
+				HSHC0002HSHC0002HSHC0002 /* HealthSummaryHomeCard.swift in Sources */,
+				CLTD0002CLTD0002CLTD0002 /* CalendarTodayCard.swift in Sources */,
+				CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */,
+				NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */,
+				DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */,
+				HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

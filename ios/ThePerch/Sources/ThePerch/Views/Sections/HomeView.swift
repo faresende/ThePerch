@@ -77,12 +77,6 @@ struct HomeView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {
-                        // Daily brief card (pre-computed data, no filtering in view body)
-                        if let briefData = viewModel.dailyBriefData {
-                            DailyBriefCard(data: briefData)
-                                .padding(.horizontal, PerchTheme.Spacing.large)
-                        }
-
                         // Quick Glance summary bar
                         quickGlanceBar
                             .padding(.horizontal, PerchTheme.Spacing.large)
@@ -106,11 +100,12 @@ struct HomeView: View {
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         }
 
-                        // Smart-ordered highlights with staggered card appear
+                        // Modular cards in time-of-day order
                         VStack(spacing: PerchTheme.Spacing.medium) {
-                            ForEach(Array(viewModel.smartOrderedRecords.enumerated()), id: \.element.id) { index, record in
-                                WidgetRouter(record: record)
-                                    .cardProminence(viewModel.prominence(for: record))
+                            let orderedCards = HomeCardOrdering.orderedCards()
+                            let isCompactHealth = HomeCardOrdering.isHealthCompact()
+                            ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
+                                homeCard(for: cardType, compactHealth: isCompactHealth)
                                     .cardAppear(index: index, appeared: cardsAppeared)
                             }
                         }
@@ -262,6 +257,24 @@ struct HomeView: View {
         Rectangle()
             .fill(PerchTheme.border)
             .frame(width: 1, height: 40)
+    }
+
+    // MARK: - Modular Card Builder
+
+    @ViewBuilder
+    private func homeCard(for cardType: HomeCardType, compactHealth: Bool) -> some View {
+        switch cardType {
+        case .healthSummary:
+            HealthSummaryHomeCard(records: viewModel.records, compact: compactHealth)
+        case .calendarToday:
+            CalendarTodayCard(records: viewModel.records)
+        case .calendarTomorrow:
+            CalendarTomorrowCard(records: viewModel.records)
+        case .nutrition:
+            NutritionHomeCard(records: viewModel.records)
+        case .deliveries:
+            DeliveryHomeCard(records: viewModel.records)
+        }
     }
 
     private var greetingText: String {
