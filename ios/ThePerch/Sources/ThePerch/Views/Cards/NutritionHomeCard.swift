@@ -7,7 +7,10 @@ struct NutritionHomeCard: View {
     let records: [Record]
 
     @State private var animatedProgress: Double = 0
+    @State private var animatedColor: Color = PerchTheme.accent
     @State private var animateMacros = false
+    @State private var pulseScale: CGFloat = 1.0
+    @State private var didReachFull = false
 
     private var isMorning: Bool {
         Calendar.current.component(.hour, from: .now) < 14
@@ -141,10 +144,13 @@ struct NutritionHomeCard: View {
         .padding(PerchTheme.Card.padding)
         .cardStyle()
         .onAppear {
+            animateRingTo(progress, color: progressColor)
             PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {
-                animatedProgress = progress
                 animateMacros = true
             }
+        }
+        .onChange(of: progress) { _, newProgress in
+            animateRingTo(newProgress, color: progressColor)
         }
     }
 
@@ -157,16 +163,11 @@ struct NutritionHomeCard: View {
             Circle()
                 .trim(from: 0, to: min(animatedProgress, 1.0))
                 .stroke(
-                    AngularGradient(
-                        colors: [progressColor.opacity(0.5), progressColor],
-                        center: .center,
-                        startAngle: .degrees(-90),
-                        endAngle: .degrees(-90 + 360 * min(progress, 1.0))
-                    ),
+                    animatedColor,
                     style: StrokeStyle(lineWidth: 8, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .shadow(color: progressColor.opacity(0.4), radius: 6)
+                .shadow(color: animatedColor.opacity(0.4), radius: 6)
 
             VStack(spacing: 2) {
                 Text("\(Int(consumed))")
@@ -178,6 +179,28 @@ struct NutritionHomeCard: View {
             }
         }
         .frame(width: 90, height: 90)
+        .scaleEffect(pulseScale)
+    }
+
+    // MARK: - Ring Animation
+
+    private func animateRingTo(_ newProgress: Double, color: Color) {
+        PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.6)) {
+            animatedProgress = newProgress
+            animatedColor = color
+        }
+        // Pulse when reaching 100%
+        if newProgress >= 1.0 && !didReachFull && !PerchMotion.prefersReduced {
+            didReachFull = true
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                pulseScale = 1.05
+            }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.3)) {
+                pulseScale = 1.0
+            }
+        } else if newProgress < 1.0 {
+            didReachFull = false
+        }
     }
 
     // MARK: - Macro Bar
