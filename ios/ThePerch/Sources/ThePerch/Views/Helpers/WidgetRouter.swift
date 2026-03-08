@@ -112,12 +112,18 @@ struct WidgetRouter: View {
     @ViewBuilder
     private var singleValueView: some View {
         if let measurementData = record.asMeasurement() {
+            let sparkline: [Double]? = {
+                guard !relatedRecords.isEmpty else { return nil }
+                let values = relatedRecords.compactMap { $0.asMeasurement()?.value }
+                return values.count >= 2 ? values : nil
+            }()
             SingleValueCard(
                 value: String(format: "%.1f", measurementData.value),
                 label: record.title,
                 unit: measurementData.unit,
                 trend: nil,
-                lastUpdated: record.updatedAt
+                lastUpdated: record.updatedAt,
+                sparklineData: sparkline
             )
         } else {
             EmptyView()
