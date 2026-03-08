@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 /// The dashboard-of-dashboards (first swipeable page).
 /// Features: Quick Glance summary, global search, smart-ordered cards by urgency.
@@ -447,10 +448,42 @@ struct HomeView: View {
         defer { isLoading = false }
         do {
             records = try await SupabaseService.shared.fetchRecords(limit: 50, forceRefresh: forceRefresh)
+            updateWidgetData()
         } catch {
             print("[HomeView] Failed to load records: \(error)")
             records = []
         }
+    }
+
+    // MARK: - Widget Data
+
+    private func updateWidgetData() {
+        guard let defaults = UserDefaults(suiteName: "group.com.theperch.shared") else { return }
+
+        // Calories percent
+        defaults.set(caloriesPercentText, forKey: "widget_calories_percent")
+
+        // Next event — title + time
+        let futureEvents = records.compactMap { record -> EventData? in
+            guard let event = record.asEvent(), event.start > .now else { return nil }
+            return event
+        }.sorted { $0.start < $1.start }
+
+        if let next = futureEvents.first {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "HH:mm"
+            defaults.set("\(next.title) \(fmt.string(from: next.start))", forKey: "widget_next_event")
+        } else {
+            defaults.set("No events", forKey: "widget_next_event")
+        }
+
+        // Active deliveries
+        defaults.set(activeDeliveryCount, forKey: "widget_active_deliveries")
+
+        // Last updated
+        defaults.set(Date.now, forKey: "widget_last_updated")
+
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     /// Find today's daily_calories record.
