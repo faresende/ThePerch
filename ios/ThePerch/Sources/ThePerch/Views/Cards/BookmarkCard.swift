@@ -82,6 +82,8 @@ struct BookmarkCard: View {
             .cardStyle()
         }
         .buttonStyle(CardPressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Bookmark: \(bookmark.displayTitle) from \(bookmark.domain ?? "unknown source")")
     }
 }
 

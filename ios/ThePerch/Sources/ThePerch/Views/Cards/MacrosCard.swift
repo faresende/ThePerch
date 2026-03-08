@@ -64,11 +64,24 @@ struct MacrosCard: View {
         }
         .padding(PerchTheme.Spacing.large)
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
         .onAppear {
             PerchMotion.withOptionalAnimation(.easeOut(duration: 0.7).delay(0.15)) {
                 animateProgress = true
             }
         }
+    }
+
+    private var accessibilitySummary: String {
+        var parts = ["Macros:"]
+        if let t = proteinTarget { parts.append("protein \(Int(protein))g of \(Int(t))g") }
+        else { parts.append("protein \(Int(protein))g") }
+        if let t = carbsTarget { parts.append("carbs \(Int(carbs))g of \(Int(t))g") }
+        else { parts.append("carbs \(Int(carbs))g") }
+        if let t = fatTarget { parts.append("fat \(Int(fat))g of \(Int(t))g") }
+        else { parts.append("fat \(Int(fat))g") }
+        return parts.joined(separator: ", ")
     }
 
     @ViewBuilder

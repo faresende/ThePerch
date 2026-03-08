@@ -273,14 +273,30 @@ struct HomeView: View {
 
     // MARK: - Smart Ordering
 
-    /// Orders cards by urgency/relevance:
-    /// 1. Deliveries that are out_for_delivery (most urgent)
-    /// 2. Calendar events within 2 hours
-    /// 3. Health alerts (missed targets)
-    /// 4. Other active deliveries
-    /// 5. Today's calories
-    /// 6. Upcoming events
-    /// 7. Recent bookmarks, checklists, cost summaries
+    /// Current time-of-day period for predictive content ordering.
+    private enum TimePeriod {
+        case morning    // 6-10am
+        case midday     // 10am-4pm
+        case evening    // 4-10pm (spec says 6-10pm but we use 4pm for smooth coverage)
+        case night      // 10pm-6am
+
+        static var current: TimePeriod {
+            let hour = Calendar.current.component(.hour, from: Date.now)
+            switch hour {
+            case 6..<10: return .morning
+            case 10..<16: return .midday
+            case 16..<22: return .evening
+            default: return .night
+            }
+        }
+    }
+
+    /// Orders cards by urgency/relevance with time-of-day weighting:
+    /// - Morning: surface sleep data + today's calendar first
+    /// - Midday: surface deliveries + calendar
+    /// - Evening: surface nutrition summary + tomorrow's events
+    /// - Night: surface sleep prep info
+    /// Always-urgent items (out-for-delivery, imminent events) stay at top.
     private var smartOrderedRecords: [Record] {
         var ordered: [Record] = []
         var usedIds = Set<UUID>()
@@ -295,14 +311,16 @@ struct HomeView: View {
             for r in records { addUnique(r) }
         }
 
-        // 1. Out-for-delivery (most urgent)
+        let period = TimePeriod.current
+
+        // === Always-urgent: out-for-delivery ===
         let outForDelivery = records.filter {
             guard let d = $0.asDelivery() else { return false }
             return d.status.lowercased().replacingOccurrences(of: " ", with: "_") == "out_for_delivery"
         }
         addUniqueAll(outForDelivery)
 
-        // 2. Calendar events within 2 hours
+        // === Always-urgent: calendar events within 2 hours ===
         let twoHoursFromNow = Date.now.addingTimeInterval(2 * 3600)
         let imminentEvents = records.filter {
             guard let e = $0.asEvent() else { return false }
@@ -310,14 +328,77 @@ struct HomeView: View {
         }.sorted { ($0.asEvent()?.start ?? .distantFuture) < ($1.asEvent()?.start ?? .distantFuture) }
         addUniqueAll(imminentEvents)
 
-        // 3. Health alerts (calories over target by >10%)
+        // === Time-of-day boosted content ===
+        switch period {
+        case .morning:
+            // Surface sleep/health data first, then today's calendar
+            let sleepRecords = records.filter {
+                guard let m = $0.asMeasurement() else { return false }
+                return m.metric.contains("sleep") || m.metric.contains("resting")
+            }
+            addUniqueAll(sleepRecords)
+
+            // Today's events (sorted by start time)
+            let todayEvents = records.filter {
+                guard let e = $0.asEvent() else { return false }
+                return Calendar.current.isDateInToday(e.start) && e.start > Date.now
+            }.sorted { ($0.asEvent()?.start ?? .distantFuture) < ($1.asEvent()?.start ?? .distantFuture) }
+            addUniqueAll(todayEvents)
+
+        case .midday:
+            // Surface deliveries + calendar
+            let activeDeliveries = records.filter {
+                guard let d = $0.asDelivery() else { return false }
+                let s = d.status.lowercased()
+                return s != "delivered" && s != "cancelled"
+            }
+            addUniqueAll(activeDeliveries)
+
+            let todayEvents = records.filter {
+                guard let e = $0.asEvent() else { return false }
+                return e.start > Date.now && Calendar.current.isDateInToday(e.start)
+            }.sorted { ($0.asEvent()?.start ?? .distantFuture) < ($1.asEvent()?.start ?? .distantFuture) }
+            addUniqueAll(todayEvents)
+
+        case .evening:
+            // Surface nutrition summary + tomorrow's events
+            if let caloriesRecord = todaysCaloriesRecord {
+                addUnique(caloriesRecord)
+            }
+            let macrosRecords = records.filter { $0.displayHint == .macrosBar }
+            addUniqueAll(macrosRecords)
+
+            let tomorrowEvents = records.filter {
+                guard let e = $0.asEvent() else { return false }
+                return Calendar.current.isDateInTomorrow(e.start)
+            }.sorted { ($0.asEvent()?.start ?? .distantFuture) < ($1.asEvent()?.start ?? .distantFuture) }
+            addUniqueAll(tomorrowEvents)
+
+        case .night:
+            // Surface sleep prep: health data, then tomorrow's first events
+            let healthRecords = records.filter {
+                guard let m = $0.asMeasurement() else { return false }
+                return m.metric.contains("sleep") || m.metric.contains("heart") || m.metric.contains("resting")
+            }
+            addUniqueAll(healthRecords)
+
+            let tomorrowEvents = records.filter {
+                guard let e = $0.asEvent() else { return false }
+                return Calendar.current.isDateInTomorrow(e.start)
+            }.sorted { ($0.asEvent()?.start ?? .distantFuture) < ($1.asEvent()?.start ?? .distantFuture) }
+            addUniqueAll(Array(tomorrowEvents.prefix(2)))
+        }
+
+        // === Standard priority items (fill remaining) ===
+
+        // Health alerts (calories over target by >10%)
         if let caloriesRecord = todaysCaloriesRecord,
            let m = caloriesRecord.asMeasurement(),
            let target = m.target, target > 0, m.value > target * 1.1 {
             addUnique(caloriesRecord)
         }
 
-        // 4. Other active deliveries
+        // Other active deliveries
         let otherActiveDeliveries = records.filter {
             guard let d = $0.asDelivery() else { return false }
             let s = d.status.lowercased()
@@ -325,29 +406,29 @@ struct HomeView: View {
         }
         addUniqueAll(otherActiveDeliveries)
 
-        // 5. Today's calories (if not already added as alert)
+        // Today's calories (if not already added)
         if let caloriesRecord = todaysCaloriesRecord {
             addUnique(caloriesRecord)
         }
 
-        // 6. Upcoming events (not imminent)
+        // Upcoming events (not imminent)
         let upcomingEvents = records.filter {
             guard let e = $0.asEvent() else { return false }
             return e.start > twoHoursFromNow
         }.sorted { ($0.asEvent()?.start ?? .distantFuture) < ($1.asEvent()?.start ?? .distantFuture) }
         addUniqueAll(Array(upcomingEvents.prefix(3)))
 
-        // 7. Latest bookmark
+        // Latest bookmark
         if let bookmark = records.first(where: { $0.type == .bookmark }) {
             addUnique(bookmark)
         }
 
-        // 8. Checklist
+        // Checklist
         if let checklist = records.first(where: { $0.type == .checklist }) {
             addUnique(checklist)
         }
 
-        // 9. Cost breakdown
+        // Cost breakdown
         if let cost = records.first(where: { $0.type == .costSummary }) {
             addUnique(cost)
         }
