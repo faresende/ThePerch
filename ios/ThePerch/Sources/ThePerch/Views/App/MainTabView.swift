@@ -80,14 +80,23 @@ struct MainTabView: View {
                     }
                 }
 
-                // Tab content
-                TabView(selection: $selectedIndex) {
-                    ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, section in
-                        SectionView(section: section)
-                            .tag(index)
+                // Tab content — LazyHStack ensures only visible + neighbor sections render
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, section in
+                            SectionView(section: section)
+                                .containerRelativeFrame(.horizontal)
+                                .id(index)
+                        }
                     }
+                    .scrollTargetLayout()
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: Binding(
+                    get: { selectedIndex as Int? },
+                    set: { if let v = $0 { selectedIndex = v } }
+                ))
+                .scrollIndicators(.hidden)
                 .frame(maxHeight: .infinity)
             }
             .frame(maxWidth: 680)
