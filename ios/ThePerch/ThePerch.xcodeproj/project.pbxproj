@@ -87,6 +87,7 @@
 		HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */; };
 		DBCARD02DBCARD02DBCARD02 /* DailyBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */; };
 		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
+		ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -201,6 +202,7 @@
 		HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryCard.swift; sourceTree = "<group>"; };
 		DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefCard.swift; sourceTree = "<group>"; };
 		DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLiveActivityManager.swift; sourceTree = "<group>"; };
+		ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorBanner.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -423,6 +425,7 @@
 		89F1570CF26987B35512250E /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */,
 				837659300DEF6DC763F7F917 /* SectionNavigator.swift */,
 			);
 			path = Components;
@@ -782,6 +785,7 @@
 				0385F06533E708330AFA01B0 /* SearchView.swift in Sources */,
 				A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */,
 				B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */,
+				ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

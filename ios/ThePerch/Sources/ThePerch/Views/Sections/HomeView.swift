@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var isLoading = true
     @State private var searchText = ""
     @State private var cardsAppeared = false
+    @State private var loadError: String?
 
     private let freshnessTracker = DataFreshnessTracker.shared
 
@@ -42,6 +43,16 @@ struct HomeView: View {
                     // Search bar
                     searchBar
                         .padding(.horizontal, PerchTheme.Spacing.large)
+
+                    // Error banner
+                    if let loadError {
+                        ErrorBanner(
+                            message: loadError,
+                            retryAction: { Task { await loadData(forceRefresh: true) } },
+                            onDismiss: { self.loadError = nil }
+                        )
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                    }
 
                     if !searchText.isEmpty {
                         // Search results
@@ -446,13 +457,14 @@ struct HomeView: View {
 
     private func loadData(forceRefresh: Bool = false) async {
         isLoading = true
+        loadError = nil
         defer { isLoading = false }
         do {
             records = try await SupabaseService.shared.fetchRecords(limit: 50, forceRefresh: forceRefresh)
             updateWidgetData()
         } catch {
+            loadError = "Failed to load data"
             print("[HomeView] Failed to load records: \(error)")
-            records = []
         }
     }
 
