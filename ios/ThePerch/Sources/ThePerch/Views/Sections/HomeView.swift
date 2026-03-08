@@ -2,6 +2,7 @@ import SwiftUI
 
 /// The dashboard-of-dashboards (first swipeable page).
 /// Features: Quick Glance summary, global search, smart-ordered cards by urgency.
+/// Reads all records from DashboardViewModel (single-fetch architecture).
 struct HomeView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = HomeViewModel()
@@ -53,7 +54,7 @@ struct HomeView: View {
                     if let loadError = viewModel.loadError {
                         ErrorBanner(
                             message: loadError,
-                            retryAction: { Task { await viewModel.refresh() } },
+                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
                             onDismiss: { viewModel.loadError = nil }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
@@ -62,7 +63,7 @@ struct HomeView: View {
                     if !searchText.isEmpty {
                         // Search results
                         SearchView(searchText: $searchText, records: viewModel.records)
-                    } else if viewModel.isLoading {
+                    } else if dashboardViewModel.isLoading && viewModel.records.isEmpty {
                         SkeletonHomeSection()
                             .padding(.horizontal, PerchTheme.Spacing.large)
                     } else if viewModel.records.isEmpty {
@@ -126,15 +127,21 @@ struct HomeView: View {
             }
             .refreshable {
                 PerchHaptics.medium()
-                await viewModel.refresh()
+                await dashboardViewModel.refreshRecords()
                 PerchHaptics.success()
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
         }
-        .task {
-            await viewModel.loadRecords()
+        .onChange(of: dashboardViewModel.allRecords) { _, newRecords in
+            viewModel.updateRecords(newRecords)
+        }
+        .onAppear {
+            // Feed initial records if dashboard already loaded
+            if !dashboardViewModel.allRecords.isEmpty {
+                viewModel.updateRecords(dashboardViewModel.allRecords)
+            }
         }
     }
 

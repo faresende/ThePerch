@@ -4,14 +4,14 @@ import Observation
 // MARK: - HealthViewModel
 
 /// Manages the state of the Health section.
-/// Loads health records from Supabase and orchestrates HealthKit sync.
+/// Records are fed from DashboardViewModel (single-fetch architecture).
+/// Handles HealthKit sync and computed metric properties.
 @Observable
 @MainActor
-final class HealthViewModel: SectionViewModelProtocol {
+final class HealthViewModel {
     // MARK: - Properties
 
     var records: [Record] = []
-    var isLoading: Bool = false
     var isSyncing: Bool = false
     var syncError: String?
     var lastSyncDate: Date?
@@ -25,45 +25,13 @@ final class HealthViewModel: SectionViewModelProtocol {
 
     // MARK: - Private Properties
 
-    private let supabaseService: SupabaseService
     private let syncService: HealthKitSyncService
 
     // MARK: - Initialization
 
-    init(
-        supabaseService: SupabaseService = .shared,
-        syncService: HealthKitSyncService = .shared
-    ) {
-        self.supabaseService = supabaseService
+    init(syncService: HealthKitSyncService = .shared) {
         self.syncService = syncService
         self.lastSyncDate = syncService.lastSyncDate
-    }
-
-    // MARK: - Loading Records
-
-    /// Loads health records from Supabase.
-    func loadRecords(forceRefresh: Bool = false) async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let loadedRecords = try await supabaseService.fetchRecords(
-                category: .health,
-                limit: 100,
-                forceRefresh: forceRefresh
-            )
-            self.records = loadedRecords
-            self.error = nil
-        } catch let error as SupabaseServiceError {
-            self.error = error
-        } catch {
-            self.error = .unknownError(error.localizedDescription)
-        }
-    }
-
-    /// Refreshes the records by force-reloading from the server.
-    func refresh() async {
-        await loadRecords(forceRefresh: true)
     }
 
     /// Clears any error messages.
@@ -84,11 +52,6 @@ final class HealthViewModel: SectionViewModelProtocol {
         self.syncError = syncService.syncError
         self.lastSyncDate = syncService.lastSyncDate
         self.isSyncing = false
-
-        // Reload records to show newly synced data
-        if syncService.syncedCount > 0 {
-            await loadRecords(forceRefresh: true)
-        }
     }
 
     // MARK: - Computed Properties
@@ -161,14 +124,12 @@ final class HealthViewModel: SectionViewModelProtocol {
             guard let macros = record.asMacros() else { return nil }
             return (record, macros)
         }
-        // Sort by the date field in MacrosData (e.g. "2026-03-06"), falling back to createdAt
         return macrosRecords.sorted {
             ($0.1.date ?? "") > ($1.1.date ?? "")
         }.first
     }
 
     /// Ordered list of chart metrics to display (body comp → sleep → nutrition).
-    /// `higherIsBetter`: true means upward trend is green, false means upward trend is red.
     static let chartMetricOrder: [(key: String, title: String, unit: String, emoji: String, higherIsBetter: Bool)] = [
         ("weight", "Weight", "kg", "⚖️", true),
         ("skeletal_muscle", "Skeletal Muscle", "kg", "💪", true),

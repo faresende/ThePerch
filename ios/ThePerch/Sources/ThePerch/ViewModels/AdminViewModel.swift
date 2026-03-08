@@ -4,26 +4,23 @@ import Observation
 // MARK: - AdminViewModel
 
 /// Manages the state of the Admin section.
-/// Loads agents, cost records, and admin records from Supabase.
+/// Records are fed from DashboardViewModel (single-fetch architecture).
+/// Agents are fetched separately via DashboardViewModel.loadAgents().
 @Observable
 @MainActor
-final class AdminViewModel: SectionViewModelProtocol {
+final class AdminViewModel {
     // MARK: - Properties
 
     var records: [Record] = []
     var agents: [Agent] = []
     var costRecords: [Record] = []
-    var isLoading: Bool = false
-    var error: SupabaseServiceError?
 
-    // MARK: - Private Properties
+    // MARK: - Updating Data (fed from DashboardViewModel)
 
-    private let supabaseService: SupabaseService
-
-    // MARK: - Initialization
-
-    init(supabaseService: SupabaseService = .shared) {
-        self.supabaseService = supabaseService
+    /// Called when DashboardViewModel.adminRecords changes.
+    func updateRecords(_ newRecords: [Record]) {
+        records = newRecords
+        costRecords = newRecords.filter { $0.type == .costSummary }
     }
 
     // MARK: - Computed Properties
@@ -54,42 +51,6 @@ final class AdminViewModel: SectionViewModelProtocol {
     /// Gateway status record (if available).
     var gatewayStatus: GatewayStatusData? {
         records.compactMap { $0.asGatewayStatus() }.first
-    }
-
-    // MARK: - Loading Data
-
-    func loadRecords(forceRefresh: Bool = false) async {
-        isLoading = true
-        error = nil
-        defer { isLoading = false }
-
-        do {
-            async let fetchedAgents = supabaseService.fetchAgents(forceRefresh: forceRefresh)
-            async let fetchedCosts = supabaseService.fetchRecords(
-                category: .admin,
-                type: .costSummary,
-                limit: 10,
-                forceRefresh: forceRefresh
-            )
-            async let fetchedAdmin = supabaseService.fetchRecords(
-                category: .admin,
-                limit: 50,
-                forceRefresh: forceRefresh
-            )
-
-            agents = try await fetchedAgents
-            costRecords = try await fetchedCosts
-            records = try await fetchedAdmin
-            DataFreshnessTracker.shared.recordFetch(for: "admin")
-        } catch let err as SupabaseServiceError {
-            error = err
-        } catch {
-            self.error = .unknownError(error.localizedDescription)
-        }
-    }
-
-    func refresh() async {
-        await loadRecords(forceRefresh: true)
     }
 
     // MARK: - Helpers
