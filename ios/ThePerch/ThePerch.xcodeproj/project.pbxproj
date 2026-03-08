@@ -107,6 +107,9 @@
 		CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */; };
 		NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */; };
 		DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */; };
+		MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */; };
+		WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */; };
+		EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */; };
 		HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */; };
 /* End PBXBuildFile section */
 
@@ -250,6 +253,9 @@
 		CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTomorrowCard.swift; sourceTree = "<group>"; };
 		NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionHomeCard.swift; sourceTree = "<group>"; };
 		DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryHomeCard.swift; sourceTree = "<group>"; };
+		MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsCard.swift; sourceTree = "<group>"; };
+		WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCompactCard.swift; sourceTree = "<group>"; };
+		EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailSummaryCard.swift; sourceTree = "<group>"; };
 		HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardOrdering.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -456,6 +462,9 @@
 				CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */,
 				NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */,
 				DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */,
+				MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */,
+				WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */,
+				EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */,
 			);
 			path = Cards;
 			sourceTree = "<group>";
@@ -920,6 +929,9 @@
 				CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */,
 				NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */,
 				DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */,
+				MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */,
+				WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */,
+				EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */,
 				HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
