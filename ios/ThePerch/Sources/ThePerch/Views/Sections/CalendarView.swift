@@ -1,13 +1,16 @@
 import SwiftUI
 
 /// Calendar section showing upcoming events with the new EventCard design.
+/// Reads records from DashboardViewModel (single-fetch architecture).
 struct CalendarView: View {
-    @State private var viewModel = SectionViewModel(category: .calendar)
+    @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var cardsAppeared = false
+
+    private var records: [Record] { dashboardViewModel.calendarRecords }
 
     var todayEvents: [Record] {
         let calendar = Calendar.current
-        return viewModel.records.filter { record in
+        return records.filter { record in
             if let eventData = record.asEvent() {
                 return calendar.isDateInToday(eventData.start)
             }
@@ -17,7 +20,7 @@ struct CalendarView: View {
 
     var upcomingEvents: [Record] {
         let calendar = Calendar.current
-        return viewModel.records.filter { record in
+        return records.filter { record in
             if let eventData = record.asEvent() {
                 return !calendar.isDateInToday(eventData.start) && eventData.start > Date.now
             }
@@ -35,7 +38,7 @@ struct CalendarView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if viewModel.isLoading && viewModel.records.isEmpty {
+            if dashboardViewModel.isLoading && records.isEmpty {
                 SkeletonCalendarSection()
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, 60)
@@ -49,11 +52,11 @@ struct CalendarView: View {
                         .padding(.top, PerchTheme.Spacing.medium)
 
                     // Error banner
-                    if viewModel.error != nil {
+                    if dashboardViewModel.error != nil {
                         ErrorBanner(
                             message: "Failed to load calendar events",
-                            retryAction: { Task { await viewModel.loadRecords() } },
-                            onDismiss: { viewModel.clearError() }
+                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            onDismiss: { dashboardViewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
@@ -109,12 +112,9 @@ struct CalendarView: View {
             }
             .refreshable {
                 PerchHaptics.medium()
-                await viewModel.refresh()
+                await dashboardViewModel.refreshRecords()
                 PerchHaptics.success()
             }
-        }
-        .task {
-            await viewModel.loadRecords()
         }
     }
 
@@ -221,4 +221,5 @@ struct UpcomingEventRow: View {
 
 #Preview {
     CalendarView()
+        .environment(DashboardViewModel())
 }

@@ -4,10 +4,11 @@ import Observation
 // MARK: - SectionViewModel
 
 /// Manages the state of a single category section.
-/// Handles fetching, filtering, sorting, and grouping of records.
+/// Records are fed from DashboardViewModel (single-fetch architecture).
+/// Handles filtering, sorting, and grouping of records.
 @Observable
 @MainActor
-final class SectionViewModel: SectionViewModelProtocol {
+final class SectionViewModel {
     // MARK: - Published Properties
 
     var records: [Record] = []
@@ -18,7 +19,6 @@ final class SectionViewModel: SectionViewModelProtocol {
 
     // MARK: - Private Properties
 
-    private let supabaseService: SupabaseService
     private var sortOrder: SortOrder = .newestFirst
 
     // MARK: - Sort Order
@@ -31,40 +31,17 @@ final class SectionViewModel: SectionViewModelProtocol {
 
     // MARK: - Initialization
 
-    init(
-        category: RecordCategory,
-        supabaseService: SupabaseService = .shared
-    ) {
+    init(category: RecordCategory) {
         self.category = category
-        self.supabaseService = supabaseService
     }
 
-    // MARK: - Loading Data
+    // MARK: - Updating Data (fed from DashboardViewModel)
 
-    /// Loads records for the section's category.
-    func loadRecords(forceRefresh: Bool = false) async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let loadedRecords = try await supabaseService.fetchRecords(
-                category: category,
-                limit: 100,
-                forceRefresh: forceRefresh
-            )
-            self.records = loadedRecords
-            self.groupedRecords = groupRecordsByType(loadedRecords)
-            self.error = nil
-        } catch let error as SupabaseServiceError {
-            self.error = error
-        } catch {
-            self.error = .unknownError(error.localizedDescription)
-        }
-    }
-
-    /// Refreshes the records by force-reloading from the server.
-    func refresh() async {
-        await loadRecords(forceRefresh: true)
+    /// Called when DashboardViewModel provides new records for this category.
+    func updateRecords(_ newRecords: [Record]) {
+        self.records = newRecords
+        self.groupedRecords = groupRecordsByType(newRecords)
+        self.error = nil
     }
 
     // MARK: - Sorting & Grouping
@@ -117,25 +94,6 @@ final class SectionViewModel: SectionViewModelProtocol {
         let lowercasedQuery = query.lowercased()
         return records.filter { record in
             record.title.lowercased().contains(lowercasedQuery)
-        }
-    }
-
-    // MARK: - Record Actions
-
-    /// Toggles the pinned state of a record.
-    /// - Parameter recordId: The ID of the record to toggle.
-    func togglePin(recordId: UUID) async {
-        guard let index = records.firstIndex(where: { $0.id == recordId }) else { return }
-
-        let newPinnedState = !records[index].pinned
-        do {
-            try await supabaseService.updateRecordPin(id: recordId, pinned: newPinnedState)
-            records[index].pinned = newPinnedState
-            self.error = nil
-        } catch let error as SupabaseServiceError {
-            self.error = error
-        } catch {
-            self.error = .unknownError(error.localizedDescription)
         }
     }
 

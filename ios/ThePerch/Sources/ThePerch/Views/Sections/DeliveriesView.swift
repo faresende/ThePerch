@@ -1,17 +1,18 @@
 import SwiftUI
 
 /// Delivery tracking section with active and completed deliveries.
-/// Uses the new DeliveryCard with horizontal step progress indicator.
-/// Supports swipe actions for pinning items.
+/// Reads records from DashboardViewModel (single-fetch architecture).
 struct DeliveriesView: View {
-    @State private var viewModel = SectionViewModel(category: .deliveries)
+    @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var showCompleted = false
     @State private var cardsAppeared = false
 
     private let freshnessTracker = DataFreshnessTracker.shared
 
+    private var records: [Record] { dashboardViewModel.deliveryRecords }
+
     var activeDeliveries: [Record] {
-        viewModel.records.filter { record in
+        records.filter { record in
             if let delivery = record.asDelivery() {
                 let status = delivery.status.lowercased()
                 return status != "delivered" && status != "cancelled"
@@ -21,7 +22,7 @@ struct DeliveriesView: View {
     }
 
     var completedDeliveries: [Record] {
-        viewModel.records.filter { record in
+        records.filter { record in
             if let delivery = record.asDelivery() {
                 let status = delivery.status.lowercased()
                 return status == "delivered" || status == "cancelled"
@@ -34,7 +35,7 @@ struct DeliveriesView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if viewModel.isLoading && viewModel.records.isEmpty {
+            if dashboardViewModel.isLoading && records.isEmpty {
                 SkeletonDeliveriesSection()
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, 60)
@@ -48,11 +49,11 @@ struct DeliveriesView: View {
                         .padding(.top, PerchTheme.Spacing.medium)
 
                     // Error banner
-                    if viewModel.error != nil {
+                    if dashboardViewModel.error != nil {
                         ErrorBanner(
                             message: "Failed to load deliveries",
-                            retryAction: { Task { await viewModel.loadRecords() } },
-                            onDismiss: { viewModel.clearError() }
+                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            onDismiss: { dashboardViewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
@@ -71,7 +72,7 @@ struct DeliveriesView: View {
                                             .cardAppear(index: index, appeared: cardsAppeared)
                                             .contextMenu {
                                                 Button {
-                                                    Task { await viewModel.togglePin(recordId: record.id) }
+                                                    Task { await dashboardViewModel.toggleRecordPin(recordId: record.id) }
                                                 } label: {
                                                     Label(
                                                         record.pinned ? "Unpin" : "Pin",
@@ -120,7 +121,7 @@ struct DeliveriesView: View {
                                             DeliveryCard(delivery: delivery)
                                                 .contextMenu {
                                                     Button {
-                                                        Task { await viewModel.togglePin(recordId: record.id) }
+                                                        Task { await dashboardViewModel.toggleRecordPin(recordId: record.id) }
                                                     } label: {
                                                         Label(
                                                             record.pinned ? "Unpin" : "Pin",
@@ -146,14 +147,10 @@ struct DeliveriesView: View {
             }
             .refreshable {
                 PerchHaptics.medium()
-                await viewModel.refresh()
+                await dashboardViewModel.refreshRecords()
                 await syncLiveActivities()
                 PerchHaptics.success()
             }
-        }
-        .task {
-            await viewModel.loadRecords()
-            await syncLiveActivities()
         }
     }
 
@@ -190,4 +187,5 @@ struct DeliveriesView: View {
 
 #Preview {
     DeliveriesView()
+        .environment(DashboardViewModel())
 }

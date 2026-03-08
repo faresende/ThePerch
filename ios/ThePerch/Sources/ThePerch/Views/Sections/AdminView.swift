@@ -2,14 +2,16 @@ import SwiftUI
 
 /// OpenClaw admin dashboard with Helm-inspired widgets:
 /// Gateway status, heartbeat, active models, agent list, upcoming crons, costs.
+/// Records come from DashboardViewModel; agents are fetched separately.
 struct AdminView: View {
+    @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = AdminViewModel()
 
     var body: some View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if viewModel.isLoading && viewModel.agents.isEmpty {
+            if dashboardViewModel.isLoading && viewModel.agents.isEmpty {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     HStack(spacing: PerchTheme.Spacing.medium) {
                         SkeletonRect(height: 100, cornerRadius: PerchTheme.Card.cornerRadius)
@@ -31,11 +33,11 @@ struct AdminView: View {
                         .padding(.top, PerchTheme.Spacing.medium)
 
                     // MARK: - Error Banner
-                    if let error = viewModel.error {
+                    if let error = dashboardViewModel.error {
                         ErrorBanner(
                             message: error.localizedDescription,
-                            retryAction: { Task { await viewModel.refresh() } },
-                            onDismiss: { viewModel.error = nil }
+                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            onDismiss: { dashboardViewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
@@ -176,12 +178,28 @@ struct AdminView: View {
             }
             .refreshable {
                 PerchHaptics.medium()
-                await viewModel.refresh()
+                await dashboardViewModel.refreshRecords()
+                await dashboardViewModel.loadAgents(forceRefresh: true)
                 PerchHaptics.success()
             }
         }
         .task {
-            await viewModel.loadRecords()
+            // Agents come from a different table — fetch separately
+            await dashboardViewModel.loadAgents()
+        }
+        .onChange(of: dashboardViewModel.adminRecords) { _, newRecords in
+            viewModel.updateRecords(newRecords)
+        }
+        .onChange(of: dashboardViewModel.agents) { _, newAgents in
+            viewModel.agents = newAgents
+        }
+        .onAppear {
+            if !dashboardViewModel.adminRecords.isEmpty {
+                viewModel.updateRecords(dashboardViewModel.adminRecords)
+            }
+            if !dashboardViewModel.agents.isEmpty {
+                viewModel.agents = dashboardViewModel.agents
+            }
         }
     }
 
@@ -292,4 +310,5 @@ struct HealthMetricRow: View {
 
 #Preview {
     AdminView()
+        .environment(DashboardViewModel())
 }

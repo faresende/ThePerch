@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents an OpenClaw agent that generates records.
-struct Agent: Identifiable, Codable {
+struct Agent: Identifiable, Codable, Equatable {
     let id: String
     let displayName: String
     let emoji: String?

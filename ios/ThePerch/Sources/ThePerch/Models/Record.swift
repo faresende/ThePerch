@@ -115,7 +115,7 @@ enum CardSize: String, Codable {
 
 /// A record is a unit of data captured by an OpenClaw agent.
 /// It contains flexible JSON data, type and category information, and metadata.
-struct Record: Identifiable, Codable {
+struct Record: Identifiable, Codable, Equatable {
     let id: UUID
     let agentId: String
     let userId: UUID

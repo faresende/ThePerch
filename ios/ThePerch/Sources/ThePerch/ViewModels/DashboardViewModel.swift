@@ -4,7 +4,8 @@ import Observation
 // MARK: - DashboardViewModel
 
 /// Manages the state of the main dashboard screen.
-/// Handles sections, widgets, loading, and realtime updates.
+/// Single source of truth for ALL records — fetches once, distributes to sections.
+/// Also handles sections, widgets, loading, and realtime updates.
 @Observable
 @MainActor
 final class DashboardViewModel {
@@ -14,6 +15,20 @@ final class DashboardViewModel {
     var homeWidgets: [HomeWidget] = []
     var isLoading: Bool = false
     var error: SupabaseServiceError?
+
+    /// Single source of truth: ALL records fetched in one request.
+    var allRecords: [Record] = []
+
+    /// Agents are fetched separately (different table, admin-only).
+    var agents: [Agent] = []
+
+    // MARK: - Filtered Record Properties
+
+    var healthRecords: [Record] { allRecords.filter { $0.category == .health } }
+    var deliveryRecords: [Record] { allRecords.filter { $0.category == .deliveries } }
+    var calendarRecords: [Record] { allRecords.filter { $0.category == .calendar } }
+    var adminRecords: [Record] { allRecords.filter { $0.category == .admin } }
+    var bookmarkRecords: [Record] { allRecords.filter { $0.category == .bookmarks } }
 
     // MARK: - Private Properties
 
@@ -27,12 +42,12 @@ final class DashboardViewModel {
 
     // MARK: - Loading Data
 
-    /// Loads the dashboard sections and widgets in parallel.
+    /// Loads the dashboard: sections, widgets, and ALL records in parallel.
     func loadDashboard(forceRefresh: Bool = false) async {
         isLoading = true
         defer { isLoading = false }
 
-        // Fire both fetches in parallel
+        // Fire all fetches in parallel
         async let sectionsResult: Result<[Section], Error> = {
             do { return .success(try await supabaseService.fetchSections(forceRefresh: forceRefresh)) }
             catch { return .failure(error) }
@@ -41,8 +56,12 @@ final class DashboardViewModel {
             do { return .success(try await supabaseService.fetchHomeWidgets(forceRefresh: forceRefresh)) }
             catch { return .failure(error) }
         }()
+        async let recordsResult: Result<[Record], Error> = {
+            do { return .success(try await supabaseService.fetchRecords(limit: 200, forceRefresh: forceRefresh)) }
+            catch { return .failure(error) }
+        }()
 
-        let (sections, widgets) = await (sectionsResult, widgetsResult)
+        let (sections, widgets, records) = await (sectionsResult, widgetsResult, recordsResult)
 
         switch sections {
         case .success(let loaded):
@@ -58,10 +77,37 @@ final class DashboardViewModel {
             self.homeWidgets = loaded
         case .failure(let err):
             print("[DashboardVM] fetchHomeWidgets threw: \(err)")
-            // Don't overwrite a sections error with a widgets error
             if self.error == nil {
                 self.error = .unknownError(err.localizedDescription)
             }
+        }
+
+        switch records {
+        case .success(let loaded):
+            self.allRecords = loaded
+        case .failure(let err):
+            print("[DashboardVM] fetchRecords threw: \(err)")
+            if self.error == nil {
+                self.error = .unknownError(err.localizedDescription)
+            }
+        }
+    }
+
+    /// Refreshes only records (lighter than full loadDashboard).
+    func refreshRecords(forceRefresh: Bool = true) async {
+        do {
+            allRecords = try await supabaseService.fetchRecords(limit: 200, forceRefresh: forceRefresh)
+        } catch {
+            print("[DashboardVM] refreshRecords threw: \(error)")
+        }
+    }
+
+    /// Fetches agents separately (different table, admin-only).
+    func loadAgents(forceRefresh: Bool = false) async {
+        do {
+            agents = try await supabaseService.fetchAgents(forceRefresh: forceRefresh)
+        } catch {
+            print("[DashboardVM] fetchAgents threw: \(error)")
         }
     }
 
@@ -122,24 +168,38 @@ final class DashboardViewModel {
         }
     }
 
+    // MARK: - Record Actions
+
+    /// Toggles the pinned state of a record.
+    func toggleRecordPin(recordId: UUID) async {
+        guard let index = allRecords.firstIndex(where: { $0.id == recordId }) else { return }
+
+        let newPinnedState = !allRecords[index].pinned
+        do {
+            try await supabaseService.updateRecordPin(id: recordId, pinned: newPinnedState)
+            allRecords[index].pinned = newPinnedState
+        } catch {
+            print("[DashboardVM] toggleRecordPin failed: \(error)")
+        }
+    }
+
     // MARK: - Realtime Subscriptions
 
     private let reconnectManager = RealtimeReconnectManager.shared
 
     /// Sets up realtime subscriptions to listen for dashboard changes.
-    /// When records change, we re-fetch the relevant data to keep the UI fresh.
+    /// When records change, we re-fetch records to keep the UI fresh.
     func setupRealtimeSubscriptions() async {
         do {
             try await supabaseService.subscribeToRecords { [weak self] change in
                 guard let self else { return }
                 print("[DashboardVM] Realtime record change: \(change.action)")
                 Task { @MainActor in
-                    await self.loadDashboard()
+                    await self.refreshRecords()
                     if let record = change.record {
                         NotificationService.shared.handleRecordChange(record: record, action: change.action)
-                        // Sync Live Activity when delivery records change
                         if record.category == .deliveries {
-                            await self.syncDeliveryLiveActivities()
+                            self.syncDeliveryLiveActivities()
                         }
                     }
                 }
@@ -149,7 +209,7 @@ final class DashboardViewModel {
                 guard let self else { return }
                 print("[DashboardVM] Realtime agent change: \(action)")
                 Task { @MainActor in
-                    await self.loadDashboard()
+                    await self.loadAgents(forceRefresh: true)
                 }
             }
 
@@ -174,7 +234,7 @@ final class DashboardViewModel {
             try await supabaseService.subscribeToRecords { [weak self] change in
                 guard let self else { return }
                 Task { @MainActor in
-                    await self.loadDashboard()
+                    await self.refreshRecords()
                     if let record = change.record {
                         NotificationService.shared.handleRecordChange(record: record, action: change.action)
                     }
@@ -183,7 +243,7 @@ final class DashboardViewModel {
             try await supabaseService.subscribeToAgents { [weak self] action in
                 guard let self else { return }
                 Task { @MainActor in
-                    await self.loadDashboard()
+                    await self.loadAgents(forceRefresh: true)
                 }
             }
             return true
@@ -200,19 +260,16 @@ final class DashboardViewModel {
 
     // MARK: - Live Activity Sync
 
-    /// Fetches delivery records and syncs Live Activities.
-    private func syncDeliveryLiveActivities() async {
-        do {
-            let records = try await supabaseService.fetchRecords(limit: 50)
-            let activeDeliveries = records.compactMap { record -> DeliveryData? in
-                guard let d = record.asDelivery() else { return nil }
-                let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
-                guard s == "in_transit" || s == "shipped" || s == "out_for_delivery" || s == "processing" || s == "ordered" else { return nil }
-                return d
-            }
+    /// Syncs Live Activities using already-loaded delivery records.
+    private func syncDeliveryLiveActivities() {
+        let activeDeliveries = deliveryRecords.compactMap { record -> DeliveryData? in
+            guard let d = record.asDelivery() else { return nil }
+            let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            guard s == "in_transit" || s == "shipped" || s == "out_for_delivery" || s == "processing" || s == "ordered" else { return nil }
+            return d
+        }
+        Task {
             await DeliveryLiveActivityManager.shared.sync(activeDeliveries: activeDeliveries)
-        } catch {
-            print("[DashboardVM] Failed to sync Live Activities: \(error)")
         }
     }
 

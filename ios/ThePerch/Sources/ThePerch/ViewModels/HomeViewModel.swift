@@ -5,55 +5,29 @@ import WidgetKit
 // MARK: - HomeViewModel
 
 /// Manages the state of the Home section (dashboard-of-dashboards).
-/// Handles data loading, smart ordering, widget data sync, and Live Activity sync.
+/// Reads records from DashboardViewModel (single-fetch), handles smart ordering,
+/// widget data sync, and Live Activity sync.
 @Observable
 @MainActor
-final class HomeViewModel: SectionViewModelProtocol {
+final class HomeViewModel {
     // MARK: - Properties
 
     var records: [Record] = []
     var smartOrderedRecords: [Record] = []
     var dailyBriefData: DailyBriefData?
-    var isLoading: Bool = false
-    var error: SupabaseServiceError?
     var loadError: String?
 
-    // MARK: - Private Properties
+    // MARK: - Updating Data (fed from DashboardViewModel)
 
-    private let supabaseService: SupabaseService
-    private let freshnessTracker = DataFreshnessTracker.shared
-
-    // MARK: - Initialization
-
-    init(supabaseService: SupabaseService = .shared) {
-        self.supabaseService = supabaseService
-    }
-
-    // MARK: - Loading Data
-
-    func loadRecords(forceRefresh: Bool = false) async {
-        isLoading = true
-        loadError = nil
-        defer { isLoading = false }
-
-        do {
-            records = try await supabaseService.fetchRecords(limit: 50, forceRefresh: forceRefresh)
-            recomputeSmartOrder()
-            recomputeDailyBrief()
-            updateWidgetData()
-            await syncLiveActivities()
-            self.error = nil
-        } catch let err as SupabaseServiceError {
-            error = err
-            loadError = "Failed to load data"
-        } catch {
-            self.error = .unknownError(error.localizedDescription)
-            loadError = "Failed to load data"
-        }
-    }
-
-    func refresh() async {
-        await loadRecords(forceRefresh: true)
+    /// Called when DashboardViewModel.allRecords changes.
+    /// Recomputes smart order, daily brief, widget data, and syncs live activities.
+    func updateRecords(_ newRecords: [Record]) {
+        guard newRecords != records else { return }
+        records = newRecords
+        recomputeSmartOrder()
+        recomputeDailyBrief()
+        updateWidgetData()
+        Task { await syncLiveActivities() }
     }
 
     // MARK: - Quick Glance Data

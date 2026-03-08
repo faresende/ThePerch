@@ -166,7 +166,6 @@ struct SectionView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     let section: Section
 
-    @State private var viewModel: SectionViewModel?
     @State private var appeared = false
 
     var body: some View {
@@ -209,50 +208,44 @@ struct SectionView: View {
 
     // MARK: - Generic Section (fallback for unknown slugs)
 
+    private var genericRecords: [Record] {
+        guard let category = section.category else { return [] }
+        return dashboardViewModel.allRecords.filter { $0.category == category }
+    }
+
     @ViewBuilder
     private var genericSectionView: some View {
-        if let viewModel = viewModel {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Section header with freshness
-                    SectionHeader(title: section.displayName, freshnessKey: section.slug)
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                        .padding(.top, PerchTheme.Spacing.medium)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                // Section header with freshness
+                SectionHeader(title: section.displayName, freshnessKey: section.slug)
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+                    .padding(.top, PerchTheme.Spacing.medium)
 
-                    // Records
-                    if viewModel.records.isEmpty {
-                        emptyStateView
-                    } else {
-                        VStack(spacing: PerchTheme.Spacing.medium) {
-                            ForEach(viewModel.records) { record in
-                                WidgetRouter(record: record)
-                            }
+                if dashboardViewModel.isLoading && genericRecords.isEmpty {
+                    VStack(spacing: PerchTheme.Spacing.medium) {
+                        SkeletonSingleValueCard()
+                        SkeletonSingleValueCard()
+                        SkeletonChartCard()
+                    }
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+                } else if genericRecords.isEmpty {
+                    emptyStateView
+                } else {
+                    VStack(spacing: PerchTheme.Spacing.medium) {
+                        ForEach(genericRecords) { record in
+                            WidgetRouter(record: record)
                         }
-                        .padding(.horizontal, PerchTheme.Spacing.large)
                     }
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+                }
 
-                    Spacer()
-                        .frame(height: PerchTheme.Spacing.large)
-                }
+                Spacer()
+                    .frame(height: PerchTheme.Spacing.large)
             }
-            .refreshable {
-                await viewModel.refresh()
-            }
-        } else {
-            VStack(spacing: PerchTheme.Spacing.medium) {
-                SkeletonSingleValueCard()
-                SkeletonSingleValueCard()
-                SkeletonChartCard()
-            }
-            .padding(.horizontal, PerchTheme.Spacing.large)
-            .padding(.top, 60)
-            .task {
-                    if let category = section.category {
-                        let vm = SectionViewModel(category: category)
-                        viewModel = vm
-                        await vm.loadRecords()
-                    }
-                }
+        }
+        .refreshable {
+            await dashboardViewModel.refreshRecords()
         }
     }
 

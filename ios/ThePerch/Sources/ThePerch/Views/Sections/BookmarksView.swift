@@ -1,18 +1,21 @@
 import SwiftUI
 
 /// Bookmarks section with Karakeep/Paperless tabs, search, and filtering.
+/// Reads records from DashboardViewModel (single-fetch architecture).
 struct BookmarksView: View {
-    @State private var viewModel = SectionViewModel(category: .bookmarks)
+    @Environment(DashboardViewModel.self) var dashboardViewModel
 
     @State private var searchText = ""
     @State private var selectedTags: Set<String> = []
     @State private var selectedTab: BookmarkSource = .karakeep
 
+    private var records: [Record] { dashboardViewModel.bookmarkRecords }
+
     // MARK: - Filtered Data
 
     /// All bookmarks for the active tab.
     private var tabBookmarks: [Record] {
-        viewModel.records.filter { record in
+        records.filter { record in
             guard let bookmark = record.asBookmark() else { return false }
             let bookmarkSource = bookmark.source ?? .karakeep
             return bookmarkSource == selectedTab
@@ -55,7 +58,7 @@ struct BookmarksView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if viewModel.isLoading && viewModel.records.isEmpty {
+            if dashboardViewModel.isLoading && records.isEmpty {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     SkeletonBookmarkCard()
                     SkeletonBookmarkCard()
@@ -74,11 +77,11 @@ struct BookmarksView: View {
                     .padding(.bottom, PerchTheme.Spacing.small)
 
                 // Error banner
-                if viewModel.error != nil {
+                if dashboardViewModel.error != nil {
                     ErrorBanner(
                         message: "Failed to load bookmarks",
-                        retryAction: { Task { await viewModel.loadRecords() } },
-                        onDismiss: { viewModel.clearError() }
+                        retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                        onDismiss: { dashboardViewModel.clearError() }
                     )
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.bottom, PerchTheme.Spacing.small)
@@ -94,7 +97,6 @@ struct BookmarksView: View {
                     .pickerStyle(.segmented)
                     .onChange(of: selectedTab) { _, _ in
                         PerchHaptics.selection()
-                        // Reset tag selection when switching tabs
                         selectedTags.removeAll()
                     }
 
@@ -206,7 +208,7 @@ struct BookmarksView: View {
                         // Empty state
                         if filteredBookmarks.isEmpty && !searchText.isEmpty {
                             emptySearchView
-                        } else if tabBookmarks.isEmpty && !viewModel.isLoading {
+                        } else if tabBookmarks.isEmpty && !dashboardViewModel.isLoading {
                             emptyStateView
                         }
 
@@ -216,13 +218,10 @@ struct BookmarksView: View {
                 }
                 .refreshable {
                     PerchHaptics.medium()
-                    await viewModel.refresh()
+                    await dashboardViewModel.refreshRecords()
                     PerchHaptics.success()
                 }
             }
-        }
-        .task {
-            await viewModel.loadRecords()
         }
     }
 
@@ -305,4 +304,5 @@ struct BookmarksView: View {
 
 #Preview {
     BookmarksView()
+        .environment(DashboardViewModel())
 }
