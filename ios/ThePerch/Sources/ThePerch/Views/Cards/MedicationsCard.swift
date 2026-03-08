@@ -128,7 +128,12 @@ struct MedicationsCard: View {
     private func toggleMedication(_ item: MedicationChecklistData.MedicationItem) {
         guard let record = medicationRecord, let meds = medications else { return }
 
-        PerchHaptics.light()
+        // Haptic: success for checking, light for unchecking
+        if !item.isChecked {
+            PerchHaptics.success()
+        } else {
+            PerchHaptics.light()
+        }
         isMutating = true
 
         // Build updated items list
@@ -154,7 +159,6 @@ struct MedicationsCard: View {
                     recordId: record.id,
                     data: updatedData
                 )
-                PerchHaptics.success()
             } catch {
                 PerchHaptics.error()
                 print("[MedicationsCard] Toggle failed: \(error)")
