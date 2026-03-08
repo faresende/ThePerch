@@ -85,6 +85,7 @@ final class DashboardViewModel {
         switch records {
         case .success(let loaded):
             self.allRecords = loaded
+            Self.preDecodeRecords(loaded)
         case .failure(let err):
             print("[DashboardVM] fetchRecords threw: \(err)")
             if self.error == nil {
@@ -93,10 +94,48 @@ final class DashboardViewModel {
         }
     }
 
+    /// Pre-populates the DecodingCache for all records in a single pass.
+    /// Front-loads ALL decoding after network response so views never pay the cost.
+    nonisolated private static func preDecodeRecords(_ records: [Record]) {
+        for record in records {
+            switch record.category {
+            case .health:
+                if record.displayHint == .macrosBar {
+                    _ = record.decodeData(as: MacrosData.self)
+                } else {
+                    _ = record.decodeData(as: MeasurementData.self)
+                }
+            case .deliveries:
+                _ = record.decodeData(as: DeliveryData.self)
+            case .calendar:
+                _ = record.decodeData(as: EventData.self)
+            case .bookmarks:
+                _ = record.decodeData(as: BookmarkData.self)
+            case .admin:
+                switch record.type {
+                case .costSummary:
+                    _ = record.decodeData(as: CostSummaryData.self)
+                case .status:
+                    _ = record.decodeData(as: StatusData.self)
+                case .checklist:
+                    _ = record.decodeData(as: ChecklistData.self)
+                case .textNote:
+                    _ = record.decodeData(as: TextNoteData.self)
+                default:
+                    break
+                }
+            case .legal:
+                break
+            }
+        }
+    }
+
     /// Refreshes only records (lighter than full loadDashboard).
     func refreshRecords(forceRefresh: Bool = true) async {
         do {
-            allRecords = try await supabaseService.fetchRecords(limit: 200, forceRefresh: forceRefresh)
+            let records = try await supabaseService.fetchRecords(limit: 200, forceRefresh: forceRefresh)
+            allRecords = records
+            Self.preDecodeRecords(records)
         } catch {
             print("[DashboardVM] refreshRecords threw: \(error)")
         }
