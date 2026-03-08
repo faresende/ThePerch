@@ -3,45 +3,13 @@ import SwiftUI
 /// OpenClaw admin dashboard with Helm-inspired widgets:
 /// Gateway status, heartbeat, active models, agent list, upcoming crons, costs.
 struct AdminView: View {
-    @State private var agents: [Agent] = []
-    @State private var costRecords: [Record] = []
-    @State private var adminRecords: [Record] = []
-    @State private var isLoading = true
-    @State private var loadError: String?
-
-    var activeAgents: [Agent] { agents.filter { $0.isActive } }
-
-    /// Derive gateway running status from the most recent agent heartbeat.
-    private var gatewayIsRunning: Bool {
-        guard let latest = agents.compactMap({ $0.lastHeartbeat }).max() else { return false }
-        return Date.now.timeIntervalSince(latest) < 300 // 5 minutes
-    }
-
-    /// Latest heartbeat across all agents.
-    private var latestHeartbeat: Date? {
-        agents.compactMap { $0.lastHeartbeat }.max()
-    }
-
-    /// Cron job records from admin category, sorted by next run time (nil pushed to end).
-    private var cronRecords: [Record] {
-        adminRecords.filter { $0.asCronJob() != nil }
-            .sorted { r1, r2 in
-                let d1 = r1.asCronJob()?.nextRunAt ?? .distantFuture
-                let d2 = r2.asCronJob()?.nextRunAt ?? .distantFuture
-                return d1 < d2
-            }
-    }
-
-    /// Gateway status record (if available).
-    private var gatewayStatus: GatewayStatusData? {
-        adminRecords.compactMap { $0.asGatewayStatus() }.first
-    }
+    @State private var viewModel = AdminViewModel()
 
     var body: some View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if isLoading && agents.isEmpty {
+            if viewModel.isLoading && viewModel.agents.isEmpty {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     HStack(spacing: PerchTheme.Spacing.medium) {
                         SkeletonRect(height: 100, cornerRadius: PerchTheme.Card.cornerRadius)
@@ -63,11 +31,11 @@ struct AdminView: View {
                         .padding(.top, PerchTheme.Spacing.medium)
 
                     // MARK: - Error Banner
-                    if let loadError {
+                    if let error = viewModel.error {
                         ErrorBanner(
-                            message: loadError,
-                            retryAction: { Task { await loadData() } },
-                            onDismiss: { self.loadError = nil }
+                            message: error.localizedDescription,
+                            retryAction: { Task { await viewModel.refresh() } },
+                            onDismiss: { viewModel.error = nil }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
@@ -83,17 +51,17 @@ struct AdminView: View {
                                     .foregroundColor(PerchTheme.textPrimary)
                                 Spacer()
                                 Circle()
-                                    .fill(gatewayIsRunning ? PerchTheme.success : PerchTheme.error)
+                                    .fill(viewModel.gatewayIsRunning ? PerchTheme.success : PerchTheme.error)
                                     .frame(width: 10, height: 10)
-                                    .shadow(color: (gatewayIsRunning ? PerchTheme.success : PerchTheme.error).opacity(0.6), radius: 4)
+                                    .shadow(color: (viewModel.gatewayIsRunning ? PerchTheme.success : PerchTheme.error).opacity(0.6), radius: 4)
                             }
 
-                            Text(gatewayIsRunning ? "Running" : "Offline")
+                            Text(viewModel.gatewayIsRunning ? "Running" : "Offline")
                                 .font(PerchTheme.Font.titleNumeric)
                                 .fontWeight(.bold)
-                                .foregroundColor(gatewayIsRunning ? PerchTheme.success : PerchTheme.error)
+                                .foregroundColor(viewModel.gatewayIsRunning ? PerchTheme.success : PerchTheme.error)
 
-                            Text("\(activeAgents.count) of \(agents.count) agents active")
+                            Text("\(viewModel.activeAgents.count) of \(viewModel.agents.count) agents active")
                                 .font(PerchTheme.Font.micro)
                                 .foregroundColor(PerchTheme.textTertiary)
                         }
@@ -113,7 +81,7 @@ struct AdminView: View {
                                     .foregroundColor(PerchTheme.accent)
                             }
 
-                            if let heartbeat = latestHeartbeat {
+                            if let heartbeat = viewModel.latestHeartbeat {
                                 Text(heartbeat.relativeTime)
                                     .font(PerchTheme.Font.heading)
                                     .foregroundColor(PerchTheme.textPrimary)
@@ -133,7 +101,7 @@ struct AdminView: View {
                     .padding(.horizontal, PerchTheme.Spacing.large)
 
                     // MARK: - Active Models
-                    if let status = gatewayStatus, let models = status.activeModels, !models.isEmpty {
+                    if let status = viewModel.gatewayStatus, let models = status.activeModels, !models.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Active Models")
                                 .font(PerchTheme.Font.heading)
@@ -145,17 +113,17 @@ struct AdminView: View {
                     }
 
                     // MARK: - Agent Status
-                    if !agents.isEmpty {
+                    if !viewModel.agents.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Agents")
                                 .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
                             VStack(spacing: PerchTheme.Spacing.small) {
-                                ForEach(agents) { agent in
+                                ForEach(viewModel.agents) { agent in
                                     AgentStatusCard(
                                         agent: agent,
-                                        statusData: statusDataForAgent(agent)
+                                        statusData: viewModel.statusDataForAgent(agent)
                                     )
                                 }
                             }
@@ -164,7 +132,7 @@ struct AdminView: View {
                     }
 
                     // MARK: - Upcoming Crons
-                    if !cronRecords.isEmpty {
+                    if !viewModel.cronRecords.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Upcoming Crons")
                                 .font(PerchTheme.Font.heading)
@@ -176,7 +144,7 @@ struct AdminView: View {
                     }
 
                     // MARK: - Cost Summary
-                    if let costRecord = costRecords.first,
+                    if let costRecord = viewModel.costRecords.first,
                        let costData = costRecord.asCostSummary() {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Today's Costs")
@@ -187,8 +155,8 @@ struct AdminView: View {
                                 CostBreakdownCard.AgentCost(
                                     id: agentId,
                                     agentId: agentId,
-                                    agentEmoji: agentEmojiForId(agentId),
-                                    agentName: agentNameForId(agentId),
+                                    agentEmoji: viewModel.agentEmojiForId(agentId),
+                                    agentName: viewModel.agentNameForId(agentId),
                                     cost: cost
                                 )
                             }
@@ -208,12 +176,12 @@ struct AdminView: View {
             }
             .refreshable {
                 PerchHaptics.medium()
-                await loadData(forceRefresh: true)
+                await viewModel.refresh()
                 PerchHaptics.success()
             }
         }
         .task {
-            await loadData()
+            await viewModel.loadRecords()
         }
     }
 
@@ -253,7 +221,7 @@ struct AdminView: View {
 
     private var upcomingCronsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(cronRecords.prefix(5).enumerated()), id: \.offset) { _, record in
+            ForEach(Array(viewModel.cronRecords.prefix(5).enumerated()), id: \.offset) { _, record in
                 if let cron = record.asCronJob() {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
@@ -281,7 +249,7 @@ struct AdminView: View {
                         }
                     }
 
-                    if record.id != cronRecords.prefix(5).last?.id {
+                    if record.id != viewModel.cronRecords.prefix(5).last?.id {
                         Divider()
                             .background(PerchTheme.border)
                     }
@@ -290,85 +258,6 @@ struct AdminView: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
-    }
-
-    // MARK: - Data Loading
-
-    private func loadData(forceRefresh: Bool = false) async {
-        isLoading = true
-        loadError = nil
-        defer { isLoading = false }
-        do {
-            async let fetchedAgents = SupabaseService.shared.fetchAgents(forceRefresh: forceRefresh)
-            async let fetchedCosts = SupabaseService.shared.fetchRecords(
-                category: .admin,
-                type: .costSummary,
-                limit: 10,
-                forceRefresh: forceRefresh
-            )
-            async let fetchedAdmin = SupabaseService.shared.fetchRecords(
-                category: .admin,
-                limit: 50,
-                forceRefresh: forceRefresh
-            )
-
-            agents = try await fetchedAgents
-            costRecords = try await fetchedCosts
-            adminRecords = try await fetchedAdmin
-            DataFreshnessTracker.shared.recordFetch(for: "admin")
-        } catch {
-            loadError = "Failed to load admin data"
-            print("[AdminView] Failed to load: \(error)")
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func statusDataForAgent(_ agent: Agent) -> StatusData {
-        let state: String
-        if agent.isActive && agent.isHealthy {
-            state = "active"
-        } else if agent.isActive {
-            state = "idle"
-        } else {
-            state = "error"
-        }
-
-        let uptimeHours: Double
-        if agent.lastHeartbeat != nil {
-            uptimeHours = Date.now.timeIntervalSince(agent.createdAt) / 3600
-        } else {
-            uptimeHours = 0
-        }
-
-        return StatusData(
-            state: state,
-            uptimeHours: uptimeHours,
-            lastActivity: agent.lastHeartbeat,
-            currentTask: nil
-        )
-    }
-
-    private func agentEmojiForId(_ agentId: String) -> String {
-        if let agent = agents.first(where: { $0.id == agentId }), let emoji = agent.emoji {
-            return emoji
-        }
-        switch agentId {
-        case "claudinho": return "🤖"
-        case "biochecha": return "💊"
-        case "entregas": return "📦"
-        case "calendario": return "📅"
-        case "legal": return "⚖️"
-        case "archie": return "📚"
-        default: return "⚙️"
-        }
-    }
-
-    private func agentNameForId(_ agentId: String) -> String {
-        if let agent = agents.first(where: { $0.id == agentId }) {
-            return agent.displayName
-        }
-        return agentId.capitalized
     }
 }
 

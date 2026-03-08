@@ -51,6 +51,8 @@
 		35F543962F52411F00204F77 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543552F52411F00204F77 /* SupabaseService.swift */; };
 		35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435B2F52411F00204F77 /* SectionViewModel.swift */; };
 		SVMP0002SVMP0002SVMP0002 /* SectionViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SVMP0001SVMP0001SVMP0001 /* SectionViewModelProtocol.swift */; };
+		ADVM0002ADVM0002ADVM0002 /* AdminViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */; };
+		HMVM0002HMVM0002HMVM0002 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */; };
 		35F543982F52411F00204F77 /* EventKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543542F52411F00204F77 /* EventKitService.swift */; };
 		35F543992F52411F00204F77 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543522F52411F00204F77 /* UserProfile.swift */; };
 		35F5439A2F52411F00204F77 /* SingleValueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543652F52411F00204F77 /* SingleValueCard.swift */; };
@@ -176,6 +178,8 @@
 		35F5435A2F52411F00204F77 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		35F5435B2F52411F00204F77 /* SectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionViewModel.swift; sourceTree = "<group>"; };
 		SVMP0001SVMP0001SVMP0001 /* SectionViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionViewModelProtocol.swift; sourceTree = "<group>"; };
+		ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminViewModel.swift; sourceTree = "<group>"; };
+		HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		35F5435D2F52411F00204F77 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		35F5435E2F52411F00204F77 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		35F543602F52411F00204F77 /* BookmarkCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCard.swift; sourceTree = "<group>"; };
@@ -368,6 +372,8 @@
 				35F5435A2F52411F00204F77 /* DashboardViewModel.swift */,
 				35F5435B2F52411F00204F77 /* SectionViewModel.swift */,
 				SVMP0001SVMP0001SVMP0001 /* SectionViewModelProtocol.swift */,
+				ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */,
+				HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -830,6 +836,8 @@
 				HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */,
 				MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */,
 				DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */,
+				ADVM0002ADVM0002ADVM0002 /* AdminViewModel.swift in Sources */,
+				HMVM0002HMVM0002HMVM0002 /* HomeViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
