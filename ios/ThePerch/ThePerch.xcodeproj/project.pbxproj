@@ -47,7 +47,6 @@
 		35F543922F52411F00204F77 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543712F52411F00204F77 /* HomeView.swift */; };
 		35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543632F52411F00204F77 /* ChecklistCard.swift */; };
 		35F543942F52411F00204F77 /* TokenUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543512F52411F00204F77 /* TokenUsage.swift */; };
-		35F543952F52411F00204F77 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543792F52411F00204F77 /* ContentView.swift */; };
 		35F543962F52411F00204F77 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543552F52411F00204F77 /* SupabaseService.swift */; };
 		35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435B2F52411F00204F77 /* SectionViewModel.swift */; };
 		35F543982F52411F00204F77 /* EventKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543542F52411F00204F77 /* EventKitService.swift */; };
@@ -180,7 +179,6 @@
 		35F543722F52411F00204F77 /* LegalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalView.swift; sourceTree = "<group>"; };
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
-		35F543792F52411F00204F77 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		49B954EE98DF57B9774F8D30 /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
@@ -418,7 +416,6 @@
 				35F543582F52411F00204F77 /* Utilities */,
 				35F5435C2F52411F00204F77 /* ViewModels */,
 				35F543782F52411F00204F77 /* Views */,
-				35F543792F52411F00204F77 /* ContentView.swift */,
 				35F5437A2F52411F00204F77 /* ThePerchApp.swift */,
 			);
 			name = ThePerch;
@@ -736,7 +733,6 @@
 				35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */,
 
 				35F543942F52411F00204F77 /* TokenUsage.swift in Sources */,
-				35F543952F52411F00204F77 /* ContentView.swift in Sources */,
 				35F543962F52411F00204F77 /* SupabaseService.swift in Sources */,
 				35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */,
 				35F543982F52411F00204F77 /* EventKitService.swift in Sources */,
