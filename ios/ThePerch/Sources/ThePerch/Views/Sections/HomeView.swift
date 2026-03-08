@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var searchText = ""
     @State private var cardsAppeared = false
+    @State private var ambience = AmbienceManager.shared
 
     private let freshnessTracker = DataFreshnessTracker.shared
 
@@ -22,7 +23,7 @@ struct HomeView: View {
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text("\(greetingText), Fabio")
                             .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(ambience.ambientColor)
 
                         Text("·")
                             .font(PerchTheme.Font.heading)
@@ -230,7 +231,7 @@ struct HomeView: View {
         .cornerRadius(PerchTheme.Card.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                .stroke(PerchTheme.accent.opacity(0.3), lineWidth: 1)
+                .stroke(ambience.ambientColor.opacity(0.3), lineWidth: 1)
         )
         .staleBorder(tier: freshnessTracker.urgencyTier(for: "all_records"))
     }
