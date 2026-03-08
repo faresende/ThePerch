@@ -67,7 +67,7 @@
 		35F543AC2F52449100204F77 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543AB2F52449100204F77 /* Realtime */; };
 		35F543AE2F52449100204F77 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543AD2F52449100204F77 /* Storage */; };
 		35F543B12F52453F00204F77 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543B02F52453F00204F77 /* Supabase */; };
-		364018BE553B4FD19C5ABD37 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
+		364018BE553B4FD19C5ABD37 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3749D01A490DDFA35F9DD843 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
 		3F6A37B86C02CC8B9BE415C1 /* DeliveryActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */; };
 		5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E4BAE3418A661ACF7991AE /* SectionHeader.swift */; };
@@ -76,7 +76,7 @@
 		3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOfDayAtmosphere.swift; sourceTree = "<group>"; };
 		E84531AD71195AC9C765C1C9 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */; };
 		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
-		8B92D6C4C0FD7A48FF83A469 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
+		8B92D6C4C0FD7A48FF83A469 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
 		B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC61D48E7054D783C5A2B /* NotificationService.swift */; };
 		C395841AE66C9EF1B7E55F90 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
