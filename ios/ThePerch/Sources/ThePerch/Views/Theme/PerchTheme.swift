@@ -230,6 +230,18 @@ enum PerchMotion {
     }
 }
 
+// MARK: - Card Prominence
+
+/// Visual hierarchy levels for cards in the smart-ordered feed.
+enum CardProminence {
+    /// Active deliveries (out for delivery), imminent events (next 2h), daily brief
+    case featured
+    /// Default card style — most cards
+    case standard
+    /// Expired events, completed deliveries, old bookmarks
+    case muted
+}
+
 // MARK: - View Extensions for Common Styling
 
 extension View {
@@ -276,6 +288,11 @@ extension View {
                 PerchMotion.prefersReduced ? .none : .spring(response: 0.25, dampingFraction: 0.7),
                 value: isPressed
             )
+    }
+
+    /// Apply visual prominence hierarchy to a card.
+    func cardProminence(_ level: CardProminence) -> some View {
+        modifier(CardProminenceModifier(level: level))
     }
 }
 
@@ -402,6 +419,29 @@ struct StaleBorderModifier: ViewModifier {
         case .critical:
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
                 .stroke(PerchTheme.warning, lineWidth: 1.5)
+        }
+    }
+}
+
+// MARK: - Card Prominence Modifier
+
+private struct CardProminenceModifier: ViewModifier {
+    let level: CardProminence
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        switch level {
+        case .featured:
+            content
+                .overlay(
+                    RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                        .stroke(PerchTheme.accent.opacity(0.3), lineWidth: 1.5)
+                )
+        case .standard:
+            content
+        case .muted:
+            content
+                .opacity(0.7)
         }
     }
 }
