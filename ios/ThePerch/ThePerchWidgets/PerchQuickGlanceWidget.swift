@@ -4,9 +4,20 @@ import SwiftUI
 struct PerchQuickGlanceEntry: TimelineEntry {
     let date: Date
     let caloriesPercent: String
+    let caloriesConsumed: Int?
+    let caloriesTarget: Int?
     let nextEvent: String
+    let nextEventTitle: String?
+    let nextEventTime: String?
     let activeDeliveries: Int
     let lastUpdated: Date?
+
+    var caloriesDisplay: String {
+        guard let consumed = caloriesConsumed, let target = caloriesTarget, target > 0 else {
+            return caloriesPercent
+        }
+        return "\(consumed) / \(target) cal"
+    }
 }
 
 struct PerchQuickGlanceProvider: TimelineProvider {
@@ -16,7 +27,11 @@ struct PerchQuickGlanceProvider: TimelineProvider {
         PerchQuickGlanceEntry(
             date: .now,
             caloriesPercent: "62%",
+            caloriesConsumed: 1847,
+            caloriesTarget: 3400,
             nextEvent: "Team Standup 10:00",
+            nextEventTitle: "Team Standup",
+            nextEventTime: "10:00",
             activeDeliveries: 1,
             lastUpdated: .now
         )
@@ -34,10 +49,16 @@ struct PerchQuickGlanceProvider: TimelineProvider {
 
     private func readEntry() -> PerchQuickGlanceEntry {
         let defaults = sharedDefaults
+        let consumed = defaults?.object(forKey: "widget_calories_consumed") as? Int
+        let target = defaults?.object(forKey: "widget_calories_target") as? Int
         return PerchQuickGlanceEntry(
             date: .now,
             caloriesPercent: defaults?.string(forKey: "widget_calories_percent") ?? "--%",
+            caloriesConsumed: consumed,
+            caloriesTarget: target,
             nextEvent: defaults?.string(forKey: "widget_next_event") ?? "No events",
+            nextEventTitle: defaults?.string(forKey: "widget_next_event_title"),
+            nextEventTime: defaults?.string(forKey: "widget_next_event_time"),
             activeDeliveries: defaults?.integer(forKey: "widget_active_deliveries") ?? 0,
             lastUpdated: defaults?.object(forKey: "widget_last_updated") as? Date
         )
@@ -70,7 +91,7 @@ private struct PerchQuickGlanceWidgetView: View {
                     .foregroundStyle(.white)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Row(label: "Calories", value: entry.caloriesPercent)
+                    Row(label: "Calories", value: entry.caloriesDisplay)
                     Row(label: "Next", value: entry.nextEvent)
                     Row(label: "Deliveries", value: "\(entry.activeDeliveries)")
                 }
@@ -116,5 +137,5 @@ private struct PerchQuickGlanceWidgetView: View {
 #Preview(as: .systemSmall) {
     PerchQuickGlanceWidget()
 } timeline: {
-    PerchQuickGlanceEntry(date: .now, caloriesPercent: "62%", nextEvent: "Team Standup 10:00", activeDeliveries: 1, lastUpdated: .now)
+    PerchQuickGlanceEntry(date: .now, caloriesPercent: "62%", caloriesConsumed: 1847, caloriesTarget: 3400, nextEvent: "Team Standup 10:00", nextEventTitle: "Team Standup", nextEventTime: "10:00", activeDeliveries: 1, lastUpdated: .now)
 }
