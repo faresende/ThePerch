@@ -22,6 +22,12 @@ final class DashboardViewModel {
     /// Agents are fetched separately (different table, admin-only).
     var agents: [Agent] = []
 
+    /// When showing cached data before network response, this is the cache age string.
+    var lastUpdatedString: String?
+
+    /// True when displaying cached data that hasn't been refreshed from the network yet.
+    var isShowingCachedData: Bool = false
+
     // MARK: - Filtered Record Properties
 
     var healthRecords: [Record] { allRecords.filter { $0.category == .health } }
@@ -33,6 +39,8 @@ final class DashboardViewModel {
     // MARK: - Private Properties
 
     private let supabaseService: SupabaseService
+    private let cacheService = CacheService.shared
+    private let cacheUserId = "default_user"
 
     // MARK: - Initialization
 
@@ -42,10 +50,19 @@ final class DashboardViewModel {
 
     // MARK: - Loading Data
 
-    /// Loads the dashboard: sections, widgets, and ALL records in parallel.
+    /// Loads cached data from disk immediately, then fetches fresh data from network.
+    /// Views show cached data instantly (0ms perceived load), then update when fresh data arrives.
     func loadDashboard(forceRefresh: Bool = false) async {
-        isLoading = true
-        defer { isLoading = false }
+        // Step 1: Load cached data instantly (synchronous disk read)
+        let hadCachedData = loadCachedData()
+
+        // Step 2: Fetch fresh data from network
+        if !hadCachedData { isLoading = true }
+        defer {
+            isLoading = false
+            isShowingCachedData = false
+            lastUpdatedString = nil
+        }
 
         // Fire all fetches in parallel
         async let sectionsResult: Result<[Section], Error> = {
@@ -69,7 +86,10 @@ final class DashboardViewModel {
             self.error = nil
         case .failure(let err):
             print("[DashboardVM] fetchSections threw: \(err)")
-            self.error = .unknownError(err.localizedDescription)
+            // Only set error if we have no cached data to show
+            if self.sections.isEmpty {
+                self.error = .unknownError(err.localizedDescription)
+            }
         }
 
         switch widgets {
@@ -77,9 +97,6 @@ final class DashboardViewModel {
             self.homeWidgets = loaded
         case .failure(let err):
             print("[DashboardVM] fetchHomeWidgets threw: \(err)")
-            if self.error == nil {
-                self.error = .unknownError(err.localizedDescription)
-            }
         }
 
         switch records {
@@ -88,10 +105,42 @@ final class DashboardViewModel {
             Self.preDecodeRecords(loaded)
         case .failure(let err):
             print("[DashboardVM] fetchRecords threw: \(err)")
-            if self.error == nil {
+            // Keep showing cached data if network fails
+            if self.allRecords.isEmpty, self.error == nil {
                 self.error = .unknownError(err.localizedDescription)
             }
         }
+    }
+
+    /// Loads cached records and sections from disk for instant display.
+    /// Returns true if cached data was found and loaded.
+    @discardableResult
+    private func loadCachedData() -> Bool {
+        var loaded = false
+
+        // Load cached sections
+        if sections.isEmpty, let cachedSections = cacheService.loadSections(userId: cacheUserId), !cachedSections.isEmpty {
+            self.sections = cachedSections
+            loaded = true
+        }
+
+        // Load cached records (all categories)
+        if allRecords.isEmpty, let cachedRecords = cacheService.loadRecords(category: nil, userId: cacheUserId), !cachedRecords.isEmpty {
+            self.allRecords = cachedRecords
+            Self.preDecodeRecords(cachedRecords)
+            loaded = true
+        }
+
+        if loaded {
+            isShowingCachedData = true
+            // Show "Last updated X ago" from cache metadata
+            if let meta = cacheService.metadata(for: nil, userId: cacheUserId) {
+                lastUpdatedString = "Last updated \(meta.relativeAgeString)"
+            }
+            print("[DashboardVM] Loaded cached data instantly")
+        }
+
+        return loaded
     }
 
     /// Pre-populates the DecodingCache for all records in a single pass.

@@ -41,9 +41,11 @@ struct MainTabView: View {
                     errorBanner(message: error.localizedDescription)
                 }
 
-                // Offline cache staleness warning
+                // Cache staleness warning: show when offline or during initial cached-data display
                 if !networkMonitor.isConnected, let meta = CacheService.shared.metadata(for: nil, userId: "default_user") {
                     cacheAgeBanner(age: meta.relativeAgeString)
+                } else if dashboardViewModel.isShowingCachedData, let lastUpdated = dashboardViewModel.lastUpdatedString {
+                    cacheAgeBanner(age: lastUpdated.replacingOccurrences(of: "Last updated ", with: ""))
                 }
 
                 // Section navigator pill bar with realtime status
