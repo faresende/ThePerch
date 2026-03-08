@@ -103,7 +103,10 @@ struct BookmarkCard: View {
                 imageUrl: nil,
                 readingTimeMinutes: 12,
                 submittedFrom: "ios_share",
-                processedAt: Date.now
+                processedAt: Date.now,
+                source: .karakeep,
+                fileType: nil,
+                fileName: nil
             ),
             onTap: nil
         )
@@ -120,7 +123,10 @@ struct BookmarkCard: View {
                 imageUrl: nil,
                 readingTimeMinutes: nil,
                 submittedFrom: "ios_share",
-                processedAt: nil
+                processedAt: nil,
+                source: nil,
+                fileType: nil,
+                fileName: nil
             ),
             onTap: nil
         )
