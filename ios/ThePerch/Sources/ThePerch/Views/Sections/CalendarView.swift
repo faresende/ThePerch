@@ -64,7 +64,7 @@ struct CalendarView: View {
                                 }
                             }
                             .onAppear {
-                                withAnimation { cardsAppeared = true }
+                                PerchMotion.withOptionalAnimation { cardsAppeared = true }
                             }
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
