@@ -91,6 +91,7 @@ struct HomeView: View {
                         VStack(spacing: PerchTheme.Spacing.medium) {
                             ForEach(Array(smartOrderedRecords.enumerated()), id: \.element.id) { index, record in
                                 WidgetRouter(record: record)
+                                    .cardProminence(prominence(for: record))
                                     .cardAppear(index: index, appeared: cardsAppeared)
                             }
                         }
@@ -502,6 +503,30 @@ struct HomeView: View {
             let d1 = $1.asMeasurement()?.timestamp ?? $1.createdAt
             return d0 > d1
         }.first
+    }
+
+    // MARK: - Card Prominence
+
+    /// Determines the visual prominence level for a record in the smart feed.
+    private func prominence(for record: Record) -> CardProminence {
+        // Featured: out-for-delivery, imminent events (within 2h)
+        if let d = record.asDelivery() {
+            let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            if s == "out_for_delivery" { return .featured }
+            if s == "delivered" || s == "cancelled" { return .muted }
+        }
+        if let e = record.asEvent() {
+            let twoHours = Date.now.addingTimeInterval(2 * 3600)
+            if e.start > Date.now && e.start <= twoHours { return .featured }
+            if e.end < Date.now { return .muted }
+        }
+        // Muted: expired records, old bookmarks (>7 days)
+        if record.isExpired { return .muted }
+        if let _ = record.asBookmark() {
+            let age = Date.now.timeIntervalSince(record.createdAt)
+            if age > 7 * 86400 { return .muted }
+        }
+        return .standard
     }
 
     private var greetingText: String {
