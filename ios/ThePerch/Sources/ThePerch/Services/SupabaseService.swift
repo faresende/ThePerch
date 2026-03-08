@@ -558,6 +558,28 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         // TODO: Implement batch widget update
     }
 
+    /// Updates the JSON data field of a record (e.g. toggling medication checkboxes).
+    func updateRecordData(recordId: UUID, data: [String: JSONValue]) async throws {
+        #if DEBUG
+        if useMockData { return }
+        #endif
+
+        struct DataUpdate: Encodable {
+            let data: [String: JSONValue]
+        }
+
+        do {
+            try await client.from("dashboard_records")
+                .update(DataUpdate(data: data))
+                .eq("id", value: recordId.uuidString)
+                .execute()
+            recordsCache.removeAll()
+            DecodingCache.shared.clear()
+        } catch {
+            throw SupabaseServiceError.queryError(error.localizedDescription)
+        }
+    }
+
     // MARK: - Insert Methods
 
     /// Inserts a new record into the dashboard_records table.
