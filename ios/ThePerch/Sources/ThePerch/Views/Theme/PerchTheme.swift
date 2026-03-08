@@ -1,84 +1,138 @@
 import SwiftUI
 
 /// Centralized theme configuration for The Perch app.
-/// Near-black dark theme with warm amber accent and ambient glow effects.
-/// Designed to match the 21st.dev card reference designs.
+/// Adaptive dark/light theme with warm amber accent.
+/// Dark mode: near-black with ambient glow. Light mode: warm white with neutral shadows.
 struct PerchTheme {
-    // MARK: - Colors
+    // MARK: - Adaptive Color Helper
 
-    /// Main background — near black, neutral (no blue/purple tint)
-    static var background: Color {
-        Color(red: 0.05, green: 0.05, blue: 0.055)  // #0d0d0e
+    /// Creates a Color that adapts between dark and light mode.
+    private static func adaptive(light: UIColor, dark: UIColor) -> Color {
+        Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark ? dark : light
+        })
     }
 
-    /// Elevated surface for cards — neutral dark gray, no purple
+    // MARK: - Colors
+
+    /// Main background — near black (dark) / warm white (light)
+    static var background: Color {
+        adaptive(
+            light: UIColor(red: 0.973, green: 0.969, blue: 0.961, alpha: 1),  // #F8F7F5
+            dark: UIColor(red: 0.05, green: 0.05, blue: 0.055, alpha: 1)      // #0d0d0e
+        )
+    }
+
+    /// Elevated surface for cards
     static var cardBackground: Color {
-        Color(red: 0.09, green: 0.09, blue: 0.095)  // #171718
+        adaptive(
+            light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1),        // #FFFFFF
+            dark: UIColor(red: 0.09, green: 0.09, blue: 0.095, alpha: 1)      // #171718
+        )
     }
 
     /// Inner surface for items within cards (checklist rows, selectors)
     static var cardInnerBackground: Color {
-        Color(red: 0.12, green: 0.12, blue: 0.125)  // #1f1f20
+        adaptive(
+            light: UIColor(red: 0.949, green: 0.945, blue: 0.937, alpha: 1),  // #F2F1EF
+            dark: UIColor(red: 0.12, green: 0.12, blue: 0.125, alpha: 1)      // #1f1f20
+        )
     }
 
     /// Card hover/pressed state
     static var cardHover: Color {
-        Color(red: 0.15, green: 0.15, blue: 0.155)  // #262627
+        adaptive(
+            light: UIColor(red: 0.929, green: 0.925, blue: 0.918, alpha: 1),  // #EDECEB
+            dark: UIColor(red: 0.15, green: 0.15, blue: 0.155, alpha: 1)      // #262627
+        )
     }
 
-    /// Primary text — near white
+    /// Primary text — near white (dark) / near black (light)
     static var textPrimary: Color {
-        Color(red: 0.95, green: 0.95, blue: 0.95)  // #f2f2f2
+        adaptive(
+            light: UIColor(red: 0.102, green: 0.102, blue: 0.102, alpha: 1),  // #1A1A1A
+            dark: UIColor(red: 0.95, green: 0.95, blue: 0.95, alpha: 1)       // #f2f2f2
+        )
     }
 
     /// Secondary text — neutral gray (WCAG AA compliant, ≥4.5:1 on cards)
     static var textSecondary: Color {
-        Color(red: 0.541, green: 0.541, blue: 0.561)  // #8A8A8F
+        adaptive(
+            light: UIColor(red: 0.420, green: 0.420, blue: 0.440, alpha: 1),  // #6B6B70
+            dark: UIColor(red: 0.541, green: 0.541, blue: 0.561, alpha: 1)    // #8A8A8F
+        )
     }
 
     /// Tertiary text — dim (WCAG AA compliant, ≥4.5:1 on background)
     static var textTertiary: Color {
-        Color(red: 0.451, green: 0.451, blue: 0.471)  // #737378
+        adaptive(
+            light: UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 1),  // #8E8E93
+            dark: UIColor(red: 0.451, green: 0.451, blue: 0.471, alpha: 1)    // #737378
+        )
     }
 
-    /// Accent — bright warm amber/gold (punchy, not washed out)
+    /// Accent — warm amber/gold, slightly deeper in light mode for contrast
     static var accent: Color {
-        Color(red: 0.96, green: 0.68, blue: 0.15)  // #f5ad26
+        adaptive(
+            light: UIColor(red: 0.831, green: 0.580, blue: 0.051, alpha: 1),  // #D4940D
+            dark: UIColor(red: 0.96, green: 0.68, blue: 0.15, alpha: 1)       // #f5ad26
+        )
     }
 
     /// Muted accent for tinted backgrounds
     static var accentMuted: Color {
-        accent.opacity(0.15)
+        adaptive(
+            light: UIColor(red: 0.831, green: 0.580, blue: 0.051, alpha: 0.10),
+            dark: UIColor(red: 0.96, green: 0.68, blue: 0.15, alpha: 0.15)
+        )
     }
 
-    /// Accent glow — for ambient shadow/glow effects
+    /// Accent glow — amber glow in dark mode, transparent in light mode
     static var accentGlow: Color {
-        accent.opacity(0.13)
+        adaptive(
+            light: UIColor(red: 0, green: 0, blue: 0, alpha: 0),              // transparent
+            dark: UIColor(red: 0.96, green: 0.68, blue: 0.15, alpha: 0.13)    // amber glow
+        )
     }
 
-    /// Success
+    /// Success — slightly deeper in light mode
     static var success: Color {
-        Color(red: 0.22, green: 0.75, blue: 0.45)  // #38bf73
+        adaptive(
+            light: UIColor(red: 0.114, green: 0.541, blue: 0.235, alpha: 1),  // #1D8A3C
+            dark: UIColor(red: 0.22, green: 0.75, blue: 0.45, alpha: 1)       // #38bf73
+        )
     }
 
     /// Warning — warm orange, visually distinct from accent amber
     static var warning: Color {
-        Color(red: 0.922, green: 0.600, blue: 0.149)  // #EB9926
+        adaptive(
+            light: UIColor(red: 0.769, green: 0.498, blue: 0.039, alpha: 1),  // #C47F0A
+            dark: UIColor(red: 0.922, green: 0.600, blue: 0.149, alpha: 1)    // #EB9926
+        )
     }
 
     /// Subtle warning background tint
     static var warningBackground: Color {
-        warning.opacity(0.15)
+        adaptive(
+            light: UIColor(red: 0.922, green: 0.600, blue: 0.149, alpha: 0.10),
+            dark: UIColor(red: 0.922, green: 0.600, blue: 0.149, alpha: 0.15)
+        )
     }
 
-    /// Error
+    /// Error — slightly deeper in light mode
     static var error: Color {
-        Color(red: 0.90, green: 0.33, blue: 0.33)  // #e65454
+        adaptive(
+            light: UIColor(red: 0.769, green: 0.169, blue: 0.169, alpha: 1),  // #C42B2B
+            dark: UIColor(red: 0.90, green: 0.33, blue: 0.33, alpha: 1)       // #e65454
+        )
     }
 
     /// Border — subtle, neutral
     static var border: Color {
-        Color(red: 0.16, green: 0.16, blue: 0.17)  // #29292b
+        adaptive(
+            light: UIColor(red: 0.847, green: 0.839, blue: 0.827, alpha: 1),  // #D8D6D3
+            dark: UIColor(red: 0.16, green: 0.16, blue: 0.17, alpha: 1)       // #29292b
+        )
     }
 
     // MARK: - Typography
@@ -179,31 +233,11 @@ enum PerchMotion {
 // MARK: - View Extensions for Common Styling
 
 extension View {
-    /// Apply card styling with ambient warm glow.
-    /// Glow spreads wide horizontally but is tight vertically so cards
-    /// don't bleed into each other in a vertical stack.
+    /// Apply card styling with adaptive shadows.
+    /// Dark mode: ambient amber glow + deep shadow.
+    /// Light mode: subtle neutral shadow, no glow.
     func cardStyle() -> some View {
-        self
-            .background(PerchTheme.cardBackground)
-            .cornerRadius(PerchTheme.Card.cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                    .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
-            )
-            // Wide horizontal amber glow (spread to the sides)
-            .shadow(
-                color: PerchTheme.accentGlow,
-                radius: 16,
-                x: 0,
-                y: 0
-            )
-            // Dark depth shadow (tight, downward only)
-            .shadow(
-                color: Color.black.opacity(PerchTheme.Card.shadowOpacity),
-                radius: 6,
-                x: 0,
-                y: 2
-            )
+        modifier(CardStyleModifier())
     }
 
     /// Apply subtle border styling
@@ -241,6 +275,36 @@ extension View {
             .animation(
                 PerchMotion.prefersReduced ? .none : .spring(response: 0.25, dampingFraction: 0.7),
                 value: isPressed
+            )
+    }
+}
+
+// MARK: - Adaptive Card Style Modifier
+
+private struct CardStyleModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .background(PerchTheme.cardBackground)
+            .cornerRadius(PerchTheme.Card.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                    .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
+            )
+            .shadow(
+                color: colorScheme == .dark
+                    ? PerchTheme.accentGlow        // amber glow in dark
+                    : Color.black.opacity(0.04),   // subtle neutral in light
+                radius: colorScheme == .dark ? 16 : 8,
+                x: 0,
+                y: colorScheme == .dark ? 0 : 2
+            )
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.06),
+                radius: 6,
+                x: 0,
+                y: 2
             )
     }
 }
