@@ -99,6 +99,9 @@
 		HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */; };
 		MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */; };
 		DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */; };
+		TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */; };
+		TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */; };
+		TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0031TEST0031TEST0031 /* RecordTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +111,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = AB235DEAFB31769E6E9981C7;
 			remoteInfo = ThePerchWidgets;
+		};
+		TEST0041TEST0041TEST0041 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 35F542DB2F522B6D00204F77 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 35F542E22F522B6D00204F77;
+			remoteInfo = ThePerch;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -225,6 +235,10 @@
 		HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceProtocol.swift; sourceTree = "<group>"; };
 		MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSupabaseService.swift; sourceTree = "<group>"; };
 		DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCompletionOverlay.swift; sourceTree = "<group>"; };
+		TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloadsTests.swift; sourceTree = "<group>"; };
+		TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormattersTests.swift; sourceTree = "<group>"; };
+		TEST0031TEST0031TEST0031 /* RecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTests.swift; sourceTree = "<group>"; };
+		TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThePerchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -260,6 +274,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		TEST0061TEST0061TEST0061 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -289,6 +310,7 @@
 				35F5437B2F52411F00204F77 /* ThePerch */,
 				35F543AF2F52453F00204F77 /* Frameworks */,
 				35F542E42F522B6D00204F77 /* Products */,
+				TEST0071TEST0071TEST0071 /* ThePerchTests */,
 				8DB3C8496B82346C4D499E69 /* Sources */,
 				BBDDE57EC2648178F513B452 /* ios */,
 				D37761C71C8DF09D1BAE6D3C /* PerchSharedKit */,
@@ -302,8 +324,19 @@
 				35F542E32F522B6D00204F77 /* ThePerch.app */,
 				02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */,
 				F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */,
+				TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		TEST0071TEST0071TEST0071 /* ThePerchTests */ = {
+			isa = PBXGroup;
+			children = (
+				TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */,
+				TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */,
+				TEST0031TEST0031TEST0031 /* RecordTests.swift */,
+			);
+			path = ThePerchTests;
 			sourceTree = "<group>";
 		};
 		35F5434B2F52411F00204F77 /* Config */ = {
@@ -690,6 +723,24 @@
 			productReference = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */;
 			productType = "com.apple.product-type.framework";
 		};
+		TEST0081TEST0081TEST0081 /* ThePerchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TEST0091TEST0091TEST0091 /* Build configuration list for PBXNativeTarget "ThePerchTests" */;
+			buildPhases = (
+				TEST00A1TEST00A1TEST00A1 /* Sources */,
+				TEST0061TEST0061TEST0061 /* Frameworks */,
+				TEST00B1TEST00B1TEST00B1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				TEST00C1TEST00C1TEST00C1 /* PBXTargetDependency */,
+			);
+			name = ThePerchTests;
+			productName = ThePerchTests;
+			productReference = TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -725,6 +776,7 @@
 				35F542E22F522B6D00204F77 /* ThePerch */,
 				C9C2C2A1188F4CAC45522924 /* PerchSharedKit */,
 				AB235DEAFB31769E6E9981C7 /* ThePerchWidgets */,
+				TEST0081TEST0081TEST0081 /* ThePerchTests */,
 			);
 		};
 /* End PBXProject section */
@@ -747,6 +799,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		BD5FA33C6D1946103C35C326 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TEST00B1TEST00B1TEST00B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -851,6 +910,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		TEST00A1TEST00A1TEST00A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */,
+				TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */,
+				TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -859,6 +928,12 @@
 			name = ThePerchWidgets;
 			target = AB235DEAFB31769E6E9981C7 /* ThePerchWidgets */;
 			targetProxy = D3B39FCCC427BF30E1E91527 /* PBXContainerItemProxy */;
+		};
+		TEST00C1TEST00C1TEST00C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ThePerch;
+			target = 35F542E22F522B6D00204F77 /* ThePerch */;
+			targetProxy = TEST0041TEST0041TEST0041 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1156,6 +1231,46 @@
 			};
 			name = Release;
 		};
+		TEST00D1TEST00D1TEST00D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ThePerch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ThePerch";
+			};
+			name = Debug;
+		};
+		TEST00E1TEST00E1TEST00E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ThePerch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ThePerch";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1191,6 +1306,15 @@
 			buildConfigurations = (
 				C4BD02E9B8DC02949C33EAA4 /* Release */,
 				6B1682FFC7D5E6B83DCD948A /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TEST0091TEST0091TEST0091 /* Build configuration list for PBXNativeTarget "ThePerchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TEST00D1TEST00D1TEST00D1 /* Debug */,
+				TEST00E1TEST00E1TEST00E1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
