@@ -4,8 +4,11 @@ import SwiftUI
 /// Uses a horizontally paged TabView with a scrollable pill bar for section navigation.
 struct MainTabView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(NetworkMonitor.self) var networkMonitor
     @ObservedObject private var supabaseService = SupabaseService.shared
     @State private var selectedIndex: Int = 0
+
+    private var reconnectManager: RealtimeReconnectManager { RealtimeReconnectManager.shared }
 
     var visibleSections: [Section] {
         dashboardViewModel.sections.filter { $0.isVisible && $0.slug != "legal" }.sorted { $0.sortOrder < $1.sortOrder }
@@ -24,12 +27,12 @@ struct MainTabView: View {
 
             VStack(spacing: 0) {
                 // Offline banner
-                if supabaseService.isOffline {
+                if !networkMonitor.isConnected {
                     offlineBanner
                 }
 
                 // Connection error banner
-                if let connectionError = supabaseService.connectionError, !supabaseService.isOffline {
+                if let connectionError = supabaseService.connectionError, networkMonitor.isConnected {
                     errorBanner(message: connectionError)
                 }
 
@@ -38,12 +41,41 @@ struct MainTabView: View {
                     errorBanner(message: error.localizedDescription)
                 }
 
-                // Section navigator pill bar
+                // Offline cache staleness warning
+                if !networkMonitor.isConnected, let meta = CacheService.shared.metadata(for: nil, userId: "default_user") {
+                    cacheAgeBanner(age: meta.relativeAgeString)
+                }
+
+                // Section navigator pill bar with realtime status
                 if !visibleSections.isEmpty {
-                    SectionNavigator(
-                        selectedIndex: $selectedIndex,
-                        sectionNames: sectionNames
-                    )
+                    HStack {
+                        SectionNavigator(
+                            selectedIndex: $selectedIndex,
+                            sectionNames: sectionNames
+                        )
+
+                        // Realtime status indicator
+                        if !reconnectManager.isConnected && !reconnectManager.hasGivenUp {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 8, height: 8)
+                                .padding(.trailing, PerchTheme.Spacing.medium)
+                        }
+
+                        // Manual reconnect button when retries exhausted
+                        if reconnectManager.hasGivenUp {
+                            Button {
+                                reconnectManager.manualReconnect {
+                                    await dashboardViewModel.attemptRealtimeReconnect()
+                                }
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.caption2)
+                                    .foregroundColor(PerchTheme.error)
+                            }
+                            .padding(.trailing, PerchTheme.Spacing.medium)
+                        }
+                    }
                 }
 
                 // Tab content
@@ -90,6 +122,22 @@ struct MainTabView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, PerchTheme.Spacing.xSmall)
         .background(PerchTheme.textTertiary)
+    }
+
+    // MARK: - Cache Age Banner
+
+    private func cacheAgeBanner(age: String) -> some View {
+        HStack(spacing: PerchTheme.Spacing.xSmall) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(PerchTheme.Font.caption)
+            Text("Last updated \(age)")
+                .font(PerchTheme.Font.caption)
+                .fontWeight(.medium)
+        }
+        .foregroundColor(PerchTheme.textSecondary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+        .background(PerchTheme.warning.opacity(0.15))
     }
 
     // MARK: - Error Banner
@@ -239,4 +287,5 @@ struct SectionView: View {
 #Preview {
     MainTabView()
         .environment(DashboardViewModel())
+        .environment(NetworkMonitor.shared)
 }

@@ -89,6 +89,13 @@
 		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
 		ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */; };
 		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
+		NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */; };
+		CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */; };
+		CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACH0001CACH0001CACH0001 /* CacheService.swift */; };
+		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
+		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
+		HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */; };
+		MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,6 +212,13 @@
 		DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLiveActivityManager.swift; sourceTree = "<group>"; };
 		ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorBanner.swift; sourceTree = "<group>"; };
 		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
+		NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
+		CACH0001CACH0001CACH0001 /* CacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheService.swift; sourceTree = "<group>"; };
+		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
+		SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceProtocol.swift; sourceTree = "<group>"; };
+		HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceProtocol.swift; sourceTree = "<group>"; };
+		MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSupabaseService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -312,13 +326,28 @@
 		35F543562F52411F00204F77 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				PROT0000PROT0000PROT0000 /* Protocols */,
 				DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */,
 				35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */,
 				35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */,
 				35F543542F52411F00204F77 /* EventKitService.swift */,
 				35F543552F52411F00204F77 /* SupabaseService.swift */,
+				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
+				CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */,
+				CACH0001CACH0001CACH0001 /* CacheService.swift */,
+				RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		PROT0000PROT0000PROT0000 /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */,
+				HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */,
+				MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */,
+			);
+			path = Protocols;
 			sourceTree = "<group>";
 		};
 		35F543582F52411F00204F77 /* Utilities */ = {
@@ -790,6 +819,13 @@
 				B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */,
 				ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */,
 				PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */,
+				NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */,
+				CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */,
+				CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */,
+				RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */,
+				SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */,
+				HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */,
+				MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
