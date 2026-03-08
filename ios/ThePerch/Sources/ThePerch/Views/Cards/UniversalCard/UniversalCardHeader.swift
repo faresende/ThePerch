@@ -40,7 +40,7 @@ struct UniversalCardHeader: View {
                             .padding(.vertical, 4)
                             .background(
                                 Capsule()
-                                    .fill(PerchTheme.surface)
+                                    .fill(PerchTheme.cardInnerBackground)
                             )
                             .accessibilityLabel("Updated \(freshnessText)")
                     }
