@@ -5,6 +5,8 @@ import SwiftUI
 struct ThePerchWidgets: WidgetBundle {
     var body: some Widget {
         PerchQuickGlanceWidget()
+        PerchLockScreenRectangularWidget()
+        PerchLockScreenCircularWidget()
         DeliveryLiveActivity()
     }
 }
