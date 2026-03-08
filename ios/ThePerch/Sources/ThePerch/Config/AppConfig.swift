@@ -7,20 +7,24 @@ struct AppConfig {
     let supabaseURL: URL
     let supabaseAnonKey: String
 
+    /// True when Supabase credentials are missing or invalid.
+    let isMisconfigured: Bool
+
     private init() {
-        // TODO: Fabio — Load these from a Secrets.plist file or environment variables.
-        // For now, they should be filled in during app setup.
-        // Example: Create a Secrets.plist in the project with keys "SUPABASE_URL" and "SUPABASE_ANON_KEY"
+        let urlString = Self.getConfigValue(key: "SUPABASE_URL")
+        let anonKey = Self.getConfigValue(key: "SUPABASE_ANON_KEY")
 
-        guard let url = URL(string: Self.getConfigValue(key: "SUPABASE_URL")) else {
-            fatalError("Invalid Supabase URL in configuration")
-        }
-
-        self.supabaseURL = url
-        self.supabaseAnonKey = Self.getConfigValue(key: "SUPABASE_ANON_KEY")
-
-        if supabaseAnonKey.isEmpty {
-            fatalError("Supabase anon key is not configured")
+        if let url = URL(string: urlString), !urlString.isEmpty, !anonKey.isEmpty {
+            self.supabaseURL = url
+            self.supabaseAnonKey = anonKey
+            self.isMisconfigured = false
+        } else {
+            // Fallback to a placeholder so the app can launch and show an error state
+            // instead of crashing on missing config.
+            print("[AppConfig] WARNING: Supabase credentials are missing or invalid. The app will run with mock data.")
+            self.supabaseURL = URL(string: "https://placeholder.supabase.co")!
+            self.supabaseAnonKey = ""
+            self.isMisconfigured = true
         }
     }
 
