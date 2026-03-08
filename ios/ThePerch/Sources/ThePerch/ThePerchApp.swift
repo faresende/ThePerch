@@ -6,8 +6,17 @@ import SwiftUI
 struct ThePerchApp: App {
     @State private var authViewModel = AuthViewModel()
     @State private var dashboardViewModel = DashboardViewModel()
+    @State private var networkMonitor = NetworkMonitor.shared
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @Environment(\.scenePhase) private var scenePhase
+
+    /// Whether to show the crash report alert.
+    @State private var showCrashAlert = false
+
+    init() {
+        // Install crash handler before anything else
+        CrashReporter.shared.installHandler()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -16,11 +25,16 @@ struct ThePerchApp: App {
             MainTabView()
                 .environment(authViewModel)
                 .environment(dashboardViewModel)
+                .environment(networkMonitor)
                 .task {
                     // Request notification permission on first launch
                     await NotificationService.shared.requestPermission()
                     // Set up realtime subscriptions
                     await dashboardViewModel.setupRealtimeSubscriptions()
+                    // Check for crash reports from previous session
+                    if CrashReporter.shared.hasPendingCrashReports {
+                        showCrashAlert = true
+                    }
                 }
                 .preferredColorScheme(darkModeEnabled ? .dark : nil)
                 .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -30,6 +44,13 @@ struct ThePerchApp: App {
                             await dashboardViewModel.loadDashboard()
                         }
                     }
+                }
+                .alert("Previous Crash Detected", isPresented: $showCrashAlert) {
+                    Button("Dismiss") {
+                        CrashReporter.shared.clearCrashReports()
+                    }
+                } message: {
+                    Text(CrashReporter.shared.crashSummary() ?? "A crash occurred in a previous session.")
                 }
             // } else {
             //     AuthView()
