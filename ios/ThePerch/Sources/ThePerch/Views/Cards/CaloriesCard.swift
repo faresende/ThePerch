@@ -120,10 +120,10 @@ struct CaloriesCard: View {
             radius: glowPulse ? 12 : 0
         )
         .onAppear {
-            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+            PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {
                 animatedProgress = progress
             }
-            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+            PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {
                 animatedConsumed = consumed
             }
         }
@@ -137,6 +137,8 @@ struct CaloriesCard: View {
         // Haptic
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
+
+        guard !PerchMotion.prefersReduced else { return }
 
         // Glow pulse: 0 → 0.30 → 0 over ~400ms
         withAnimation(.easeIn(duration: 0.2)) {

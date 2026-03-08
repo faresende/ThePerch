@@ -20,15 +20,9 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Header with greeting and settings
                     HStack {
-                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
-                            Text(greetingText)
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textSecondary)
-
-                            Text("Fabio")
-                                .font(PerchTheme.Font.display)
-                                .foregroundColor(PerchTheme.textPrimary)
-                        }
+                        Text("\(greetingText), Fabio")
+                            .font(PerchTheme.Font.heading)
+                            .foregroundColor(PerchTheme.textPrimary)
 
                         Spacer()
 
@@ -97,7 +91,7 @@ struct HomeView: View {
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .onAppear {
-                            withAnimation { cardsAppeared = true }
+                            PerchMotion.withOptionalAnimation { cardsAppeared = true }
                         }
                     }
 

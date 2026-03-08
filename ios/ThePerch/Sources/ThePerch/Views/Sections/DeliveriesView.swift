@@ -73,7 +73,7 @@ struct DeliveriesView: View {
                                 }
                             }
                             .onAppear {
-                                withAnimation { cardsAppeared = true }
+                                PerchMotion.withOptionalAnimation { cardsAppeared = true }
                             }
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
@@ -96,7 +96,10 @@ struct DeliveriesView: View {
                                     Image(systemName: "chevron.down")
                                         .rotationEffect(.degrees(showCompleted ? 180 : 0))
                                         .foregroundColor(PerchTheme.textSecondary)
-                                        .animation(.easeInOut(duration: 0.2), value: showCompleted)
+                                        .animation(
+                                            PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.2),
+                                            value: showCompleted
+                                        )
                                 }
                             }
 
