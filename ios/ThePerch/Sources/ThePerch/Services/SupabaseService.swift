@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import Network
 import Supabase
 import Realtime
 
@@ -109,12 +110,15 @@ final class SupabaseService: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var isLoading: Bool = false
     @Published var error: SupabaseServiceError?
+    @Published var connectionError: String?
+    @Published var isOffline: Bool = false
 
     // MARK: - Private Properties
 
-    /// Toggle to fall back to mock data if Supabase is unreachable or empty.
-    /// Set to false once your Supabase tables have real data.
+    #if DEBUG
+    /// Toggle to fall back to mock data during development only.
     private var useMockData = false
+    #endif
 
     /// The Supabase client instance.
     private let client: SupabaseClient
@@ -122,6 +126,10 @@ final class SupabaseService: ObservableObject {
     /// Active realtime channels for subscription management.
     private var recordsChannel: RealtimeChannelV2?
     private var agentsChannel: RealtimeChannelV2?
+
+    /// Network connectivity monitor.
+    private let networkMonitor = NWPathMonitor()
+    private let monitorQueue = DispatchQueue(label: "com.theperch.networkMonitor")
 
     /// Tracks when each category was last fetched for data freshness.
     @Published var lastFetchTimes: [RecordCategory: Date] = [:]
@@ -155,6 +163,21 @@ final class SupabaseService: ObservableObject {
             supabaseURL: config.supabaseURL,
             supabaseKey: config.supabaseAnonKey
         )
+        startNetworkMonitoring()
+    }
+
+    // MARK: - Network Monitoring
+
+    private func startNetworkMonitoring() {
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor [weak self] in
+                self?.isOffline = path.status != .satisfied
+                if path.status == .satisfied {
+                    self?.connectionError = nil
+                }
+            }
+        }
+        networkMonitor.start(queue: monitorQueue)
     }
 
     // MARK: - Retry Logic
@@ -177,7 +200,9 @@ final class SupabaseService: ObservableObject {
                 }
             }
         }
-        throw lastError ?? SupabaseServiceError.unknownError("All retries exhausted")
+        let finalError = lastError ?? SupabaseServiceError.unknownError("All retries exhausted")
+        connectionError = finalError.localizedDescription
+        throw finalError
     }
 
     // MARK: - Cache Helpers
@@ -201,12 +226,14 @@ final class SupabaseService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
+        #if DEBUG
         if useMockData {
             try await Task.sleep(nanoseconds: 500_000_000)
             self.isAuthenticated = true
             self.error = nil
             return
         }
+        #endif
 
         do {
             try await client.auth.signIn(email: email, password: password)
@@ -222,12 +249,14 @@ final class SupabaseService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
+        #if DEBUG
         if useMockData {
             try await Task.sleep(nanoseconds: 500_000_000)
             self.isAuthenticated = true
             self.error = nil
             return
         }
+        #endif
 
         do {
             try await client.auth.signUp(
@@ -244,11 +273,13 @@ final class SupabaseService: ObservableObject {
 
     /// Signs out the current user.
     func signOut() async throws {
+        #if DEBUG
         if useMockData {
             self.isAuthenticated = false
             self.error = nil
             return
         }
+        #endif
 
         do {
             try await client.auth.signOut()
@@ -262,10 +293,12 @@ final class SupabaseService: ObservableObject {
 
     /// Checks for an existing session and restores it.
     func restoreSession() async {
+        #if DEBUG
         if useMockData {
             self.isAuthenticated = true
             return
         }
+        #endif
 
         do {
             let session = try await client.auth.session
@@ -292,6 +325,7 @@ final class SupabaseService: ObservableObject {
             return cached.value
         }
 
+        #if DEBUG
         if useMockData {
             try await Task.sleep(nanoseconds: 300_000_000)
             var records = MockData.allRecords
@@ -301,37 +335,32 @@ final class SupabaseService: ObservableObject {
             recordsCache[cacheKey] = CacheEntry(value: result, fetchedAt: Date.now)
             return result
         }
+        #endif
 
-        do {
-            let records: [Record] = try await withRetry(operation: "fetchRecords") { [client, recordDecoder] in
-                var query = client.from("dashboard_records").select()
-                if let category {
-                    query = query.eq("category", value: category.rawValue)
-                }
-                if let type {
-                    query = query.eq("type", value: type.rawValue)
-                }
-                let result = try await query
-                    .order("created_at", ascending: false)
-                    .limit(limit)
-                    .execute()
-                return try recordDecoder.decode([Record].self, from: result.data)
-            }
-
-            recordsCache[cacheKey] = CacheEntry(value: records, fetchedAt: Date.now)
+        let records: [Record] = try await withRetry(operation: "fetchRecords") { [client, recordDecoder] in
+            var query = client.from("dashboard_records").select()
             if let category {
-                lastFetchTimes[category] = Date.now
-                freshnessTracker.recordFetch(for: category.rawValue)
-            } else {
-                lastGlobalFetchTime = Date.now
-                freshnessTracker.recordFetch(for: "all_records")
+                query = query.eq("category", value: category.rawValue)
             }
-            return records
-        } catch {
-            print("[SupabaseService] fetchRecords error: \(error)")
-            useMockData = true
-            return try await fetchRecords(category: category, type: type, limit: limit, forceRefresh: true)
+            if let type {
+                query = query.eq("type", value: type.rawValue)
+            }
+            let result = try await query
+                .order("created_at", ascending: false)
+                .limit(limit)
+                .execute()
+            return try recordDecoder.decode([Record].self, from: result.data)
         }
+
+        recordsCache[cacheKey] = CacheEntry(value: records, fetchedAt: Date.now)
+        if let category {
+            lastFetchTimes[category] = Date.now
+            freshnessTracker.recordFetch(for: category.rawValue)
+        } else {
+            lastGlobalFetchTime = Date.now
+            freshnessTracker.recordFetch(for: "all_records")
+        }
+        return records
     }
 
     /// Fetches all active agents with 30s cache and retry.
@@ -340,34 +369,32 @@ final class SupabaseService: ObservableObject {
             return cached.value
         }
 
+        #if DEBUG
         if useMockData {
             try await Task.sleep(nanoseconds: 200_000_000)
             let result = MockData.agents
             agentsCache = CacheEntry(value: result, fetchedAt: Date.now)
             return result
         }
+        #endif
 
-        do {
-            let agents: [Agent] = try await withRetry(operation: "fetchAgents") { [client] in
-                try await client.from("agents")
-                    .select()
-                    .eq("is_active", value: true)
-                    .execute()
-                    .value
-            }
-            agentsCache = CacheEntry(value: agents, fetchedAt: Date.now)
-            freshnessTracker.recordFetch(for: "agents")
-            return agents
-        } catch {
-            print("[SupabaseService] fetchAgents error: \(error)")
-            useMockData = true
-            return try await fetchAgents(forceRefresh: true)
+        let agents: [Agent] = try await withRetry(operation: "fetchAgents") { [client] in
+            try await client.from("agents")
+                .select()
+                .eq("is_active", value: true)
+                .execute()
+                .value
         }
+        agentsCache = CacheEntry(value: agents, fetchedAt: Date.now)
+        freshnessTracker.recordFetch(for: "agents")
+        return agents
     }
 
     /// Fetches token usage statistics with retry.
     func fetchTokenUsage(agentId: String? = nil, days: Int = 30) async throws -> [TokenUsage] {
+        #if DEBUG
         if useMockData { return [] }
+        #endif
 
         do {
             return try await withRetry(operation: "fetchTokenUsage") { [client] in
@@ -382,8 +409,8 @@ final class SupabaseService: ObservableObject {
                     .value
             }
         } catch {
-            print("[SupabaseService] fetchTokenUsage error: \(error)")
-            return []
+            connectionError = error.localizedDescription
+            throw error
         }
     }
 
@@ -393,36 +420,26 @@ final class SupabaseService: ObservableObject {
             return cached.value
         }
 
+        #if DEBUG
         if useMockData {
             try await Task.sleep(nanoseconds: 200_000_000)
             let result = MockData.sections
             sectionsCache = CacheEntry(value: result, fetchedAt: Date.now)
             return result
         }
+        #endif
 
-        do {
-            let sections: [Section] = try await withRetry(operation: "fetchSections") { [client, recordDecoder] in
-                let result = try await client.from("sections")
-                    .select()
-                    .order("sort_order", ascending: true)
-                    .execute()
-                return try recordDecoder.decode([Section].self, from: result.data)
-            }
-
-            if sections.isEmpty {
-                print("[SupabaseService] Sections empty, falling back to mock")
-                useMockData = true
-                return try await fetchSections(forceRefresh: true)
-            }
-
-            sectionsCache = CacheEntry(value: sections, fetchedAt: Date.now)
-            freshnessTracker.recordFetch(for: "sections")
-            return sections
-        } catch {
-            print("[SupabaseService] fetchSections error: \(error)")
-            useMockData = true
-            return try await fetchSections(forceRefresh: true)
+        let sections: [Section] = try await withRetry(operation: "fetchSections") { [client, recordDecoder] in
+            let result = try await client.from("sections")
+                .select()
+                .order("sort_order", ascending: true)
+                .execute()
+            return try recordDecoder.decode([Section].self, from: result.data)
         }
+
+        sectionsCache = CacheEntry(value: sections, fetchedAt: Date.now)
+        freshnessTracker.recordFetch(for: "sections")
+        return sections
     }
 
     /// Fetches all home widget configurations with 30s cache and retry.
@@ -431,29 +448,28 @@ final class SupabaseService: ObservableObject {
             return cached.value
         }
 
+        #if DEBUG
         if useMockData { return [] }
+        #endif
 
-        do {
-            let widgets: [HomeWidget] = try await withRetry(operation: "fetchHomeWidgets") { [client] in
-                try await client.from("home_widgets")
-                    .select()
-                    .order("position", ascending: true)
-                    .execute()
-                    .value
-            }
-            homeWidgetsCache = CacheEntry(value: widgets, fetchedAt: Date.now)
-            return widgets
-        } catch {
-            print("[SupabaseService] fetchHomeWidgets error: \(error)")
-            return []
+        let widgets: [HomeWidget] = try await withRetry(operation: "fetchHomeWidgets") { [client] in
+            try await client.from("home_widgets")
+                .select()
+                .order("position", ascending: true)
+                .execute()
+                .value
         }
+        homeWidgetsCache = CacheEntry(value: widgets, fetchedAt: Date.now)
+        return widgets
     }
 
     // MARK: - Mutation Methods
 
     /// Updates the pinned state of a record.
     func updateRecordPin(id: UUID, pinned: Bool) async throws {
+        #if DEBUG
         if useMockData { return }
+        #endif
 
         struct PinUpdate: Encodable { let pinned: Bool }
 
@@ -470,7 +486,9 @@ final class SupabaseService: ObservableObject {
 
     /// Updates the sort order of sections.
     func updateSectionOrder(sections: [Section]) async throws {
+        #if DEBUG
         if useMockData { return }
+        #endif
 
         struct SectionUpdate: Encodable {
             let sortOrder: Int
@@ -496,7 +514,9 @@ final class SupabaseService: ObservableObject {
 
     /// Updates home widget configurations.
     func updateHomeWidgets(widgets: [HomeWidget]) async throws {
+        #if DEBUG
         if useMockData { return }
+        #endif
         homeWidgetsCache = nil
         // TODO: Implement batch widget update
     }
@@ -514,10 +534,12 @@ final class SupabaseService: ObservableObject {
         data: [String: JSONValue],
         displayHint: DisplayHint
     ) async throws {
+        #if DEBUG
         if useMockData {
             print("[SupabaseService] Mock mode: would insert \(title) record")
             return
         }
+        #endif
 
         struct NewRecord: Encodable {
             let agent_id: String
@@ -572,7 +594,9 @@ final class SupabaseService: ObservableObject {
     /// Subscribes to realtime record changes on `dashboard_records`.
     /// Calls `onChange` on the main actor whenever an INSERT, UPDATE, or DELETE occurs.
     func subscribeToRecords(onChange: @escaping @MainActor @Sendable (RealtimeRecordChange) -> Void) async throws {
+        #if DEBUG
         if useMockData { return }
+        #endif
 
         // Remove existing channel if reconnecting
         if let existing = recordsChannel {
@@ -635,7 +659,9 @@ final class SupabaseService: ObservableObject {
 
     /// Subscribes to realtime agent status changes on `agents`.
     func subscribeToAgents(onChange: @escaping @MainActor @Sendable (RealtimeAction) -> Void) async throws {
+        #if DEBUG
         if useMockData { return }
+        #endif
 
         if let existing = agentsChannel {
             await client.realtimeV2.removeChannel(existing)
