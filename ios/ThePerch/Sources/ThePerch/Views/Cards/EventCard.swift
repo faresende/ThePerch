@@ -12,10 +12,8 @@ struct EventCard: View {
     }
 
     private var timeFormatted: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        let start = formatter.string(from: event.start)
-        let end = formatter.string(from: event.end)
+        let start = PerchFormatters.time12h.string(from: event.start)
+        let end = PerchFormatters.time12h.string(from: event.end)
         return "\(start) – \(end)"
     }
 
@@ -85,18 +83,12 @@ struct EventCard: View {
     }
 
     private var accessibilitySummary: String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "h:mm a"
-        let startTime = dateFormatter.string(from: event.start)
+        let startTime = PerchFormatters.time12h.string(from: event.start)
 
-        let relFormatter = RelativeDateTimeFormatter()
-        relFormatter.unitsStyle = .full
         let dayRef: String = {
             if Calendar.current.isDateInToday(event.start) { return "today" }
             if Calendar.current.isDateInTomorrow(event.start) { return "tomorrow" }
-            let df = DateFormatter()
-            df.dateFormat = "EEEE"
-            return df.string(from: event.start)
+            return PerchFormatters.weekday.string(from: event.start)
         }()
 
         var summary = "Event: \(event.title) at \(startTime) \(dayRef)"

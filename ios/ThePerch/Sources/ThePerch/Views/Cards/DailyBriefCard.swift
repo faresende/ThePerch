@@ -291,9 +291,7 @@ struct DailyBriefCard: View {
         }.sorted { $0.start < $1.start }
 
         let firstEvent = todayEvents.first.map { event in
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            return (time: formatter.string(from: event.start), title: event.title)
+            (time: PerchFormatters.time24h.string(from: event.start), title: event.title)
         }
 
         return CalendarSummaryData(eventCount: todayEvents.count, firstEvent: firstEvent)
@@ -327,12 +325,10 @@ struct DailyBriefCard: View {
 
     private func nutritionSummary(forYesterday: Bool) -> NutritionSummaryData? {
         let todayString: String = {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyy-MM-dd"
             if forYesterday {
-                return fmt.string(from: Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now)
+                return PerchFormatters.isoDate.string(from: Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now)
             }
-            return fmt.string(from: .now)
+            return PerchFormatters.isoDate.string(from: .now)
         }()
 
         // Find calories record for the target day
@@ -387,9 +383,7 @@ struct DailyBriefCard: View {
         }.sorted { $0.start < $1.start }
 
         let firstEvent = tomorrowEvents.first.map { event in
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            return (time: formatter.string(from: event.start), title: event.title)
+            (time: PerchFormatters.time24h.string(from: event.start), title: event.title)
         }
 
         return CalendarSummaryData(eventCount: tomorrowEvents.count, firstEvent: firstEvent)
@@ -405,9 +399,7 @@ struct DailyBriefCard: View {
     }
 
     private var briefDateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: .now)
+        PerchFormatters.weekdayDate.string(from: .now)
     }
 }
 

@@ -376,11 +376,7 @@ struct ChartCard: View {
         return .center
     }
 
-    private static let tooltipDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return f
-    }()
+    private static var tooltipDateFormatter: DateFormatter { PerchFormatters.shortDate }
 }
 
 // MARK: - Preview

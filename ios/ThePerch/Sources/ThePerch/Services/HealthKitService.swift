@@ -316,8 +316,7 @@ final class HealthKitService: NSObject {
 
         // Group by night and sum duration for asleep stages
         var nightlyHours: [String: Double] = [:]
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateFormatter = PerchFormatters.isoDate
 
         for sample in samples {
             guard let categorySample = sample as? HKCategorySample else { continue }

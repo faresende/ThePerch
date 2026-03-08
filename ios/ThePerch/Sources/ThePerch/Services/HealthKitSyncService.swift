@@ -192,11 +192,8 @@ final class HealthKitSyncService {
     private func mostRecentPerDay(_ samples: [HealthKitSample]) -> [HealthKitSample] {
         let calendar = Calendar.current
         var byDay: [String: HealthKitSample] = [:]
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-
         for sample in samples {
-            let dayKey = dateFormatter.string(from: sample.timestamp)
+            let dayKey = PerchFormatters.isoDate.string(from: sample.timestamp)
             if let existing = byDay[dayKey] {
                 if sample.timestamp > existing.timestamp {
                     byDay[dayKey] = sample
@@ -210,13 +207,12 @@ final class HealthKitSyncService {
 
     /// Writes a standard health sample to Supabase as a dashboard_record.
     private func writeSample(_ sample: HealthKitSample, title: String) async throws {
-        let iso8601 = ISO8601DateFormatter()
         let data: [String: JSONValue] = [
             "metric": .string(sample.metric),
             "value": .double(sample.value),
             "unit": .string(sample.unit),
             "context": .string(sample.source),
-            "timestamp": .string(iso8601.string(from: sample.timestamp))
+            "timestamp": .string(PerchFormatters.iso8601.string(from: sample.timestamp))
         ]
 
         try await supabaseService.insertRecord(
@@ -233,7 +229,6 @@ final class HealthKitSyncService {
 
     /// Writes a blood pressure sample with systolic/diastolic as a formatted value.
     private func writeBloodPressureSample(_ sample: HealthKitSample, title: String) async throws {
-        let iso8601 = ISO8601DateFormatter()
         let displayValue: String
         if let diastolic = sample.secondaryValue {
             displayValue = "\(Int(sample.value))/\(Int(diastolic))"
@@ -246,7 +241,7 @@ final class HealthKitSyncService {
             "value": .double(sample.value),
             "unit": .string(sample.unit),
             "context": .string(sample.source),
-            "timestamp": .string(iso8601.string(from: sample.timestamp)),
+            "timestamp": .string(PerchFormatters.iso8601.string(from: sample.timestamp)),
             "display_value": .string(displayValue),
             "diastolic": sample.secondaryValue.map { .double($0) } ?? .null
         ]

@@ -155,9 +155,7 @@ struct UpcomingEventRow: View {
         } else if calendar.isDateInTomorrow(event.start) {
             return "Tomorrow"
         } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d"
-            return formatter.string(from: event.start)
+            return PerchFormatters.shortDate.string(from: event.start)
         }
     }
 
