@@ -79,10 +79,13 @@
 		8B92D6C4C0FD7A48FF83A469 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
 		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
 		B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC61D48E7054D783C5A2B /* NotificationService.swift */; };
-		BBD9189066A3F3D663299311 /* RecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 682EB27DE164F5B15EE17941 /* RecordDetailView.swift */; };
 		C395841AE66C9EF1B7E55F90 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
 		D6835F8D85F6945DB95754DB /* DeliveryLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */; };
 		FF602294F262630BC98CFF64 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
+		F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */; };
+		HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */; };
+		DBCARD02DBCARD02DBCARD02 /* DailyBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */; };
+		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -186,13 +189,16 @@
 		49B954EE98DF57B9774F8D30 /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		571AC61D48E7054D783C5A2B /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
-		682EB27DE164F5B15EE17941 /* RecordDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordDetailView.swift; sourceTree = "<group>"; };
 		CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryLiveActivity.swift; path = ThePerchWidgets/DeliveryLiveActivity.swift; sourceTree = "<group>"; };
 		D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryActivityAttributes.swift; path = PerchSharedKit/DeliveryActivityAttributes.swift; sourceTree = "<group>"; };
 		DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchQuickGlanceWidget.swift; path = ThePerchWidgets/PerchQuickGlanceWidget.swift; sourceTree = "<group>"; };
 		ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthDetailView.swift; sourceTree = "<group>"; };
 		F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThePerchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ThePerchWidgets.swift; path = ThePerchWidgets/ThePerchWidgets.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordDetailView.swift; sourceTree = "<group>"; };
+		HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryCard.swift; sourceTree = "<group>"; };
+		DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefCard.swift; sourceTree = "<group>"; };
+		DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLiveActivityManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -300,6 +306,7 @@
 		35F543562F52411F00204F77 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */,
 				35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */,
 				35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */,
 				35F543542F52411F00204F77 /* EventKitService.swift */,
@@ -340,6 +347,8 @@
 		35F543682F52411F00204F77 /* Cards */ = {
 			isa = PBXGroup;
 			children = (
+				DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */,
+				HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */,
 				353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */,
 				353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */,
 				35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */,
@@ -455,7 +464,6 @@
 			isa = PBXGroup;
 			children = (
 				ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */,
-				682EB27DE164F5B15EE17941 /* RecordDetailView.swift */,
 			);
 			name = Cards;
 			path = Cards;
@@ -464,8 +472,9 @@
 		5D26D5715A724D319B268491 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */,
 			);
-			name = Detail;
+			path = Detail;
 			sourceTree = "<group>";
 		};
 		5D7EB590EB720B1A3616B3BC /* ThePerch */ = {
@@ -712,6 +721,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */,
+				DBCARD02DBCARD02DBCARD02 /* DailyBriefCard.swift in Sources */,
+				HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */,
+				F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */,
 				353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */,
 				353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */,
 				35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */,
@@ -765,7 +778,6 @@
 				0385F06533E708330AFA01B0 /* SearchView.swift in Sources */,
 				A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */,
 				B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */,
-				BBD9189066A3F3D663299311 /* RecordDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
