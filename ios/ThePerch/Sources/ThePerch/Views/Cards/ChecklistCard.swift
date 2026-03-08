@@ -45,7 +45,10 @@ struct ChecklistCard: View {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(PerchTheme.accent)
                         .frame(width: max(0, geometry.size.width * progressPercent))
-                        .animation(.easeInOut(duration: 0.3), value: progressPercent)
+                        .animation(
+                            PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.3),
+                            value: progressPercent
+                        )
                 }
             }
             .frame(height: 8)

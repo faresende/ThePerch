@@ -27,6 +27,7 @@ struct ShimmerModifier: ViewModifier {
                 }
             )
             .onAppear {
+                guard !PerchMotion.prefersReduced else { return }
                 withAnimation(
                     .linear(duration: 1.5)
                     .repeatForever(autoreverses: false)

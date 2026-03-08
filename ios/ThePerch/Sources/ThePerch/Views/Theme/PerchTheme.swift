@@ -151,6 +151,31 @@ struct PerchTheme {
     }
 }
 
+// MARK: - Reduce Motion Support
+
+/// Environment-based reduce motion check.
+/// Use `PerchMotion.prefersReduced` to skip non-essential animations.
+enum PerchMotion {
+    /// Returns `true` when the user has enabled Reduce Motion in system settings.
+    static var prefersReduced: Bool {
+        UIAccessibility.isReduceMotionEnabled
+    }
+
+    /// Returns the given animation when Reduce Motion is off, or `nil` (instant) when on.
+    static func animation<A: Equatable>(_ animation: Animation, value: A) -> Animation? {
+        prefersReduced ? nil : animation
+    }
+
+    /// Wraps `withAnimation` — uses instant transition when Reduce Motion is enabled.
+    static func withOptionalAnimation<Result>(_ animation: Animation? = .default, _ body: () throws -> Result) rethrows -> Result {
+        if prefersReduced {
+            return try body()
+        } else {
+            return try withAnimation(animation, body)
+        }
+    }
+}
+
 // MARK: - View Extensions for Common Styling
 
 extension View {
@@ -190,14 +215,16 @@ extension View {
             )
     }
 
-    /// Staggered fade + slide-up card appear animation
+    /// Staggered fade + slide-up card appear animation (skipped when Reduce Motion is on)
     func cardAppear(index: Int, appeared: Bool) -> some View {
         self
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 20)
+            .offset(y: appeared ? 0 : (PerchMotion.prefersReduced ? 0 : 20))
             .animation(
-                .spring(response: 0.45, dampingFraction: 0.8)
-                .delay(Double(index) * 0.06),
+                PerchMotion.prefersReduced
+                    ? .none
+                    : .spring(response: 0.45, dampingFraction: 0.8)
+                        .delay(Double(index) * 0.06),
                 value: appeared
             )
     }
@@ -207,11 +234,14 @@ extension View {
         self.modifier(StaleBorderModifier(tier: tier))
     }
 
-    /// Subtle scale on press for interactive cards
+    /// Subtle scale on press for interactive cards (skipped when Reduce Motion is on)
     func cardTapScale(_ isPressed: Bool) -> some View {
         self
-            .scaleEffect(isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+            .scaleEffect(isPressed && !PerchMotion.prefersReduced ? 0.97 : 1.0)
+            .animation(
+                PerchMotion.prefersReduced ? .none : .spring(response: 0.25, dampingFraction: 0.7),
+                value: isPressed
+            )
     }
 }
 
@@ -247,12 +277,12 @@ struct AnimatedNumber: View {
     var body: some View {
         Text(String(format: format, displayValue))
             .onAppear {
-                withAnimation(.easeOut(duration: duration)) {
+                PerchMotion.withOptionalAnimation(.easeOut(duration: duration)) {
                     displayValue = value
                 }
             }
             .onChange(of: value) { _, newValue in
-                withAnimation(.easeOut(duration: duration)) {
+                PerchMotion.withOptionalAnimation(.easeOut(duration: duration)) {
                     displayValue = newValue
                 }
             }
@@ -264,8 +294,11 @@ struct AnimatedNumber: View {
 struct CardPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !PerchMotion.prefersReduced ? 0.97 : 1.0)
+            .animation(
+                PerchMotion.prefersReduced ? .none : .spring(response: 0.25, dampingFraction: 0.7),
+                value: configuration.isPressed
+            )
             .onChange(of: configuration.isPressed) { _, isPressed in
                 if isPressed {
                     PerchHaptics.light()
@@ -292,10 +325,14 @@ struct StaleBorderModifier: ViewModifier {
             EmptyView()
         case .warning:
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                .stroke(PerchTheme.accent.opacity(pulseOpacity), lineWidth: 1.5)
-                .onAppear { pulseOpacity = 0.7 }
+                .stroke(PerchTheme.accent.opacity(PerchMotion.prefersReduced ? 0.7 : pulseOpacity), lineWidth: 1.5)
+                .onAppear {
+                    if !PerchMotion.prefersReduced { pulseOpacity = 0.7 }
+                }
                 .animation(
-                    .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
+                    PerchMotion.prefersReduced
+                        ? .none
+                        : .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
                     value: pulseOpacity
                 )
         case .critical:
