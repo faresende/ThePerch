@@ -27,7 +27,7 @@ final class HomeViewModel {
         recomputeSmartOrder()
         recomputeDailyBrief()
         updateWidgetData()
-        Task { await syncLiveActivities() }
+        Task { [weak self] in await self?.syncLiveActivities() }
     }
 
     // MARK: - Quick Glance Data
