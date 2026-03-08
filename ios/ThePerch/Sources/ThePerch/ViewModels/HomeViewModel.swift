@@ -12,6 +12,7 @@ final class HomeViewModel: SectionViewModelProtocol {
     // MARK: - Properties
 
     var records: [Record] = []
+    var smartOrderedRecords: [Record] = []
     var isLoading: Bool = false
     var error: SupabaseServiceError?
     var loadError: String?
@@ -36,6 +37,7 @@ final class HomeViewModel: SectionViewModelProtocol {
 
         do {
             records = try await supabaseService.fetchRecords(limit: 50, forceRefresh: forceRefresh)
+            recomputeSmartOrder()
             updateWidgetData()
             await syncLiveActivities()
             self.error = nil
@@ -113,7 +115,9 @@ final class HomeViewModel: SectionViewModelProtocol {
         }
     }
 
-    var smartOrderedRecords: [Record] {
+    /// Recalculates smartOrderedRecords from the current records array.
+    /// Called once after records change, not on every SwiftUI body evaluation.
+    private func recomputeSmartOrder() {
         var ordered: [Record] = []
         var usedIds = Set<UUID>()
 
@@ -234,7 +238,7 @@ final class HomeViewModel: SectionViewModelProtocol {
             addUnique(cost)
         }
 
-        return ordered
+        smartOrderedRecords = ordered
     }
 
     // MARK: - Calories Record
