@@ -455,7 +455,7 @@ final class SupabaseService: ObservableObject {
         let widgets: [HomeWidget] = try await withRetry(operation: "fetchHomeWidgets") { [client] in
             try await client.from("home_widgets")
                 .select()
-                .order("position", ascending: true)
+                .order("sort_order", ascending: true)
                 .execute()
                 .value
         }
