@@ -87,7 +87,6 @@
 		FF602294F262630BC98CFF64 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */; };
 		HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */; };
-		DBCARD02DBCARD02DBCARD02 /* DailyBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */; };
 		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
 		ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */; };
 		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
@@ -230,7 +229,6 @@
 		FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ThePerchWidgets.swift; path = ThePerchWidgets/ThePerchWidgets.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordDetailView.swift; sourceTree = "<group>"; };
 		HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryCard.swift; sourceTree = "<group>"; };
-		DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefCard.swift; sourceTree = "<group>"; };
 		DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLiveActivityManager.swift; sourceTree = "<group>"; };
 		ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorBanner.swift; sourceTree = "<group>"; };
 		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
@@ -439,7 +437,6 @@
 		35F543682F52411F00204F77 /* Cards */ = {
 			isa = PBXGroup;
 			children = (
-				DBCARD01DBCARD01DBCARD01 /* DailyBriefCard.swift */,
 				HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */,
 				353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */,
 				353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */,
@@ -849,7 +846,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */,
-				DBCARD02DBCARD02DBCARD02 /* DailyBriefCard.swift in Sources */,
 				HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */,
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */,
 				353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */,
