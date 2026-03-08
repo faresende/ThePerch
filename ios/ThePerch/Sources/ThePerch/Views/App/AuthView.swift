@@ -114,12 +114,13 @@ struct AuthView: View {
                         HStack(spacing: PerchTheme.Spacing.small) {
                             if authViewModel.isLoading {
                                 ProgressView()
-                                    .tint(.white)
+                                    .tint(PerchTheme.accentForeground)
                             }
 
                             Text(isSignUp ? "Create Account" : "Sign In")
                                 .font(PerchTheme.Font.heading)
-                                .foregroundColor(.white)
+                                .fontWeight(.bold)
+                                .foregroundColor(PerchTheme.accentForeground)
                         }
                     }
                 }
