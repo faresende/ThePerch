@@ -107,6 +107,7 @@ struct HomeView: View {
                             let isCompactHealth = HomeCardOrdering.isHealthCompact()
                             ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
                                 homeCard(for: cardType, compactHealth: isCompactHealth)
+                                    .modifier(HeroIfFirstModifier(isFirst: index == 0, ambientColor: ambience.ambientColor))
                                     .cardAppear(index: index, appeared: cardsAppeared)
                             }
                         }
@@ -297,6 +298,22 @@ struct HomeView: View {
     /// "Sun Mar 8" — short weekday + date for the compact header.
     private var shortDateString: String {
         PerchFormatters.shortWeekdayDate.string(from: Date.now)
+    }
+}
+
+// MARK: - Hero Card Conditional Modifier
+
+/// Applies hero card treatment only to the first card in the stack.
+private struct HeroIfFirstModifier: ViewModifier {
+    let isFirst: Bool
+    let ambientColor: Color
+
+    func body(content: Content) -> some View {
+        if isFirst {
+            content.heroCard(ambientColor: ambientColor)
+        } else {
+            content
+        }
     }
 }
 

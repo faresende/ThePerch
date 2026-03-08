@@ -302,6 +302,12 @@ extension View {
     func cardProminence(_ level: CardProminence) -> some View {
         modifier(CardProminenceModifier(level: level))
     }
+
+    /// Hero card treatment: larger padding, accent top border, slightly larger title.
+    /// Only the first card in the time-of-day stack should use this.
+    func heroCard(ambientColor: Color) -> some View {
+        modifier(HeroCardModifier(ambientColor: ambientColor))
+    }
 }
 
 // MARK: - Adaptive Card Style Modifier
@@ -460,5 +466,21 @@ private struct CardProminenceModifier: ViewModifier {
             content
                 .opacity(0.7)
         }
+    }
+}
+
+// MARK: - Hero Card Modifier
+
+private struct HeroCardModifier: ViewModifier {
+    let ambientColor: Color
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, PerchTheme.Spacing.xSmall)
+            .overlay(alignment: .top) {
+                // Subtle accent-colored top border (2pt)
+                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                    .stroke(ambientColor.opacity(0.35), lineWidth: 2)
+            }
     }
 }
