@@ -1,13 +1,18 @@
 import SwiftUI
 
 /// The root navigation view after authentication.
-/// Uses a horizontally paged TabView with section-specific content.
+/// Uses a horizontally paged TabView with a scrollable pill bar for section navigation.
 struct MainTabView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @ObservedObject private var supabaseService = SupabaseService.shared
     @State private var selectedIndex: Int = 0
 
     var visibleSections: [Section] {
         dashboardViewModel.sections.filter { $0.isVisible }.sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    var sectionNames: [String] {
+        visibleSections.map { $0.displayName }
     }
 
     var body: some View {
@@ -18,6 +23,29 @@ struct MainTabView: View {
             TimeOfDayAtmosphere()
 
             VStack(spacing: 0) {
+                // Offline banner
+                if supabaseService.isOffline {
+                    offlineBanner
+                }
+
+                // Connection error banner
+                if let connectionError = supabaseService.connectionError, !supabaseService.isOffline {
+                    errorBanner(message: connectionError)
+                }
+
+                // Dashboard-level error banner
+                if let error = dashboardViewModel.error, supabaseService.connectionError == nil {
+                    errorBanner(message: error.localizedDescription)
+                }
+
+                // Section navigator pill bar
+                if !visibleSections.isEmpty {
+                    SectionNavigator(
+                        selectedIndex: $selectedIndex,
+                        sectionNames: sectionNames
+                    )
+                }
+
                 // Tab content
                 TabView(selection: $selectedIndex) {
                     ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, section in
@@ -27,22 +55,6 @@ struct MainTabView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(maxHeight: .infinity)
-
-                // Page indicator dots at bottom — active dot is a wider capsule
-                HStack(spacing: 6) {
-                    ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, _ in
-                        Capsule()
-                            .fill(selectedIndex == index ? PerchTheme.accent : PerchTheme.border)
-                            .frame(width: selectedIndex == index ? 20 : 8, height: 8)
-                            .animation(
-                                PerchMotion.prefersReduced ? .none : .spring(response: 0.3, dampingFraction: 0.7),
-                                value: selectedIndex
-                            )
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.vertical, PerchTheme.Spacing.medium)
             }
         }
         .task {
@@ -62,6 +74,44 @@ struct MainTabView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Offline Banner
+
+    private var offlineBanner: some View {
+        HStack(spacing: PerchTheme.Spacing.xSmall) {
+            Image(systemName: "wifi.slash")
+                .font(PerchTheme.Font.caption)
+            Text("You're offline")
+                .font(PerchTheme.Font.caption)
+                .fontWeight(.medium)
+        }
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, PerchTheme.Spacing.xSmall)
+        .background(PerchTheme.textTertiary)
+    }
+
+    // MARK: - Error Banner
+
+    private func errorBanner(message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(PerchTheme.error)
+            Text(message)
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textSecondary)
+                .lineLimit(2)
+            Spacer()
+            Button("Retry") {
+                Task { await dashboardViewModel.loadDashboard(forceRefresh: true) }
+            }
+            .font(PerchTheme.Font.caption)
+            .foregroundColor(PerchTheme.accent)
+        }
+        .padding(PerchTheme.Spacing.small)
+        .background(PerchTheme.error.opacity(0.1))
+        .padding(.horizontal, PerchTheme.Spacing.large)
     }
 }
 
