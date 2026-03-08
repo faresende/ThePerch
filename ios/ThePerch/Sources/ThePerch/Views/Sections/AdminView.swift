@@ -64,22 +64,11 @@ struct AdminView: View {
 
                     // MARK: - Error Banner
                     if let loadError {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(PerchTheme.error)
-                            Text(loadError)
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                            Spacer()
-                            Button("Retry") {
-                                Task { await loadData() }
-                            }
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
-                        }
-                        .padding(PerchTheme.Spacing.medium)
-                        .background(PerchTheme.error.opacity(0.1))
-                        .cornerRadius(8)
+                        ErrorBanner(
+                            message: loadError,
+                            retryAction: { Task { await loadData() } },
+                            onDismiss: { self.loadError = nil }
+                        )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 

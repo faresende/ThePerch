@@ -66,6 +66,11 @@ final class HealthViewModel: SectionViewModelProtocol {
         await loadRecords(forceRefresh: true)
     }
 
+    /// Clears any error messages.
+    func clearError() {
+        self.error = nil
+    }
+
     // MARK: - HealthKit Sync
 
     /// Triggers a manual sync with Apple Health.

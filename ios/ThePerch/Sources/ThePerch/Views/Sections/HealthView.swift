@@ -33,23 +33,12 @@ struct HealthView: View {
                     // }
 
                     // Error banner
-                    if let error = viewModel.error {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(PerchTheme.error)
-                            Text("Failed to load health data")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                            Spacer()
-                            Button("Retry") {
-                                Task { await viewModel.loadRecords() }
-                            }
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
-                        }
-                        .padding(PerchTheme.Spacing.medium)
-                        .background(PerchTheme.error.opacity(0.1))
-                        .cornerRadius(8)
+                    if viewModel.error != nil {
+                        ErrorBanner(
+                            message: "Failed to load health data",
+                            retryAction: { Task { await viewModel.loadRecords() } },
+                            onDismiss: { viewModel.clearError() }
+                        )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 

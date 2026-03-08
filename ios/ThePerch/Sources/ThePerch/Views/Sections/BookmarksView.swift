@@ -73,6 +73,17 @@ struct BookmarksView: View {
                     .padding(.top, PerchTheme.Spacing.medium)
                     .padding(.bottom, PerchTheme.Spacing.small)
 
+                // Error banner
+                if viewModel.error != nil {
+                    ErrorBanner(
+                        message: "Failed to load bookmarks",
+                        retryAction: { Task { await viewModel.loadRecords() } },
+                        onDismiss: { viewModel.clearError() }
+                    )
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+                    .padding(.bottom, PerchTheme.Spacing.small)
+                }
+
                 // Tab picker + search + tags
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     // Segmented picker for Karakeep / Paperless
