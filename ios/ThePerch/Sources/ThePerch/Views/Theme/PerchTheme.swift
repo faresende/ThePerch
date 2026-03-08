@@ -79,6 +79,14 @@ struct PerchTheme {
         )
     }
 
+    /// Text color for use on accent-colored backgrounds (WCAG AA ≥4.5:1)
+    static var accentForeground: Color {
+        adaptive(
+            light: UIColor(red: 0.15, green: 0.10, blue: 0.0, alpha: 1),     // #261A00 — dark brown
+            dark: UIColor(red: 0.12, green: 0.08, blue: 0.0, alpha: 1)       // #1F1400 — near-black brown
+        )
+    }
+
     /// Muted accent for tinted backgrounds
     static var accentMuted: Color {
         adaptive(

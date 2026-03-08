@@ -88,6 +88,8 @@ struct MainTabView: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(maxHeight: .infinity)
             }
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
         }
         .task {
             await dashboardViewModel.loadDashboard()
