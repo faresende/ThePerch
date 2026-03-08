@@ -115,6 +115,8 @@ struct CaloriesCard: View {
         }
         .padding(PerchTheme.Spacing.large)
         .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Calories: \(Int(consumed)) of \(Int(target)) consumed, \(Int(remaining)) remaining")
         .shadow(
             color: PerchTheme.accent.opacity(glowPulse ? 0.30 : 0.0),
             radius: glowPulse ? 12 : 0
