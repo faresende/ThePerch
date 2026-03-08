@@ -8,6 +8,9 @@ enum HomeCardType: CaseIterable, Hashable {
     case calendarTomorrow
     case nutrition
     case deliveries
+    case medications
+    case weather
+    case emailSummary
 }
 
 enum HomeCardOrdering {
@@ -33,9 +36,9 @@ enum HomeCardOrdering {
     static func orderedCards(for period: TimePeriod = .current) -> [HomeCardType] {
         switch period {
         case .morning:
-            return [.healthSummary, .calendarToday, .deliveries, .nutrition, .calendarTomorrow]
+            return [.healthSummary, .medications, .calendarToday, .weather, .deliveries, .nutrition, .calendarTomorrow, .emailSummary]
         case .afternoon:
-            return [.calendarToday, .nutrition, .deliveries, .healthSummary]
+            return [.calendarToday, .nutrition, .deliveries, .healthSummary, .emailSummary]
         case .evening:
             return [.nutrition, .calendarTomorrow, .deliveries, .healthSummary]
         case .night:
