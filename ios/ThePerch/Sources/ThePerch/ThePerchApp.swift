@@ -6,6 +6,7 @@ import SwiftUI
 struct ThePerchApp: App {
     @State private var authViewModel = AuthViewModel()
     @State private var dashboardViewModel = DashboardViewModel()
+    @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -21,6 +22,7 @@ struct ThePerchApp: App {
                     // Set up realtime subscriptions
                     await dashboardViewModel.setupRealtimeSubscriptions()
                 }
+                .preferredColorScheme(darkModeEnabled ? .dark : nil)
                 .onChange(of: scenePhase) { oldPhase, newPhase in
                     if newPhase == .active && oldPhase != .active {
                         // Refresh data when app comes to foreground
