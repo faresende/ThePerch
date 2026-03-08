@@ -123,10 +123,8 @@ struct HealthDetailView: View {
 
         // Group by day, take latest value per day
         var dailyValues: [String: Double] = [:]
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
         for point in data {
-            let key = fmt.string(from: point.date)
+            let key = PerchFormatters.isoDate.string(from: point.date)
             dailyValues[key] = point.value
         }
 

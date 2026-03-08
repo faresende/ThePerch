@@ -168,9 +168,7 @@ extension Date {
         } else if days < 7 {
             return "\(days)d ago"
         } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            return formatter.string(from: self)
+            return PerchFormatters.mediumDate.string(from: self)
         }
     }
 }

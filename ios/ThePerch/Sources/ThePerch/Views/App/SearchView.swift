@@ -188,9 +188,7 @@ struct SearchResultRow: View {
     private var subtitle: String {
         if let delivery = record.asDelivery() { return "\(delivery.carrier) - \(delivery.status)" }
         if let event = record.asEvent() {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "MMM d, h:mm a"
-            return fmt.string(from: event.start)
+            return PerchFormatters.eventDateTime.string(from: event.start)
         }
         if let bookmark = record.asBookmark() { return bookmark.domain ?? bookmark.url }
         if let measurement = record.asMeasurement() {

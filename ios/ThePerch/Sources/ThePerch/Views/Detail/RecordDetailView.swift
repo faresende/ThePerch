@@ -487,10 +487,7 @@ struct RecordDetailView: View {
     // MARK: - Formatting helpers
 
     private func formattedNumber(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+        PerchFormatters.decimal.string(from: NSNumber(value: value)) ?? String(value)
     }
 
     private func prettyJSON(for value: JSONValue) -> String? {
