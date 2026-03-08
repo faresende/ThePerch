@@ -81,9 +81,11 @@
 		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
 		8B92D6C4C0FD7A48FF83A469 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
+		ACMS0002ACMS0002ACMS0002 /* AdminCommandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */; };
 		B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC61D48E7054D783C5A2B /* NotificationService.swift */; };
 		C395841AE66C9EF1B7E55F90 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
 		D6835F8D85F6945DB95754DB /* DeliveryLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */; };
+		LKSW0002LKSW0002LKSW0002 /* PerchLockScreenWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */; };
 		FF602294F262630BC98CFF64 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */; };
 		HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */; };
@@ -224,11 +226,13 @@
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		49B954EE98DF57B9774F8D30 /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminCommandService.swift; sourceTree = "<group>"; };
 		571AC61D48E7054D783C5A2B /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
 		CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryLiveActivity.swift; path = ThePerchWidgets/DeliveryLiveActivity.swift; sourceTree = "<group>"; };
 		D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryActivityAttributes.swift; path = PerchSharedKit/DeliveryActivityAttributes.swift; sourceTree = "<group>"; };
 		DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchQuickGlanceWidget.swift; path = ThePerchWidgets/PerchQuickGlanceWidget.swift; sourceTree = "<group>"; };
+		LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchLockScreenWidgets.swift; path = ThePerchWidgets/PerchLockScreenWidgets.swift; sourceTree = "<group>"; };
 		ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthDetailView.swift; sourceTree = "<group>"; };
 		F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThePerchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ThePerchWidgets.swift; path = ThePerchWidgets/ThePerchWidgets.swift; sourceTree = "<group>"; };
@@ -611,6 +615,7 @@
 			isa = PBXGroup;
 			children = (
 				571AC61D48E7054D783C5A2B /* NotificationService.swift */,
+				ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */,
 			);
 			name = Services;
 			path = Services;
@@ -637,6 +642,7 @@
 			children = (
 				FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */,
 				DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */,
+				LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */,
 				CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */,
 			);
 			name = ThePerchWidgets;
@@ -941,6 +947,7 @@
 				HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */,
 				AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */,
 				CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */,
+				ACMS0002ACMS0002ACMS0002 /* AdminCommandService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -950,6 +957,7 @@
 			files = (
 				04D79066DBA65FB6D46550DD /* ThePerchWidgets.swift in Sources */,
 				1C78119AA900E1C8B90682DF /* PerchQuickGlanceWidget.swift in Sources */,
+				LKSW0002LKSW0002LKSW0002 /* PerchLockScreenWidgets.swift in Sources */,
 				D6835F8D85F6945DB95754DB /* DeliveryLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

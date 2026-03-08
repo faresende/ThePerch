@@ -208,6 +208,7 @@ struct SearchResultRow: View {
         case .textNote: return "note.text"
         case .checklist: return "checklist"
         case .costSummary: return "dollarsign.circle"
+        case .command: return "terminal"
         }
     }
 
