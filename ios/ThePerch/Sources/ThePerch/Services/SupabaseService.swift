@@ -127,6 +127,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     private var recordsChannel: RealtimeChannelV2?
     private var agentsChannel: RealtimeChannelV2?
 
+    /// Managed tasks for realtime stream listeners (cancelled on unsubscribe).
+    private var realtimeTasks: [Task<Void, Never>] = []
+
     /// Network connectivity monitor.
     private let networkMonitor = NWPathMonitor()
     private let monitorQueue = DispatchQueue(label: "com.theperch.networkMonitor")
@@ -652,8 +655,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         print("[SupabaseService] Subscribed to dashboard_records realtime")
 
         // Listen for insertions
-        Task {
+        let insertTask = Task {
             for await insertion in insertions {
+                guard !Task.isCancelled else { break }
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 if let data = try? JSONSerialization.data(withJSONObject: insertion.record),
@@ -665,10 +669,12 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 }
             }
         }
+        realtimeTasks.append(insertTask)
 
         // Listen for updates
-        Task {
+        let updateTask = Task {
             for await update in updates {
+                guard !Task.isCancelled else { break }
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 if let data = try? JSONSerialization.data(withJSONObject: update.record),
@@ -679,10 +685,12 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 }
             }
         }
+        realtimeTasks.append(updateTask)
 
         // Listen for deletions
-        Task {
+        let deleteTask = Task {
             for await deletion in deletions {
+                guard !Task.isCancelled else { break }
                 let oldId: UUID? = {
                     if let idStr = deletion.oldRecord["id"] as? String {
                         return UUID(uuidString: idStr)
@@ -692,6 +700,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 await onChange(RealtimeRecordChange(action: .delete, record: nil, oldId: oldId))
             }
         }
+        realtimeTasks.append(deleteTask)
     }
 
     /// Subscribes to realtime agent status changes on `agents`.
@@ -713,18 +722,26 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         await channel.subscribe()
         print("[SupabaseService] Subscribed to agents realtime")
 
-        Task {
+        let agentTask = Task {
             for await change in changes {
+                guard !Task.isCancelled else { break }
                 let actionStr = String(describing: type(of: change)).lowercased()
                 let action: RealtimeAction = actionStr.contains("insert") ? .insert :
                     actionStr.contains("delete") ? .delete : .update
                 await onChange(action)
             }
         }
+        realtimeTasks.append(agentTask)
     }
 
-    /// Unsubscribes from all realtime channels.
+    /// Unsubscribes from all realtime channels and cancels stream listener tasks.
     func unsubscribeAll() async {
+        // Cancel all managed realtime tasks
+        for task in realtimeTasks {
+            task.cancel()
+        }
+        realtimeTasks.removeAll()
+
         if let channel = recordsChannel {
             await client.realtimeV2.removeChannel(channel)
             recordsChannel = nil
