@@ -6,7 +6,13 @@ import SwiftUI
 /// Data: filters records where category == .health, type == .measurement.
 struct HealthSummaryHomeCard: View {
     let records: [Record]
+    /// When true, the parent forces compact mode (e.g. afternoon/evening).
     var compact: Bool = false
+
+    @AppStorage("card_compact_health") private var userCompact = false
+
+    /// Effective compact state: forced by time-of-day OR user toggle
+    private var isCompact: Bool { compact || userCompact }
 
     private var healthRecords: [MeasurementData] {
         records
@@ -29,19 +35,39 @@ struct HealthSummaryHomeCard: View {
 
     private var hasData: Bool { sleepDuration != nil }
 
+    /// Compact summary text for single-line display
+    private var compactSummary: String {
+        var parts: [String] = []
+        if let s = sleepDuration { parts.append("\(formatHours(s.value)) sleep") }
+        if let r = readiness { parts.append("\(Int(r.value)) readiness") }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            // Header
-            HStack(spacing: PerchTheme.Spacing.xSmall) {
-                Image(systemName: "bed.double.fill")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.accent)
-                Text("SLEEP & RECOVERY")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .textCase(.uppercase)
-                Spacer()
+            // Tappable header
+            Button {
+                PerchHaptics.selection()
+                PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.3)) {
+                    userCompact.toggle()
+                }
+            } label: {
+                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Image(systemName: "bed.double.fill")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.accent)
+                    Text("SLEEP & RECOVERY")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                        .textCase(.uppercase)
+                    Spacer()
+                    Image(systemName: isCompact ? "chevron.down" : "chevron.up")
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(PerchTheme.textTertiary)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
             if !hasData {
                 // Empty state
@@ -55,6 +81,11 @@ struct HealthSummaryHomeCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, PerchTheme.Spacing.medium)
+            } else if isCompact {
+                // Compact: single-line summary
+                Text(compactSummary)
+                    .font(PerchTheme.Font.body)
+                    .foregroundColor(PerchTheme.textSecondary)
             } else {
                 // Four metric circles
                 HStack(spacing: PerchTheme.Spacing.small) {
@@ -88,14 +119,15 @@ struct HealthSummaryHomeCard: View {
                     }
                 }
 
-                // Sleep score bar (not in compact mode)
-                if !compact, let score = sleepScore {
+                // Sleep score bar (expanded mode only)
+                if let score = sleepScore {
                     sleepScoreBar(score: score.value)
                 }
             }
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+        .animation(.easeInOut(duration: 0.3), value: isCompact)
     }
 
     // MARK: - Components

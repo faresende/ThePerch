@@ -11,6 +11,7 @@ struct NutritionHomeCard: View {
     @State private var animateMacros = false
     @State private var pulseScale: CGFloat = 1.0
     @State private var didReachFull = false
+    @AppStorage("card_compact_nutrition") private var isCompact = false
 
     private var isMorning: Bool {
         Calendar.current.component(.hour, from: .now) < 14
@@ -71,19 +72,45 @@ struct NutritionHomeCard: View {
     private static let carbsColor = PerchTheme.accent
     private static let fatColor = Color(red: 0.9, green: 0.55, blue: 0.6)
 
+    /// Compact summary: "1,847 / 3,400 kcal · P: 79% C: 63% F: 56%"
+    private var compactSummary: String {
+        var parts: [String] = []
+        parts.append("\(Int(consumed)) / \(Int(target)) kcal")
+        if let m = macrosData {
+            func pct(_ v: Double, _ t: Double?) -> String {
+                guard let t, t > 0 else { return "--" }
+                return "\(Int(v / t * 100))%"
+            }
+            parts.append("P: \(pct(m.protein, m.proteinTarget)) C: \(pct(m.carbs, m.carbsTarget)) F: \(pct(m.fat, m.fatTarget))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            // Header
-            HStack(spacing: PerchTheme.Spacing.xSmall) {
-                Image(systemName: "fork.knife")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.accent)
-                Text(isMorning ? "YESTERDAY'S NUTRITION" : "NUTRITION")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .textCase(.uppercase)
-                Spacer()
+            // Tappable header
+            Button {
+                PerchHaptics.selection()
+                PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.3)) {
+                    isCompact.toggle()
+                }
+            } label: {
+                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Image(systemName: "fork.knife")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.accent)
+                    Text(isMorning ? "YESTERDAY'S NUTRITION" : "NUTRITION")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                        .textCase(.uppercase)
+                    Spacer()
+                    Image(systemName: isCompact ? "chevron.down" : "chevron.up")
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(PerchTheme.textTertiary)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
             if !hasData {
                 // Empty state
@@ -97,6 +124,11 @@ struct NutritionHomeCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, PerchTheme.Spacing.small)
+            } else if isCompact {
+                // Compact: single-line summary
+                Text(compactSummary)
+                    .font(PerchTheme.Font.body)
+                    .foregroundColor(PerchTheme.textSecondary)
             } else {
                 HStack(spacing: PerchTheme.Spacing.large) {
                     // Calorie ring
@@ -143,6 +175,7 @@ struct NutritionHomeCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+        .animation(.easeInOut(duration: 0.3), value: isCompact)
         .onAppear {
             animateRingTo(progress, color: progressColor)
             PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {
