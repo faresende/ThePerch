@@ -305,7 +305,7 @@ struct ChartCard: View {
                             .font(PerchTheme.Font.caption)
                             .foregroundColor(
                                 resolvedRange == range
-                                    ? .black
+                                    ? PerchTheme.background
                                     : PerchTheme.textSecondary
                             )
                             .frame(maxWidth: .infinity)
@@ -340,14 +340,14 @@ struct ChartCard: View {
             Text(valueText)
                 .font(PerchTheme.Font.caption)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(PerchTheme.textPrimary)
             Text(dateText)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(PerchTheme.textTertiary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color.black.opacity(0.85))
+        .background(PerchTheme.cardHover)
         .cornerRadius(8)
         .fixedSize()
         // Position tooltip based on selected point's relative position in the data

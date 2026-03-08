@@ -172,7 +172,6 @@ struct HealthDetailView: View {
                 }
             }
             .toolbarBackground(PerchTheme.background, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 
