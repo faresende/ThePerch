@@ -282,16 +282,16 @@ final class DashboardViewModel {
             try await supabaseService.subscribeToRecords { [weak self] change in
                 guard let self else { return }
                 print("[DashboardVM] Realtime record change: \(change.action)")
-                Task { @MainActor in
-                    self.mergeRealtimeChange(change)
+                Task { @MainActor [weak self] in
+                    self?.mergeRealtimeChange(change)
                 }
             }
 
             try await supabaseService.subscribeToAgents { [weak self] action in
-                guard let self else { return }
+                guard self != nil else { return }
                 print("[DashboardVM] Realtime agent change: \(action)")
-                Task { @MainActor in
-                    await self.loadAgents(forceRefresh: true)
+                Task { @MainActor [weak self] in
+                    await self?.loadAgents(forceRefresh: true)
                 }
             }
 
@@ -315,14 +315,14 @@ final class DashboardViewModel {
             await supabaseService.unsubscribeAll()
             try await supabaseService.subscribeToRecords { [weak self] change in
                 guard let self else { return }
-                Task { @MainActor in
-                    self.mergeRealtimeChange(change)
+                Task { @MainActor [weak self] in
+                    self?.mergeRealtimeChange(change)
                 }
             }
             try await supabaseService.subscribeToAgents { [weak self] action in
-                guard let self else { return }
-                Task { @MainActor in
-                    await self.loadAgents(forceRefresh: true)
+                guard self != nil else { return }
+                Task { @MainActor [weak self] in
+                    await self?.loadAgents(forceRefresh: true)
                 }
             }
             return true
