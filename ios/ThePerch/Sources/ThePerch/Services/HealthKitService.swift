@@ -58,7 +58,7 @@ struct HealthKitSample: Identifiable {
 /// Service for reading health data from Apple Health.
 /// Follows the same singleton pattern as EventKitService.
 @MainActor
-final class HealthKitService: NSObject {
+final class HealthKitService: NSObject, HealthKitServiceProtocol {
     static let shared = HealthKitService()
 
     private let healthStore: HKHealthStore?
