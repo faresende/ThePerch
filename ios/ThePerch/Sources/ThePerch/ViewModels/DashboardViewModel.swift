@@ -227,20 +227,14 @@ final class DashboardViewModel {
     private let reconnectManager = RealtimeReconnectManager.shared
 
     /// Sets up realtime subscriptions to listen for dashboard changes.
-    /// When records change, we re-fetch records to keep the UI fresh.
+    /// Merges changes locally (INSERT/UPDATE/DELETE) instead of full refetch.
     func setupRealtimeSubscriptions() async {
         do {
             try await supabaseService.subscribeToRecords { [weak self] change in
                 guard let self else { return }
                 print("[DashboardVM] Realtime record change: \(change.action)")
                 Task { @MainActor in
-                    await self.refreshRecords()
-                    if let record = change.record {
-                        NotificationService.shared.handleRecordChange(record: record, action: change.action)
-                        if record.category == .deliveries {
-                            self.syncDeliveryLiveActivities()
-                        }
-                    }
+                    self.mergeRealtimeChange(change)
                 }
             }
 
@@ -273,10 +267,7 @@ final class DashboardViewModel {
             try await supabaseService.subscribeToRecords { [weak self] change in
                 guard let self else { return }
                 Task { @MainActor in
-                    await self.refreshRecords()
-                    if let record = change.record {
-                        NotificationService.shared.handleRecordChange(record: record, action: change.action)
-                    }
+                    self.mergeRealtimeChange(change)
                 }
             }
             try await supabaseService.subscribeToAgents { [weak self] action in
@@ -289,6 +280,47 @@ final class DashboardViewModel {
         } catch {
             print("[DashboardVM] Realtime reconnect failed: \(error.localizedDescription)")
             return false
+        }
+    }
+
+    /// Merges a single realtime change into allRecords locally.
+    /// Falls back to full refetch only if the payload can't be decoded.
+    private func mergeRealtimeChange(_ change: SupabaseService.RealtimeRecordChange) {
+        switch change.action {
+        case .insert:
+            if let record = change.record {
+                // Pre-decode the new record and insert at the front (newest first)
+                Self.preDecodeRecords([record])
+                allRecords.insert(record, at: 0)
+                NotificationService.shared.handleRecordChange(record: record, action: .insert)
+                if record.category == .deliveries {
+                    syncDeliveryLiveActivities()
+                }
+            } else {
+                // Can't decode payload — fall back to full refetch
+                Task { await refreshRecords() }
+            }
+
+        case .update:
+            if let record = change.record,
+               let index = allRecords.firstIndex(where: { $0.id == record.id }) {
+                // Pre-decode and replace in-place
+                Self.preDecodeRecords([record])
+                allRecords[index] = record
+                NotificationService.shared.handleRecordChange(record: record, action: .update)
+                if record.category == .deliveries {
+                    syncDeliveryLiveActivities()
+                }
+            } else {
+                Task { await refreshRecords() }
+            }
+
+        case .delete:
+            if let oldId = change.oldId {
+                allRecords.removeAll { $0.id == oldId }
+            } else {
+                Task { await refreshRecords() }
+            }
         }
     }
 
