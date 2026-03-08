@@ -147,12 +147,20 @@ struct DeliveriesView: View {
             .refreshable {
                 PerchHaptics.medium()
                 await viewModel.refresh()
+                await syncLiveActivities()
                 PerchHaptics.success()
             }
         }
         .task {
             await viewModel.loadRecords()
+            await syncLiveActivities()
         }
+    }
+
+    /// Syncs Live Activities with current active deliveries.
+    private func syncLiveActivities() async {
+        let deliveries = activeDeliveries.compactMap { $0.asDelivery() }
+        await DeliveryLiveActivityManager.shared.sync(activeDeliveries: deliveries)
     }
 
     @ViewBuilder

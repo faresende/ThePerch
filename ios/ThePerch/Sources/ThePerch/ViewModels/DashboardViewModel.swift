@@ -137,6 +137,10 @@ final class DashboardViewModel {
                     await self.loadDashboard()
                     if let record = change.record {
                         NotificationService.shared.handleRecordChange(record: record, action: change.action)
+                        // Sync Live Activity when delivery records change
+                        if record.category == .deliveries {
+                            await self.syncDeliveryLiveActivities()
+                        }
                     }
                 }
             }
@@ -192,6 +196,24 @@ final class DashboardViewModel {
     /// Tears down realtime subscriptions.
     func teardownRealtimeSubscriptions() async {
         await supabaseService.unsubscribeAll()
+    }
+
+    // MARK: - Live Activity Sync
+
+    /// Fetches delivery records and syncs Live Activities.
+    private func syncDeliveryLiveActivities() async {
+        do {
+            let records = try await supabaseService.fetchRecords(limit: 50)
+            let activeDeliveries = records.compactMap { record -> DeliveryData? in
+                guard let d = record.asDelivery() else { return nil }
+                let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
+                guard s == "in_transit" || s == "shipped" || s == "out_for_delivery" || s == "processing" || s == "ordered" else { return nil }
+                return d
+            }
+            await DeliveryLiveActivityManager.shared.sync(activeDeliveries: activeDeliveries)
+        } catch {
+            print("[DashboardVM] Failed to sync Live Activities: \(error)")
+        }
     }
 
     // MARK: - Error Handling
