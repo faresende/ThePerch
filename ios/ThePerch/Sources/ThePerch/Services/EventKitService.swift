@@ -62,8 +62,8 @@ struct EventKitReminder: Identifiable {
 
 /// Service for interacting with the device's EventKit calendar and reminders.
 /// Fetches local calendar events and reminders, but does not sync to Supabase.
-@MainActor
-final class EventKitService: NSObject {
+/// Not @MainActor — performs IO work; only ViewModels should be @MainActor.
+final class EventKitService: NSObject, @unchecked Sendable {
     static let shared = EventKitService()
 
     private let eventStore = EKEventStore()

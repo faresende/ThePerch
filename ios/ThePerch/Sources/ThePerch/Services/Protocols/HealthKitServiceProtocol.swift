@@ -2,8 +2,7 @@ import Foundation
 
 /// Protocol defining the interface for HealthKit data operations.
 /// Enables dependency injection and mock implementations for testing/previews.
-@MainActor
-protocol HealthKitServiceProtocol: AnyObject {
+protocol HealthKitServiceProtocol: AnyObject, Sendable {
     var isAvailable: Bool { get }
     func requestAuthorization() async -> Bool
     func fetchWeight(days: Int) async throws -> [HealthKitSample]
