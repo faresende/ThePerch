@@ -98,15 +98,10 @@ struct MainTabView: View {
             // Haptic on tab switch
             PerchHaptics.selection()
 
-            // Auto-refresh stale sections when swiped to
-            guard selectedIndex < visibleSections.count else { return }
-            let section = visibleSections[selectedIndex]
-            let key = section.slug
-            if DataFreshnessTracker.shared.isStale(key) {
-                Task {
-                    await dashboardViewModel.loadDashboard(forceRefresh: true)
-                }
-            }
+            // Stale-section refresh is handled by the single-fetch architecture:
+            // DashboardViewModel.allRecords is the source of truth, refreshed
+            // via pull-to-refresh or realtime updates. No need to reload
+            // all sections + widgets on every swipe.
         }
     }
 
