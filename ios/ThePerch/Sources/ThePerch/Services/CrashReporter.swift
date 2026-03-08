@@ -3,8 +3,7 @@ import Foundation
 /// Simple file-based crash reporter.
 /// Writes uncaught exception info to the app's documents directory.
 /// On next launch, checks for crash files and can report them.
-@MainActor
-final class CrashReporter {
+final class CrashReporter: @unchecked Sendable {
     static let shared = CrashReporter()
 
     /// Whether there are pending crash reports from a previous session.
