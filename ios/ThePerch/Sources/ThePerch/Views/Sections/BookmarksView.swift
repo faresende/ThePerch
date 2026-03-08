@@ -11,25 +11,37 @@ struct BookmarksView: View {
 
     private var records: [Record] { dashboardViewModel.bookmarkRecords }
 
-    // MARK: - Filtered Data
+    // MARK: - Filtered Data (single-pass decode)
 
-    /// All bookmarks for the active tab.
-    private var tabBookmarks: [Record] {
-        records.filter { record in
-            guard let bookmark = record.asBookmark() else { return false }
-            let bookmarkSource = bookmark.source ?? .karakeep
-            return bookmarkSource == selectedTab
+    /// Pre-computed bookmark view data: decodes each record once, then filters/partitions.
+    private var bookmarkData: (
+        allTags: [String],
+        filtered: [Record],
+        pending: [Record],
+        processed: [Record]
+    ) {
+        // Step 1: filter to active tab (single decode per record)
+        var tabRecords: [(Record, BookmarkData)] = []
+        for record in records {
+            guard let bookmark = record.asBookmark() else { continue }
+            let source = bookmark.source ?? .karakeep
+            if source == selectedTab {
+                tabRecords.append((record, bookmark))
+            }
         }
-    }
 
-    var allTags: [String] {
-        Array(Set(tabBookmarks.compactMap { $0.asBookmark()?.tags }.flatMap { $0 })).sorted()
-    }
+        // Step 2: collect all tags from tab records
+        var tagSet = Set<String>()
+        for (_, bookmark) in tabRecords {
+            for tag in bookmark.tags { tagSet.insert(tag) }
+        }
+        let sortedTags = tagSet.sorted()
 
-    var filteredBookmarks: [Record] {
-        tabBookmarks.filter { record in
-            guard let bookmark = record.asBookmark() else { return false }
-
+        // Step 3: apply search + tag filters
+        var filtered: [Record] = []
+        var pending: [Record] = []
+        var processed: [Record] = []
+        for (record, bookmark) in tabRecords {
             let matchesSearch = searchText.isEmpty ||
                 bookmark.displayTitle.localizedCaseInsensitiveContains(searchText) ||
                 (bookmark.summary?.localizedCaseInsensitiveContains(searchText) ?? false) ||
@@ -38,20 +50,32 @@ struct BookmarksView: View {
             let matchesTags = selectedTags.isEmpty ||
                 selectedTags.allSatisfy { bookmark.tags.contains($0) }
 
-            return matchesSearch && matchesTags
+            guard matchesSearch && matchesTags else { continue }
+            filtered.append(record)
+
+            if bookmark.status == .pending || bookmark.status == .processing {
+                pending.append(record)
+            } else if bookmark.status == .processed {
+                processed.append(record)
+            }
         }
+
+        return (sortedTags, filtered, pending, processed)
     }
 
-    var pendingBookmarks: [Record] {
-        filteredBookmarks.filter { $0.asBookmark()?.status == .pending || $0.asBookmark()?.status == .processing }
-    }
+    var allTags: [String] { bookmarkData.allTags }
+    var filteredBookmarks: [Record] { bookmarkData.filtered }
+    var pendingBookmarks: [Record] { bookmarkData.pending }
+    var processedBookmarks: [Record] { bookmarkData.processed }
 
-    var processedBookmarks: [Record] {
-        filteredBookmarks.filter { $0.asBookmark()?.status == .processed }
-    }
+    private var tabCount: Int { bookmarkData.filtered.count }
 
-    private var tabCount: Int {
-        filteredBookmarks.count
+    /// Whether the current tab has any records (before search/tag filter).
+    private var tabHasRecords: Bool {
+        records.contains { record in
+            guard let bookmark = record.asBookmark() else { return false }
+            return (bookmark.source ?? .karakeep) == selectedTab
+        }
     }
 
     var body: some View {
@@ -208,7 +232,7 @@ struct BookmarksView: View {
                         // Empty state
                         if filteredBookmarks.isEmpty && !searchText.isEmpty {
                             emptySearchView
-                        } else if tabBookmarks.isEmpty && !dashboardViewModel.isLoading {
+                        } else if !tabHasRecords && !dashboardViewModel.isLoading {
                             emptyStateView
                         }
 

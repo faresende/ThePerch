@@ -40,12 +40,13 @@ final class AdminViewModel {
 
     /// Cron job records from admin category, sorted by next run time.
     var cronRecords: [Record] {
-        records.filter { $0.asCronJob() != nil }
-            .sorted { r1, r2 in
-                let d1 = r1.asCronJob()?.nextRunAt ?? .distantFuture
-                let d2 = r2.asCronJob()?.nextRunAt ?? .distantFuture
-                return d1 < d2
+        records
+            .compactMap { record -> (Record, CronJobData)? in
+                guard let cron = record.asCronJob() else { return nil }
+                return (record, cron)
             }
+            .sorted { $0.1.nextRunAt ?? .distantFuture < $1.1.nextRunAt ?? .distantFuture }
+            .map(\.0)
     }
 
     /// Gateway status record (if available).
