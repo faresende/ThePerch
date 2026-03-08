@@ -6,5 +6,15 @@
 	<string>The Perch reads your health data (weight, sleep, heart rate) to display trends and insights on your dashboard.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>The Perch writes health metrics synced from your OpenClaw agents to Apple Health for safekeeping.</string>
+
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.NotButter.ThePerch.refresh</string>
+	</array>
+
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>
