@@ -53,8 +53,15 @@ final class DashboardViewModel {
             self.error = .unknownError(err.localizedDescription)
         }
 
-        if case .success(let loaded) = widgets {
+        switch widgets {
+        case .success(let loaded):
             self.homeWidgets = loaded
+        case .failure(let err):
+            print("[DashboardVM] fetchHomeWidgets threw: \(err)")
+            // Don't overwrite a sections error with a widgets error
+            if self.error == nil {
+                self.error = .unknownError(err.localizedDescription)
+            }
         }
     }
 
