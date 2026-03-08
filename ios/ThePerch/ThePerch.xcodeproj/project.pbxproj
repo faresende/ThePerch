@@ -94,6 +94,7 @@
 		NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */; };
 		CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */; };
 		CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACH0001CACH0001CACH0001 /* CacheService.swift */; };
+		BGRE0002BGRE0002BGRE0002 /* BackgroundRefreshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */; };
 		JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */; };
 		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
 		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
@@ -114,6 +115,18 @@
 		HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */; };
 		AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */; };
 		CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */; };
+
+		5CC4FE16D0724E1B90BD8BDA /* UniversalCardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */; };
+		822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */; };
+		99E67B0E893542999222D13B /* UniversalCardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */; };
+		B147D8B3A44F493392626D00 /* MetricCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */; };
+		CA0301F8D5324ED0983AB80C /* ListCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */; };
+		E345BD6F3BBD44B8B7F62E07 /* TimelineCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E19BC5C1C4464178BFB03223 /* TimelineCardRenderer.swift */; };
+		D259FD4EDAA14C63BED05FD3 /* StatusCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */; };
+		24C1850ACFD14218804CCF55 /* TextCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525629949349400A9FE8F436 /* TextCardRenderer.swift */; };
+		26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */; };
+		F3083CD70F004A46A9706D46 /* CardRendererFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */; };
+		F4C6D71B135641088ADEC4D7 /* CardGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBC038A620A4778B341EA85 /* CardGalleryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -232,6 +245,7 @@
 		NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		CACH0001CACH0001CACH0001 /* CacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheService.swift; sourceTree = "<group>"; };
+		BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRefreshService.swift; sourceTree = "<group>"; };
 		JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueDecoder.swift; sourceTree = "<group>"; };
 		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
 		SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceProtocol.swift; sourceTree = "<group>"; };
@@ -253,6 +267,18 @@
 		HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardOrdering.swift; sourceTree = "<group>"; };
 		AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbienceManager.swift; sourceTree = "<group>"; };
 		CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFreshnessLabel.swift; sourceTree = "<group>"; };
+
+		90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardHeader.swift; sourceTree = "<group>"; };
+		F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardFooter.swift; sourceTree = "<group>"; };
+		63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardContainer.swift; sourceTree = "<group>"; };
+		260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardRenderer.swift; sourceTree = "<group>"; };
+		F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListCardRenderer.swift; sourceTree = "<group>"; };
+		E19BC5C1C4464178BFB03223 /* TimelineCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineCardRenderer.swift; sourceTree = "<group>"; };
+		194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCardRenderer.swift; sourceTree = "<group>"; };
+		525629949349400A9FE8F436 /* TextCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCardRenderer.swift; sourceTree = "<group>"; };
+		971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardRenderer.swift; sourceTree = "<group>"; };
+		AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRendererFactory.swift; sourceTree = "<group>"; };
+		9BBC038A620A4778B341EA85 /* CardGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGalleryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -388,6 +414,7 @@
 				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
 				CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */,
 				CACH0001CACH0001CACH0001 /* CacheService.swift */,
+				BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */,
 				JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */,
 				RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */,
 			);
@@ -461,6 +488,10 @@
 				MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */,
 				WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */,
 				EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */,
+				544E19CFE605483095619EE8 /* UniversalCard */,
+				3FBBCE373D0B4F9A9B10CA71 /* Renderers */,
+				AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */,
+
 			);
 			path = Cards;
 			sourceTree = "<group>";
@@ -668,9 +699,34 @@
 			isa = PBXGroup;
 			children = (
 				49B954EE98DF57B9774F8D30 /* SearchView.swift */,
+				9BBC038A620A4778B341EA85 /* CardGalleryView.swift */,
 			);
 			name = App;
 			path = App;
+			sourceTree = "<group>";
+		};
+
+		544E19CFE605483095619EE8 /* UniversalCard */ = {
+			isa = PBXGroup;
+			children = (
+				90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */,
+				F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */,
+				63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */,
+			);
+			path = Sources/ThePerch/Views/Cards/UniversalCard;
+			sourceTree = "<group>";
+		};
+		3FBBCE373D0B4F9A9B10CA71 /* Renderers */ = {
+			isa = PBXGroup;
+			children = (
+				260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */,
+				F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */,
+				E19BC5C1C4464178BFB03223 /* TimelineCardRenderer.swift */,
+				194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */,
+				525629949349400A9FE8F436 /* TextCardRenderer.swift */,
+				971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */,
+			);
+			path = Sources/ThePerch/Views/Cards/Renderers;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -915,6 +971,7 @@
 				NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */,
 				CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */,
 				CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */,
+				BGRE0002BGRE0002BGRE0002 /* BackgroundRefreshService.swift in Sources */,
 				JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */,
 				RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */,
 				SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */,
@@ -935,6 +992,18 @@
 				AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */,
 				CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */,
 				ACMS0002ACMS0002ACMS0002 /* AdminCommandService.swift in Sources */,
+				5CC4FE16D0724E1B90BD8BDA /* UniversalCardHeader.swift in Sources */,
+				822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */,
+				99E67B0E893542999222D13B /* UniversalCardContainer.swift in Sources */,
+				B147D8B3A44F493392626D00 /* MetricCardRenderer.swift in Sources */,
+				CA0301F8D5324ED0983AB80C /* ListCardRenderer.swift in Sources */,
+				E345BD6F3BBD44B8B7F62E07 /* TimelineCardRenderer.swift in Sources */,
+				D259FD4EDAA14C63BED05FD3 /* StatusCardRenderer.swift in Sources */,
+				24C1850ACFD14218804CCF55 /* TextCardRenderer.swift in Sources */,
+				26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */,
+				F3083CD70F004A46A9706D46 /* CardRendererFactory.swift in Sources */,
+				F4C6D71B135641088ADEC4D7 /* CardGalleryView.swift in Sources */,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

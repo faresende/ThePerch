@@ -16,6 +16,8 @@ struct ThePerchApp: App {
     init() {
         // Install crash handler before anything else
         CrashReporter.shared.installHandler()
+        // Register background refresh tasks
+        BackgroundRefreshService.shared.registerTasks()
     }
 
     var body: some Scene {
@@ -27,6 +29,11 @@ struct ThePerchApp: App {
                 .environment(dashboardViewModel)
                 .environment(networkMonitor)
                 .task {
+                    // Eager initial load on app launch (cache first, then network)
+                    await dashboardViewModel.loadDashboard()
+                    // Schedule background refresh once we've loaded at least once
+                    BackgroundRefreshService.shared.scheduleAppRefresh()
+
                     // Request notification permission on first launch
                     await NotificationService.shared.requestPermission()
                     // Set up realtime subscriptions
@@ -42,6 +49,7 @@ struct ThePerchApp: App {
                         // Refresh data when app comes to foreground
                         Task {
                             await dashboardViewModel.loadDashboard()
+                            BackgroundRefreshService.shared.scheduleAppRefresh()
                         }
                     }
                 }
