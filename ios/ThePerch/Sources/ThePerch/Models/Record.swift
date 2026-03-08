@@ -13,6 +13,7 @@ enum RecordType: String, Codable, CaseIterable {
     case checklist
     case costSummary = "cost_summary"
     case bookmark
+    case command
 
     var displayName: String {
         switch self {
@@ -34,6 +35,8 @@ enum RecordType: String, Codable, CaseIterable {
             return "Cost Summary"
         case .bookmark:
             return "Bookmark"
+        case .command:
+            return "Command"
         }
     }
 }

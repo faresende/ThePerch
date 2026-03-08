@@ -341,6 +341,64 @@ struct EmailSummaryData: Codable {
     }
 }
 
+// MARK: - Admin Command Data
+
+/// Structured data for a remote admin command (restart gateway, doctor fix, etc.).
+struct AdminCommandData: Codable {
+    let command: AdminCommand
+    let status: CommandStatus
+    let result: CommandResult?
+    let createdAt: String
+    let executedAt: String?
+
+    enum AdminCommand: String, Codable {
+        case restartGateway = "restart_gateway"
+        case doctorFix = "doctor_fix"
+        case statusCheck = "status_check"
+
+        var displayName: String {
+            switch self {
+            case .restartGateway: return "Restart Gateway"
+            case .doctorFix: return "Doctor Fix"
+            case .statusCheck: return "Status Check"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .restartGateway: return "arrow.clockwise.circle.fill"
+            case .doctorFix: return "stethoscope.circle.fill"
+            case .statusCheck: return "checkmark.circle.fill"
+            }
+        }
+    }
+
+    enum CommandStatus: String, Codable {
+        case pending, executing, completed, failed
+
+        var displayName: String {
+            switch self {
+            case .pending: return "Pending"
+            case .executing: return "Executing"
+            case .completed: return "Completed"
+            case .failed: return "Failed"
+            }
+        }
+    }
+
+    struct CommandResult: Codable {
+        let success: Bool
+        let message: String?
+        let details: String?
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case command, status, result
+        case createdAt = "created_at"
+        case executedAt = "executed_at"
+    }
+}
+
 // MARK: - Data Payload Decoding Extension
 
 /// Extension to Record for convenient typed data decoding.
@@ -418,5 +476,10 @@ extension Record {
     /// Decodes email summary data from this record.
     func asEmailSummary() -> EmailSummaryData? {
         decodeData(as: EmailSummaryData.self)
+    }
+
+    /// Decodes admin command data from this record.
+    func asAdminCommand() -> AdminCommandData? {
+        decodeData(as: AdminCommandData.self)
     }
 }
