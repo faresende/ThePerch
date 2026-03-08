@@ -170,6 +170,8 @@ final class DashboardViewModel {
                     _ = record.decodeData(as: ChecklistData.self)
                 case .textNote:
                     _ = record.decodeData(as: TextNoteData.self)
+                case .command:
+                    _ = record.decodeData(as: AdminCommandData.self)
                 default:
                     break
                 }
