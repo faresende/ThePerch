@@ -1,23 +1,36 @@
 import SwiftUI
 
-/// Bookmarks section with search and filtering.
+/// Bookmarks section with Karakeep/Paperless tabs, search, and filtering.
 struct BookmarksView: View {
     @State private var viewModel = SectionViewModel(category: .bookmarks)
 
     @State private var searchText = ""
     @State private var selectedTags: Set<String> = []
+    @State private var selectedTab: BookmarkSource = .karakeep
+
+    // MARK: - Filtered Data
+
+    /// All bookmarks for the active tab.
+    private var tabBookmarks: [Record] {
+        viewModel.records.filter { record in
+            guard let bookmark = record.asBookmark() else { return false }
+            let bookmarkSource = bookmark.source ?? .karakeep
+            return bookmarkSource == selectedTab
+        }
+    }
 
     var allTags: [String] {
-        Array(Set(viewModel.records.compactMap { $0.asBookmark()?.tags }.flatMap { $0 })).sorted()
+        Array(Set(tabBookmarks.compactMap { $0.asBookmark()?.tags }.flatMap { $0 })).sorted()
     }
 
     var filteredBookmarks: [Record] {
-        viewModel.records.filter { record in
+        tabBookmarks.filter { record in
             guard let bookmark = record.asBookmark() else { return false }
 
             let matchesSearch = searchText.isEmpty ||
                 bookmark.displayTitle.localizedCaseInsensitiveContains(searchText) ||
-                (bookmark.summary?.localizedCaseInsensitiveContains(searchText) ?? false)
+                (bookmark.summary?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                (bookmark.fileName?.localizedCaseInsensitiveContains(searchText) ?? false)
 
             let matchesTags = selectedTags.isEmpty ||
                 selectedTags.allSatisfy { bookmark.tags.contains($0) }
@@ -32,6 +45,10 @@ struct BookmarksView: View {
 
     var processedBookmarks: [Record] {
         filteredBookmarks.filter { $0.asBookmark()?.status == .processed }
+    }
+
+    private var tabCount: Int {
+        filteredBookmarks.count
     }
 
     var body: some View {
@@ -49,22 +66,37 @@ struct BookmarksView: View {
             }
 
             VStack(spacing: 0) {
-                // Section header with freshness
+                // Section header with count
                 SectionHeader(title: "Bookmarks", freshnessKey: "bookmarks")
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, PerchTheme.Spacing.medium)
                     .padding(.bottom, PerchTheme.Spacing.small)
 
-                // Search bar (always visible)
+                // Tab picker + search + tags
                 VStack(spacing: PerchTheme.Spacing.medium) {
+                    // Segmented picker for Karakeep / Paperless
+                    Picker("Source", selection: $selectedTab) {
+                        Text("Karakeep").tag(BookmarkSource.karakeep)
+                        Text("Paperless").tag(BookmarkSource.paperless)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: selectedTab) { _, _ in
+                        // Reset tag selection when switching tabs
+                        selectedTags.removeAll()
+                    }
+
+                    // Search bar
                     HStack(spacing: PerchTheme.Spacing.small) {
                         Image(systemName: "magnifyingglass")
                             .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
                             .foregroundColor(PerchTheme.textSecondary)
 
-                        TextField("Search bookmarks", text: $searchText)
-                            .autocorrectionDisabled()
+                        TextField(
+                            selectedTab == .karakeep ? "Search bookmarks" : "Search documents",
+                            text: $searchText
+                        )
+                        .autocorrectionDisabled()
 
                         if !searchText.isEmpty {
                             Button(action: { searchText = "" }) {
@@ -115,6 +147,14 @@ struct BookmarksView: View {
                 // Content
                 ScrollView {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                        // Count indicator
+                        if !filteredBookmarks.isEmpty {
+                            Text("\(tabCount) \(selectedTab == .karakeep ? "bookmark" : "document")\(tabCount == 1 ? "" : "s")")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textTertiary)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+                        }
+
                         // Pending/processing bookmarks
                         if !pendingBookmarks.isEmpty {
                             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
@@ -125,14 +165,7 @@ struct BookmarksView: View {
                                 VStack(spacing: PerchTheme.Spacing.medium) {
                                     ForEach(pendingBookmarks) { record in
                                         if let bookmark = record.asBookmark() {
-                                            BookmarkCard(
-                                                bookmark: bookmark,
-                                                onTap: {
-                                                    if let url = URL(string: bookmark.url) {
-                                                        UIApplication.shared.open(url)
-                                                    }
-                                                }
-                                            )
+                                            bookmarkCardView(bookmark: bookmark)
                                         }
                                     }
                                 }
@@ -143,21 +176,14 @@ struct BookmarksView: View {
                         // Processed bookmarks
                         if !processedBookmarks.isEmpty {
                             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                                Text("Bookmarks")
+                                Text(selectedTab == .karakeep ? "Bookmarks" : "Documents")
                                     .font(PerchTheme.Font.heading)
                                     .foregroundColor(PerchTheme.textPrimary)
 
                                 VStack(spacing: PerchTheme.Spacing.medium) {
                                     ForEach(processedBookmarks) { record in
                                         if let bookmark = record.asBookmark() {
-                                            BookmarkCard(
-                                                bookmark: bookmark,
-                                                onTap: {
-                                                    if let url = URL(string: bookmark.url) {
-                                                        UIApplication.shared.open(url)
-                                                    }
-                                                }
-                                            )
+                                            bookmarkCardView(bookmark: bookmark)
                                         }
                                     }
                                 }
@@ -168,7 +194,7 @@ struct BookmarksView: View {
                         // Empty state
                         if filteredBookmarks.isEmpty && !searchText.isEmpty {
                             emptySearchView
-                        } else if viewModel.records.isEmpty {
+                        } else if tabBookmarks.isEmpty && !viewModel.isLoading {
                             emptyStateView
                         }
 
@@ -188,19 +214,40 @@ struct BookmarksView: View {
         }
     }
 
+    // MARK: - Card Selection
+
+    @ViewBuilder
+    private func bookmarkCardView(bookmark: BookmarkData) -> some View {
+        let tapAction = {
+            if let url = URL(string: bookmark.url) {
+                UIApplication.shared.open(url)
+            }
+        }
+
+        if selectedTab == .paperless {
+            PaperlessCard(bookmark: bookmark, onTap: tapAction)
+        } else {
+            BookmarkCard(bookmark: bookmark, onTap: tapAction)
+        }
+    }
+
+    // MARK: - Empty States
+
     @ViewBuilder
     private var emptyStateView: some View {
         VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: "bookmark")
+            Image(systemName: selectedTab == .karakeep ? "bookmark" : "doc")
                 .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
                 .foregroundColor(PerchTheme.textTertiary)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
-                Text("No bookmarks yet")
+                Text(selectedTab == .karakeep ? "No bookmarks yet" : "No documents yet")
                     .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
 
-                Text("Share articles from Safari or the Share Sheet")
+                Text(selectedTab == .karakeep
+                    ? "Share articles from Safari or the Share Sheet"
+                    : "Documents from Paperless will appear here")
                     .font(PerchTheme.Font.body)
                     .foregroundColor(PerchTheme.textSecondary)
                     .multilineTextAlignment(.center)
