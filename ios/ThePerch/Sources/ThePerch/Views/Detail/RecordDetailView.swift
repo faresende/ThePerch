@@ -594,9 +594,11 @@ private struct FlowLayout: Layout {
     }
 }
 
+#if DEBUG
 #Preview {
     NavigationStack {
         RecordDetailView(record: MockData.bookmarkRecords[0])
     }
     .background(PerchTheme.background)
 }
+#endif

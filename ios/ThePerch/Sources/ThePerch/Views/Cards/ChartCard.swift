@@ -381,6 +381,7 @@ struct ChartCard: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview {
     ChartCard(
         title: "Weight",
@@ -391,3 +392,4 @@ struct ChartCard: View {
     .background(PerchTheme.background)
     .ignoresSafeArea()
 }
+#endif
