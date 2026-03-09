@@ -72,17 +72,33 @@ final class HomeViewModel {
 
     // MARK: - Calories Record
 
+    /// Before 14:00 shows yesterday's final tally; after 14:00 shows today's live data.
+    /// Returns nil (--%) when no matching record exists, instead of falling back to stale data.
     var todaysCaloriesRecord: Record? {
         let caloriesRecords = records.filter { $0.asMeasurement()?.metric == "daily_calories" }
-        let todayString = PerchFormatters.isoDate.string(from: Date.now)
-        if let today = caloriesRecords.first(where: { $0.asMeasurement()?.context == todayString }) {
-            return today
+        let isMorning = Calendar.current.component(.hour, from: .now) < 14
+        let targetDate: Date = isMorning
+            ? Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now
+            : .now
+        let dateString = PerchFormatters.isoDate.string(from: targetDate)
+
+        // Try exact date match
+        if let match = caloriesRecords.first(where: { $0.asMeasurement()?.context == dateString }) {
+            return match
         }
-        return caloriesRecords.sorted {
-            let d0 = $0.asMeasurement()?.timestamp ?? $0.createdAt
-            let d1 = $1.asMeasurement()?.timestamp ?? $1.createdAt
-            return d0 > d1
-        }.first
+
+        // For afternoon (today), fall back to most recent today-only record
+        if !isMorning {
+            return caloriesRecords
+                .compactMap { r -> (Record, Date)? in
+                    guard let m = r.asMeasurement(), let ts = m.timestamp else { return nil }
+                    return Calendar.current.isDateInToday(ts) ? (r, ts) : nil
+                }
+                .sorted { $0.1 > $1.1 }
+                .first?.0
+        }
+
+        return nil
     }
 
     // MARK: - Live Activity Sync
