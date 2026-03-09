@@ -147,7 +147,8 @@ struct CalendarTodayCard: View {
             Text(PerchFormatters.time24h.string(from: event.start))
                 .font(isNext ? PerchTheme.Font.headingNumeric : PerchTheme.Font.bodyNumeric)
                 .foregroundColor(PerchTheme.textPrimary)
-                .frame(width: 50, alignment: .leading)
+                .frame(minWidth: 50, alignment: .leading)
+                .fixedSize(horizontal: true, vertical: false)
 
             // Title
             Text(event.title)
@@ -191,7 +192,8 @@ struct CalendarTodayCard: View {
             Text(PerchFormatters.time24h.string(from: event.start))
                 .font(PerchTheme.Font.captionNumeric)
                 .foregroundColor(PerchTheme.textTertiary)
-                .frame(width: 50, alignment: .leading)
+                .frame(minWidth: 50, alignment: .leading)
+                .fixedSize(horizontal: true, vertical: false)
 
             Text(event.title)
                 .font(PerchTheme.Font.caption)
