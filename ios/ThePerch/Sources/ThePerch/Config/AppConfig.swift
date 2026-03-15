@@ -3,6 +3,7 @@ import Foundation
 /// Configuration for the application, including Supabase credentials.
 struct AppConfig {
     static let shared = AppConfig()
+    static let defaultUserID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     let supabaseURL: URL
     let supabaseAnonKey: String

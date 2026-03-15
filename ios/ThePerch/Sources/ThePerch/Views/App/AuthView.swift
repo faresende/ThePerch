@@ -62,7 +62,7 @@ struct AuthView: View {
                                 .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textSecondary)
 
-                            TextField("Fabio", text: $vm.displayName)
+                            TextField("Your name", text: $vm.displayName)
                                 .padding(PerchTheme.Spacing.small)
                                 .background(PerchTheme.cardBackground)
                                 .cornerRadius(PerchTheme.Card.cornerRadius)

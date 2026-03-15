@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a section of the dashboard, typically corresponding to a RecordCategory.
-struct Section: Identifiable, Codable {
+struct Section: Identifiable, Codable, Sendable {
     let id: UUID
     let userId: UUID
     let slug: String
