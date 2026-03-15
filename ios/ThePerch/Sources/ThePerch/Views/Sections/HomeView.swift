@@ -173,6 +173,10 @@ struct HomeView: View {
     private var quickGlanceItems: [(icon: String, value: String, label: String, colorKey: String)] {
         var items: [(icon: String, value: String, label: String, colorKey: String)] = []
 
+        if let travelText = viewModel.travelQuickGlanceText {
+            items.append((icon: "airplane", value: travelText, label: "Travel", colorKey: "accent"))
+        }
+
         let calText = viewModel.caloriesPercentText
         if calText != "--%" {
             items.append((icon: "flame.fill", value: calText, label: "Calories", colorKey: viewModel.caloriesColor))
@@ -265,6 +269,8 @@ struct HomeView: View {
                 Text(value)
                     .font(PerchTheme.Font.titleNumeric)
                     .foregroundColor(PerchTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             Text(label)
                 .font(PerchTheme.Font.caption)

@@ -183,14 +183,21 @@ final class HomeViewModel {
 
     // MARK: - Travel Timezone
 
+    private var relevantTravelTrip: TripData? {
+        let tripRecords = records.compactMap { r -> TripData? in r.asTrip() }
+            .sorted { ($0.startDateParsed ?? .distantFuture) < ($1.startDateParsed ?? .distantFuture) }
+
+        if let activeTrip = tripRecords.first(where: { $0.status == "active" }) {
+            return activeTrip
+        }
+
+        return tripRecords.first { $0.status == "upcoming" && ($0.daysUntilStart ?? 99) <= 7 }
+    }
+
     /// Returns dual clock info when an active/upcoming trip has a different timezone.
     /// Nil when no trip or same timezone.
     var dualClockInfo: (homeTz: String, destTz: String, homeLabel: String, destLabel: String)? {
-        // Find active or upcoming trip
-        let tripRecords = records.compactMap { r -> TripData? in r.asTrip() }
-        let activeTrip = tripRecords.first { $0.status == "active" }
-        let upcomingTrip = tripRecords.first { $0.status == "upcoming" && ($0.daysUntilStart ?? 99) <= 7 }
-        guard let trip = activeTrip ?? upcomingTrip else { return nil }
+        guard let trip = relevantTravelTrip else { return nil }
 
         guard let originTz = trip.originTz,
               let destTz = trip.destinationTz,
@@ -200,6 +207,21 @@ final class HomeViewModel {
         let destCity = trip.destination
 
         return (homeTz: originTz, destTz: destTz, homeLabel: originCity, destLabel: destCity)
+    }
+
+    var travelQuickGlanceText: String? {
+        if let trip = relevantTravelTrip, trip.status == "active" {
+            if let day = trip.currentTripDay {
+                return "📍 \(trip.destination) Day \(day)"
+            }
+            return "📍 \(trip.destination)"
+        }
+
+        if let trip = relevantTravelTrip, trip.status == "upcoming", let days = trip.daysUntilStart {
+            return "✈️ \(trip.destination) in \(days)d"
+        }
+
+        return nil
     }
 
     // MARK: - Cross-Domain Travel Alerts
