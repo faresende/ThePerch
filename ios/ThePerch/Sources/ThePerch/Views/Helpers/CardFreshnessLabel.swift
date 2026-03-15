@@ -11,7 +11,7 @@ enum CardFreshness {
         if hours < 24 { return "Updated \(hours)h ago" }
 
         let days = max(1, hours / 24)
-        return "Updated \(days)d ago · Data may be outdated"
+        return "\(days)d ago"
     }
 
     static func color(for date: Date) -> Color {
@@ -32,8 +32,7 @@ struct CardFreshnessLabel: View {
             Text(CardFreshness.text(for: date))
                 .font(PerchTheme.Font.micro)
                 .foregroundColor(CardFreshness.color(for: date))
-                .lineLimit(2)
-                .multilineTextAlignment(.trailing)
+                .lineLimit(1)
         }
     }
 }
