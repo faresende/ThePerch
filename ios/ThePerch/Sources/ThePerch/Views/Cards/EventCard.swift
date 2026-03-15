@@ -5,10 +5,12 @@ import SwiftUI
 struct EventCard: View {
     let event: EventData
     let borderColor: Color
+    let timezoneText: String?
 
-    init(event: EventData, borderColor: Color = PerchTheme.accent) {
+    init(event: EventData, borderColor: Color = PerchTheme.accent, timezoneText: String? = nil) {
         self.event = event
         self.borderColor = borderColor
+        self.timezoneText = timezoneText
     }
 
     /// Whether this event has already ended.
@@ -25,25 +27,21 @@ struct EventCard: View {
     var body: some View {
         Button(action: openInCalendar) {
             HStack(spacing: 0) {
-                // Colored left border
                 RoundedRectangle(cornerRadius: 2)
                     .fill(isPast ? borderColor.opacity(0.3) : borderColor)
                     .frame(width: 4)
 
-                // Content
                 VStack(alignment: .leading, spacing: 4) {
-                    // Time
                     Text(timeFormatted)
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(isPast ? PerchTheme.textTertiary : PerchTheme.textSecondary)
 
-                    // Title
                     Text(event.title)
                         .font(PerchTheme.Font.heading)
                         .foregroundColor(isPast ? PerchTheme.textTertiary : PerchTheme.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                    // Location
                     if let location = event.location, !location.isEmpty {
                         HStack(spacing: 4) {
                             Image(systemName: "mappin.circle.fill")
@@ -55,7 +53,13 @@ struct EventCard: View {
                         .padding(.top, 2)
                     }
 
-                    // Agent note — only shown for non-past events
+                    if let timezoneText, !timezoneText.isEmpty {
+                        Label(timezoneText, systemImage: "globe")
+                            .font(PerchTheme.Font.micro)
+                            .foregroundColor(PerchTheme.textSecondary)
+                            .padding(.top, 2)
+                    }
+
                     if !isPast, let agentNote = event.agentNotes, !agentNote.isEmpty {
                         Text(agentNote)
                             .font(PerchTheme.Font.caption)
@@ -95,12 +99,13 @@ struct EventCard: View {
         if let location = event.location, !location.isEmpty {
             summary += ", at \(location)"
         }
+        if let timezoneText, !timezoneText.isEmpty {
+            summary += ", \(timezoneText)"
+        }
         return summary
     }
 
-    /// Opens Apple Calendar at the event's date.
     private func openInCalendar() {
-        // calshow: opens Calendar app at a specific date (seconds since reference date)
         let interval = event.start.timeIntervalSinceReferenceDate
         if let url = URL(string: "calshow:\(interval)") {
             UIApplication.shared.open(url)
