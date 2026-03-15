@@ -8,6 +8,13 @@ struct TravelView: View {
     @State private var selectedTripId: String?
     @State private var cardsAppeared = false
 
+    private struct TimelineEntry: Identifiable {
+        let id: String
+        let record: Record
+        let segment: ItineraryData
+        let date: Date
+    }
+
     /// The trip to display: selected, or current, or most recent past.
     private var displayTrip: (Record, TripData)? {
         if let id = selectedTripId {
@@ -188,7 +195,7 @@ struct TravelView: View {
                     Text("\(Int(weather.avgTemp))°C avg")
                         .font(PerchTheme.Font.body)
                         .foregroundColor(PerchTheme.textSecondary)
-                    Text("· \(weather.condition.capitalized)")
+                    Text("· \(formattedCondition(weather.condition))")
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
@@ -231,19 +238,73 @@ struct TravelView: View {
         }
     }
 
+    // MARK: - Timeline Entry (virtual, supports hotel split)
+
+    /// A virtual timeline entry that may represent a full segment or one half of a hotel stay.
+    private struct TimelineEntry: Identifiable {
+        let id: String
+        let record: Record
+        let segment: ItineraryData
+        let hotelMode: HotelMode
+        let sortDate: Date
+
+        enum HotelMode {
+            case notHotel       // Normal segment
+            case checkIn        // Hotel check-in card
+            case checkOut       // Hotel check-out card
+        }
+    }
+
     // MARK: - Itinerary Timeline
 
     private func itineraryTimeline(tripId: String) -> some View {
         let segments = viewModel.segments(for: tripId)
 
-        // Group segments by day
-        let grouped = Dictionary(grouping: segments) { item -> String in
-            let date = item.1.departure ?? item.1.checkIn ?? item.0.createdAt
-            return PerchFormatters.shortWeekdayDate.string(from: date)
+        // Build virtual entries, splitting hotels into check-in + check-out
+        var entries: [TimelineEntry] = []
+        for (record, segment) in segments {
+            if segment.isHotel {
+                // Check-in: uses departure date (that's how data is structured)
+                if let checkInDate = segment.departure {
+                    entries.append(TimelineEntry(
+                        id: "\(record.id.uuidString)-checkin",
+                        record: record,
+                        segment: segment,
+                        hotelMode: .checkIn,
+                        sortDate: checkInDate
+                    ))
+                }
+                // Check-out: uses arrival date
+                if let checkOutDate = segment.arrival {
+                    entries.append(TimelineEntry(
+                        id: "\(record.id.uuidString)-checkout",
+                        record: record,
+                        segment: segment,
+                        hotelMode: .checkOut,
+                        sortDate: checkOutDate
+                    ))
+                }
+            } else {
+                let date = segment.departure ?? segment.checkIn ?? record.createdAt
+                entries.append(TimelineEntry(
+                    id: record.id.uuidString,
+                    record: record,
+                    segment: segment,
+                    hotelMode: .notHotel,
+                    sortDate: date
+                ))
+            }
+        }
+
+        entries.sort { $0.sortDate < $1.sortDate }
+
+        // Group by day
+        let grouped = Dictionary(grouping: entries) { entry -> String in
+            PerchFormatters.shortWeekdayDate.string(from: entry.sortDate)
         }
         let sortedDays = grouped.keys.sorted { k1, k2 in
-            let d1 = grouped[k1]!.first.map { $0.1.departure ?? $0.1.checkIn ?? $0.0.createdAt } ?? .distantFuture
-            let d2 = grouped[k2]!.first.map { $0.1.departure ?? $0.1.checkIn ?? $0.0.createdAt } ?? .distantFuture
+            let d1 = grouped[k1]!.first?.sortDate ?? .distantFuture
+            let d2 = grouped[k2]!.first?.sortDate ?? .distantFuture
             return d1 < d2
         }
 
@@ -259,17 +320,17 @@ struct TravelView: View {
                 .padding(.vertical, PerchTheme.Spacing.small)
                 .padding(.horizontal, PerchTheme.Spacing.small)
 
-                // Segments for this day
-                let daySegments = grouped[dayLabel]!
-                ForEach(daySegments, id: \.0.id) { record, segment in
+                // Entries for this day
+                let dayEntries = grouped[dayLabel]!
+                ForEach(dayEntries) { entry in
                     HStack(alignment: .top, spacing: PerchTheme.Spacing.medium) {
                         // Timeline line + dot
                         VStack(spacing: 0) {
                             Circle()
-                                .fill(segmentStatusColor(segment))
+                                .fill(segmentStatusColor(entry.segment))
                                 .frame(width: 10, height: 10)
 
-                            if daySegments.last?.0.id != record.id || dayIndex < sortedDays.count - 1 {
+                            if dayEntries.last?.id != entry.id || dayIndex < sortedDays.count - 1 {
                                 Rectangle()
                                     .fill(PerchTheme.border)
                                     .frame(width: 1)
@@ -279,7 +340,7 @@ struct TravelView: View {
                         .frame(width: 20)
 
                         // Segment content
-                        segmentCard(segment: segment)
+                        segmentCard(record: entry.record, segment: entry.segment, hotelMode: entry.hotelMode)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.horizontal, PerchTheme.Spacing.small)
@@ -290,10 +351,35 @@ struct TravelView: View {
         .cardStyle()
     }
 
+    // MARK: - Segment Type Tag
+
+    private func segmentTypeTag(_ segment: ItineraryData) -> some View {
+        let (emoji, label) = segmentTagInfo(segment)
+        return Text("\(emoji) \(label)")
+            .font(PerchTheme.Font.micro)
+            .foregroundColor(PerchTheme.textTertiary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(PerchTheme.cardInnerBackground)
+            .cornerRadius(4)
+    }
+
+    private func segmentTagInfo(_ segment: ItineraryData) -> (String, String) {
+        switch segment.segmentType {
+        case "flight": return ("✈️", "Flight")
+        case "hotel": return ("🏨", "Hotel")
+        case "train": return ("🚂", "Train")
+        case "car_rental": return ("🚗", "Rental")
+        case "drive": return ("🚗", "Drive")
+        case "restaurant": return ("🍽", "Restaurant")
+        default: return ("📍", segment.segmentType.capitalized)
+        }
+    }
+
     // MARK: - Segment Card
 
     @ViewBuilder
-    private func segmentCard(segment: ItineraryData) -> some View {
+    private func segmentCard(record: Record, segment: ItineraryData, hotelMode: TimelineEntry.HotelMode = .notHotel) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Image(systemName: segmentIcon(segment))
@@ -311,8 +397,15 @@ struct TravelView: View {
                             .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textSecondary)
                     }
+                } else if segment.isHotel {
+                    // Hotel name from data.name, falling back to record title
+                    let hotelName = segment.name ?? record.title
+                    Text(hotelName)
+                        .font(PerchTheme.Font.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(PerchTheme.textPrimary)
                 } else {
-                    Text(segment.name ?? segment.segmentType.capitalized)
+                    Text(segment.name ?? record.title)
                         .font(PerchTheme.Font.body)
                         .fontWeight(.semibold)
                         .foregroundColor(PerchTheme.textPrimary)
@@ -320,29 +413,51 @@ struct TravelView: View {
 
                 Spacer()
 
-                if let status = segment.status {
-                    Text(status.replacingOccurrences(of: "_", with: " ").capitalized)
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(segmentStatusColor(segment))
+                // Type tag pill (non-flight segments)
+                if !segment.isFlight {
+                    segmentTypeTag(segment)
                 }
             }
 
-            // Times
-            HStack(spacing: PerchTheme.Spacing.medium) {
-                if let dep = segment.departure {
-                    Label(PerchFormatters.time24h.string(from: dep), systemImage: "arrow.up.right")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
+            // Times - different display for hotels vs other segments
+            if segment.isHotel {
+                // Hotel: show check-in or check-out based on mode
+                HStack(spacing: PerchTheme.Spacing.medium) {
+                    switch hotelMode {
+                    case .checkIn:
+                        if let dep = segment.departure {
+                            Label("Check-in \(PerchFormatters.time24h.string(from: dep))", systemImage: "arrow.right.circle")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.accent)
+                        }
+                    case .checkOut:
+                        if let arr = segment.arrival {
+                            Label("Check-out \(PerchFormatters.time24h.string(from: arr))", systemImage: "arrow.left.circle")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textSecondary)
+                        }
+                    case .notHotel:
+                        // Fallback: show both if not split
+                        if let dep = segment.departure {
+                            Label("Check-in \(PerchFormatters.time24h.string(from: dep))", systemImage: "clock")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textSecondary)
+                        }
+                    }
                 }
-                if let arr = segment.arrival {
-                    Label(PerchFormatters.time24h.string(from: arr), systemImage: "arrow.down.right")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
-                }
-                if let checkIn = segment.checkIn {
-                    Label("Check-in \(PerchFormatters.time24h.string(from: checkIn))", systemImage: "clock")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
+            } else {
+                // Non-hotel: departure + arrival arrows
+                HStack(spacing: PerchTheme.Spacing.medium) {
+                    if let dep = segment.departure {
+                        Label(PerchFormatters.time24h.string(from: dep), systemImage: "arrow.up.right")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textSecondary)
+                    }
+                    if let arr = segment.arrival {
+                        Label(PerchFormatters.time24h.string(from: arr), systemImage: "arrow.down.right")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textSecondary)
+                    }
                 }
             }
 
@@ -358,7 +473,8 @@ struct TravelView: View {
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
-                if let conf = segment.confirmation {
+                // Show confirmation on check-in cards (or non-hotel segments)
+                if hotelMode != .checkOut, let conf = segment.confirmation {
                     Text(conf)
                         .font(PerchTheme.Font.captionNumeric)
                         .foregroundColor(PerchTheme.textTertiary)
@@ -369,7 +485,7 @@ struct TravelView: View {
                 }
             }
 
-            if let address = segment.address {
+            if hotelMode != .checkOut, let address = segment.address {
                 Text(address)
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
@@ -476,6 +592,110 @@ struct TravelView: View {
         case "pending": return PerchTheme.textTertiary
         default: return PerchTheme.accent
         }
+    }
+
+    private func timelineEntries(for tripId: String) -> [TimelineEntry] {
+        viewModel.segments(for: tripId).flatMap { record, segment in
+            if segment.isHotel {
+                var entries: [TimelineEntry] = []
+
+                if let checkIn = segment.departure ?? segment.checkIn {
+                    let checkInSegment = ItineraryData(
+                        tripId: segment.tripId,
+                        segmentType: segment.segmentType,
+                        carrier: segment.carrier,
+                        flightNumber: segment.flightNumber,
+                        origin: segment.origin,
+                        destination: segment.destination,
+                        departure: nil,
+                        arrival: nil,
+                        status: segment.status,
+                        confirmation: segment.confirmation,
+                        gate: segment.gate,
+                        seat: segment.seat,
+                        name: segment.name,
+                        checkIn: checkIn,
+                        checkOut: nil,
+                        address: segment.address
+                    )
+                    entries.append(TimelineEntry(
+                        id: "\(record.id.uuidString)-check-in",
+                        record: record,
+                        segment: checkInSegment,
+                        date: checkIn
+                    ))
+                }
+
+                if let checkOut = segment.arrival ?? segment.checkOut {
+                    let checkOutSegment = ItineraryData(
+                        tripId: segment.tripId,
+                        segmentType: segment.segmentType,
+                        carrier: segment.carrier,
+                        flightNumber: segment.flightNumber,
+                        origin: segment.origin,
+                        destination: segment.destination,
+                        departure: nil,
+                        arrival: nil,
+                        status: segment.status,
+                        confirmation: segment.confirmation,
+                        gate: segment.gate,
+                        seat: segment.seat,
+                        name: segment.name,
+                        checkIn: nil,
+                        checkOut: checkOut,
+                        address: segment.address
+                    )
+                    entries.append(TimelineEntry(
+                        id: "\(record.id.uuidString)-check-out",
+                        record: record,
+                        segment: checkOutSegment,
+                        date: checkOut
+                    ))
+                }
+
+                if !entries.isEmpty {
+                    return entries
+                }
+            }
+
+            let date = segment.departure ?? segment.checkIn ?? record.createdAt
+            return [TimelineEntry(id: record.id.uuidString, record: record, segment: segment, date: date)]
+        }
+        .sorted { lhs, rhs in
+            if lhs.date == rhs.date {
+                return lhs.id < rhs.id
+            }
+            return lhs.date < rhs.date
+        }
+    }
+
+    private func formattedCondition(_ value: String) -> String {
+        value.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+
+    private func segmentTypeTag(_ seg: ItineraryData) -> some View {
+        Text("\(segmentTypeEmoji(seg.segmentType)) \(formattedCondition(seg.segmentType))")
+            .font(PerchTheme.Font.micro)
+            .foregroundColor(PerchTheme.textSecondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(PerchTheme.background.opacity(0.8))
+            .cornerRadius(999)
+    }
+
+    private func segmentTypeEmoji(_ segmentType: String) -> String {
+        switch segmentType {
+        case "flight": return "✈️"
+        case "hotel": return "🏨"
+        case "train": return "🚂"
+        case "car_rental": return "🚗"
+        case "restaurant": return "🍽️"
+        default: return "📍"
+        }
+    }
+
+    private func shouldShowConfirmation(for segment: ItineraryData) -> Bool {
+        !segment.isHotel || segment.checkIn != nil
     }
 
     private func statusEmoji(_ status: String) -> String {
