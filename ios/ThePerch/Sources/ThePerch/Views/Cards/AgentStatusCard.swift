@@ -22,11 +22,9 @@ struct AgentStatusCard: View {
         guard let hours = statusData?.uptimeHours else { return "—" }
         if hours < 1 {
             return "\(Int(hours * 60))m"
-        } else if hours < 24 {
-            return String(format: "%.1fh", hours)
-        } else {
-            return String(format: "%.0fd", hours / 24)
         }
+
+        return PerchFormatters.uptimeString(from: hours)
     }
 
     private var resolvedDisplayName: String {

@@ -111,22 +111,14 @@ final class AdminViewModel {
         if let agent = agents.first(where: { $0.id == agentId }), let emoji = agent.emoji {
             return emoji
         }
-        switch agentId {
-        case "claudinho": return "🤖"
-        case "biochecha": return "💊"
-        case "entregas": return "📦"
-        case "calendario": return "📅"
-        case "legal": return "⚖️"
-        case "archie": return "📚"
-        default: return "⚙️"
-        }
+        return AgentIdentity.emoji(for: agentId)
     }
 
     func agentNameForId(_ agentId: String) -> String {
         if let agent = agents.first(where: { $0.id == agentId }) {
             return agent.displayName
         }
-        return agentId.capitalized
+        return AgentIdentity.name(for: agentId)
     }
 
     func displayNameForAgent(_ agent: Agent) -> String {

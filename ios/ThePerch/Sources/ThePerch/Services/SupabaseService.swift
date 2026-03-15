@@ -130,10 +130,6 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     /// Managed tasks for realtime stream listeners (cancelled on unsubscribe).
     private var realtimeTasks: [Task<Void, Never>] = []
 
-    /// Network connectivity monitor.
-    private let networkMonitor = NWPathMonitor()
-    private let monitorQueue = DispatchQueue(label: "com.theperch.networkMonitor")
-
     /// Tracks when each category was last fetched for data freshness.
     @Published var lastFetchTimes: [RecordCategory: Date] = [:]
     @Published var lastGlobalFetchTime: Date?
@@ -178,15 +174,23 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     // MARK: - Network Monitoring
 
     private func startNetworkMonitoring() {
-        networkMonitor.pathUpdateHandler = { [weak self] path in
+        _ = withObservationTracking {
+            NetworkMonitor.shared.isConnected
+        } onChange: { [weak self] in
             Task { @MainActor [weak self] in
-                self?.isOffline = path.status != .satisfied
-                if path.status == .satisfied {
-                    self?.connectionError = nil
+                guard let self else { return }
+                self.isOffline = !NetworkMonitor.shared.isConnected
+                if NetworkMonitor.shared.isConnected {
+                    self.connectionError = nil
                 }
+                self.startNetworkMonitoring()
             }
         }
-        networkMonitor.start(queue: monitorQueue)
+
+        isOffline = !NetworkMonitor.shared.isConnected
+        if NetworkMonitor.shared.isConnected {
+            connectionError = nil
+        }
     }
 
     // MARK: - Retry Logic
@@ -204,7 +208,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 lastError = error
                 if attempt < maxRetries - 1 {
                     let delay = baseRetryDelay * pow(2.0, Double(attempt))
+#if DEBUG
                     print("[\(operation)] Attempt \(attempt + 1) failed, retrying in \(delay)s: \(error.localizedDescription)")
+#endif
                     try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 }
             }
@@ -312,7 +318,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         do {
             let session = try await client.auth.session
             self.isAuthenticated = true
+#if DEBUG
             print("[SupabaseService] Session restored for user: \(session.user.id)")
+#endif
         } catch {
             self.isAuthenticated = false
             print("[SupabaseService] No active session: \(error.localizedDescription)")
@@ -378,7 +386,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         } catch {
             // Fallback to offline cache if network fetch fails
             if let cached = cacheService.loadRecords(category: category, userId: cacheUserId) {
+#if DEBUG
                 print("[SupabaseService] Network failed, using offline cache for \(category?.rawValue ?? "all")")
+#endif
                 var filtered = cached
                 if let type { filtered = filtered.filter { $0.type == type } }
                 let result = Array(filtered.prefix(limit))
@@ -471,7 +481,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         } catch {
             // Fallback to offline cache
             if let cached = cacheService.loadSections(userId: cacheUserId) {
+#if DEBUG
                 print("[SupabaseService] Network failed, using offline cache for sections")
+#endif
                 sectionsCache = CacheEntry(value: cached, fetchedAt: Date.now)
                 return cached
             }
@@ -549,15 +561,6 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         sectionsCache = nil
     }
 
-    /// Updates home widget configurations.
-    func updateHomeWidgets(widgets: [HomeWidget]) async throws {
-        #if DEBUG
-        if useMockData { return }
-        #endif
-        homeWidgetsCache = nil
-        // TODO: Implement batch widget update
-    }
-
     /// Updates the JSON data field of a record (e.g. toggling medication checkboxes).
     func updateRecordData(recordId: UUID, data: [String: JSONValue]) async throws {
         #if DEBUG
@@ -626,7 +629,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             try await client.from("dashboard_records")
                 .insert(record)
                 .execute()
+#if DEBUG
             print("[SupabaseService] Inserted record: \(title)")
+#endif
             recordsCache.removeAll()
         } catch {
             print("[SupabaseService] insertRecord error: \(error)")
@@ -671,7 +676,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         self.recordsChannel = channel
 
         await channel.subscribe()
+#if DEBUG
         print("[SupabaseService] Subscribed to dashboard_records realtime")
+#endif
 
         // Listen for insertions
         let insertTask = Task {
@@ -739,7 +746,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         self.agentsChannel = channel
 
         await channel.subscribe()
+#if DEBUG
         print("[SupabaseService] Subscribed to agents realtime")
+#endif
 
         let agentTask = Task {
             for await change in changes {
@@ -769,7 +778,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             await client.realtimeV2.removeChannel(channel)
             agentsChannel = nil
         }
+#if DEBUG
         print("[SupabaseService] Unsubscribed from all realtime channels")
+#endif
     }
 
     /// Minutes since last fetch for a given category (nil = global).
@@ -784,4 +795,3 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         return Int(Date.now.timeIntervalSince(date) / 60)
     }
 }
-

@@ -107,4 +107,59 @@ enum PerchFormatters {
         f.maximumFractionDigits = 0
         return f
     }()
+
+    // MARK: - Helpers
+
+    static func uptimeString(from hours: Double) -> String {
+        let days = Int(hours / 24)
+        let remainingHours = Int(hours) % 24
+
+        if days > 0 {
+            return "\(days)d \(remainingHours)h"
+        }
+
+        return "\(Int(hours))h"
+    }
+}
+
+extension Date {
+    var relativeTime: String {
+        let interval = Date.now.timeIntervalSince(self)
+        let minutes = Int(interval / 60)
+        let hours = Int(interval / 3600)
+        let days = Int(interval / 86400)
+
+        if minutes < 0 {
+            let absoluteMinutes = abs(minutes)
+            let absoluteHours = abs(hours)
+
+            if absoluteMinutes < 60 {
+                return "in \(absoluteMinutes)m"
+            }
+
+            if absoluteHours < 24 {
+                return "in \(absoluteHours)h \(absoluteMinutes % 60)m"
+            }
+
+            return "in \(abs(days))d"
+        }
+
+        if minutes < 1 {
+            return "now"
+        }
+
+        if minutes < 60 {
+            return "\(minutes)m ago"
+        }
+
+        if hours < 24 {
+            return "\(hours)h ago"
+        }
+
+        if days < 7 {
+            return "\(days)d ago"
+        }
+
+        return PerchFormatters.mediumDate.string(from: self)
+    }
 }

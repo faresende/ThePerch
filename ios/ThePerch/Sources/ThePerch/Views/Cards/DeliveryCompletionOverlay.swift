@@ -37,8 +37,11 @@ struct DeliveryCompletionOverlay: View {
             guard !PerchMotion.prefersReduced else {
                 // Instant display then hide for Reduce Motion
                 showCheck = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    fadeOut = true
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    await MainActor.run {
+                        fadeOut = true
+                    }
                 }
                 return
             }
@@ -97,8 +100,11 @@ struct DeliveryCompletionModifier: ViewModifier {
                     PerchHaptics.success()
                     showCelebration = true
                     // Auto-dismiss after animation completes
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        showCelebration = false
+                    Task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        await MainActor.run {
+                            showCelebration = false
+                        }
                     }
                 }
                 wasDelivered = newValue

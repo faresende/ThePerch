@@ -12,10 +12,6 @@ struct CostBreakdownCard: View {
         let agentEmoji: String
         let agentName: String
         let cost: Double
-
-        var percent: Double {
-            0 // Calculated based on total
-        }
     }
 
     var maxCost: Double {

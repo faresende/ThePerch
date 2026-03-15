@@ -30,7 +30,9 @@ final class BackgroundRefreshService {
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 min minimum
         do {
             try BGTaskScheduler.shared.submit(request)
+#if DEBUG
             print("[BGRefresh] Scheduled next refresh in ~15 min")
+#endif
         } catch {
             print("[BGRefresh] Failed to schedule: \(error)")
         }
@@ -58,7 +60,9 @@ final class BackgroundRefreshService {
                 // Fetch widgets (currently in-memory only; no disk cache API yet)
                 let widgets = try await service.fetchHomeWidgets(forceRefresh: true)
 
+#if DEBUG
                 print("[BGRefresh] Successfully refreshed \(records.count) records, \(sections.count) sections, \(widgets.count) widgets")
+#endif
                 task.setTaskCompleted(success: true)
             } catch {
                 print("[BGRefresh] Failed: \(error)")

@@ -245,27 +245,11 @@ struct WidgetRouter: View {
     // MARK: - Helper Functions
 
     private func agentEmojiForId(_ agentId: String) -> String {
-        switch agentId {
-        case "claudinho": return "🤖"
-        case "biochecha": return "💊"
-        case "entregas": return "📦"
-        case "calendario": return "📅"
-        case "legal": return "⚖️"
-        case "archie": return "📚"
-        default: return "⚙️"
-        }
+        AgentIdentity.emoji(for: agentId)
     }
 
     private func agentNameForId(_ agentId: String) -> String {
-        switch agentId {
-        case "claudinho": return "Claudinho"
-        case "biochecha": return "BioChecha"
-        case "entregas": return "Entregas"
-        case "calendario": return "Calendario"
-        case "legal": return "Legal"
-        case "archie": return "Archie"
-        default: return agentId.capitalized
-        }
+        AgentIdentity.name(for: agentId)
     }
 }
 
