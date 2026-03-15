@@ -326,8 +326,36 @@ struct TravelView: View {
                 .padding(.vertical, PerchTheme.Spacing.small)
                 .padding(.horizontal, PerchTheme.Spacing.small)
 
-                // Entries for this day
+                // Inline day tasks (before segments)
                 let dayEntries = grouped[dayLabel]!
+                if let firstEntry = dayEntries.first {
+                    let dateStr = isoDate(from: firstEntry.sortDate)
+                    let dayTasks = viewModel.dayTasks(for: tripId, on: dateStr)
+                    if !dayTasks.isEmpty {
+                        ForEach(dayTasks, id: \.0.id) { record, task in
+                            HStack(alignment: .top, spacing: PerchTheme.Spacing.medium) {
+                                VStack(spacing: 0) {
+                                    Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(task.done ? PerchTheme.success : PerchTheme.textTertiary)
+
+                                    Rectangle()
+                                        .fill(PerchTheme.border)
+                                        .frame(width: 1)
+                                        .frame(maxHeight: .infinity)
+                                }
+                                .frame(width: 20)
+
+                                InlineTaskRow(record: record, task: task)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 2)
+                            }
+                            .padding(.horizontal, PerchTheme.Spacing.small)
+                        }
+                    }
+                }
+
+                // Entries for this day
                 ForEach(dayEntries) { entry in
                     HStack(alignment: .top, spacing: PerchTheme.Spacing.medium) {
                         // Timeline line + dot
@@ -352,34 +380,6 @@ struct TravelView: View {
                     .padding(.horizontal, PerchTheme.Spacing.small)
                 }
 
-                // Inline day tasks
-                if let firstEntry = dayEntries.first {
-                    let dateStr = isoDate(from: firstEntry.sortDate)
-                    let dayTasks = viewModel.dayTasks(for: tripId, on: dateStr)
-                    if !dayTasks.isEmpty {
-                        ForEach(dayTasks, id: \.0.id) { record, task in
-                            HStack(alignment: .top, spacing: PerchTheme.Spacing.medium) {
-                                // Timeline line + task dot
-                                VStack(spacing: 0) {
-                                    Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(task.done ? PerchTheme.success : PerchTheme.textTertiary)
-
-                                    Rectangle()
-                                        .fill(PerchTheme.border)
-                                        .frame(width: 1)
-                                        .frame(maxHeight: .infinity)
-                                }
-                                .frame(width: 20)
-
-                                InlineTaskRow(record: record, task: task)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 2)
-                            }
-                            .padding(.horizontal, PerchTheme.Spacing.small)
-                        }
-                    }
-                }
             }
         }
         .padding(PerchTheme.Card.padding)
