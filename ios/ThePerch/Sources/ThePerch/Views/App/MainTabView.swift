@@ -78,6 +78,12 @@ struct MainTabView: View {
                             .padding(.trailing, PerchTheme.Spacing.medium)
                         }
                     }
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(PerchTheme.accent.opacity(0.12), lineWidth: 1)
+                    )
+                    .shadow(color: PerchTheme.accent.opacity(0.10), radius: 6, x: 0, y: 0)
                 }
 
                 // Tab content — LazyHStack ensures only visible + neighbor sections render
