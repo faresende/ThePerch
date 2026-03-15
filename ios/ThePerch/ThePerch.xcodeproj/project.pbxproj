@@ -111,6 +111,7 @@
 		HSHC0002HSHC0002HSHC0002 /* HealthSummaryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */; };
 		JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */; };
 		LKSW0002LKSW0002LKSW0002 /* PerchLockScreenWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */; };
+				TRVT0002TRVT0002TRVT0002 /* TravelTasksCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */; };
 		MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */; };
 		MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */; };
 		NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */; };
@@ -266,6 +267,7 @@
 		HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryHomeCard.swift; sourceTree = "<group>"; };
 		JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueDecoder.swift; sourceTree = "<group>"; };
 		LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchLockScreenWidgets.swift; path = ThePerchWidgets/PerchLockScreenWidgets.swift; sourceTree = "<group>"; };
+				TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelTasksCard.swift; sourceTree = "<group>"; };
 		MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsCard.swift; sourceTree = "<group>"; };
 		MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSupabaseService.swift; sourceTree = "<group>"; };
 		NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
@@ -467,6 +469,7 @@
 				DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */,
 				0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */,
 				MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */,
+				TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */,
 				WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */,
 				EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */,
 				544E19CFE605483095619EE8 /* UniversalCard */,
@@ -980,6 +983,7 @@
 				DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */,
 				90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */,
 				MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */,
+				TRVT0002TRVT0002TRVT0002 /* TravelTasksCard.swift in Sources */,
 				WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */,
 				EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */,
 				HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */,

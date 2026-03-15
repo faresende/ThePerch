@@ -50,9 +50,17 @@ struct TravelView: View {
                                     .padding(.horizontal, PerchTheme.Spacing.large)
                             }
 
+                            // Pre-trip tasks
+                            let preTripTasks = viewModel.preTripTasks(for: trip.tripId)
+                            if !preTripTasks.isEmpty {
+                                TravelTasksCard(tasks: preTripTasks)
+                                    .cardAppear(index: 2, appeared: cardsAppeared)
+                                    .padding(.horizontal, PerchTheme.Spacing.large)
+                            }
+
                             // Itinerary timeline
                             itineraryTimeline(tripId: trip.tripId)
-                                .cardAppear(index: 2, appeared: cardsAppeared)
+                                .cardAppear(index: 3, appeared: cardsAppeared)
                                 .padding(.horizontal, PerchTheme.Spacing.large)
 
                             let tripEvents = calendarEvents(for: trip)
@@ -250,6 +258,11 @@ struct TravelView: View {
 
     // MARK: - Itinerary Timeline
 
+    /// Convert a display date label back to ISO date string for task matching.
+    private func isoDate(from displayDate: Date) -> String {
+        PerchFormatters.isoDate.string(from: displayDate)
+    }
+
     private func itineraryTimeline(tripId: String) -> some View {
         let segments = viewModel.segments(for: tripId)
 
@@ -337,6 +350,35 @@ struct TravelView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.horizontal, PerchTheme.Spacing.small)
+                }
+
+                // Inline day tasks
+                if let firstEntry = dayEntries.first {
+                    let dateStr = isoDate(from: firstEntry.sortDate)
+                    let dayTasks = viewModel.dayTasks(for: tripId, on: dateStr)
+                    if !dayTasks.isEmpty {
+                        ForEach(dayTasks, id: \.0.id) { record, task in
+                            HStack(alignment: .top, spacing: PerchTheme.Spacing.medium) {
+                                // Timeline line + task dot
+                                VStack(spacing: 0) {
+                                    Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(task.done ? PerchTheme.success : PerchTheme.textTertiary)
+
+                                    Rectangle()
+                                        .fill(PerchTheme.border)
+                                        .frame(width: 1)
+                                        .frame(maxHeight: .infinity)
+                                }
+                                .frame(width: 20)
+
+                                InlineTaskRow(record: record, task: task)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 2)
+                            }
+                            .padding(.horizontal, PerchTheme.Spacing.small)
+                        }
+                    }
                 }
             }
         }
