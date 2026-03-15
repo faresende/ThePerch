@@ -399,7 +399,15 @@ struct TravelView: View {
 
     @ViewBuilder
     private func segmentCard(record: Record, segment: ItineraryData, hotelMode: TimelineEntry.HotelMode = .notHotel) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
+            // Leading icon (fixed width, text wraps past it)
+            Image(systemName: segmentIcon(segment))
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.accent)
+                .frame(width: 18, alignment: .center)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 6) {
             // Row 1: Name (full width, no status competing)
             if segment.isFlight {
                 VStack(alignment: .leading, spacing: 2) {
@@ -529,7 +537,8 @@ struct TravelView: View {
                     .foregroundColor(PerchTheme.textTertiary)
                     .lineLimit(1)
             }
-        }
+            } // end inner VStack
+        } // end HStack (icon + content)
         .padding(PerchTheme.Spacing.medium)
         .background(PerchTheme.cardInnerBackground)
         .cornerRadius(10)
