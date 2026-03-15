@@ -59,7 +59,7 @@ struct MainTabView: View {
                         // Realtime status indicator
                         if !reconnectManager.isConnected && !reconnectManager.hasGivenUp {
                             Circle()
-                                .fill(Color.orange)
+                                .fill(PerchTheme.warning)
                                 .frame(width: 8, height: 8)
                                 .padding(.trailing, PerchTheme.Spacing.medium)
                         }

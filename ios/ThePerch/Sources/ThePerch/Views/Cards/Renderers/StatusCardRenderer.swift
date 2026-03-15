@@ -16,11 +16,11 @@ struct StatusCardRenderer: View {
     private func color(for status: String?) -> Color {
         switch status {
         case "ok":
-            return .green
+            return PerchTheme.success
         case "warning":
-            return .orange
+            return PerchTheme.warning
         case "error":
-            return .red
+            return PerchTheme.error
         default:
             return PerchTheme.textSecondary
         }

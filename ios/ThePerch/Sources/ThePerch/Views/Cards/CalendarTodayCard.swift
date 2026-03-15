@@ -56,9 +56,10 @@ struct CalendarTodayCard: View {
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.accent)
                     Text("TODAY")
-                        .font(PerchTheme.Font.caption)
+                        .font(PerchTheme.Font.cardEyebrow)
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
+                        .tracking(0.8)
                     Spacer()
                     CardFreshnessLabel(date: latestUpdate)
                     if !todayEvents.isEmpty {
@@ -72,7 +73,7 @@ struct CalendarTodayCard: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CardPressStyle())
 
             if todayEvents.isEmpty {
                 // Empty state
@@ -154,7 +155,9 @@ struct CalendarTodayCard: View {
             Text(event.title)
                 .font(isNext ? PerchTheme.Font.heading : PerchTheme.Font.body)
                 .foregroundColor(PerchTheme.textPrimary)
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .layoutPriority(1)
 
             Spacer()
 
@@ -198,7 +201,9 @@ struct CalendarTodayCard: View {
             Text(event.title)
                 .font(PerchTheme.Font.caption)
                 .foregroundColor(PerchTheme.textTertiary)
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .layoutPriority(1)
 
             Spacer()
 

@@ -77,6 +77,11 @@ struct BookmarkCard: View {
                 }
 
                 Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(PerchTheme.Font.micro)
+                    .foregroundColor(PerchTheme.textTertiary)
+                    .padding(.top, PerchTheme.Spacing.xxxSmall)
             }
             .padding(PerchTheme.Spacing.large)
             .cardStyle()

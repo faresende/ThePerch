@@ -92,7 +92,7 @@ private struct ErrorOverlay: View {
     var body: some View {
         HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
+                .foregroundColor(PerchTheme.error)
                 .accessibilityHidden(true)
             Text(message)
                 .font(PerchTheme.Font.body)

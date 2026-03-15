@@ -65,13 +65,17 @@ struct WeatherCompactCard: View {
                                 .foregroundColor(PerchTheme.textTertiary)
                         }
                     }
+
+                    Image(systemName: "chevron.right")
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(PerchTheme.textTertiary)
                 }
                 .padding(.horizontal, PerchTheme.Card.padding)
                 .padding(.vertical, PerchTheme.Spacing.medium)
                 .cardStyle()
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CardPressStyle())
         }
     }
 

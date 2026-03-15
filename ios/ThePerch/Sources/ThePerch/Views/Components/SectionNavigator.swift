@@ -51,7 +51,9 @@ private struct PillButton: View {
             Text(title)
                 .font(PerchTheme.Font.caption)
                 .fontWeight(isActive ? .semibold : .regular)
-                .foregroundColor(isActive ? .white : PerchTheme.textSecondary)
+                .foregroundColor(isActive ? PerchTheme.accentForeground : PerchTheme.textSecondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, PerchTheme.Spacing.medium)
                 .padding(.vertical, PerchTheme.Spacing.xSmall)
                 .background {

@@ -34,9 +34,10 @@ struct DeliveryHomeCard: View {
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.accent)
                     Text("DELIVERIES")
-                        .font(PerchTheme.Font.caption)
+                        .font(PerchTheme.Font.cardEyebrow)
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
+                        .tracking(0.8)
                     Spacer()
                     CardFreshnessLabel(date: latestUpdate)
                     Text("\(activeDeliveries.count) active")
@@ -151,7 +152,7 @@ struct DeliveryHomeCard: View {
         case "ordered", "pending":
             return ("Ordered", PerchTheme.textTertiary)
         case "shipped", "processing":
-            return ("Shipped", Color(red: 0.35, green: 0.6, blue: 0.95))
+            return ("Shipped", PerchTheme.accent)
         case "in_transit":
             return ("In Transit", PerchTheme.warning)
         case "out_for_delivery":
