@@ -35,4 +35,67 @@ struct Agent: Identifiable, Codable, Equatable {
         }
         return displayName
     }
+
+    private var lookupKey: String {
+        "\(id) \(displayName)".lowercased()
+    }
+
+    var roleLabel: String {
+        switch lookupKey {
+        case let key where key.contains("claudinho"):
+            return "Assistant"
+        case let key where key.contains("biochecha"):
+            return "Health"
+        case let key where key.contains("healthkit") || key.contains("apple health"):
+            return "Apple Health"
+        case let key where key.contains("entregas") || key.contains("delivery"):
+            return "Deliveries"
+        case let key where key.contains("calendario") || key.contains("calendar"):
+            return "Calendar"
+        case let key where key.contains("archie"):
+            return "Knowledge"
+        case let key where key.contains("legal"):
+            return "Legal"
+        default:
+            return "Agent"
+        }
+    }
+
+    var roleDescription: String {
+        switch lookupKey {
+        case let key where key.contains("claudinho"):
+            return "General assistant and gateway orchestrator"
+        case let key where key.contains("biochecha"):
+            return "Health insights and medication support"
+        case let key where key.contains("healthkit") || key.contains("apple health"):
+            return "Syncs Apple Health data into ThePerch"
+        case let key where key.contains("entregas") || key.contains("delivery"):
+            return "Tracks deliveries and package updates"
+        case let key where key.contains("calendario") || key.contains("calendar"):
+            return "Keeps calendar events and reminders in sync"
+        case let key where key.contains("archie"):
+            return "Organizes bookmarks, notes, and saved knowledge"
+        case let key where key.contains("legal"):
+            return "Handles legal research and document support"
+        default:
+            return "AI agent for background automations"
+        }
+    }
+
+    var subtitleLine: String {
+        if let model, !model.isEmpty {
+            return "\(roleDescription) · \(model)"
+        }
+        return roleDescription
+    }
+
+    var disambiguationLabel: String {
+        if roleLabel != "Agent" {
+            return roleLabel
+        }
+        if let model, !model.isEmpty {
+            return model
+        }
+        return id
+    }
 }

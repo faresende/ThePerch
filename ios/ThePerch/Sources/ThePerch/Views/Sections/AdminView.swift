@@ -8,6 +8,8 @@ struct AdminView: View {
     @State private var viewModel = AdminViewModel()
     @State private var showRestartConfirmation = false
     @State private var showDoctorFixConfirmation = false
+    @State private var isRefreshingGatewayStatus = false
+    @State private var selectedAgent: Agent?
 
     var body: some View {
         ZStack {
@@ -66,6 +68,35 @@ struct AdminView: View {
                                 .font(PerchTheme.Font.micro)
                                 .foregroundColor(PerchTheme.textTertiary)
                                 .lineLimit(2)
+
+                            if let actionLabel = gatewayRefreshActionLabel {
+                                Button {
+                                    Task { await refreshGatewayStatus() }
+                                } label: {
+                                    HStack(spacing: PerchTheme.Spacing.xSmall) {
+                                        if isRefreshingGatewayStatus {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                        } else {
+                                            Image(systemName: gatewayRefreshActionIcon)
+                                                .font(PerchTheme.Font.micro)
+                                        }
+
+                                        Text(actionLabel)
+                                            .font(PerchTheme.Font.caption)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(PerchTheme.accent)
+                                    .padding(.horizontal, PerchTheme.Spacing.small)
+                                    .padding(.vertical, PerchTheme.Spacing.xSmall)
+                                    .background(
+                                        Capsule()
+                                            .fill(PerchTheme.accent.opacity(0.12))
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isRefreshingGatewayStatus)
+                            }
                         }
                         .padding(PerchTheme.Card.padding)
                         .cardStyle()
@@ -93,7 +124,7 @@ struct AdminView: View {
                                     .foregroundColor(PerchTheme.textTertiary)
                             }
 
-                            Text("Last gateway pulse")
+                            Text("Last check-in")
                                 .font(PerchTheme.Font.micro)
                                 .foregroundColor(PerchTheme.textTertiary)
                         }
@@ -133,10 +164,19 @@ struct AdminView: View {
                         } else {
                             VStack(spacing: PerchTheme.Spacing.small) {
                                 ForEach(viewModel.agents) { agent in
-                                    AgentStatusCard(
-                                        agent: agent,
-                                        statusData: viewModel.statusDataForAgent(agent)
-                                    )
+                                    Button {
+                                        PerchHaptics.selection()
+                                        selectedAgent = agent
+                                    } label: {
+                                        AgentStatusCard(
+                                            agent: agent,
+                                            statusData: viewModel.statusDataForAgent(agent),
+                                            displayName: viewModel.displayNameForAgent(agent),
+                                            subtitle: agent.subtitleLine,
+                                            showsDisclosure: true
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
@@ -195,7 +235,7 @@ struct AdminView: View {
                 PerchHaptics.success()
             }
         }
-        .alert("Restart Gateway", isPresented: $showRestartConfirmation) {
+        .alert("Are you sure?", isPresented: $showRestartConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Restart", role: .destructive) {
                 Task { await viewModel.executeCommand(.restartGateway) }
@@ -203,13 +243,13 @@ struct AdminView: View {
         } message: {
             Text("Are you sure? This will restart the OpenClaw gateway. Active sessions may be interrupted.")
         }
-        .alert("Run Doctor Fix", isPresented: $showDoctorFixConfirmation) {
+        .alert("Are you sure?", isPresented: $showDoctorFixConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Run", role: .none) {
                 Task { await viewModel.executeCommand(.doctorFix) }
             }
         } message: {
-            Text("This will run diagnostics and attempt to fix common issues.")
+            Text("Are you sure? This will run diagnostics and attempt to fix common issues.")
         }
         .task {
             // Agents come from a different table — fetch separately
@@ -229,6 +269,11 @@ struct AdminView: View {
                 viewModel.agents = dashboardViewModel.agents
             }
         }
+        .sheet(item: $selectedAgent) { agent in
+            NavigationStack {
+                agentDetailView(for: agent)
+            }
+        }
     }
 
     // MARK: - Gateway Status Title
@@ -240,6 +285,40 @@ struct AdminView: View {
         case .possiblyOffline: return "Unknown"
         case .offline: return "Offline"
         }
+    }
+
+    private var gatewayRefreshActionLabel: String? {
+        switch viewModel.gatewayFreshness {
+        case .possiblyOffline:
+            return "Check Now"
+        case .offline:
+            return "Reconnect"
+        case .fresh, .stale:
+            return nil
+        }
+    }
+
+    private var gatewayRefreshActionIcon: String {
+        switch viewModel.gatewayFreshness {
+        case .offline:
+            return "arrow.clockwise.circle"
+        case .fresh, .stale, .possiblyOffline:
+            return "arrow.clockwise"
+        }
+    }
+
+    @MainActor
+    private func refreshGatewayStatus() async {
+        guard !isRefreshingGatewayStatus else { return }
+
+        isRefreshingGatewayStatus = true
+        PerchHaptics.medium()
+
+        await dashboardViewModel.refreshRecords(forceRefresh: true)
+        await dashboardViewModel.loadAgents(forceRefresh: true)
+
+        isRefreshingGatewayStatus = false
+        PerchHaptics.success()
     }
 
     // MARK: - Remote Controls Section
@@ -304,6 +383,60 @@ struct AdminView: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+    }
+
+    @ViewBuilder
+    private func agentDetailView(for agent: Agent) -> some View {
+        let statusData = viewModel.statusDataForAgent(agent)
+
+        ScrollView {
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                AgentStatusCard(
+                    agent: agent,
+                    statusData: statusData,
+                    displayName: viewModel.displayNameForAgent(agent),
+                    subtitle: agent.subtitleLine
+                )
+
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                    Text("About")
+                        .font(PerchTheme.Font.heading)
+                        .foregroundColor(PerchTheme.textPrimary)
+
+                    Text(agent.roleDescription)
+                        .font(PerchTheme.Font.body)
+                        .foregroundColor(PerchTheme.textSecondary)
+
+                    detailRow(label: "Model", value: agent.model ?? "Not reported")
+                    detailRow(
+                        label: "Last check-in",
+                        value: agent.lastHeartbeat.map { DateFormatting.relativeTime(from: $0) } ?? "No recent check-in"
+                    )
+                    detailRow(label: "Created", value: DateFormatting.shortDate(from: agent.createdAt))
+                }
+                .padding(PerchTheme.Card.padding)
+                .cardStyle()
+            }
+            .padding(PerchTheme.Spacing.large)
+        }
+        .background(PerchTheme.background.ignoresSafeArea())
+        .navigationTitle(viewModel.displayNameForAgent(agent))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func detailRow(label: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
+            Text(label)
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textTertiary)
+                .frame(width: 96, alignment: .leading)
+
+            Text(value)
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textPrimary)
+
+            Spacer(minLength: 0)
+        }
     }
 
     @ViewBuilder
