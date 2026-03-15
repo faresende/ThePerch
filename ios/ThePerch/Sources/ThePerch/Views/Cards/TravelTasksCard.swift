@@ -127,7 +127,7 @@ struct InlineTaskRow: View {
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(task.done ? PerchTheme.textTertiary : PerchTheme.textPrimary)
                     .strikethrough(task.done, color: PerchTheme.textTertiary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
             .contentShape(Rectangle())
         }
