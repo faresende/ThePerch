@@ -1,0 +1,17 @@
+# XcodeBuildMCP config for ThePerch
+project_path: ios/ThePerch/ThePerch.xcodeproj
+scheme: ThePerch
+simulator: iPhone 17 Pro
+platform: iOS
+
+# Workflows to enable
+workflows:
+  - project-discovery
+  - simulator
+  - simulator-management
+  - device
+  - coverage
+  - debugging
+  - logging
+  - ui-automation
+  - utilities
