@@ -5,6 +5,9 @@ import SwiftUI
 struct AgentStatusCard: View {
     let agent: Agent
     let statusData: StatusData?
+    var displayName: String? = nil
+    var subtitle: String? = nil
+    var showsDisclosure: Bool = false
 
     private var agentState: AgentState {
         guard let state = statusData?.state.lowercased() else { return .idle }
@@ -24,6 +27,14 @@ struct AgentStatusCard: View {
         } else {
             return String(format: "%.0fd", hours / 24)
         }
+    }
+
+    private var resolvedDisplayName: String {
+        displayName ?? agent.displayName
+    }
+
+    private var resolvedSubtitle: String {
+        subtitle ?? agent.subtitleLine
     }
 
     enum AgentState {
@@ -60,14 +71,15 @@ struct AgentStatusCard: View {
                 )
 
             // Info
-            VStack(alignment: .leading, spacing: 2) {
-                // Name + status dot
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(agent.displayName)
+                    Text(resolvedDisplayName)
                         .font(PerchTheme.Font.heading)
                         .foregroundColor(PerchTheme.textPrimary)
+                        .lineLimit(1)
 
-                    // Status indicator
+                    Spacer(minLength: 0)
+
                     HStack(spacing: 4) {
                         Circle()
                             .fill(agentState.color)
@@ -82,14 +94,23 @@ struct AgentStatusCard: View {
                             .fontWeight(.semibold)
                             .foregroundColor(agentState.color)
                     }
+
+                    if showsDisclosure {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(PerchTheme.textTertiary)
+                    }
                 }
 
-                // Uptime
+                Text(resolvedSubtitle)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textSecondary)
+                    .lineLimit(1)
+
                 Text("Uptime: \(uptimeText)")
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
 
-                // Current task
                 if let task = statusData?.currentTask, !task.isEmpty {
                     Text(task)
                         .font(PerchTheme.Font.caption)
@@ -108,7 +129,7 @@ struct AgentStatusCard: View {
         .padding(PerchTheme.Card.padding)
         .cardStyle()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Agent: \(agent.displayName), \(agentState.label.lowercased())")
+        .accessibilityLabel("Agent: \(resolvedDisplayName), \(resolvedSubtitle), \(agentState.label.lowercased())")
     }
 }
 
