@@ -105,9 +105,7 @@ struct CaloriesCard: View {
                 }
 
                 if let updated = lastUpdated {
-                    Text("Updated \(updated.relativeTime)")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                    CardFreshnessLabel(date: updated)
                 }
             }
 

@@ -34,12 +34,6 @@ struct DeliveriesView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if dashboardViewModel.isLoading && records.isEmpty {
-                SkeletonDeliveriesSection()
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                    .padding(.top, 60)
-            }
-
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Section header with freshness
@@ -51,46 +45,53 @@ struct DeliveriesView: View {
                     if dashboardViewModel.error != nil {
                         ErrorBanner(
                             message: "Failed to load deliveries",
-                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
                             onDismiss: { dashboardViewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 
-                    // Active deliveries
-                    if !activeDeliveries.isEmpty {
+                    if dashboardViewModel.isLoading && records.isEmpty {
+                        SkeletonCardsSection(count: 3)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                    } else {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Active Deliveries")
                                 .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
-                            VStack(spacing: PerchTheme.Spacing.medium) {
-                                ForEach(Array(activeDeliveries.enumerated()), id: \.element.id) { index, record in
-                                    if let delivery = record.asDelivery() {
-                                        DeliveryCard(delivery: delivery)
-                                            .cardAppear(index: index, appeared: cardsAppeared)
-                                            .contextMenu {
-                                                Button {
-                                                    Task { await dashboardViewModel.toggleRecordPin(recordId: record.id) }
-                                                } label: {
-                                                    Label(
-                                                        record.pinned ? "Unpin" : "Pin",
-                                                        systemImage: record.pinned ? "pin.slash" : "pin"
-                                                    )
+                            if activeDeliveries.isEmpty {
+                                EmptyStateView(
+                                    icon: "shippingbox",
+                                    title: "No active deliveries",
+                                    subtitle: "Tracked packages that are still moving will show up here."
+                                )
+                            } else {
+                                VStack(spacing: PerchTheme.Spacing.medium) {
+                                    ForEach(Array(activeDeliveries.enumerated()), id: \.element.id) { index, record in
+                                        if let delivery = record.asDelivery() {
+                                            DeliveryCard(delivery: delivery)
+                                                .cardAppear(index: index, appeared: cardsAppeared)
+                                                .contextMenu {
+                                                    Button {
+                                                        Task { await dashboardViewModel.toggleRecordPin(recordId: record.id) }
+                                                    } label: {
+                                                        Label(
+                                                            record.pinned ? "Unpin" : "Pin",
+                                                            systemImage: record.pinned ? "pin.slash" : "pin"
+                                                        )
+                                                    }
                                                 }
-                                            }
+                                        }
                                     }
                                 }
-                            }
-                            .onAppear {
-                                PerchMotion.withOptionalAnimation { cardsAppeared = true }
+                                .onAppear {
+                                    PerchMotion.withOptionalAnimation { cardsAppeared = true }
+                                }
                             }
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
-                    }
 
-                    // Completed deliveries (collapsible)
-                    if !completedDeliveries.isEmpty {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Button(action: {
                                 PerchHaptics.light()
@@ -113,7 +114,13 @@ struct DeliveriesView: View {
                                 }
                             }
 
-                            if showCompleted {
+                            if completedDeliveries.isEmpty {
+                                EmptyStateView(
+                                    icon: "checkmark.circle",
+                                    title: "No completed deliveries",
+                                    subtitle: "Completed deliveries will appear here after they arrive."
+                                )
+                            } else if showCompleted {
                                 VStack(spacing: PerchTheme.Spacing.medium) {
                                     ForEach(completedDeliveries) { record in
                                         if let delivery = record.asDelivery() {
@@ -136,10 +143,6 @@ struct DeliveriesView: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 
-                    if activeDeliveries.isEmpty && completedDeliveries.isEmpty {
-                        emptyStateView
-                    }
-
                     Spacer()
                         .frame(height: PerchTheme.Spacing.large)
                 }
@@ -159,27 +162,6 @@ struct DeliveriesView: View {
         await DeliveryLiveActivityManager.shared.sync(activeDeliveries: deliveries)
     }
 
-    @ViewBuilder
-    private var emptyStateView: some View {
-        VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: "shippingbox")
-                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
-
-            VStack(spacing: PerchTheme.Spacing.xSmall) {
-                Text("No deliveries")
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-
-                Text("Your deliveries will appear here")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(PerchTheme.Spacing.large)
-    }
 }
 
 // MARK: - Preview

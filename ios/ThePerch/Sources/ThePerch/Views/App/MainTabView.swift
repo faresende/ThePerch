@@ -236,11 +236,7 @@ struct SectionView: View {
                     .padding(.top, PerchTheme.Spacing.medium)
 
                 if dashboardViewModel.isLoading && genericRecords.isEmpty {
-                    VStack(spacing: PerchTheme.Spacing.medium) {
-                        SkeletonSingleValueCard()
-                        SkeletonSingleValueCard()
-                        SkeletonChartCard()
-                    }
+                    SkeletonCardsSection(count: 3)
                     .padding(.horizontal, PerchTheme.Spacing.large)
                 } else if genericRecords.isEmpty {
                     emptyStateView
@@ -264,24 +260,11 @@ struct SectionView: View {
 
     @ViewBuilder
     private var emptyStateView: some View {
-        VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: "square.stack.3d.up.slash")
-                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
-
-            VStack(spacing: PerchTheme.Spacing.xSmall) {
-                Text("No items yet")
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-
-                Text("Data from \(section.displayName) will appear here")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(PerchTheme.Spacing.large)
+        EmptyStateView(
+            icon: "square.stack.3d.up.slash",
+            title: "No items yet",
+            subtitle: "Data from \(section.displayName) will appear here."
+        )
     }
 }
 

@@ -199,12 +199,22 @@ final class DashboardViewModel {
 
     /// Refreshes only records (lighter than full loadDashboard).
     func refreshRecords(forceRefresh: Bool = true) async {
+        let shouldShowLoading = allRecords.isEmpty
+        if shouldShowLoading { isLoading = true }
+        defer {
+            if shouldShowLoading { isLoading = false }
+        }
+
         do {
             let records = try await supabaseService.fetchRecords(limit: 500, forceRefresh: forceRefresh)
             allRecords = records
+            error = nil
             Self.preDecodeRecords(records)
+        } catch let error as SupabaseServiceError {
+            self.error = error
         } catch {
             print("[DashboardVM] refreshRecords threw: \(error)")
+            self.error = .unknownError(error.localizedDescription)
         }
     }
 

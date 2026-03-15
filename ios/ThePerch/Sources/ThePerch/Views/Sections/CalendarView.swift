@@ -33,12 +33,6 @@ struct CalendarView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if dashboardViewModel.isLoading && records.isEmpty {
-                SkeletonCalendarSection()
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                    .padding(.top, 60)
-            }
-
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Section header with freshness
@@ -50,55 +44,62 @@ struct CalendarView: View {
                     if dashboardViewModel.error != nil {
                         ErrorBanner(
                             message: "Failed to load calendar events",
-                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
                             onDismiss: { dashboardViewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 
-                    // Today's events
-                    if !todayEvents.isEmpty {
+                    if dashboardViewModel.isLoading && records.isEmpty {
+                        SkeletonCardsSection(count: 3)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                    } else {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Today")
                                 .font(PerchTheme.Font.heading)
                                 .foregroundColor(PerchTheme.textPrimary)
 
-                            VStack(spacing: PerchTheme.Spacing.medium) {
-                                ForEach(Array(todayEvents.enumerated()), id: \.element.id) { index, record in
-                                    if let eventData = record.asEvent() {
-                                        EventCard(event: eventData)
-                                            .cardAppear(index: index, appeared: cardsAppeared)
+                            if todayEvents.isEmpty {
+                                EmptyStateView(
+                                    icon: "calendar",
+                                    title: "No events today",
+                                    subtitle: upcomingEvents.isEmpty
+                                        ? "You’re all clear for today."
+                                        : "Upcoming events will still appear below."
+                                )
+                            } else {
+                                VStack(spacing: PerchTheme.Spacing.medium) {
+                                    ForEach(Array(todayEvents.enumerated()), id: \.element.id) { index, record in
+                                        if let eventData = record.asEvent() {
+                                            EventCard(event: eventData)
+                                                .cardAppear(index: index, appeared: cardsAppeared)
+                                        }
                                     }
                                 }
-                            }
-                            .onAppear {
-                                PerchMotion.withOptionalAnimation { cardsAppeared = true }
-                            }
-                        }
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                    }
-
-                    // Upcoming events
-                    if !upcomingEvents.isEmpty {
-                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                            Text("Upcoming")
-                                .font(PerchTheme.Font.heading)
-                                .foregroundColor(PerchTheme.textPrimary)
-
-                            VStack(spacing: PerchTheme.Spacing.small) {
-                                ForEach(Array(upcomingEvents.enumerated()), id: \.element.id) { index, record in
-                                    if let eventData = record.asEvent() {
-                                        UpcomingEventRow(event: eventData)
-                                            .cardAppear(index: index + todayEvents.count, appeared: cardsAppeared)
-                                    }
+                                .onAppear {
+                                    PerchMotion.withOptionalAnimation { cardsAppeared = true }
                                 }
                             }
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
-                    }
 
-                    if todayEvents.isEmpty && upcomingEvents.isEmpty {
-                        emptyStateView
+                        if !upcomingEvents.isEmpty {
+                            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                                Text("Upcoming")
+                                    .font(PerchTheme.Font.heading)
+                                    .foregroundColor(PerchTheme.textPrimary)
+
+                                VStack(spacing: PerchTheme.Spacing.small) {
+                                    ForEach(Array(upcomingEvents.enumerated()), id: \.element.id) { index, record in
+                                        if let eventData = record.asEvent() {
+                                            UpcomingEventRow(event: eventData)
+                                                .cardAppear(index: index + todayEvents.count, appeared: cardsAppeared)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                        }
                     }
 
                     Spacer()
@@ -113,27 +114,6 @@ struct CalendarView: View {
         }
     }
 
-    @ViewBuilder
-    private var emptyStateView: some View {
-        VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: "calendar")
-                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
-
-            VStack(spacing: PerchTheme.Spacing.xSmall) {
-                Text("No events")
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-
-                Text("Your calendar events will appear here")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(PerchTheme.Spacing.large)
-    }
 }
 
 // MARK: - Upcoming Event Row

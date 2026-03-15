@@ -61,7 +61,7 @@ struct HomeView: View {
                     if let loadError = viewModel.loadError {
                         ErrorBanner(
                             message: loadError,
-                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
                             onDismiss: { viewModel.loadError = nil }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
@@ -71,16 +71,16 @@ struct HomeView: View {
                         // Search results
                         SearchView(searchText: $searchText, records: viewModel.records)
                     } else if dashboardViewModel.isLoading && viewModel.records.isEmpty {
-                        SkeletonHomeSection()
+                        SkeletonCardsSection(count: 3)
                             .padding(.horizontal, PerchTheme.Spacing.large)
                     } else if viewModel.records.isEmpty {
-                        VStack(spacing: PerchTheme.Spacing.medium) {
-                            Image(systemName: "tray")
-                                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                                .foregroundColor(PerchTheme.textTertiary)
-                            Text("No data yet")
-                                .font(PerchTheme.Font.heading)
-                                .foregroundColor(PerchTheme.textSecondary)
+                        EmptyStateView(
+                            icon: "tray",
+                            title: "No data yet",
+                            subtitle: "Pull to refresh or tap below to try syncing again.",
+                            actionTitle: "Refresh"
+                        ) {
+                            Task { await dashboardViewModel.loadDashboard(forceRefresh: true) }
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {

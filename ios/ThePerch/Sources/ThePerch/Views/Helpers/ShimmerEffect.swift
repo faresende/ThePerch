@@ -82,6 +82,42 @@ struct SkeletonRect: View {
     }
 }
 
+struct SkeletonCard: View {
+    var height: CGFloat = 110
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            HStack(spacing: PerchTheme.Spacing.small) {
+                SkeletonCircle(size: 20)
+                SkeletonLine(width: 110, height: 14)
+                Spacer()
+                SkeletonLine(width: 64, height: 12)
+            }
+
+            SkeletonLine(height: 12)
+            SkeletonLine(width: 180, height: 12)
+
+            Spacer(minLength: 0)
+        }
+        .padding(PerchTheme.Card.padding)
+        .frame(maxWidth: .infinity, minHeight: height, alignment: .topLeading)
+        .cardStyle()
+        .shimmer()
+    }
+}
+
+struct SkeletonCardsSection: View {
+    var count: Int = 3
+
+    var body: some View {
+        VStack(spacing: PerchTheme.Spacing.medium) {
+            ForEach(0..<count, id: \.self) { _ in
+                SkeletonCard()
+            }
+        }
+    }
+}
+
 // MARK: - Skeleton Card Templates
 
 struct SkeletonSingleValueCard: View {
