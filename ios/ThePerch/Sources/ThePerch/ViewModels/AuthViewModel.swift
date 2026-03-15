@@ -2,6 +2,31 @@ import Foundation
 import Combine
 import Observation
 
+fileprivate final class AuthObserverTaskBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: Task<Void, Never>?
+
+    func replace(with newTask: Task<Void, Never>) {
+        lock.lock()
+        let existingTask = task
+        task = newTask
+        lock.unlock()
+        existingTask?.cancel()
+    }
+
+    func cancel() {
+        lock.lock()
+        let existingTask = task
+        task = nil
+        lock.unlock()
+        existingTask?.cancel()
+    }
+
+    deinit {
+        cancel()
+    }
+}
+
 // MARK: - AuthViewModel
 
 /// Manages authentication state and sign-in/sign-up flows.
@@ -20,7 +45,7 @@ final class AuthViewModel {
     // MARK: - Private Properties
 
     private let supabaseService: SupabaseService
-    private var authObserverTask: Task<Void, Never>?
+    @ObservationIgnored private let authObserverTaskBox = AuthObserverTaskBox()
 
     // MARK: - Initialization
 
@@ -28,23 +53,24 @@ final class AuthViewModel {
         self.supabaseService = supabaseService
         self.isAuthenticated = supabaseService.isAuthenticated
 
-        authObserverTask = Task { [weak self] in
+        startObserver()
+    }
+
+    private func startObserver() {
+        cancelObserver()
+
+        let observerTask = Task { [weak self] in
             for await _ in NotificationCenter.default.publisher(for: NSNotification.Name("SupabaseAuthStateChanged")).values {
                 guard let self else { return }
                 self.isAuthenticated = supabaseService.isAuthenticated
             }
         }
+        authObserverTaskBox.replace(with: observerTask)
     }
 
-    nonisolated func cancelObserver() {
-        // Called from deinit context
+    func cancelObserver() {
+        authObserverTaskBox.cancel()
     }
-
-    deinit {
-        // Cannot access main-actor isolated property from deinit
-        // Task will be cleaned up when the object is deallocated
-    }
-
     // MARK: - Authentication Methods
 
     /// Attempts to sign in with the provided email and password.

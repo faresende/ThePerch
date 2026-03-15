@@ -2,7 +2,7 @@ import Foundation
 
 /// A flexible JSON value enum that handles arbitrary JSON structures.
 /// Supports null, bool, int, double, string, array, and object types.
-enum JSONValue: Equatable, Codable {
+enum JSONValue: Equatable, Codable, Sendable {
     case null
     case bool(Bool)
     case int(Int)

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Enums
 
 /// The type of record (measurement, delivery, event, etc.).
-enum RecordType: String, Codable, CaseIterable {
+enum RecordType: String, Codable, CaseIterable, Sendable {
     case measurement
     case delivery
     case event
@@ -57,7 +57,7 @@ enum RecordType: String, Codable, CaseIterable {
 }
 
 /// The category a record belongs to (affects organization and filtering).
-enum RecordCategory: String, Codable, CaseIterable {
+enum RecordCategory: String, Codable, CaseIterable, Sendable {
     case health
     case deliveries
     case calendar
@@ -87,7 +87,7 @@ enum RecordCategory: String, Codable, CaseIterable {
 }
 
 /// Hint for how the record's data should be displayed.
-enum DisplayHint: String, Codable, CaseIterable {
+enum DisplayHint: String, Codable, CaseIterable, Sendable {
     case chart
     case singleValue = "single_value"
     case statusList = "status_list"
@@ -126,7 +126,7 @@ enum DisplayHint: String, Codable, CaseIterable {
 }
 
 /// Suggested card size for the record in UI.
-enum CardSize: String, Codable {
+enum CardSize: String, Codable, Sendable {
     case small
     case medium
     case large
@@ -136,7 +136,7 @@ enum CardSize: String, Codable {
 
 /// A record is a unit of data captured by an OpenClaw agent.
 /// It contains flexible JSON data, type and category information, and metadata.
-struct Record: Identifiable, Codable, Equatable {
+struct Record: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     let agentId: String
     let userId: UUID

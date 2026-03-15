@@ -10,7 +10,7 @@ final class AdminCommandService {
     static let shared = AdminCommandService()
 
     private let supabaseService = SupabaseService.shared
-    private let userId = UUID(uuidString: "20436ef5-90f7-4224-9eff-f5ff3cb02530")!
+    private let userId = AppConfig.defaultUserID
     private let agentId = "theperch_ios"
 
     /// Rate limiting: minimum interval between commands (2 minutes).
