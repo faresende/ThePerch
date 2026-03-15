@@ -310,20 +310,50 @@ private func decodeValue<T: Decodable>(_ type: T.Type, from value: JSONValue, co
     if type == Date.self {
         if case .string(let str) = value {
             if let date = iso8601Formatter.date(from: str) ?? iso8601FormatterNoFrac.date(from: str) {
-                return date as! T
+                guard let decodedDate = date as? T else {
+                    throw DecodingError.typeMismatch(T.self, .init(
+                        codingPath: codingPath,
+                        debugDescription: "Failed to decode Date as \(T.self)"
+                    ))
+                }
+                return decodedDate
             }
             throw DecodingError.dataCorrupted(.init(codingPath: codingPath, debugDescription: "Invalid date: \(str)"))
         }
         // Also handle numeric timestamps
-        if case .double(let ts) = value { return Date(timeIntervalSince1970: ts) as! T }
-        if case .int(let ts) = value { return Date(timeIntervalSince1970: Double(ts)) as! T }
+        if case .double(let ts) = value {
+            let date = Date(timeIntervalSince1970: ts)
+            guard let decodedDate = date as? T else {
+                throw DecodingError.typeMismatch(T.self, .init(
+                    codingPath: codingPath,
+                    debugDescription: "Failed to decode Date as \(T.self)"
+                ))
+            }
+            return decodedDate
+        }
+        if case .int(let ts) = value {
+            let date = Date(timeIntervalSince1970: Double(ts))
+            guard let decodedDate = date as? T else {
+                throw DecodingError.typeMismatch(T.self, .init(
+                    codingPath: codingPath,
+                    debugDescription: "Failed to decode Date as \(T.self)"
+                ))
+            }
+            return decodedDate
+        }
         throw DecodingError.typeMismatch(Date.self, .init(codingPath: codingPath, debugDescription: "Expected date string"))
     }
 
     // URL: parse from string
     if type == URL.self {
         if case .string(let str) = value, let url = URL(string: str) {
-            return url as! T
+            guard let decodedURL = url as? T else {
+                throw DecodingError.typeMismatch(T.self, .init(
+                    codingPath: codingPath,
+                    debugDescription: "Failed to decode URL as \(T.self)"
+                ))
+            }
+            return decodedURL
         }
         throw DecodingError.typeMismatch(URL.self, .init(codingPath: codingPath, debugDescription: "Expected URL string"))
     }
@@ -331,10 +361,34 @@ private func decodeValue<T: Decodable>(_ type: T.Type, from value: JSONValue, co
     // Decimal
     if type == Decimal.self {
         switch value {
-        case .double(let v): return Decimal(v) as! T
-        case .int(let v): return Decimal(v) as! T
+        case .double(let v):
+            let decimal = Decimal(v)
+            guard let decodedDecimal = decimal as? T else {
+                throw DecodingError.typeMismatch(T.self, .init(
+                    codingPath: codingPath,
+                    debugDescription: "Failed to decode Decimal as \(T.self)"
+                ))
+            }
+            return decodedDecimal
+        case .int(let v):
+            let decimal = Decimal(v)
+            guard let decodedDecimal = decimal as? T else {
+                throw DecodingError.typeMismatch(T.self, .init(
+                    codingPath: codingPath,
+                    debugDescription: "Failed to decode Decimal as \(T.self)"
+                ))
+            }
+            return decodedDecimal
         case .string(let s):
-            if let d = Decimal(string: s) { return d as! T }
+            if let d = Decimal(string: s) {
+                guard let decodedDecimal = d as? T else {
+                    throw DecodingError.typeMismatch(T.self, .init(
+                        codingPath: codingPath,
+                        debugDescription: "Failed to decode Decimal as \(T.self)"
+                    ))
+                }
+                return decodedDecimal
+            }
             throw DecodingError.dataCorrupted(.init(codingPath: codingPath, debugDescription: "Invalid decimal: \(s)"))
         default:
             throw DecodingError.typeMismatch(Decimal.self, .init(codingPath: codingPath, debugDescription: "Expected number"))

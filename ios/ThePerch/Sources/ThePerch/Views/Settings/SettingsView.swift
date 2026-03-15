@@ -30,7 +30,7 @@ struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                                     ProfileField(
                                         label: "Display Name",
-                                        value: "Fabio"
+                                        value: authViewModel.displayName.isEmpty ? "there" : authViewModel.displayName
                                     )
 
                                     Divider()

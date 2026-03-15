@@ -19,7 +19,8 @@ final class BackgroundRefreshService {
             forTaskWithIdentifier: Self.refreshTaskId,
             using: nil
         ) { task in
-            self.handleAppRefresh(task: task as! BGAppRefreshTask)
+            guard let refreshTask = task as? BGAppRefreshTask else { return }
+            self.handleAppRefresh(task: refreshTask)
         }
     }
 

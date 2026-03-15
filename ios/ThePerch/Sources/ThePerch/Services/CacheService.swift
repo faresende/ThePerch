@@ -10,6 +10,7 @@ final class CacheService: @unchecked Sendable {
 
     private let cacheDirectory: URL
     private let fileManager = FileManager.default
+    private let ioQueue = DispatchQueue(label: "com.notbutter.theperch.cache-service")
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.dateEncodingStrategy = .iso8601
@@ -70,13 +71,15 @@ final class CacheService: @unchecked Sendable {
     }
 
     private func save<T: Encodable>(_ value: T, key: String, userId: String) {
-        guard let data = try? encoder.encode(value) else { return }
-        let fileURL = cacheFileURL(for: key, userId: userId)
-        try? data.write(to: fileURL, options: .atomic)
+        ioQueue.sync {
+            guard let data = try? encoder.encode(value) else { return }
+            let fileURL = cacheFileURL(for: key, userId: userId)
+            try? data.write(to: fileURL, options: .atomic)
 
-        let metadata = CacheMetadata(cachedAt: Date.now, key: key)
-        if let metaData = try? encoder.encode(metadata) {
-            try? metaData.write(to: metadataURL(for: key, userId: userId), options: .atomic)
+            let metadata = CacheMetadata(cachedAt: Date.now, key: key)
+            if let metaData = try? encoder.encode(metadata) {
+                try? metaData.write(to: metadataURL(for: key, userId: userId), options: .atomic)
+            }
         }
     }
 
@@ -92,9 +95,11 @@ final class CacheService: @unchecked Sendable {
     }
 
     private func load<T: Decodable>(_ type: T.Type, key: String, userId: String) -> T? {
-        let fileURL = cacheFileURL(for: key, userId: userId)
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? decoder.decode(type, from: data)
+        ioQueue.sync {
+            let fileURL = cacheFileURL(for: key, userId: userId)
+            guard let data = try? Data(contentsOf: fileURL) else { return nil }
+            return try? decoder.decode(type, from: data)
+        }
     }
 
     // MARK: - Metadata Queries
@@ -109,10 +114,12 @@ final class CacheService: @unchecked Sendable {
     }
 
     private func loadMetadata(key: String, userId: String) -> CacheMetadata? {
-        let metaURL = metadataURL(for: key, userId: userId)
-        guard let data = try? Data(contentsOf: metaURL),
-              let meta = try? decoder.decode(CacheMetadata.self, from: data) else { return nil }
-        return meta
+        ioQueue.sync {
+            let metaURL = metadataURL(for: key, userId: userId)
+            guard let data = try? Data(contentsOf: metaURL),
+                  let meta = try? decoder.decode(CacheMetadata.self, from: data) else { return nil }
+            return meta
+        }
     }
 
     /// Whether cached data is older than maxCacheAge (7 days).
@@ -129,14 +136,16 @@ final class CacheService: @unchecked Sendable {
 
     /// Clears all cache files for a specific user.
     func clearCache(userId: String) {
-        guard let files = try? fileManager.contentsOfDirectory(
-            at: cacheDirectory,
-            includingPropertiesForKeys: nil,
-            options: .skipsHiddenFiles
-        ) else { return }
+        ioQueue.sync {
+            guard let files = try? fileManager.contentsOfDirectory(
+                at: cacheDirectory,
+                includingPropertiesForKeys: nil,
+                options: .skipsHiddenFiles
+            ) else { return }
 
-        for file in files where file.lastPathComponent.hasPrefix(userId) {
-            try? fileManager.removeItem(at: file)
+            for file in files where file.lastPathComponent.hasPrefix(userId) {
+                try? fileManager.removeItem(at: file)
+            }
         }
     }
 }

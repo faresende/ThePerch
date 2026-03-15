@@ -36,8 +36,8 @@ final class HealthKitSyncService {
     private let healthKitService: HealthKitService
     private let supabaseService: SupabaseService
 
-    /// Fabio's user ID in Supabase.
-    private let userId = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+    /// Default user ID in Supabase.
+    private let userId = AppConfig.defaultUserID
 
     /// The agent_id used for HealthKit-sourced records.
     private let agentId = "healthkit"
