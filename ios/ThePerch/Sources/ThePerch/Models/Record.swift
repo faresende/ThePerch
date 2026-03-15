@@ -18,6 +18,7 @@ enum RecordType: String, Codable, CaseIterable {
     case itinerary
     case travelAlert = "travel_alert"
     case weatherForecast = "weather_forecast"
+    case travelTask = "travel_task"
 
     var displayName: String {
         switch self {
@@ -49,6 +50,8 @@ enum RecordType: String, Codable, CaseIterable {
             return "Travel Alert"
         case .weatherForecast:
             return "Weather Forecast"
+        case .travelTask:
+            return "Travel Task"
         }
     }
 }

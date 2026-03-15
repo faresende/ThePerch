@@ -575,6 +575,30 @@ struct WeatherForecastData: Codable {
     }
 }
 
+// MARK: - Travel Task Data
+
+/// Structured data for a trip-linked to-do item.
+struct TravelTaskData: Codable {
+    let tripId: String
+    let task: String
+    let date: String?          // yyyy-MM-dd, nil = pre-trip
+    let done: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case tripId = "trip_id"
+        case task, date, done
+    }
+
+    /// Pre-trip tasks have no date.
+    var isPretripTask: Bool { date == nil }
+
+    /// Parsed date for day-linked tasks.
+    var dateParsed: Date? {
+        guard let date else { return nil }
+        return PerchFormatters.isoDate.date(from: date)
+    }
+}
+
 // MARK: - Data Payload Decoding Extension
 
 /// Extension to Record for convenient typed data decoding.
@@ -679,5 +703,10 @@ extension Record {
     /// Decodes weather forecast data from this record.
     func asWeatherForecast() -> WeatherForecastData? {
         decodeData(as: WeatherForecastData.self)
+    }
+
+    /// Decodes travel task data from this record.
+    func asTravelTask() -> TravelTaskData? {
+        decodeData(as: TravelTaskData.self)
     }
 }

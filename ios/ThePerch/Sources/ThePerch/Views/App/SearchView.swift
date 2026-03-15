@@ -213,6 +213,7 @@ struct SearchResultRow: View {
         case .itinerary: return "map"
         case .travelAlert: return "exclamationmark.triangle"
         case .weatherForecast: return "cloud.sun"
+        case .travelTask: return "checklist"
         }
     }
 
