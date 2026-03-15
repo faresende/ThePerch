@@ -23,11 +23,11 @@ struct PerchTheme {
         )
     }
 
-    /// Elevated surface for cards
+    /// Elevated surface for cards (semi-transparent for glass effect)
     static var cardBackground: Color {
         adaptive(
-            light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1),        // #FFFFFF
-            dark: UIColor(red: 0.098, green: 0.102, blue: 0.106, alpha: 1)    // #191A1B
+            light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.85),     // #FFFFFF 85%
+            dark: UIColor(red: 0.098, green: 0.102, blue: 0.106, alpha: 0.75) // #191A1B 75%
         )
     }
 
@@ -422,6 +422,11 @@ private struct CardStyleModifier: ViewModifier {
         let cardShape = RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
 
         content
+            .background(
+                cardShape
+                    .fill(.ultraThinMaterial)
+                    .opacity(colorScheme == .dark ? 0.85 : 0.95)
+            )
             .glassEffect(.regular, in: cardShape)
             .overlay(
                 cardShape
