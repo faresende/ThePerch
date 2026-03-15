@@ -129,6 +129,15 @@ final class AdminViewModel {
         return agentId.capitalized
     }
 
+    func displayNameForAgent(_ agent: Agent) -> String {
+        let duplicateCount = agents.filter {
+            $0.displayName.caseInsensitiveCompare(agent.displayName) == .orderedSame
+        }.count
+
+        guard duplicateCount > 1 else { return agent.displayName }
+        return "\(agent.displayName) (\(agent.disambiguationLabel))"
+    }
+
     // MARK: - Remote Command Execution
 
     var canSendCommand: Bool { commandService.canSendCommand }
@@ -136,93 +145,95 @@ final class AdminViewModel {
 
     /// Sends a command and polls for status updates.
     func executeCommand(_ command: AdminCommandData.AdminCommand) async {
-        let isRestart = command == .restartGateway
-
-        // Update state
-        if isRestart {
-            restartState = .executing("Sending command...")
-        } else {
-            doctorFixState = .executing("Sending command...")
-        }
+        updateCommandState(command, to: .executing("Sending command..."))
 
         do {
             let recordId = try await commandService.sendCommand(command)
 
-            if isRestart {
-                restartState = .executing("Restarting...")
-            } else {
-                doctorFixState = .executing("Running diagnostics...")
-            }
+            updateCommandState(
+                command,
+                to: .executing(command == .restartGateway ? "Restarting..." : "Running diagnostics...")
+            )
 
             // Poll for status updates
             pollingTask?.cancel()
             pollingTask = Task { [weak self] in
                 guard let self else { return }
-                for await status in commandService.observeCommand(id: recordId) {
+                for await status in self.commandService.observeCommand(id: recordId) {
                     guard !Task.isCancelled else { break }
-                    await self.handleStatusUpdate(status, command: command)
+                    self.handleStatusUpdate(status, command: command)
                 }
             }
         } catch {
-            let message = error.localizedDescription
-            if isRestart {
-                restartState = .failed(message)
-            } else {
-                doctorFixState = .failed(message)
-            }
+            updateCommandState(command, to: .failed(error.localizedDescription))
+            scheduleReset(for: command)
             PerchHaptics.error()
         }
     }
 
     private func handleStatusUpdate(_ data: AdminCommandData, command: AdminCommandData.AdminCommand) {
-        let isRestart = command == .restartGateway
-
         switch data.status {
         case .pending:
-            if isRestart {
-                restartState = .executing("Pending...")
-            } else {
-                doctorFixState = .executing("Pending...")
-            }
+            updateCommandState(command, to: .executing("Pending..."))
         case .executing:
-            if isRestart {
-                restartState = .executing("Restarting gateway...")
-            } else {
-                doctorFixState = .executing("Running diagnostics...")
-            }
+            updateCommandState(
+                command,
+                to: .executing(command == .restartGateway ? "Restarting gateway..." : "Running diagnostics...")
+            )
         case .completed:
-            let message = data.result?.message ?? "Done"
-            if isRestart {
-                restartState = .completed(message)
-            } else {
-                doctorFixState = .completed(message)
-            }
+            updateCommandState(command, to: .completed("Done"))
+            pollingTask?.cancel()
+            pollingTask = nil
             PerchHaptics.success()
-            // Reset after 5 seconds
-            Task {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                if isRestart {
-                    if case .completed = self.restartState { self.restartState = .idle }
-                } else {
-                    if case .completed = self.doctorFixState { self.doctorFixState = .idle }
-                }
-            }
+            scheduleReset(for: command)
         case .failed:
             let message = data.result?.message ?? "Command failed"
-            if isRestart {
-                restartState = .failed(message)
-            } else {
-                doctorFixState = .failed(message)
-            }
+            updateCommandState(command, to: .failed(message))
+            pollingTask?.cancel()
+            pollingTask = nil
             PerchHaptics.error()
-            // Reset after 5 seconds
-            Task {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                if isRestart {
-                    if case .failed = self.restartState { self.restartState = .idle }
-                } else {
-                    if case .failed = self.doctorFixState { self.doctorFixState = .idle }
+            scheduleReset(for: command)
+        }
+    }
+
+    private func updateCommandState(
+        _ command: AdminCommandData.AdminCommand,
+        to newState: CommandExecutionState
+    ) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            switch command {
+            case .restartGateway:
+                restartState = newState
+            case .doctorFix:
+                doctorFixState = newState
+            case .statusCheck:
+                break
+            }
+        }
+    }
+
+    private func scheduleReset(for command: AdminCommandData.AdminCommand) {
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard let self else { return }
+
+            switch command {
+            case .restartGateway:
+                guard case .completed = self.restartState else {
+                    guard case .failed = self.restartState else { return }
+                    self.updateCommandState(command, to: .idle)
+                    return
                 }
+                self.updateCommandState(command, to: .idle)
+            case .doctorFix:
+                guard case .completed = self.doctorFixState else {
+                    guard case .failed = self.doctorFixState else { return }
+                    self.updateCommandState(command, to: .idle)
+                    return
+                }
+                self.updateCommandState(command, to: .idle)
+            case .statusCheck:
+                return
             }
         }
     }
