@@ -1,0 +1,504 @@
+import SwiftUI
+
+/// Travel section showing trip itinerary timeline, alerts, and weather.
+/// Data is fed from DashboardViewModel (single-fetch architecture).
+struct TravelView: View {
+    @Environment(DashboardViewModel.self) var dashboardViewModel
+    @State private var viewModel = TravelViewModel()
+    @State private var selectedTripId: String?
+    @State private var cardsAppeared = false
+
+    /// The trip to display: selected, or current, or most recent past.
+    private var displayTrip: (Record, TripData)? {
+        if let id = selectedTripId {
+            return viewModel.trips.first { $0.1.tripId == id }
+        }
+        return viewModel.currentTrip ?? viewModel.pastTrips.first
+    }
+
+    var body: some View {
+        ZStack {
+            PerchTheme.background.ignoresSafeArea()
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                    // Section header
+                    SectionHeader(title: "Travel", freshnessKey: "travel")
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                        .padding(.top, PerchTheme.Spacing.medium)
+
+                    if viewModel.trips.isEmpty {
+                        emptyState
+                    } else {
+                        // Trip selector (if multiple trips)
+                        if viewModel.trips.count > 1 {
+                            tripSelector
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+                        }
+
+                        if let (_, trip) = displayTrip {
+                            // Trip header card
+                            tripHeaderCard(trip: trip)
+                                .cardAppear(index: 0, appeared: cardsAppeared)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+
+                            // Alerts
+                            let alerts = viewModel.alerts(for: trip.tripId)
+                            if !alerts.isEmpty {
+                                alertsSection(alerts: alerts)
+                                    .cardAppear(index: 1, appeared: cardsAppeared)
+                                    .padding(.horizontal, PerchTheme.Spacing.large)
+                            }
+
+                            // Itinerary timeline
+                            itineraryTimeline(tripId: trip.tripId)
+                                .cardAppear(index: 2, appeared: cardsAppeared)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+
+                            // Weather
+                            let forecasts = viewModel.weatherForecasts(for: trip.tripId)
+                            if !forecasts.isEmpty {
+                                weatherSection(forecasts: forecasts)
+                                    .cardAppear(index: 3, appeared: cardsAppeared)
+                                    .padding(.horizontal, PerchTheme.Spacing.large)
+                            }
+                        }
+                    }
+
+                    Spacer().frame(height: PerchTheme.Spacing.large)
+                }
+            }
+            .refreshable {
+                PerchHaptics.medium()
+                await dashboardViewModel.refreshRecords()
+                PerchHaptics.success()
+            }
+        }
+        .onChange(of: dashboardViewModel.travelRecords) { _, new in
+            viewModel.records = new
+        }
+        .onAppear {
+            if !dashboardViewModel.travelRecords.isEmpty {
+                viewModel.records = dashboardViewModel.travelRecords
+            }
+            PerchMotion.withOptionalAnimation { cardsAppeared = true }
+        }
+    }
+
+    // MARK: - Trip Selector
+
+    private var tripSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: PerchTheme.Spacing.small) {
+                ForEach(viewModel.trips, id: \.1.tripId) { _, trip in
+                    let isSelected = (selectedTripId ?? viewModel.currentTrip?.1.tripId) == trip.tripId
+                    Button {
+                        selectedTripId = trip.tripId
+                        PerchHaptics.light()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(statusEmoji(trip.status))
+                            Text(trip.destination)
+                                .font(PerchTheme.Font.caption)
+                        }
+                        .foregroundColor(isSelected ? PerchTheme.background : PerchTheme.textSecondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(isSelected ? PerchTheme.accent : PerchTheme.cardInnerBackground)
+                        .cornerRadius(10)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Trip Header Card
+
+    private func tripHeaderCard(trip: TripData) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            // Destination + status
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(trip.destination)
+                        .font(PerchTheme.Font.title)
+                        .foregroundColor(PerchTheme.textPrimary)
+
+                    HStack(spacing: PerchTheme.Spacing.xSmall) {
+                        if let origin = trip.origin {
+                            Text(origin)
+                                .font(PerchTheme.Font.body)
+                                .foregroundColor(PerchTheme.textTertiary)
+                            Image(systemName: "arrow.right")
+                                .font(.caption2)
+                                .foregroundColor(PerchTheme.textTertiary)
+                        }
+                        Text(trip.destination)
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(PerchTheme.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                // Status badge
+                statusBadge(trip: trip)
+            }
+
+            // Date range
+            if let start = trip.startDateParsed, let end = trip.endDateParsed {
+                HStack(spacing: PerchTheme.Spacing.small) {
+                    Image(systemName: "calendar")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textTertiary)
+                    Text("\(PerchFormatters.shortWeekdayDate.string(from: start)) – \(PerchFormatters.shortWeekdayDate.string(from: end))")
+                        .font(PerchTheme.Font.body)
+                        .foregroundColor(PerchTheme.textSecondary)
+
+                    if let total = trip.totalDays {
+                        Text("· \(total) nights")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textTertiary)
+                    }
+                }
+            }
+
+            // Timezone info
+            if let destTz = trip.destinationTz, let originTz = trip.originTz, destTz != originTz {
+                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Image(systemName: "clock")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textTertiary)
+                    Text(formatTimezoneOffset(origin: originTz, destination: destTz))
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textTertiary)
+                }
+            }
+
+            // Weather summary
+            if let weather = viewModel.weatherSummary(for: trip.tripId) {
+                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Text(weather.emoji)
+                    Text("\(Int(weather.avgTemp))°C avg")
+                        .font(PerchTheme.Font.body)
+                        .foregroundColor(PerchTheme.textSecondary)
+                    Text("· \(weather.condition.capitalized)")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textTertiary)
+                }
+            }
+        }
+        .padding(PerchTheme.Card.padding)
+        .cardStyle()
+    }
+
+    // MARK: - Alerts Section
+
+    private func alertsSection(alerts: [(Record, TravelAlertData)]) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+            ForEach(alerts, id: \.0.id) { _, alert in
+                HStack(spacing: PerchTheme.Spacing.small) {
+                    Image(systemName: alert.isCritical ? "exclamationmark.triangle.fill" : "info.circle.fill")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(alert.isCritical ? PerchTheme.error : PerchTheme.warning)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(alert.message)
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(PerchTheme.textPrimary)
+
+                        if let flight = alert.flightNumber {
+                            Text(flight)
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textTertiary)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(PerchTheme.Spacing.medium)
+                .background(
+                    (alert.isCritical ? PerchTheme.error : PerchTheme.warning).opacity(0.1)
+                )
+                .cornerRadius(10)
+            }
+        }
+    }
+
+    // MARK: - Itinerary Timeline
+
+    private func itineraryTimeline(tripId: String) -> some View {
+        let segments = viewModel.segments(for: tripId)
+
+        // Group segments by day
+        let grouped = Dictionary(grouping: segments) { item -> String in
+            let date = item.1.departure ?? item.1.checkIn ?? item.0.createdAt
+            return PerchFormatters.shortWeekdayDate.string(from: date)
+        }
+        let sortedDays = grouped.keys.sorted { k1, k2 in
+            let d1 = grouped[k1]!.first.map { $0.1.departure ?? $0.1.checkIn ?? $0.0.createdAt } ?? .distantFuture
+            let d2 = grouped[k2]!.first.map { $0.1.departure ?? $0.1.checkIn ?? $0.0.createdAt } ?? .distantFuture
+            return d1 < d2
+        }
+
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(sortedDays.enumerated()), id: \.element) { dayIndex, dayLabel in
+                // Day header
+                HStack(spacing: PerchTheme.Spacing.small) {
+                    Text(dayLabel)
+                        .font(PerchTheme.Font.heading)
+                        .foregroundColor(PerchTheme.textPrimary)
+                    Spacer()
+                }
+                .padding(.vertical, PerchTheme.Spacing.small)
+                .padding(.horizontal, PerchTheme.Spacing.small)
+
+                // Segments for this day
+                let daySegments = grouped[dayLabel]!
+                ForEach(daySegments, id: \.0.id) { record, segment in
+                    HStack(alignment: .top, spacing: PerchTheme.Spacing.medium) {
+                        // Timeline line + dot
+                        VStack(spacing: 0) {
+                            Circle()
+                                .fill(segmentStatusColor(segment))
+                                .frame(width: 10, height: 10)
+
+                            if daySegments.last?.0.id != record.id || dayIndex < sortedDays.count - 1 {
+                                Rectangle()
+                                    .fill(PerchTheme.border)
+                                    .frame(width: 1)
+                                    .frame(maxHeight: .infinity)
+                            }
+                        }
+                        .frame(width: 20)
+
+                        // Segment content
+                        segmentCard(segment: segment)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal, PerchTheme.Spacing.small)
+                }
+            }
+        }
+        .padding(PerchTheme.Card.padding)
+        .cardStyle()
+    }
+
+    // MARK: - Segment Card
+
+    @ViewBuilder
+    private func segmentCard(segment: ItineraryData) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Image(systemName: segmentIcon(segment))
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.accent)
+
+                if segment.isFlight {
+                    Text(segment.flightLabel ?? "Flight")
+                        .font(PerchTheme.Font.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(PerchTheme.textPrimary)
+
+                    if let origin = segment.origin, let dest = segment.destination {
+                        Text("\(origin) → \(dest)")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textSecondary)
+                    }
+                } else {
+                    Text(segment.name ?? segment.segmentType.capitalized)
+                        .font(PerchTheme.Font.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(PerchTheme.textPrimary)
+                }
+
+                Spacer()
+
+                if let status = segment.status {
+                    Text(status.replacingOccurrences(of: "_", with: " ").capitalized)
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(segmentStatusColor(segment))
+                }
+            }
+
+            // Times
+            HStack(spacing: PerchTheme.Spacing.medium) {
+                if let dep = segment.departure {
+                    Label(PerchFormatters.time24h.string(from: dep), systemImage: "arrow.up.right")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                }
+                if let arr = segment.arrival {
+                    Label(PerchFormatters.time24h.string(from: arr), systemImage: "arrow.down.right")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                }
+                if let checkIn = segment.checkIn {
+                    Label("Check-in \(PerchFormatters.time24h.string(from: checkIn))", systemImage: "clock")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                }
+            }
+
+            // Details row
+            HStack(spacing: PerchTheme.Spacing.medium) {
+                if let gate = segment.gate {
+                    Text("Gate \(gate)")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.accent)
+                }
+                if let seat = segment.seat {
+                    Text("Seat \(seat)")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textTertiary)
+                }
+                if let conf = segment.confirmation {
+                    Text(conf)
+                        .font(PerchTheme.Font.captionNumeric)
+                        .foregroundColor(PerchTheme.textTertiary)
+                        .onTapGesture {
+                            UIPasteboard.general.string = conf
+                            PerchHaptics.light()
+                        }
+                }
+            }
+
+            if let address = segment.address {
+                Text(address)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textTertiary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(PerchTheme.Spacing.medium)
+        .background(PerchTheme.cardInnerBackground)
+        .cornerRadius(10)
+        .padding(.bottom, PerchTheme.Spacing.small)
+    }
+
+    // MARK: - Weather Section
+
+    private func weatherSection(forecasts: [(Record, WeatherForecastData)]) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+            Text("WEATHER")
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textSecondary)
+                .tracking(1)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: PerchTheme.Spacing.small) {
+                    ForEach(forecasts, id: \.0.id) { _, forecast in
+                        VStack(spacing: 6) {
+                            Text(forecast.conditionEmoji)
+                                .font(PerchTheme.Font.title)
+
+                            if let high = forecast.tempHigh, let low = forecast.tempLow {
+                                Text("\(Int(high))°/\(Int(low))°")
+                                    .font(PerchTheme.Font.captionNumeric)
+                                    .foregroundColor(PerchTheme.textPrimary)
+                            } else if let avg = forecast.tempAvg {
+                                Text("\(Int(avg))°C")
+                                    .font(PerchTheme.Font.captionNumeric)
+                                    .foregroundColor(PerchTheme.textPrimary)
+                            }
+
+                            Text(String(forecast.date.suffix(5)))
+                                .font(PerchTheme.Font.micro)
+                                .foregroundColor(PerchTheme.textTertiary)
+                        }
+                        .frame(width: 60)
+                        .padding(.vertical, PerchTheme.Spacing.small)
+                        .background(PerchTheme.cardInnerBackground)
+                        .cornerRadius(10)
+                    }
+                }
+            }
+        }
+        .padding(PerchTheme.Card.padding)
+        .cardStyle()
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: PerchTheme.Spacing.medium) {
+            Image(systemName: "airplane")
+                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
+                .foregroundColor(PerchTheme.textTertiary)
+
+            Text("No upcoming trips")
+                .font(PerchTheme.Font.heading)
+                .foregroundColor(PerchTheme.textSecondary)
+
+            Text("Forward your booking confirmations to plans@tripit.com and they'll appear here automatically.")
+                .font(PerchTheme.Font.body)
+                .foregroundColor(PerchTheme.textTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(PerchTheme.Spacing.xxLarge)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Helpers
+
+    private func segmentIcon(_ seg: ItineraryData) -> String {
+        switch seg.segmentType {
+        case "flight": return "airplane"
+        case "hotel": return "bed.double"
+        case "train": return "tram"
+        case "car_rental": return "car"
+        case "restaurant": return "fork.knife"
+        default: return "mappin.circle"
+        }
+    }
+
+    private func segmentStatusColor(_ seg: ItineraryData) -> Color {
+        switch seg.status?.lowercased() {
+        case "confirmed", "on_time": return PerchTheme.success
+        case "delayed": return PerchTheme.warning
+        case "cancelled": return PerchTheme.error
+        case "pending": return PerchTheme.textTertiary
+        default: return PerchTheme.accent
+        }
+    }
+
+    private func statusEmoji(_ status: String) -> String {
+        switch status {
+        case "active": return "📍"
+        case "upcoming": return "✈️"
+        case "completed": return "✅"
+        default: return "📌"
+        }
+    }
+
+    private func statusBadge(trip: TripData) -> some View {
+        HStack(spacing: 4) {
+            Text(statusEmoji(trip.status))
+            if trip.status == "active", let day = trip.currentTripDay, let total = trip.totalDays {
+                Text("Day \(day)/\(total)")
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.accent)
+            } else if let days = trip.daysUntilStart, days > 0 {
+                Text("in \(days)d")
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textSecondary)
+            } else {
+                Text(trip.status.capitalized)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textTertiary)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(PerchTheme.cardInnerBackground)
+        .cornerRadius(8)
+    }
+
+    private func formatTimezoneOffset(origin: String, destination: String) -> String {
+        guard let originTz = TimeZone(identifier: origin),
+              let destTz = TimeZone(identifier: destination) else { return "" }
+        let diff = (destTz.secondsFromGMT() - originTz.secondsFromGMT()) / 3600
+        if diff == 0 { return "Same timezone" }
+        let sign = diff > 0 ? "+" : ""
+        return "\(sign)\(diff)h from home"
+    }
+}

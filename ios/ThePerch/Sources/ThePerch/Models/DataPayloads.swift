@@ -399,6 +399,182 @@ struct AdminCommandData: Codable {
     }
 }
 
+// MARK: - Trip Data
+
+/// Structured data for a trip record (the container for a journey).
+struct TripData: Codable {
+    let destination: String
+    let destinationCountry: String?
+    let origin: String?
+    let originTz: String?
+    let destinationTz: String?
+    let startDate: String        // yyyy-MM-dd
+    let endDate: String          // yyyy-MM-dd
+    let status: String           // upcoming, active, completed
+    let tripId: String
+
+    enum CodingKeys: String, CodingKey {
+        case destination
+        case destinationCountry = "destination_country"
+        case origin
+        case originTz = "origin_tz"
+        case destinationTz = "destination_tz"
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case status
+        case tripId = "trip_id"
+    }
+
+    /// Parsed start date.
+    var startDateParsed: Date? {
+        PerchFormatters.isoDate.date(from: startDate)
+    }
+
+    /// Parsed end date.
+    var endDateParsed: Date? {
+        PerchFormatters.isoDate.date(from: endDate)
+    }
+
+    /// Days until trip starts (negative if already started).
+    var daysUntilStart: Int? {
+        guard let start = startDateParsed else { return nil }
+        return Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: .now), to: start).day
+    }
+
+    /// Current day number within the trip (1-indexed). Nil if not active.
+    var currentTripDay: Int? {
+        guard status == "active",
+              let start = startDateParsed else { return nil }
+        let days = Calendar.current.dateComponents([.day], from: start, to: .now).day ?? 0
+        return days + 1
+    }
+
+    /// Total trip duration in days.
+    var totalDays: Int? {
+        guard let start = startDateParsed, let end = endDateParsed else { return nil }
+        return Calendar.current.dateComponents([.day], from: start, to: end).day
+    }
+}
+
+// MARK: - Itinerary Data
+
+/// Structured data for a travel itinerary segment (flight, hotel, train, etc.).
+struct ItineraryData: Codable {
+    let tripId: String
+    let segmentType: String      // flight, hotel, train, car_rental, restaurant
+    let carrier: String?
+    let flightNumber: String?
+    let origin: String?          // IATA code for flights, city/address otherwise
+    let destination: String?
+    let departure: Date?
+    let arrival: Date?
+    let status: String?          // confirmed, on_time, delayed, cancelled, gate_change
+    let confirmation: String?
+    let gate: String?
+    let seat: String?
+    let name: String?            // Hotel name, restaurant name, etc.
+    let checkIn: Date?
+    let checkOut: Date?
+    let address: String?
+
+    enum CodingKeys: String, CodingKey {
+        case tripId = "trip_id"
+        case segmentType = "segment_type"
+        case carrier
+        case flightNumber = "flight_number"
+        case origin, destination
+        case departure, arrival
+        case status, confirmation, gate, seat
+        case name
+        case checkIn = "check_in"
+        case checkOut = "check_out"
+        case address
+    }
+
+    /// Whether this is a flight segment.
+    var isFlight: Bool { segmentType == "flight" }
+
+    /// Whether this is a hotel segment.
+    var isHotel: Bool { segmentType == "hotel" }
+
+    /// Formatted flight label (e.g. "TP668").
+    var flightLabel: String? {
+        guard let number = flightNumber else { return nil }
+        if let carrier { return "\(carrier) \(number)" }
+        return number
+    }
+
+    /// Time until departure (nil if in the past or no departure date).
+    var timeUntilDeparture: TimeInterval? {
+        guard let dep = departure, dep > .now else { return nil }
+        return dep.timeIntervalSince(.now)
+    }
+}
+
+// MARK: - Travel Alert Data
+
+/// Structured data for a travel disruption alert.
+struct TravelAlertData: Codable {
+    let tripId: String
+    let alertType: String        // gate_change, delay, cancellation, disruption
+    let severity: String         // info, warning, critical
+    let message: String
+    let source: String?          // tripit_email, airline_email, manual
+    let flightNumber: String?
+
+    enum CodingKeys: String, CodingKey {
+        case tripId = "trip_id"
+        case alertType = "alert_type"
+        case severity
+        case message
+        case source
+        case flightNumber = "flight_number"
+    }
+
+    var isCritical: Bool { severity == "critical" }
+    var isWarning: Bool { severity == "warning" }
+}
+
+// MARK: - Weather Forecast Data
+
+/// Structured data for a destination weather forecast.
+struct WeatherForecastData: Codable {
+    let tripId: String
+    let destination: String
+    let date: String             // yyyy-MM-dd
+    let tempHigh: Double?
+    let tempLow: Double?
+    let tempAvg: Double?
+    let condition: String?       // sunny, cloudy, rain, snow, etc.
+    let summary: String?         // Human-readable summary
+    let packingHints: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case tripId = "trip_id"
+        case destination, date
+        case tempHigh = "temp_high"
+        case tempLow = "temp_low"
+        case tempAvg = "temp_avg"
+        case condition, summary
+        case packingHints = "packing_hints"
+    }
+
+    /// Weather emoji based on condition.
+    var conditionEmoji: String {
+        switch condition?.lowercased() {
+        case "sunny", "clear": return "☀️"
+        case "partly_cloudy", "partly cloudy": return "⛅"
+        case "cloudy", "overcast": return "☁️"
+        case "rain", "rainy", "showers": return "🌧"
+        case "thunderstorm": return "⛈"
+        case "snow", "snowy": return "🌨"
+        case "windy": return "💨"
+        case "fog", "foggy": return "🌫"
+        default: return "🌤"
+        }
+    }
+}
+
 // MARK: - Data Payload Decoding Extension
 
 /// Extension to Record for convenient typed data decoding.
@@ -481,5 +657,27 @@ extension Record {
     /// Decodes admin command data from this record.
     func asAdminCommand() -> AdminCommandData? {
         decodeData(as: AdminCommandData.self)
+    }
+
+    // MARK: - Travel
+
+    /// Decodes trip data from this record.
+    func asTrip() -> TripData? {
+        decodeData(as: TripData.self)
+    }
+
+    /// Decodes itinerary segment data from this record.
+    func asItinerary() -> ItineraryData? {
+        decodeData(as: ItineraryData.self)
+    }
+
+    /// Decodes travel alert data from this record.
+    func asTravelAlert() -> TravelAlertData? {
+        decodeData(as: TravelAlertData.self)
+    }
+
+    /// Decodes weather forecast data from this record.
+    func asWeatherForecast() -> WeatherForecastData? {
+        decodeData(as: WeatherForecastData.self)
     }
 }

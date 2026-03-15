@@ -31,7 +31,11 @@ final class HomeViewModel {
     var caloriesPercentText: String {
         guard let record = todaysCaloriesRecord,
               let m = record.asMeasurement(),
-              let target = m.target, target > 0 else { return "--%" }
+              let target = m.target, target > 0 else {
+            // After 2am with no data: show 0%, not --%
+            let hour = Calendar.current.component(.hour, from: .now)
+            return hour >= 2 ? "0%" : "--%"
+        }
         let pct = Int(min(m.value / target, 1.5) * 100)
         return "\(pct)%"
     }
@@ -39,7 +43,10 @@ final class HomeViewModel {
     var caloriesColor: String {
         guard let record = todaysCaloriesRecord,
               let m = record.asMeasurement(),
-              let target = m.target, target > 0 else { return "tertiary" }
+              let target = m.target, target > 0 else {
+            let hour = Calendar.current.component(.hour, from: .now)
+            return hour >= 2 ? "accent" : "tertiary"
+        }
         let ratio = m.value / target
         if ratio > 1.1 { return "error" }
         if ratio > 0.9 { return "success" }
@@ -72,33 +79,54 @@ final class HomeViewModel {
 
     // MARK: - Calories Record
 
-    /// Before 14:00 shows yesterday's final tally; after 14:00 shows today's live data.
-    /// Returns nil (--%) when no matching record exists, instead of falling back to stale data.
+    /// Calories display logic:
+    /// - Before 2am: show today's data if any, otherwise yesterday's final tally
+    /// - After 2am: show today's data if any, otherwise treat as 0 (new day, fresh start)
+    ///
+    /// Returns a sentinel record with value=0 after 2am when no today data exists,
+    /// so the UI shows "0%" instead of "--%" .
     var todaysCaloriesRecord: Record? {
         let caloriesRecords = records.filter { $0.asMeasurement()?.metric == "daily_calories" }
-        let isMorning = Calendar.current.component(.hour, from: .now) < 14
-        let targetDate: Date = isMorning
-            ? Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now
-            : .now
-        let dateString = PerchFormatters.isoDate.string(from: targetDate)
+        let hour = Calendar.current.component(.hour, from: .now)
+        let isLateNight = hour < 2
+        let todayString = PerchFormatters.isoDate.string(from: .now)
+        let yesterdayString = PerchFormatters.isoDate.string(from: Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now)
 
-        // Try exact date match
-        if let match = caloriesRecords.first(where: { $0.asMeasurement()?.context == dateString }) {
-            return match
+        // Always check today first
+        let todayRecords = caloriesRecords
+            .filter { $0.asMeasurement()?.context == todayString }
+            .sorted { $0.createdAt > $1.createdAt }
+        if let todayRecord = todayRecords.first {
+            return todayRecord
         }
 
-        // For afternoon (today), fall back to most recent today-only record
-        if !isMorning {
-            return caloriesRecords
-                .compactMap { r -> (Record, Date)? in
-                    guard let m = r.asMeasurement(), let ts = m.timestamp else { return nil }
-                    return Calendar.current.isDateInToday(ts) ? (r, ts) : nil
-                }
-                .sorted { $0.1 > $1.1 }
-                .first?.0
+        // Fall back to today by timestamp
+        let todayByTimestamp = caloriesRecords
+            .compactMap { r -> (Record, Date)? in
+                guard let m = r.asMeasurement(), let ts = m.timestamp else { return nil }
+                return Calendar.current.isDateInToday(ts) ? (r, ts) : nil
+            }
+            .sorted { $0.1 > $1.1 }
+            .first?.0
+        if let match = todayByTimestamp { return match }
+
+        // No today data: before 2am show yesterday, after 2am show nothing (0%)
+        if isLateNight {
+            if let yesterdayRecord = caloriesRecords.first(where: { $0.asMeasurement()?.context == yesterdayString }) {
+                return yesterdayRecord
+            }
         }
 
         return nil
+    }
+
+    /// Whether the displayed calories are from yesterday (for UI labeling).
+    var isShowingYesterdayCalories: Bool {
+        guard let record = todaysCaloriesRecord,
+              let m = record.asMeasurement(),
+              let ctx = m.context else { return false }
+        let todayString = PerchFormatters.isoDate.string(from: .now)
+        return ctx != todayString
     }
 
     // MARK: - Live Activity Sync
@@ -153,4 +181,44 @@ final class HomeViewModel {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    // MARK: - Travel Timezone
+
+    /// Returns dual clock info when an active/upcoming trip has a different timezone.
+    /// Nil when no trip or same timezone.
+    var dualClockInfo: (homeTz: String, destTz: String, homeLabel: String, destLabel: String)? {
+        // Find active or upcoming trip
+        let tripRecords = records.compactMap { r -> TripData? in r.asTrip() }
+        let activeTrip = tripRecords.first { $0.status == "active" }
+        let upcomingTrip = tripRecords.first { $0.status == "upcoming" && ($0.daysUntilStart ?? 99) <= 7 }
+        guard let trip = activeTrip ?? upcomingTrip else { return nil }
+
+        guard let originTz = trip.originTz,
+              let destTz = trip.destinationTz,
+              originTz != destTz else { return nil }
+
+        let originCity = trip.origin ?? originTz.components(separatedBy: "/").last ?? "Home"
+        let destCity = trip.destination
+
+        return (homeTz: originTz, destTz: destTz, homeLabel: originCity, destLabel: destCity)
+    }
+
+    // MARK: - Cross-Domain Travel Alerts
+
+    /// Deliveries that will arrive during an active trip (when no one's home).
+    var deliveriesWhileAway: [(Record, DeliveryData)] {
+        guard let trip = records.compactMap({ $0.asTrip() }).first(where: { $0.status == "active" || $0.status == "upcoming" }),
+              let start = trip.startDateParsed,
+              let end = trip.endDateParsed else { return [] }
+
+        return records.compactMap { record -> (Record, DeliveryData)? in
+            guard let d = record.asDelivery() else { return nil }
+            let status = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            guard status != "delivered" && status != "cancelled" else { return nil }
+            // Check if ETA falls during trip
+            if let eta = d.eta, eta >= start && eta <= end {
+                return (record, d)
+            }
+            return nil
+        }
+    }
 }

@@ -51,7 +51,14 @@ struct HealthDetailView: View {
     private var allChartData: [(date: Date, value: Double)] {
         records.compactMap { record in
             guard let m = record.asMeasurement() else { return nil }
-            let date = m.timestamp ?? record.createdAt
+            let date: Date = {
+                if let ts = m.timestamp { return ts }
+                if let ctx = m.context,
+                   let parsed = PerchFormatters.isoDate.date(from: ctx) {
+                    return parsed
+                }
+                return record.createdAt
+            }()
             return (date: date, value: m.value)
         }.sorted { $0.date < $1.date }
     }

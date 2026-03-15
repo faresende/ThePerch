@@ -5,6 +5,16 @@ import SwiftUI
 struct HealthSummaryCard: View {
     let records: [Record]
 
+    /// Resolves the effective date for a measurement record.
+    private func effectiveDate(for record: Record, measurement: MeasurementData) -> Date {
+        if let ts = measurement.timestamp { return ts }
+        if let ctx = measurement.context,
+           let parsed = PerchFormatters.isoDate.date(from: ctx) {
+            return parsed
+        }
+        return record.createdAt
+    }
+
     var body: some View {
         let targets = computeTargets()
         let metCount = targets.filter { $0.status == .met }.count
@@ -115,7 +125,7 @@ struct HealthSummaryCard: View {
     private func latestMeasurement(_ measurements: [(Record, MeasurementData)], metric: String) -> MeasurementData? {
         measurements
             .filter { $0.1.metric == metric }
-            .sorted { ($0.1.timestamp ?? $0.0.createdAt) > ($1.1.timestamp ?? $1.0.createdAt) }
+            .sorted { effectiveDate(for: $0.0, measurement: $0.1) > effectiveDate(for: $1.0, measurement: $1.1) }
             .first?.1
     }
 
@@ -157,7 +167,7 @@ struct HealthSummaryCard: View {
     private func weightTarget(_ measurements: [(Record, MeasurementData)]) -> TargetInfo {
         let weightEntries = measurements
             .filter { $0.1.metric == "weight" }
-            .sorted { ($0.1.timestamp ?? $0.0.createdAt) < ($1.1.timestamp ?? $1.0.createdAt) }
+            .sorted { effectiveDate(for: $0.0, measurement: $0.1) < effectiveDate(for: $1.0, measurement: $1.1) }
             .suffix(7)
 
         guard weightEntries.count >= 2 else {

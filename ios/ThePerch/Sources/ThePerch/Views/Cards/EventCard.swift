@@ -11,6 +11,11 @@ struct EventCard: View {
         self.borderColor = borderColor
     }
 
+    /// Whether this event has already ended.
+    private var isPast: Bool {
+        event.end < Date.now
+    }
+
     private var timeFormatted: String {
         let start = PerchFormatters.time12h.string(from: event.start)
         let end = PerchFormatters.time12h.string(from: event.end)
@@ -22,7 +27,7 @@ struct EventCard: View {
             HStack(spacing: 0) {
                 // Colored left border
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(borderColor)
+                    .fill(isPast ? borderColor.opacity(0.3) : borderColor)
                     .frame(width: 4)
 
                 // Content
@@ -30,12 +35,12 @@ struct EventCard: View {
                     // Time
                     Text(timeFormatted)
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(isPast ? PerchTheme.textTertiary : PerchTheme.textSecondary)
 
                     // Title
                     Text(event.title)
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(isPast ? PerchTheme.textTertiary : PerchTheme.textPrimary)
                         .lineLimit(1)
 
                     // Location
@@ -46,36 +51,31 @@ struct EventCard: View {
                             Text(location)
                                 .font(PerchTheme.Font.caption)
                         }
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(PerchTheme.textTertiary)
                         .padding(.top, 2)
                     }
 
-                    // Agent note
-                    if let agentNote = event.agentNotes, !agentNote.isEmpty {
-                        HStack(alignment: .top, spacing: 6) {
-                            Text("🤖")
-                                .font(PerchTheme.Font.caption)
-
-                            Text(agentNote)
-                                .font(PerchTheme.Font.caption)
-                                .italic()
-                                .foregroundColor(PerchTheme.textSecondary)
-                                .lineLimit(2)
-                        }
-                        .padding(10)
-                        .background(PerchTheme.cardInnerBackground)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(PerchTheme.accent.opacity(0.15), lineWidth: 1)
-                        )
-                        .padding(.top, 6)
+                    // Agent note — only shown for non-past events
+                    if !isPast, let agentNote = event.agentNotes, !agentNote.isEmpty {
+                        Text(agentNote)
+                            .font(PerchTheme.Font.caption)
+                            .italic()
+                            .foregroundColor(PerchTheme.textSecondary)
+                            .lineLimit(2)
+                            .padding(.top, 4)
                     }
                 }
                 .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.vertical, 18)
+                .padding(.vertical, 14)
             }
-            .cardStyle()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(PerchTheme.cardBackground)
+            .cornerRadius(PerchTheme.Card.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                    .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
+            )
+            .opacity(isPast ? 0.6 : 1.0)
         }
         .buttonStyle(CardPressStyle())
         .accessibilityElement(children: .combine)
