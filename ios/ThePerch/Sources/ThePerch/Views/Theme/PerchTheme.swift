@@ -244,7 +244,7 @@ struct PerchTheme {
     // MARK: - Card Styling
 
     enum Card {
-        static let cornerRadius: CGFloat = 18
+        static let cornerRadius: CGFloat = 20
         static let innerCornerRadius: CGFloat = 12
         static let padding: CGFloat = 20
         static let shadowRadius: CGFloat = 12
@@ -419,14 +419,30 @@ private struct CardStyleModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
+        let cardShape = RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
+
         content
-            .background(PerchTheme.cardBackground)
-            .cornerRadius(PerchTheme.Card.cornerRadius)
+            .glassEffect(.regular, in: cardShape)
             .overlay(
-                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                    .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
+                cardShape
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                PerchTheme.accent.opacity(colorScheme == .dark ? 0.22 : 0.10),
+                                PerchTheme.border.opacity(colorScheme == .dark ? 0.85 : 0.60)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: PerchTheme.Card.borderWidth
+                    )
             )
-            // Default shadow: neutral depth. Glow is applied selectively.
+            .shadow(
+                color: PerchTheme.accent.opacity(colorScheme == .dark ? 0.15 : 0.05),
+                radius: 8,
+                x: 0,
+                y: 0
+            )
             .shadow(
                 color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.06),
                 radius: colorScheme == .dark ? 10 : 8,
