@@ -371,6 +371,16 @@ struct TravelView: View {
 
     // MARK: - Segment Card
 
+    /// Strip leading emoji characters from a title (the timeline icon already conveys type).
+    private func cleanTitle(_ title: String) -> String {
+        var s = title
+        // Strip leading emoji + whitespace
+        while let first = s.first, first.unicodeScalars.allSatisfy({ $0.properties.isEmoji && !$0.isASCII }) {
+            s.removeFirst()
+        }
+        return s.trimmingCharacters(in: .whitespaces)
+    }
+
     /// Format a confirmation/reference code for display (group long digit strings).
     private func formatConfirmation(_ conf: String) -> String {
         // Short alphanumeric codes (like PNRs): show as-is
@@ -406,7 +416,7 @@ struct TravelView: View {
                 }
             } else if segment.isHotel {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(segment.name ?? record.title)
+                    Text(segment.name ?? cleanTitle(record.title))
                         .font(PerchTheme.Font.body)
                         .fontWeight(.semibold)
                         .foregroundColor(PerchTheme.textPrimary)
@@ -423,7 +433,7 @@ struct TravelView: View {
                     }
                 }
             } else {
-                Text(segment.name ?? record.title)
+                Text(segment.name ?? cleanTitle(record.title))
                     .font(PerchTheme.Font.body)
                     .fontWeight(.semibold)
                     .foregroundColor(PerchTheme.textPrimary)
