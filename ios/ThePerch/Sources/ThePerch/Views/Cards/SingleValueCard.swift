@@ -118,9 +118,11 @@ struct SingleValueCard: View {
             }
 
             // Timestamp
-            Text(lastUpdated.relativeTime)
+            Text(CardFreshness.text(for: lastUpdated))
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(CardFreshness.color(for: lastUpdated))
+                .lineLimit(2)
+                .multilineTextAlignment(.trailing)
         }
         .padding(.horizontal, PerchTheme.Spacing.large)
         .padding(.vertical, PerchTheme.Spacing.medium)

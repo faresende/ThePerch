@@ -100,6 +100,7 @@
 		E84531AD71195AC9C765C1C9 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */; };
 		EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */; };
 		ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */; };
+		EMPT0002EMPT0002EMPT0002 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMPT0001EMPT0001EMPT0001 /* EmptyStateView.swift */; };
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */; };
 		F3083CD70F004A46A9706D46 /* CardRendererFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */; };
 		F4C6D71B135641088ADEC4D7 /* CardGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBC038A620A4778B341EA85 /* CardGalleryView.swift */; };
@@ -255,6 +256,7 @@
 		ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthDetailView.swift; sourceTree = "<group>"; };
 		EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailSummaryCard.swift; sourceTree = "<group>"; };
 		ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorBanner.swift; sourceTree = "<group>"; };
+		EMPT0001EMPT0001EMPT0001 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListCardRenderer.swift; sourceTree = "<group>"; };
 		F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardFooter.swift; sourceTree = "<group>"; };
 		F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThePerchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -642,6 +644,7 @@
 		89F1570CF26987B35512250E /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				EMPT0001EMPT0001EMPT0001 /* EmptyStateView.swift */,
 				ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */,
 				837659300DEF6DC763F7F917 /* SectionNavigator.swift */,
 			);
@@ -958,6 +961,7 @@
 				0385F06533E708330AFA01B0 /* SearchView.swift in Sources */,
 				A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */,
 				B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */,
+				EMPT0002EMPT0002EMPT0002 /* EmptyStateView.swift in Sources */,
 				ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */,
 				PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */,
 				NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */,

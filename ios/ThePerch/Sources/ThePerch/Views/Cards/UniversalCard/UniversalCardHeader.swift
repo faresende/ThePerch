@@ -4,7 +4,7 @@ struct UniversalCardHeader: View {
     let icon: String?
     let title: String
     let subtitle: String?
-    let freshnessText: String?
+    let freshnessDate: Date?
     let isPinned: Bool
 
     var body: some View {
@@ -32,17 +32,19 @@ struct UniversalCardHeader: View {
 
                     Spacer(minLength: 0)
 
-                    if let freshnessText {
-                        Text(freshnessText)
+                    if let freshnessDate {
+                        Text(CardFreshness.text(for: freshnessDate))
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(CardFreshness.color(for: freshnessDate))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(
                                 Capsule()
-                                    .fill(PerchTheme.cardInnerBackground)
+                                    .fill(CardFreshness.color(for: freshnessDate).opacity(0.12))
                             )
-                            .accessibilityLabel("Updated \(freshnessText)")
+                            .lineLimit(2)
+                            .multilineTextAlignment(.trailing)
+                            .accessibilityLabel(CardFreshness.text(for: freshnessDate))
                     }
                 }
 

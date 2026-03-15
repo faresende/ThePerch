@@ -49,7 +49,7 @@ struct UniversalCardContainer<Content: View>: View {
                 icon: headerIcon,
                 title: headerTitle,
                 subtitle: headerSubtitle,
-                freshnessText: record.relativeTime,
+                freshnessDate: record.updatedAt,
                 isPinned: record.pinned
             )
 

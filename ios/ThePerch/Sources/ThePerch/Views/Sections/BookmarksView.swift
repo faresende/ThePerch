@@ -82,16 +82,6 @@ struct BookmarksView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if dashboardViewModel.isLoading && records.isEmpty {
-                VStack(spacing: PerchTheme.Spacing.medium) {
-                    SkeletonBookmarkCard()
-                    SkeletonBookmarkCard()
-                    SkeletonBookmarkCard()
-                }
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.top, 80)
-            }
-
             VStack(spacing: 0) {
                 // Section header with count
                 SectionHeader(title: "Bookmarks", freshnessKey: "bookmarks")
@@ -104,7 +94,7 @@ struct BookmarksView: View {
                 if dashboardViewModel.error != nil {
                     ErrorBanner(
                         message: "Failed to load bookmarks",
-                        retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                        retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
                         onDismiss: { dashboardViewModel.clearError() }
                     )
                     .padding(.horizontal, PerchTheme.Spacing.large)
@@ -185,6 +175,10 @@ struct BookmarksView: View {
                 // Content
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                        if dashboardViewModel.isLoading && records.isEmpty {
+                            SkeletonCardsSection(count: 3)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+                        } else {
                         // Count indicator
                         if !filteredBookmarks.isEmpty {
                             Text("\(tabCount) \(selectedTab == .karakeep ? "bookmark" : "document")\(tabCount == 1 ? "" : "s")")
@@ -236,6 +230,8 @@ struct BookmarksView: View {
                             emptyStateView
                         }
 
+                        }
+
                         Spacer()
                             .frame(height: PerchTheme.Spacing.large)
                     }
@@ -270,26 +266,13 @@ struct BookmarksView: View {
 
     @ViewBuilder
     private var emptyStateView: some View {
-        VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: selectedTab == .karakeep ? "bookmark" : "doc")
-                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
-
-            VStack(spacing: PerchTheme.Spacing.xSmall) {
-                Text(selectedTab == .karakeep ? "No bookmarks yet" : "No documents yet")
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-
-                Text(selectedTab == .karakeep
-                    ? "Share articles from Safari or the Share Sheet"
-                    : "Documents from Paperless will appear here")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(PerchTheme.Spacing.large)
+        EmptyStateView(
+            icon: selectedTab == .karakeep ? "bookmark" : "doc",
+            title: selectedTab == .karakeep ? "No bookmarks saved" : "No documents saved",
+            subtitle: selectedTab == .karakeep
+                ? "Share articles from Safari or the Share Sheet to save them here."
+                : "Documents from Paperless will appear here once they sync."
+        )
     }
 
     @ViewBuilder

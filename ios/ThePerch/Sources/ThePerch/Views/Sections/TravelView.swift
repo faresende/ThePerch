@@ -27,7 +27,10 @@ struct TravelView: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
-                    if viewModel.trips.isEmpty {
+                    if dashboardViewModel.isLoading && viewModel.records.isEmpty {
+                        SkeletonCardsSection(count: 3)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                    } else if viewModel.trips.isEmpty {
                         emptyState
                     } else {
                         // Trip selector (if multiple trips)
@@ -642,22 +645,11 @@ struct TravelView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: "airplane")
-                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
-
-            Text("No upcoming trips")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textSecondary)
-
-            Text("Forward your booking confirmations to plans@tripit.com and they'll appear here automatically.")
-                .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textTertiary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(PerchTheme.Spacing.xxLarge)
-        .frame(maxWidth: .infinity)
+        EmptyStateView(
+            icon: "airplane",
+            title: "No upcoming trips",
+            subtitle: "Forward your booking confirmations to TripIt and they’ll appear here automatically."
+        )
     }
 
     // MARK: - Helpers
