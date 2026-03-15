@@ -30,9 +30,10 @@ struct EmailSummaryCard: View {
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.accent)
                     Text("IMPORTANT EMAILS")
-                        .font(PerchTheme.Font.caption)
+                        .font(PerchTheme.Font.cardEyebrow)
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
+                        .tracking(0.8)
                     Spacer()
                     CardFreshnessLabel(date: emailRecord?.updatedAt)
                     if let unread = summary.totalUnread, unread > 0 {

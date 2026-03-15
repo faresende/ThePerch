@@ -75,9 +75,9 @@ struct NutritionHomeCard: View {
     }
 
     // Macro colors
-    private static let proteinColor = Color(red: 0.35, green: 0.6, blue: 0.95)
-    private static let carbsColor = PerchTheme.accent
-    private static let fatColor = Color(red: 0.9, green: 0.55, blue: 0.6)
+    private static let proteinColor = PerchTheme.macroProtein
+    private static let carbsColor = PerchTheme.macroCarbs
+    private static let fatColor = PerchTheme.macroFat
 
     /// Compact summary: "1,847 / 3,400 kcal · P: 79% C: 63% F: 56%"
     private var compactSummary: String {
@@ -107,9 +107,10 @@ struct NutritionHomeCard: View {
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.accent)
                     Text(isMorning ? "YESTERDAY'S NUTRITION" : "NUTRITION")
-                        .font(PerchTheme.Font.caption)
+                        .font(PerchTheme.Font.cardEyebrow)
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
+                        .tracking(0.8)
                     Spacer()
                     CardFreshnessLabel(date: latestUpdate)
                     Image(systemName: isCompact ? "chevron.down" : "chevron.up")
@@ -118,7 +119,7 @@ struct NutritionHomeCard: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CardPressStyle())
 
             if !hasData {
                 // Empty state

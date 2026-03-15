@@ -64,9 +64,10 @@ struct HealthSummaryHomeCard: View {
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.accent)
                     Text("SLEEP & RECOVERY")
-                        .font(PerchTheme.Font.caption)
+                        .font(PerchTheme.Font.cardEyebrow)
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
+                        .tracking(0.8)
                     Spacer()
                     CardFreshnessLabel(date: latestUpdate)
                     Image(systemName: isCompact ? "chevron.down" : "chevron.up")
@@ -75,7 +76,7 @@ struct HealthSummaryHomeCard: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CardPressStyle())
 
             if !hasData {
                 // Empty state
