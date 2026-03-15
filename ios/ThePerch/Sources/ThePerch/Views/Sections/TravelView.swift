@@ -55,11 +55,18 @@ struct TravelView: View {
                                 .cardAppear(index: 2, appeared: cardsAppeared)
                                 .padding(.horizontal, PerchTheme.Spacing.large)
 
+                            let tripEvents = calendarEvents(for: trip)
+                            if !tripEvents.isEmpty {
+                                calendarSection(events: tripEvents, trip: trip)
+                                    .cardAppear(index: 3, appeared: cardsAppeared)
+                                    .padding(.horizontal, PerchTheme.Spacing.large)
+                            }
+
                             // Weather
                             let forecasts = viewModel.weatherForecasts(for: trip.tripId)
                             if !forecasts.isEmpty {
                                 weatherSection(forecasts: forecasts)
-                                    .cardAppear(index: 3, appeared: cardsAppeared)
+                                    .cardAppear(index: 4, appeared: cardsAppeared)
                                     .padding(.horizontal, PerchTheme.Spacing.large)
                             }
                         }
@@ -377,7 +384,10 @@ struct TravelView: View {
 
     // MARK: - Weather Section
 
+    @ViewBuilder
     private func weatherSection(forecasts: [(Record, WeatherForecastData)]) -> some View {
+        let packingHints = uniquePackingHints(from: forecasts)
+
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
             Text("WEATHER")
                 .font(PerchTheme.Font.caption)
@@ -411,6 +421,13 @@ struct TravelView: View {
                         .cornerRadius(10)
                     }
                 }
+            }
+
+            if !packingHints.isEmpty {
+                Text("🎒 Pack: \(packingHints.joined(separator: ", "))")
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textTertiary)
+                    .padding(.top, 2)
             }
         }
         .padding(PerchTheme.Card.padding)
@@ -500,5 +517,108 @@ struct TravelView: View {
         if diff == 0 { return "Same timezone" }
         let sign = diff > 0 ? "+" : ""
         return "\(sign)\(diff)h from home"
+    }
+
+    private func uniquePackingHints(from forecasts: [(Record, WeatherForecastData)]) -> [String] {
+        var seen: Set<String> = []
+
+        return forecasts
+            .flatMap { $0.1.packingHints ?? [] }
+            .filter { hint in
+                let normalized = hint.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                guard !normalized.isEmpty, !seen.contains(normalized) else { return false }
+                seen.insert(normalized)
+                return true
+            }
+    }
+
+    private func calendarEvents(for trip: TripData) -> [EventData] {
+        guard let start = trip.startDateParsed,
+              let end = trip.endDateParsed else { return [] }
+
+        let calendar = Calendar.current
+        let tripStart = calendar.startOfDay(for: start)
+        let tripEnd = calendar.startOfDay(for: end)
+
+        return dashboardViewModel.calendarRecords.compactMap { record -> EventData? in
+            guard record.type == .event,
+                  let event = record.asEvent() else { return nil }
+
+            let eventDay = calendar.startOfDay(for: event.start)
+            guard eventDay >= tripStart, eventDay <= tripEnd else { return nil }
+            return event
+        }
+        .sorted { $0.start < $1.start }
+    }
+
+    private func calendarSection(events: [EventData], trip: TripData) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+            Text("CALENDAR")
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textSecondary)
+                .tracking(1)
+
+            VStack(spacing: PerchTheme.Spacing.small) {
+                ForEach(Array(events.enumerated()), id: \.offset) { index, event in
+                    Button(action: { openInCalendar(event) }) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(calendarEventTimeText(for: event, trip: trip)) — \(event.title)")
+                                .font(PerchTheme.Font.body)
+                                .foregroundColor(PerchTheme.textPrimary)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if let location = event.location, !location.isEmpty {
+                                Text(location)
+                                    .font(PerchTheme.Font.caption)
+                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(PerchTheme.Spacing.medium)
+                        .background(PerchTheme.cardInnerBackground)
+                        .cornerRadius(10)
+                    }
+                    .buttonStyle(CardPressStyle())
+
+                    if index < events.count - 1 {
+                        Rectangle()
+                            .fill(PerchTheme.border)
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+        }
+        .padding(PerchTheme.Card.padding)
+        .cardStyle()
+    }
+
+    private func calendarEventTimeText(for event: EventData, trip: TripData) -> String {
+        guard let originId = trip.originTz,
+              let destinationId = trip.destinationTz,
+              originId != destinationId,
+              let originTz = TimeZone(identifier: originId),
+              let destinationTz = TimeZone(identifier: destinationId) else {
+            return "📅 \(PerchFormatters.time24h.string(from: event.start))"
+        }
+
+        let destinationTime = formattedTime(event.start, in: destinationTz, includeAbbreviation: true)
+        let originTime = formattedTime(event.start, in: originTz, includeAbbreviation: false)
+        return "📅 \(destinationTime) (\(originTime) your time)"
+    }
+
+    private func formattedTime(_ date: Date, in timeZone: TimeZone, includeAbbreviation: Bool) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = Locale.current
+        formatter.dateFormat = includeAbbreviation ? "HH:mm z" : "HH:mm"
+        return formatter.string(from: date)
+    }
+
+    private func openInCalendar(_ event: EventData) {
+        let interval = event.start.timeIntervalSinceReferenceDate
+        if let url = URL(string: "calshow:\(interval)") {
+            UIApplication.shared.open(url)
+        }
     }
 }
