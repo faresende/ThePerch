@@ -111,13 +111,17 @@ final class HealthKitService: NSObject, HealthKitServiceProtocol, @unchecked Sen
     /// - Returns: True if authorization was granted (or already available).
     func requestAuthorization() async -> Bool {
         guard let healthStore else {
+#if DEBUG
             print("[HealthKitService] HealthKit not available on this device")
+#endif
             return false
         }
 
         do {
             try await healthStore.requestAuthorization(toShare: [], read: readTypes)
+#if DEBUG
             print("[HealthKitService] Authorization granted")
+#endif
             return true
         } catch {
             print("[HealthKitService] Authorization failed: \(error.localizedDescription)")

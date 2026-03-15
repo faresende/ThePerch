@@ -65,7 +65,9 @@ final class HealthKitSyncService {
     /// Only syncs samples newer than the last sync date for each metric.
     func syncAll() async {
         guard !isSyncing else {
+#if DEBUG
             print("[HealthKitSync] Already syncing, skipping")
+#endif
             return
         }
 
@@ -79,7 +81,9 @@ final class HealthKitSyncService {
         let authorized = await healthKitService.requestAuthorization()
         guard authorized else {
             syncError = "Health data access not granted. Please enable in Settings > Privacy > Health."
+#if DEBUG
             print("[HealthKitSync] Authorization denied")
+#endif
             return
         }
 
@@ -90,7 +94,9 @@ final class HealthKitSyncService {
         await syncSteps()
         await syncSleep()
 
+#if DEBUG
         print("[HealthKitSync] Sync complete. \(syncedCount) new records written.")
+#endif
     }
 
     // MARK: - Individual Metric Syncs
@@ -105,7 +111,9 @@ final class HealthKitSyncService {
             if !newSamples.isEmpty {
                 SyncStateKey.setLastSync(for: "weight", date: Date())
             }
+#if DEBUG
             print("[HealthKitSync] Weight: \(newSamples.count) new samples")
+#endif
         } catch {
             print("[HealthKitSync] Weight sync error: \(error.localizedDescription)")
         }
@@ -124,7 +132,9 @@ final class HealthKitSyncService {
             if !dailySamples.isEmpty {
                 SyncStateKey.setLastSync(for: "heart_rate", date: Date())
             }
+#if DEBUG
             print("[HealthKitSync] Heart Rate: \(dailySamples.count) new samples")
+#endif
         } catch {
             print("[HealthKitSync] Heart Rate sync error: \(error.localizedDescription)")
         }
@@ -140,7 +150,9 @@ final class HealthKitSyncService {
             if !newSamples.isEmpty {
                 SyncStateKey.setLastSync(for: "blood_pressure", date: Date())
             }
+#if DEBUG
             print("[HealthKitSync] Blood Pressure: \(newSamples.count) new samples")
+#endif
         } catch {
             print("[HealthKitSync] Blood Pressure sync error: \(error.localizedDescription)")
         }
@@ -156,7 +168,9 @@ final class HealthKitSyncService {
             if !newSamples.isEmpty {
                 SyncStateKey.setLastSync(for: "steps", date: Date())
             }
+#if DEBUG
             print("[HealthKitSync] Steps: \(newSamples.count) new samples")
+#endif
         } catch {
             print("[HealthKitSync] Steps sync error: \(error.localizedDescription)")
         }
@@ -172,7 +186,9 @@ final class HealthKitSyncService {
             if !newSamples.isEmpty {
                 SyncStateKey.setLastSync(for: "sleep", date: Date())
             }
+#if DEBUG
             print("[HealthKitSync] Sleep: \(newSamples.count) new samples")
+#endif
         } catch {
             print("[HealthKitSync] Sleep sync error: \(error.localizedDescription)")
         }

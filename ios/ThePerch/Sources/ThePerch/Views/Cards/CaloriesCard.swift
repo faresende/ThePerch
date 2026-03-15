@@ -150,9 +150,12 @@ struct CaloriesCard: View {
         withAnimation(.easeIn(duration: 0.2)) {
             glowPulse = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            withAnimation(.easeOut(duration: 0.2)) {
-                glowPulse = false
+        Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    glowPulse = false
+                }
             }
         }
 
@@ -160,9 +163,12 @@ struct CaloriesCard: View {
         withAnimation(.easeOut(duration: 0.15)) {
             percentageScale = 1.1
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                percentageScale = 1.0
+        Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    percentageScale = 1.0
+                }
             }
         }
     }

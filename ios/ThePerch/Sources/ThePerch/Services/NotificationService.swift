@@ -28,7 +28,9 @@ final class NotificationService: ObservableObject {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             self.isAuthorized = granted
             self.permissionRequested = true
+#if DEBUG
             print("[NotificationService] Permission granted: \(granted)")
+#endif
         } catch {
             print("[NotificationService] Permission request failed: \(error)")
             self.isAuthorized = false
@@ -78,7 +80,9 @@ final class NotificationService: ObservableObject {
             if let error {
                 print("[NotificationService] Failed to schedule delivery notification: \(error)")
             } else {
+#if DEBUG
                 print("[NotificationService] Scheduled delivery notification: \(identifier)")
+#endif
             }
         }
     }
@@ -114,7 +118,9 @@ final class NotificationService: ObservableObject {
             if let error {
                 print("[NotificationService] Failed to schedule event reminder: \(error)")
             } else {
+#if DEBUG
                 print("[NotificationService] Scheduled event reminder: \(identifier) in \(Int(interval / 60))m")
+#endif
             }
         }
     }
@@ -158,6 +164,8 @@ final class NotificationService: ObservableObject {
     /// Cancels all pending notifications.
     func cancelAll() {
         center.removeAllPendingNotificationRequests()
+#if DEBUG
         print("[NotificationService] Cancelled all pending notifications")
+#endif
     }
 }
