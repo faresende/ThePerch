@@ -371,89 +371,89 @@ struct TravelView: View {
 
     // MARK: - Segment Card
 
+    /// Format a confirmation/reference code for display (group long digit strings).
+    private func formatConfirmation(_ conf: String) -> String {
+        // Short alphanumeric codes (like PNRs): show as-is
+        if conf.count <= 8 { return conf }
+        // Long numeric strings: group into chunks of 4 for readability
+        if conf.allSatisfy(\.isNumber) {
+            var result = ""
+            for (i, ch) in conf.enumerated() {
+                if i > 0 && i % 4 == 0 { result += " " }
+                result.append(ch)
+            }
+            return result
+        }
+        return conf
+    }
+
     @ViewBuilder
     private func segmentCard(record: Record, segment: ItineraryData, hotelMode: TimelineEntry.HotelMode = .notHotel) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Row 1: Name gets full width, status is a small dot + micro text at trailing edge
-            HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
-                if segment.isFlight {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(segment.flightLabel ?? "Flight")
-                            .font(PerchTheme.Font.body)
-                            .fontWeight(.semibold)
-                            .foregroundColor(PerchTheme.textPrimary)
+            // Row 1: Name (full width, no status competing)
+            if segment.isFlight {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(segment.flightLabel ?? "Flight")
+                        .font(PerchTheme.Font.body)
+                        .fontWeight(.semibold)
+                        .foregroundColor(PerchTheme.textPrimary)
 
-                        if let origin = segment.origin, let dest = segment.destination {
-                            Text("\(origin) → \(dest)")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                        }
+                    if let origin = segment.origin, let dest = segment.destination {
+                        Text("\(origin) → \(dest)")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textSecondary)
                     }
-                } else if segment.isHotel {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(segment.name ?? record.title)
-                            .font(PerchTheme.Font.body)
-                            .fontWeight(.semibold)
-                            .foregroundColor(PerchTheme.textPrimary)
-                            .lineLimit(2)
-
-                        if hotelMode == .checkIn {
-                            Text("Check-in")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.accent)
-                        } else if hotelMode == .checkOut {
-                            Text("Check-out")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                        }
-                    }
-                } else {
+                }
+            } else if segment.isHotel {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(segment.name ?? record.title)
                         .font(PerchTheme.Font.body)
                         .fontWeight(.semibold)
                         .foregroundColor(PerchTheme.textPrimary)
                         .lineLimit(2)
-                }
 
-                Spacer(minLength: 4)
-
-                // Status: colored dot + text
-                if let status = segment.status {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(segmentStatusColor(segment))
-                            .frame(width: 6, height: 6)
-                        Text(status.replacingOccurrences(of: "_", with: " ").localizedCapitalized)
-                            .font(PerchTheme.Font.micro)
-                            .foregroundColor(PerchTheme.textTertiary)
-                    }
-                }
-            }
-
-            // Row 2: Time
-            if segment.isHotel {
-                switch hotelMode {
-                case .checkIn:
-                    if let dep = segment.departure {
-                        Text(PerchFormatters.time24h.string(from: dep))
-                            .font(PerchTheme.Font.captionNumeric)
-                            .foregroundColor(PerchTheme.textSecondary)
-                    }
-                case .checkOut:
-                    if let arr = segment.arrival {
-                        Text(PerchFormatters.time24h.string(from: arr))
-                            .font(PerchTheme.Font.captionNumeric)
-                            .foregroundColor(PerchTheme.textSecondary)
-                    }
-                case .notHotel:
-                    if let dep = segment.departure {
-                        Text(PerchFormatters.time24h.string(from: dep))
-                            .font(PerchTheme.Font.captionNumeric)
+                    if hotelMode == .checkIn {
+                        Text("Check-in")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.accent)
+                    } else if hotelMode == .checkOut {
+                        Text("Check-out")
+                            .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textSecondary)
                     }
                 }
             } else {
-                HStack(spacing: PerchTheme.Spacing.medium) {
+                Text(segment.name ?? record.title)
+                    .font(PerchTheme.Font.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(PerchTheme.textPrimary)
+                    .lineLimit(2)
+            }
+
+            // Row 2: Time + status on the same line
+            HStack {
+                if segment.isHotel {
+                    switch hotelMode {
+                    case .checkIn:
+                        if let dep = segment.departure {
+                            Text(PerchFormatters.time24h.string(from: dep))
+                                .font(PerchTheme.Font.captionNumeric)
+                                .foregroundColor(PerchTheme.textSecondary)
+                        }
+                    case .checkOut:
+                        if let arr = segment.arrival {
+                            Text(PerchFormatters.time24h.string(from: arr))
+                                .font(PerchTheme.Font.captionNumeric)
+                                .foregroundColor(PerchTheme.textSecondary)
+                        }
+                    case .notHotel:
+                        if let dep = segment.departure {
+                            Text(PerchFormatters.time24h.string(from: dep))
+                                .font(PerchTheme.Font.captionNumeric)
+                                .foregroundColor(PerchTheme.textSecondary)
+                        }
+                    }
+                } else {
                     if let dep = segment.departure {
                         Label(PerchFormatters.time24h.string(from: dep), systemImage: "arrow.up.right")
                             .font(PerchTheme.Font.caption)
@@ -465,9 +465,26 @@ struct TravelView: View {
                             .foregroundColor(PerchTheme.textSecondary)
                     }
                 }
+
+                Spacer()
+
+                // Status: dot only for confirmed, dot + text for exceptional states
+                if let status = segment.status {
+                    let isNormal = status == "confirmed" || status == "on_time"
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(segmentStatusColor(segment))
+                            .frame(width: 6, height: 6)
+                        if !isNormal {
+                            Text(status.replacingOccurrences(of: "_", with: " ").localizedCapitalized)
+                                .font(PerchTheme.Font.micro)
+                                .foregroundColor(segmentStatusColor(segment))
+                        }
+                    }
+                }
             }
 
-            // Row 3: Details (gate, seat, confirmation)
+            // Row 3: Details (gate, seat, confirmation with label)
             let hasGate = segment.gate != nil
             let hasSeat = segment.seat != nil
             let hasConf = hotelMode != .checkOut && segment.confirmation != nil
@@ -484,7 +501,7 @@ struct TravelView: View {
                             .foregroundColor(PerchTheme.textTertiary)
                     }
                     if hotelMode != .checkOut, let conf = segment.confirmation {
-                        Text(conf)
+                        Text("Ref \(formatConfirmation(conf))")
                             .font(PerchTheme.Font.captionNumeric)
                             .foregroundColor(PerchTheme.textTertiary)
                             .onTapGesture {
