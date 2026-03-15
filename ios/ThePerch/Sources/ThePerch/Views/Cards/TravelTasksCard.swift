@@ -12,9 +12,9 @@ struct TravelTasksCard: View {
             // Header
             HStack {
                 Text("TRIP PREP")
-                    .font(PerchTheme.Font.caption)
+                    .font(PerchTheme.Font.cardEyebrow)
                     .foregroundColor(PerchTheme.textSecondary)
-                    .tracking(1)
+                    .tracking(0.8)
 
                 Spacer()
 

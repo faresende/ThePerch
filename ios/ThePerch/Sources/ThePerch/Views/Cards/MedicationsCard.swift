@@ -31,9 +31,10 @@ struct MedicationsCard: View {
                         .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.accent)
                     Text("MEDICATIONS")
-                        .font(PerchTheme.Font.caption)
+                        .font(PerchTheme.Font.cardEyebrow)
                         .foregroundColor(PerchTheme.textSecondary)
                         .textCase(.uppercase)
+                        .tracking(0.8)
                     Spacer()
                     CardFreshnessLabel(date: medicationRecord?.updatedAt)
                     if allChecked {
@@ -81,7 +82,7 @@ struct MedicationsCard: View {
                         Image(systemName: "checkmark")
                             .font(PerchTheme.Font.caption)
                             .fontWeight(.bold)
-                            .foregroundColor(.black)
+                            .foregroundColor(PerchTheme.accentForeground)
                     } else {
                         Circle()
                             .strokeBorder(PerchTheme.textTertiary, lineWidth: 2)

@@ -23,9 +23,10 @@ struct CalendarTomorrowCard: View {
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.accent)
                 Text("TOMORROW")
-                    .font(PerchTheme.Font.caption)
+                    .font(PerchTheme.Font.cardEyebrow)
                     .foregroundColor(PerchTheme.textSecondary)
                     .textCase(.uppercase)
+                    .tracking(0.8)
                 Spacer()
                 if !tomorrowEvents.isEmpty {
                     Text("\(tomorrowEvents.count) event\(tomorrowEvents.count == 1 ? "" : "s")")

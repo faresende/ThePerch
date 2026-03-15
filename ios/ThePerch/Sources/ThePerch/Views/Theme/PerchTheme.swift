@@ -135,6 +135,23 @@ struct PerchTheme {
         )
     }
 
+    /// Semantic macro colors — shared across Home and Health nutrition cards.
+    static var macroProtein: Color { success }
+    static var macroCarbs: Color { accent }
+    static var macroFat: Color { warning }
+
+    static var macroProteinGradient: [Color] {
+        [macroProtein.opacity(0.72), macroProtein]
+    }
+
+    static var macroCarbsGradient: [Color] {
+        [macroCarbs.opacity(0.72), macroCarbs]
+    }
+
+    static var macroFatGradient: [Color] {
+        [macroFat.opacity(0.72), macroFat]
+    }
+
     /// Border — subtle, neutral
     static var border: Color {
         adaptive(
@@ -190,6 +207,8 @@ struct PerchTheme {
         static let caption = SwiftUI.Font.system(size: 13, weight: .regular)
         /// 11pt — footnotes, timestamps
         static let micro = SwiftUI.Font.system(size: 11, weight: .regular)
+        /// 12pt — uppercase card section labels
+        static let cardEyebrow = SwiftUI.Font.system(size: 12, weight: .semibold)
 
         // Numeric variants — .rounded design for data displays
         static let displayNumeric = SwiftUI.Font.system(size: 32, weight: .bold, design: .rounded)

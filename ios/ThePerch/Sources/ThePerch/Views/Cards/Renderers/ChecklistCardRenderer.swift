@@ -21,7 +21,7 @@ struct ChecklistCardRenderer: View {
                 ForEach(items.prefix(8)) { item in
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
                         Image(systemName: (item.isDone ?? false) ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor((item.isDone ?? false) ? .green : PerchTheme.textSecondary)
+                            .foregroundColor((item.isDone ?? false) ? PerchTheme.success : PerchTheme.textSecondary)
                             .accessibilityHidden(true)
 
                         Text(item.title)

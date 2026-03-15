@@ -250,12 +250,7 @@ struct HomeView: View {
                 endPoint: .bottom
             )
         )
-        .background(PerchTheme.cardBackground)
-        .cornerRadius(PerchTheme.Card.cornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                .stroke(ambience.ambientColor.opacity(0.3), lineWidth: 1)
-        )
+        .cardStyle()
         .staleBorder(tier: freshnessTracker.urgencyTier(for: "all_records"))
     }
 
