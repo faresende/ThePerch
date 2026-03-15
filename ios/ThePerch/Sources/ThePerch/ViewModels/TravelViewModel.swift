@@ -116,6 +116,30 @@ final class TravelViewModel {
         return (avgTemp: avg, condition: dominant, emoji: emoji)
     }
 
+    // MARK: - Travel Tasks
+
+    /// Pre-trip tasks (no date set) for a given trip, unchecked first.
+    func preTripTasks(for tripId: String) -> [(Record, TravelTaskData)] {
+        records.compactMap { record -> (Record, TravelTaskData)? in
+            guard let task = record.asTravelTask(), task.tripId == tripId, task.isPretripTask else { return nil }
+            return (record, task)
+        }.sorted { ($0.1.done ? 1 : 0) < ($1.1.done ? 1 : 0) }
+    }
+
+    /// Day-linked tasks for a specific date string (yyyy-MM-dd).
+    func dayTasks(for tripId: String, on date: String) -> [(Record, TravelTaskData)] {
+        records.compactMap { record -> (Record, TravelTaskData)? in
+            guard let task = record.asTravelTask(), task.tripId == tripId, task.date == date else { return nil }
+            return (record, task)
+        }.sorted { ($0.1.done ? 1 : 0) < ($1.1.done ? 1 : 0) }
+    }
+
+    /// All tasks for a trip with completion stats.
+    func taskStats(for tripId: String) -> (total: Int, done: Int) {
+        let all = records.compactMap { $0.asTravelTask() }.filter { $0.tripId == tripId }
+        return (total: all.count, done: all.filter(\.done).count)
+    }
+
     // MARK: - Home Card Data
 
     /// Whether to show the travel card on the Home screen.

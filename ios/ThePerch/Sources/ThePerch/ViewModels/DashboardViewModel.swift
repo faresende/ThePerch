@@ -188,6 +188,8 @@ final class DashboardViewModel {
                     _ = record.decodeData(as: TravelAlertData.self)
                 case .weatherForecast:
                     _ = record.decodeData(as: WeatherForecastData.self)
+                case .travelTask:
+                    _ = record.decodeData(as: TravelTaskData.self)
                 default:
                     break
                 }
