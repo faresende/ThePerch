@@ -86,7 +86,9 @@ final class DashboardViewModel {
             self.sections = loaded
             self.error = nil
         case .failure(let err):
+#if DEBUG
             print("[DashboardVM] fetchSections threw: \(err)")
+#endif
             // Only set error if we have no cached data to show
             if self.sections.isEmpty {
                 self.error = .unknownError(err.localizedDescription)
@@ -97,7 +99,9 @@ final class DashboardViewModel {
         case .success(let loaded):
             self.homeWidgets = loaded
         case .failure(let err):
+#if DEBUG
             print("[DashboardVM] fetchHomeWidgets threw: \(err)")
+#endif
         }
 
         switch records {
@@ -105,7 +109,9 @@ final class DashboardViewModel {
             self.allRecords = loaded
             Self.preDecodeRecords(loaded)
         case .failure(let err):
+#if DEBUG
             print("[DashboardVM] fetchRecords threw: \(err)")
+#endif
             // Keep showing cached data if network fails
             if self.allRecords.isEmpty, self.error == nil {
                 self.error = .unknownError(err.localizedDescription)
@@ -138,7 +144,9 @@ final class DashboardViewModel {
             if let meta = cacheService.metadata(for: nil, userId: cacheUserId) {
                 lastUpdatedString = "Last updated \(meta.relativeAgeString)"
             }
+#if DEBUG
             print("[DashboardVM] Loaded cached data instantly")
+#endif
         }
 
         return loaded
@@ -273,15 +281,7 @@ final class DashboardViewModel {
     /// Updates the visibility and position of home widgets.
     /// - Parameter updatedWidgets: The updated widget configurations.
     func updateWidgets(_ updatedWidgets: [HomeWidget]) async {
-        do {
-            try await supabaseService.updateHomeWidgets(widgets: updatedWidgets)
-            self.homeWidgets = updatedWidgets
-            self.error = nil
-        } catch let error as SupabaseServiceError {
-            self.error = error
-        } catch {
-            self.error = .unknownError(error.localizedDescription)
-        }
+        self.homeWidgets = updatedWidgets
     }
 
     // MARK: - Record Actions
@@ -312,7 +312,9 @@ final class DashboardViewModel {
         do {
             try await supabaseService.subscribeToRecords { [weak self] change in
                 guard let self else { return }
+#if DEBUG
                 print("[DashboardVM] Realtime record change: \(change.action)")
+#endif
                 Task { @MainActor [weak self] in
                     self?.mergeRealtimeChange(change)
                 }
@@ -320,7 +322,9 @@ final class DashboardViewModel {
 
             try await supabaseService.subscribeToAgents { [weak self] action in
                 guard self != nil else { return }
+#if DEBUG
                 print("[DashboardVM] Realtime agent change: \(action)")
+#endif
                 Task { @MainActor [weak self] in
                     await self?.loadAgents(forceRefresh: true)
                 }

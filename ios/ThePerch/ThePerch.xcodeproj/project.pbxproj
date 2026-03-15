@@ -37,7 +37,6 @@
 		35F543852F52411F00204F77 /* Section.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543502F52411F00204F77 /* Section.swift */; };
 		35F543862F52411F00204F77 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543492F52411F00204F77 /* AppConfig.swift */; };
 		35F543872F52411F00204F77 /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434C2F52411F00204F77 /* Agent.swift */; };
-		35F543892F52411F00204F77 /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543572F52411F00204F77 /* DateFormatting.swift */; };
 		35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435E2F52411F00204F77 /* MainTabView.swift */; };
 		35F5438B2F52411F00204F77 /* HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543702F52411F00204F77 /* HealthView.swift */; };
 		2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD77E48492FF01406E3C35 /* TravelView.swift */; };
@@ -198,7 +197,6 @@
 		35F543522F52411F00204F77 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		35F543542F52411F00204F77 /* EventKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitService.swift; sourceTree = "<group>"; };
 		35F543552F52411F00204F77 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
-		35F543572F52411F00204F77 /* DateFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatting.swift; sourceTree = "<group>"; };
 		35F543592F52411F00204F77 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		35F5435A2F52411F00204F77 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		35F5435B2F52411F00204F77 /* SectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionViewModel.swift; sourceTree = "<group>"; };
@@ -416,7 +414,6 @@
 		35F543582F52411F00204F77 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				35F543572F52411F00204F77 /* DateFormatting.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -922,7 +919,6 @@
 				35F543852F52411F00204F77 /* Section.swift in Sources */,
 				35F543862F52411F00204F77 /* AppConfig.swift in Sources */,
 				35F543872F52411F00204F77 /* Agent.swift in Sources */,
-				35F543892F52411F00204F77 /* DateFormatting.swift in Sources */,
 				35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */,
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,

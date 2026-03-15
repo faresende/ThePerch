@@ -410,9 +410,9 @@ struct AdminView: View {
                     detailRow(label: "Model", value: agent.model ?? "Not reported")
                     detailRow(
                         label: "Last check-in",
-                        value: agent.lastHeartbeat.map { DateFormatting.relativeTime(from: $0) } ?? "No recent check-in"
+                        value: agent.lastHeartbeat?.relativeTime ?? "No recent check-in"
                     )
-                    detailRow(label: "Created", value: DateFormatting.shortDate(from: agent.createdAt))
+                    detailRow(label: "Created", value: PerchFormatters.mediumDate.string(from: agent.createdAt))
                 }
                 .padding(PerchTheme.Card.padding)
                 .cardStyle()

@@ -57,7 +57,6 @@ final class MockSupabaseService: SupabaseServiceProtocol {
 
     func updateRecordPin(id: UUID, pinned: Bool) async throws {}
     func updateSectionOrder(sections: [Section]) async throws {}
-    func updateHomeWidgets(widgets: [HomeWidget]) async throws {}
 
     func insertRecord(
         agentId: String,

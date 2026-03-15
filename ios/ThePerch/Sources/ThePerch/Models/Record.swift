@@ -175,22 +175,7 @@ struct Record: Identifiable, Codable, Equatable, Sendable {
 
     /// Returns the relative time string for the record (e.g., "2 hours ago").
     var relativeTime: String {
-        let interval = Date.now.timeIntervalSince(createdAt)
-        let minutes = Int(interval / 60)
-        let hours = Int(interval / 3600)
-        let days = Int(interval / 86400)
-
-        if minutes < 1 {
-            return "now"
-        } else if minutes < 60 {
-            return "\(minutes)m ago"
-        } else if hours < 24 {
-            return "\(hours)h ago"
-        } else if days < 7 {
-            return "\(days)d ago"
-        } else {
-            return PerchFormatters.mediumDate.string(from: createdAt)
-        }
+        createdAt.relativeTime
     }
 }
 

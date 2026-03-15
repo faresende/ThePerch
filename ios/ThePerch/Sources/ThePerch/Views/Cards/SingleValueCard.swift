@@ -145,36 +145,6 @@ struct SingleValueCard: View {
     }
 }
 
-extension Date {
-    /// Returns a relative time string (e.g., "2 hours ago", "in 15m")
-    var relativeTime: String {
-        let interval = Date.now.timeIntervalSince(self)
-        let minutes = Int(interval / 60)
-        let hours = Int(interval / 3600)
-        let days = Int(interval / 86400)
-
-        if minutes < 0 {
-            // Future date
-            let absMinutes = abs(minutes)
-            let absHours = abs(hours)
-            if absMinutes < 60 { return "in \(absMinutes)m" }
-            if absHours < 24 { return "in \(absHours)h \(absMinutes % 60)m" }
-            return "in \(abs(days))d"
-        }
-        if minutes < 1 {
-            return "now"
-        } else if minutes < 60 {
-            return "\(minutes)m ago"
-        } else if hours < 24 {
-            return "\(hours)h ago"
-        } else if days < 7 {
-            return "\(days)d ago"
-        } else {
-            return PerchFormatters.mediumDate.string(from: self)
-        }
-    }
-}
-
 // MARK: - Preview
 
 #Preview {

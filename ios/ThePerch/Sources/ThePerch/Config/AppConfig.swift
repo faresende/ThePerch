@@ -22,7 +22,9 @@ struct AppConfig {
         } else {
             // Fallback to a placeholder so the app can launch and show an error state
             // instead of crashing on missing config.
+#if DEBUG
             print("[AppConfig] WARNING: Supabase credentials are missing or invalid. The app will run with mock data.")
+#endif
             self.supabaseURL = URL(string: "https://placeholder.supabase.co")!
             self.supabaseAnonKey = ""
             self.isMisconfigured = true
