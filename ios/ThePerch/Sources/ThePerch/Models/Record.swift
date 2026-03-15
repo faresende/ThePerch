@@ -14,6 +14,10 @@ enum RecordType: String, Codable, CaseIterable {
     case costSummary = "cost_summary"
     case bookmark
     case command
+    case trip
+    case itinerary
+    case travelAlert = "travel_alert"
+    case weatherForecast = "weather_forecast"
 
     var displayName: String {
         switch self {
@@ -37,6 +41,14 @@ enum RecordType: String, Codable, CaseIterable {
             return "Bookmark"
         case .command:
             return "Command"
+        case .trip:
+            return "Trip"
+        case .itinerary:
+            return "Itinerary"
+        case .travelAlert:
+            return "Travel Alert"
+        case .weatherForecast:
+            return "Weather Forecast"
         }
     }
 }
@@ -49,6 +61,7 @@ enum RecordCategory: String, Codable, CaseIterable {
     case admin
     case legal
     case bookmarks
+    case travel
 
     var displayName: String {
         switch self {
@@ -64,6 +77,8 @@ enum RecordCategory: String, Codable, CaseIterable {
             return "Legal"
         case .bookmarks:
             return "Bookmarks"
+        case .travel:
+            return "Travel"
         }
     }
 }

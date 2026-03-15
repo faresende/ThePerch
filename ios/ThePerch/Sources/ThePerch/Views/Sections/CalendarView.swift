@@ -8,21 +8,22 @@ struct CalendarView: View {
 
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
-    /// Single-pass decode: partition into today vs. upcoming, sort upcoming by start.
+    /// Single-pass decode: partition into today vs. upcoming, sort both by start time.
     private var categorizedEvents: (today: [Record], upcoming: [Record]) {
         let calendar = Calendar.current
-        var today: [Record] = []
+        var today: [(Record, Date)] = []
         var upcoming: [(Record, Date)] = []
         for record in records {
             guard let event = record.asEvent() else { continue }
             if calendar.isDateInToday(event.start) {
-                today.append(record)
+                today.append((record, event.start))
             } else if event.start > Date.now {
                 upcoming.append((record, event.start))
             }
         }
+        today.sort { $0.1 < $1.1 }
         upcoming.sort { $0.1 < $1.1 }
-        return (today, upcoming.map(\.0))
+        return (today.map(\.0), upcoming.map(\.0))
     }
 
     var todayEvents: [Record] { categorizedEvents.today }

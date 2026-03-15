@@ -14,7 +14,7 @@ struct NutritionHomeCard: View {
     @AppStorage("card_compact_nutrition") private var isCompact = false
 
     private var isMorning: Bool {
-        Calendar.current.component(.hour, from: .now) < 14
+        Calendar.current.component(.hour, from: .now) < 2
     }
 
     private var dateString: String {

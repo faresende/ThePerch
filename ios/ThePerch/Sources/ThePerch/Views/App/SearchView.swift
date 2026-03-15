@@ -209,6 +209,10 @@ struct SearchResultRow: View {
         case .checklist: return "checklist"
         case .costSummary: return "dollarsign.circle"
         case .command: return "terminal"
+        case .trip: return "airplane"
+        case .itinerary: return "map"
+        case .travelAlert: return "exclamationmark.triangle"
+        case .weatherForecast: return "cloud.sun"
         }
     }
 

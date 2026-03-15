@@ -47,6 +47,12 @@ struct HomeView: View {
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, PerchTheme.Spacing.small)
 
+                    // Dual clock (shows when traveling to a different timezone)
+                    if let clock = viewModel.dualClockInfo {
+                        dualClockView(clock)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                    }
+
                     // Search bar
                     searchBar
                         .padding(.horizontal, PerchTheme.Spacing.large)
@@ -84,13 +90,16 @@ struct HomeView: View {
 
 
 
+                        // Travel card (contextual — only appears when trip is upcoming/active)
+                        TravelHomeCard(records: viewModel.records)
+
                         // Modular cards in time-of-day order
                         VStack(spacing: PerchTheme.Spacing.medium) {
                             let orderedCards = HomeCardOrdering.orderedCards()
                             let isCompactHealth = HomeCardOrdering.isHealthCompact()
                             ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
                                 homeCard(for: cardType, compactHealth: isCompactHealth)
-                                    .modifier(HeroIfFirstModifier(isFirst: index == 0, ambientColor: ambience.ambientColor))
+                                    // Hero accent line removed — cards have enough visual separation
                                     .cardAppear(index: index, appeared: cardsAppeared)
                             }
                         }
@@ -307,6 +316,57 @@ struct HomeView: View {
     /// "Sun Mar 8" — short weekday + date for the compact header.
     private var shortDateString: String {
         PerchFormatters.shortWeekdayDate.string(from: Date.now)
+    }
+
+    // MARK: - Dual Clock
+
+    @ViewBuilder
+    private func dualClockView(_ clock: (homeTz: String, destTz: String, homeLabel: String, destLabel: String)) -> some View {
+        let homeTz = TimeZone(identifier: clock.homeTz) ?? .current
+        let destTz = TimeZone(identifier: clock.destTz) ?? .current
+
+        let homeFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "HH:mm"
+            f.timeZone = homeTz
+            return f
+        }()
+
+        let destFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "HH:mm"
+            f.timeZone = destTz
+            return f
+        }()
+
+        HStack(spacing: PerchTheme.Spacing.medium) {
+            Image(systemName: "clock")
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textTertiary)
+
+            HStack(spacing: 4) {
+                Text(clock.homeLabel)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textTertiary)
+                Text(homeFormatter.string(from: .now))
+                    .font(PerchTheme.Font.captionNumeric)
+                    .foregroundColor(PerchTheme.textSecondary)
+            }
+
+            Text("·")
+                .foregroundColor(PerchTheme.textTertiary)
+
+            HStack(spacing: 4) {
+                Text(clock.destLabel)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textTertiary)
+                Text(destFormatter.string(from: .now))
+                    .font(PerchTheme.Font.captionNumeric)
+                    .foregroundColor(PerchTheme.accent)
+            }
+
+            Spacer()
+        }
     }
 }
 

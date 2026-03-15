@@ -199,6 +199,8 @@ struct SectionView: View {
                     AdminView()
                 case "bookmarks":
                     BookmarksView()
+                case "travel":
+                    TravelView()
                 default:
                     // Generic fallback for unknown section types
                     genericSectionView
