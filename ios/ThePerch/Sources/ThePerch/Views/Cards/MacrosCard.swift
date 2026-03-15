@@ -51,9 +51,7 @@ struct MacrosCard: View {
             // Summary row
             HStack {
                 if let updated = lastUpdated {
-                    Text("Updated \(updated.relativeTime)")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                    CardFreshnessLabel(date: updated)
                 }
                 Spacer()
                 let total = protein + carbs + fat

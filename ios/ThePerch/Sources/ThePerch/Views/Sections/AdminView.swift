@@ -13,19 +13,6 @@ struct AdminView: View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
 
-            if dashboardViewModel.isLoading && viewModel.agents.isEmpty {
-                VStack(spacing: PerchTheme.Spacing.medium) {
-                    HStack(spacing: PerchTheme.Spacing.medium) {
-                        SkeletonRect(height: 100, cornerRadius: PerchTheme.Card.cornerRadius)
-                        SkeletonRect(height: 100, cornerRadius: PerchTheme.Card.cornerRadius)
-                    }
-                    SkeletonRect(height: 80, cornerRadius: PerchTheme.Card.cornerRadius)
-                    SkeletonRect(height: 80, cornerRadius: PerchTheme.Card.cornerRadius)
-                }
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.top, 60)
-            }
-
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
 
@@ -38,11 +25,21 @@ struct AdminView: View {
                     if let error = dashboardViewModel.error {
                         ErrorBanner(
                             message: error.localizedDescription,
-                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            retryAction: {
+                                Task {
+                                    await dashboardViewModel.loadDashboard(forceRefresh: true)
+                                    await dashboardViewModel.loadAgents(forceRefresh: true)
+                                }
+                            },
                             onDismiss: { dashboardViewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
+
+                    if dashboardViewModel.isLoading && viewModel.agents.isEmpty && dashboardViewModel.adminRecords.isEmpty {
+                        SkeletonCardsSection(count: 3)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                    } else {
 
                     // MARK: - Gateway Status + Heartbeat row
                     HStack(spacing: PerchTheme.Spacing.medium) {
@@ -122,12 +119,18 @@ struct AdminView: View {
                     }
 
                     // MARK: - Agent Status
-                    if !viewModel.agents.isEmpty {
-                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                            Text("Agents")
-                                .font(PerchTheme.Font.heading)
-                                .foregroundColor(PerchTheme.textPrimary)
+                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                        Text("Agents")
+                            .font(PerchTheme.Font.heading)
+                            .foregroundColor(PerchTheme.textPrimary)
 
+                        if viewModel.agents.isEmpty {
+                            EmptyStateView(
+                                icon: "person.3",
+                                title: "No agents connected",
+                                subtitle: "Agent status will appear here when OpenClaw reports active workers."
+                            )
+                        } else {
                             VStack(spacing: PerchTheme.Spacing.small) {
                                 ForEach(viewModel.agents) { agent in
                                     AgentStatusCard(
@@ -137,8 +140,8 @@ struct AdminView: View {
                                 }
                             }
                         }
-                        .padding(.horizontal, PerchTheme.Spacing.large)
                     }
+                    .padding(.horizontal, PerchTheme.Spacing.large)
 
                     // MARK: - Upcoming Crons
                     if !viewModel.cronRecords.isEmpty {
@@ -177,6 +180,8 @@ struct AdminView: View {
                             )
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
+                    }
+
                     }
 
                     Spacer()

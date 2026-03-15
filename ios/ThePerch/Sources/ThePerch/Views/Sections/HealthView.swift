@@ -32,15 +32,26 @@ struct HealthView: View {
                     if viewModel.error != nil {
                         ErrorBanner(
                             message: "Failed to load health data",
-                            retryAction: { Task { await dashboardViewModel.refreshRecords() } },
+                            retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
                             onDismiss: { viewModel.clearError() }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 
                     if dashboardViewModel.isLoading && viewModel.records.isEmpty {
-                        SkeletonHealthSection()
+                        SkeletonCardsSection(count: 3)
                             .padding(.horizontal, PerchTheme.Spacing.large)
+                    } else if viewModel.records.isEmpty {
+                        EmptyStateView(
+                            icon: "heart.text.square",
+                            title: "No health data",
+                            subtitle: viewModel.isHealthKitAvailable
+                                ? "Connect Apple Health to start syncing your latest health metrics."
+                                : "Health data will appear here once your sources start syncing.",
+                            actionTitle: viewModel.isHealthKitAvailable ? "Connect Apple Health" : nil,
+                            action: viewModel.isHealthKitAvailable ? { Task { await viewModel.syncWithHealthKit() } } : nil
+                        )
+                        .padding(.horizontal, PerchTheme.Spacing.large)
                     } else {
                         // Daily calories card
                         if let (record, measurement) = viewModel.latestByMetric["daily_calories"],
@@ -237,33 +248,6 @@ struct HealthView: View {
         }
     }
 
-    // MARK: - Empty State
-
-    private var emptyState: some View {
-        VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: "heart.text.square")
-                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
-
-            Text("No health data yet")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textSecondary)
-
-            if viewModel.isHealthKitAvailable {
-                Text("Tap \"Sync with Apple Health\" to pull your latest health metrics.")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .multilineTextAlignment(.center)
-            } else {
-                Text("Health data will appear here once Claudinho starts syncing your Oura and nutrition data.")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .padding(PerchTheme.Spacing.xxLarge)
-        .frame(maxWidth: .infinity)
-    }
 }
 
 // MARK: - Preview
