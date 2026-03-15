@@ -48,11 +48,15 @@ struct ChartCard: View {
     }
 
     /// Returns the effective date for a record — uses the measurement's timestamp if available,
-    /// otherwise falls back to the record's createdAt. This is critical because Claudinho
-    /// often bulk-inserts records with the same `created_at` but different data timestamps.
+    /// then tries parsing the context field as an ISO date (Claudinho stores date strings there
+    /// when bulk-inserting), otherwise falls back to the record's createdAt.
     private func effectiveDate(for record: Record) -> Date {
-        if let m = record.asMeasurement(), let ts = m.timestamp {
-            return ts
+        if let m = record.asMeasurement() {
+            if let ts = m.timestamp { return ts }
+            if let ctx = m.context,
+               let parsed = PerchFormatters.isoDate.date(from: ctx) {
+                return parsed
+            }
         }
         return record.createdAt
     }
@@ -209,7 +213,7 @@ struct ChartCard: View {
                             endPoint: .bottom
                         )
                     )
-                    .interpolationMethod(.catmullRom)
+                    .interpolationMethod(.monotone)
 
                     LineMark(
                         x: .value("Date", item.date),
@@ -217,7 +221,7 @@ struct ChartCard: View {
                     )
                     .foregroundStyle(PerchTheme.accent)
                     .lineStyle(StrokeStyle(lineWidth: 2.5))
-                    .interpolationMethod(.catmullRom)
+                    .interpolationMethod(.monotone)
 
                     // Only show PointMark on most recent and selected data point
                     let isLast = item.date == chartData.last?.date

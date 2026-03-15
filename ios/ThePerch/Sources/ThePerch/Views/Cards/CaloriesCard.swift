@@ -129,6 +129,12 @@ struct CaloriesCard: View {
                 animatedConsumed = consumed
             }
         }
+        .onChange(of: consumed) { _, newValue in
+            PerchMotion.withOptionalAnimation(.easeOut(duration: 0.6)) {
+                animatedConsumed = newValue
+                animatedProgress = target > 0 ? min(newValue / target, 1.5) : 0
+            }
+        }
         .onChange(of: animatedProgress) { _, newValue in
             guard newValue >= 1.0, !hasCompletedGoal else { return }
             hasCompletedGoal = true

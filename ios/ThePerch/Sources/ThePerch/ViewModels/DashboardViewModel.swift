@@ -35,6 +35,7 @@ final class DashboardViewModel {
     var calendarRecords: [Record] { allRecords.filter { $0.category == .calendar } }
     var adminRecords: [Record] { allRecords.filter { $0.category == .admin } }
     var bookmarkRecords: [Record] { allRecords.filter { $0.category == .bookmarks } }
+    var travelRecords: [Record] { allRecords.filter { $0.category == .travel } }
 
     // MARK: - Private Properties
 
@@ -74,7 +75,7 @@ final class DashboardViewModel {
             catch { return .failure(error) }
         }()
         async let recordsResult: Result<[Record], Error> = {
-            do { return .success(try await supabaseService.fetchRecords(limit: 200, forceRefresh: forceRefresh)) }
+            do { return .success(try await supabaseService.fetchRecords(limit: 500, forceRefresh: forceRefresh)) }
             catch { return .failure(error) }
         }()
 
@@ -177,6 +178,19 @@ final class DashboardViewModel {
                 }
             case .legal:
                 break
+            case .travel:
+                switch record.type {
+                case .trip:
+                    _ = record.decodeData(as: TripData.self)
+                case .itinerary:
+                    _ = record.decodeData(as: ItineraryData.self)
+                case .travelAlert:
+                    _ = record.decodeData(as: TravelAlertData.self)
+                case .weatherForecast:
+                    _ = record.decodeData(as: WeatherForecastData.self)
+                default:
+                    break
+                }
             }
         }
     }
@@ -184,7 +198,7 @@ final class DashboardViewModel {
     /// Refreshes only records (lighter than full loadDashboard).
     func refreshRecords(forceRefresh: Bool = true) async {
         do {
-            let records = try await supabaseService.fetchRecords(limit: 200, forceRefresh: forceRefresh)
+            let records = try await supabaseService.fetchRecords(limit: 500, forceRefresh: forceRefresh)
             allRecords = records
             Self.preDecodeRecords(records)
         } catch {

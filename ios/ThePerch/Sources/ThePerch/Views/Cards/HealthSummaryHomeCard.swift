@@ -141,23 +141,24 @@ struct HealthSummaryHomeCard: View {
     // MARK: - Components
 
     private func metricCircle(value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             ZStack {
                 Circle()
                     .stroke(PerchTheme.border, lineWidth: 3)
-                    .frame(width: 56, height: 56)
+                    .frame(width: 64, height: 64)
                 Circle()
                     .stroke(color.opacity(0.3), lineWidth: 3)
-                    .frame(width: 56, height: 56)
-                VStack(spacing: 1) {
-                    Text(value)
-                        .font(PerchTheme.Font.headingNumeric)
-                        .foregroundColor(PerchTheme.textPrimary)
-                    Text(label)
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
+                    .frame(width: 64, height: 64)
+                Text(value)
+                    .font(PerchTheme.Font.headingNumeric)
+                    .foregroundColor(PerchTheme.textPrimary)
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+                    .padding(.horizontal, 6)
             }
+            Text(label)
+                .font(PerchTheme.Font.micro)
+                .foregroundColor(PerchTheme.textTertiary)
         }
         .frame(maxWidth: .infinity)
     }
