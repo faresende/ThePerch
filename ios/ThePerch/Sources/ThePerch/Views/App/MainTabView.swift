@@ -19,12 +19,13 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             PerchTheme.background.ignoresSafeArea()
 
             // Time-of-day atmosphere gradient
             TimeOfDayAtmosphere()
 
+            // Tab content sits underneath the glass header
             VStack(spacing: 0) {
                 // Offline banner
                 if !networkMonitor.isConnected {
@@ -41,15 +42,29 @@ struct MainTabView: View {
                     errorBanner(message: error.localizedDescription)
                 }
 
-                // Cache staleness warning: show when offline or during initial cached-data display
+                // Cache staleness warning
                 if !networkMonitor.isConnected, let meta = CacheService.shared.metadata(for: nil, userId: "default_user") {
                     cacheAgeBanner(age: meta.relativeAgeString)
                 } else if dashboardViewModel.isShowingCachedData, let lastUpdated = dashboardViewModel.lastUpdatedString {
                     cacheAgeBanner(age: lastUpdated.replacingOccurrences(of: "Last updated ", with: ""))
                 }
 
-                // Section navigator pill bar with realtime status
-                if !visibleSections.isEmpty {
+                // Tab content
+                TabView(selection: $selectedIndex) {
+                    ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, section in
+                        SectionView(section: section)
+                            .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(maxHeight: .infinity)
+            }
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
+
+            // Glass header overlay — floats above content, extends to top edge
+            if !visibleSections.isEmpty {
+                VStack(spacing: 0) {
                     HStack {
                         SectionNavigator(
                             selectedIndex: $selectedIndex,
@@ -78,41 +93,21 @@ struct MainTabView: View {
                             .padding(.trailing, PerchTheme.Spacing.medium)
                         }
                     }
-                    .padding(.horizontal, 0)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        Rectangle()
-                            .fill(.ultraThinMaterial)
-                    )
-                    .glassEffect(.regular, in: Rectangle())
-                    .overlay(alignment: .bottom) {
-                        Rectangle()
-                            .fill(PerchTheme.accent.opacity(0.08))
-                            .frame(height: 0.5)
-                    }
+                    .padding(.vertical, PerchTheme.Spacing.xSmall)
                 }
-
-                // Tab content — LazyHStack ensures only visible + neighbor sections render
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, section in
-                            SectionView(section: section)
-                                .containerRelativeFrame(.horizontal)
-                                .id(index)
-                        }
-                    }
-                    .scrollTargetLayout()
+                .frame(maxWidth: .infinity)
+                .background(
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .ignoresSafeArea(edges: .top)
+                )
+                .glassEffect(.regular, in: Rectangle())
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(PerchTheme.accent.opacity(0.12))
+                        .frame(height: 0.5)
                 }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition(id: Binding(
-                    get: { selectedIndex as Int? },
-                    set: { if let v = $0 { selectedIndex = v } }
-                ))
-                .scrollIndicators(.hidden)
-                .frame(maxHeight: .infinity)
             }
-            .frame(maxWidth: 680)
-            .frame(maxWidth: .infinity)
         }
         .task {
             await dashboardViewModel.loadDashboard()
