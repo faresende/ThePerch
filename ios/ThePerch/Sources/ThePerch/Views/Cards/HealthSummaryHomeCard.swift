@@ -96,41 +96,56 @@ struct HealthSummaryHomeCard: View {
                     .font(PerchTheme.Font.body)
                     .foregroundColor(PerchTheme.textSecondary)
             } else {
-                // Four metric circles
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    if let sleep = sleepDuration, sleepScore == nil {
-                        metricCircle(
-                            value: formatHours(sleep.value),
-                            label: "sleep",
-                            color: PerchTheme.warning
-                        )
+                // Hero row: score + qualifier + duration
+                if let score = sleepScore {
+                    HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
+                        Text("\(Int(score.value))")
+                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .foregroundColor(PerchTheme.textPrimary)
+
+                        Text(scoreLabel(score.value))
+                            .font(PerchTheme.Font.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(scoreColor(score.value))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(scoreColor(score.value).opacity(0.15))
+                            .cornerRadius(6)
+
+                        Spacer()
+
+                        if let sleep = sleepDuration {
+                            Text("\(formatDuration(sleep.value)) sleep")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textSecondary)
+                        }
                     }
-                    if let deep = deepSleep {
-                        metricCircle(
-                            value: formatHours(deep.value),
-                            label: "deep",
-                            color: PerchTheme.warning
-                        )
+
+                    // Progress bar
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(PerchTheme.cardInnerBackground)
+                                .frame(height: 4)
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(scoreColor(score.value))
+                                .frame(width: geo.size.width * min(score.value / 100, 1.0), height: 4)
+                        }
                     }
-                    if let h = hrv {
-                        metricCircle(
-                            value: "\(Int(h.value))",
-                            label: "HRV",
-                            color: PerchTheme.warning
-                        )
-                    }
-                    if let r = readiness {
-                        metricCircle(
-                            value: "\(Int(r.value))",
-                            label: "ready",
-                            color: PerchTheme.warning
-                        )
-                    }
+                    .frame(height: 4)
+                } else if let sleep = sleepDuration {
+                    // No score available, show duration as hero
+                    Text(formatDuration(sleep.value))
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundColor(PerchTheme.textPrimary)
                 }
 
-                // Sleep score bar (expanded mode only)
-                if let score = sleepScore {
-                    sleepScoreBar(score: score.value, duration: sleepDuration?.value)
+                // Secondary metrics: inline text row
+                let secondaryParts = secondaryMetricsText
+                if !secondaryParts.isEmpty {
+                    Text(secondaryParts)
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textTertiary)
                 }
             }
         }
@@ -139,73 +154,15 @@ struct HealthSummaryHomeCard: View {
         .animation(.easeInOut(duration: 0.3), value: isCompact)
     }
 
-    // MARK: - Components
-
-    private func metricCircle(value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .stroke(PerchTheme.border, lineWidth: 3)
-                    .frame(width: 64, height: 64)
-                Circle()
-                    .stroke(color.opacity(0.3), lineWidth: 3)
-                    .frame(width: 64, height: 64)
-                Text(value)
-                    .font(PerchTheme.Font.headingNumeric)
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
-                    .padding(.horizontal, 6)
-            }
-            Text(label)
-                .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func sleepScoreBar(score: Double, duration: Double?) -> some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Sleep Score")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
-
-                    if let duration {
-                        Text("\(formatDuration(duration)) sleep")
-                            .font(PerchTheme.Font.micro)
-                            .foregroundColor(PerchTheme.textTertiary)
-                    }
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(Int(score))")
-                        .font(PerchTheme.Font.displayNumeric)
-                        .foregroundColor(PerchTheme.textPrimary)
-                    Text(scoreLabel(score))
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(scoreColor(score))
-                }
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(PerchTheme.cardInnerBackground)
-                        .frame(height: 8)
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(scoreColor(score))
-                        .frame(width: geometry.size.width * min(score / 100, 1.0), height: 8)
-                }
-            }
-            .frame(height: 8)
-        }
-    }
-
     // MARK: - Helpers
+
+    private var secondaryMetricsText: String {
+        var parts: [String] = []
+        if let deep = deepSleep { parts.append("Deep \(formatHours(deep.value))") }
+        if let h = hrv { parts.append("HRV \(Int(h.value))") }
+        if let r = readiness { parts.append("Ready \(Int(r.value))") }
+        return parts.joined(separator: "  ·  ")
+    }
 
     private func formatHours(_ value: Double) -> String {
         let hours = Int(value)
