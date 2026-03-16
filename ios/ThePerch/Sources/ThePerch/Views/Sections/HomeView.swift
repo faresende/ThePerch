@@ -21,7 +21,7 @@ struct HomeView: View {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Compact header: greeting + date + settings
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
-                        Text("\(greetingText), there")
+                        Text(greetingText)
                             .font(PerchTheme.Font.heading)
                             .foregroundColor(ambience.ambientColor)
 
