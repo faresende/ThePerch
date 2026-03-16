@@ -122,14 +122,15 @@ struct HealthSummaryHomeCard: View {
                     }
 
                     // Progress bar
+                    let barFraction = CGFloat(min(max(score.value / 100.0, 0), 1))
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 2)
-                                .fill(PerchTheme.cardInnerBackground)
+                                .fill(PerchTheme.border)
                                 .frame(height: 4)
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(scoreColor(score.value))
-                                .frame(width: geo.size.width * min(score.value / 100, 1.0), height: 4)
+                                .frame(width: geo.size.width * barFraction, height: 4)
                         }
                     }
                     .frame(height: 4)
