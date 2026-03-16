@@ -119,6 +119,7 @@ struct HealthDetailView: View {
     private var trendColor: Color {
         guard let trend = trendInfo else { return PerchTheme.textSecondary }
         if abs(trend.percentage) <= 1.0 { return PerchTheme.warning }
+        if title.caseInsensitiveCompare("Weight") == .orderedSame { return PerchTheme.warning }
         return trend.isImproving ? PerchTheme.success : PerchTheme.error
     }
 

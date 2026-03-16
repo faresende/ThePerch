@@ -18,10 +18,17 @@ struct MacrosCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header
-            Text("Daily Macros")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
+            HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
+                Text("DAILY MACROS")
+                    .font(PerchTheme.Font.heading)
+                    .foregroundColor(PerchTheme.textPrimary)
+
+                Spacer()
+
+                if let updated = lastUpdated {
+                    CardFreshnessLabel(date: updated)
+                }
+            }
 
             // Macro rows with gradient colors
             macroRow(
@@ -50,11 +57,8 @@ struct MacrosCard: View {
 
             // Summary row
             HStack {
-                if let updated = lastUpdated {
-                    CardFreshnessLabel(date: updated)
-                }
-                Spacer()
                 let total = protein + carbs + fat
+                Spacer()
                 Text("\(Int(total))g total")
                     .font(PerchTheme.Font.captionNumeric)
                     .foregroundColor(PerchTheme.textSecondary)

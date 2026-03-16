@@ -131,7 +131,7 @@ final class HealthViewModel {
 
     /// Ordered list of chart metrics to display (body comp → sleep → nutrition).
     static let chartMetricOrder: [(key: String, title: String, unit: String, emoji: String, higherIsBetter: Bool)] = [
-        ("weight", "Weight", "kg", "⚖️", true),
+        ("weight", "Weight", "kg", "⚖️", false),
         ("skeletal_muscle", "Skeletal Muscle", "kg", "💪", true),
         ("body_fat_pct", "Body Fat %", "%", "📊", false),
         ("sleep_duration", "Sleep Duration", "hrs", "😴", true),
