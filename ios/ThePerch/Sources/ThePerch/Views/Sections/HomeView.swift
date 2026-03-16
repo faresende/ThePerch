@@ -236,20 +236,9 @@ struct HomeView: View {
                 .foregroundColor(PerchTheme.textSecondary)
                 .lineLimit(1)
         }
-        .frame(width: 140)
-        .frame(height: 88)
+        .frame(width: 150)
         .padding(PerchTheme.Spacing.medium)
-        .background(PerchTheme.cardInnerBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(
-                    chip.accent
-                        ? PerchTheme.accent.opacity(0.25)
-                        : PerchTheme.border,
-                    lineWidth: 1
-                )
-        )
-        .cornerRadius(12)
+        .cardStyle()
     }
 
     // MARK: - Modular Card Builder
