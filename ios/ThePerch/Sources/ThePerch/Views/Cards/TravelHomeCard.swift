@@ -65,7 +65,7 @@ struct TravelHomeCard: View {
     @ViewBuilder
     private func headerView(trip: TripData, weather: (avgTemp: Double, condition: String, emoji: String)?, tier: TravelViewModel.CardTier) -> some View {
         HStack(spacing: PerchTheme.Spacing.small) {
-            Image(systemName: tier == .disruption ? "exclamationmark.triangle.fill" : "airplane")
+            Image(systemName: tier == .disruption ? "exclamationmark.triangle.fill" : "suitcase.fill")
                 .font(PerchTheme.Font.caption)
                 .foregroundColor(tierAccentColor(tier))
 
