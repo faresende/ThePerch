@@ -448,20 +448,8 @@ private struct CardStyleModifier: ViewModifier {
                     )
             )
             .shadow(
-                color: PerchTheme.accent.opacity(colorScheme == .dark ? 0.15 : 0.05),
+                color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08),
                 radius: 8,
-                x: 0,
-                y: 0
-            )
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.06),
-                radius: colorScheme == .dark ? 10 : 8,
-                x: 0,
-                y: colorScheme == .dark ? 4 : 2
-            )
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.06),
-                radius: 6,
                 x: 0,
                 y: 2
             )
