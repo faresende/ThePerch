@@ -216,7 +216,6 @@ struct HomeView: View {
                     glanceChipView(chip: chip)
                 }
             }
-            .padding(.horizontal, PerchTheme.Spacing.large)
         }
     }
 
