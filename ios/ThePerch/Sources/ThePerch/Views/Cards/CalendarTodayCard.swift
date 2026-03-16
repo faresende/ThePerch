@@ -155,9 +155,8 @@ struct CalendarTodayCard: View {
             Text(event.title)
                 .font(isNext ? PerchTheme.Font.heading : PerchTheme.Font.body)
                 .foregroundColor(PerchTheme.textPrimary)
-                .lineLimit(2)
+                .lineLimit(1)
                 .multilineTextAlignment(.leading)
-                .layoutPriority(1)
 
             Spacer()
 
@@ -176,6 +175,8 @@ struct CalendarTodayCard: View {
                 Text(relativeTimeLabel(for: event))
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
