@@ -6,12 +6,12 @@ enum CardFreshness {
         let minutes = Int(interval / 60)
         let hours = Int(interval / 3600)
 
-        if minutes < 1 { return "Updated just now" }
-        if minutes < 60 { return "Updated \(minutes)m ago" }
-        if hours < 24 { return "Updated \(hours)h ago" }
+        if minutes < 1 { return "Just now" }
+        if minutes < 60 { return "\(minutes)m ago" }
+        if hours < 24 { return "\(hours)h ago" }
 
         let days = max(1, hours / 24)
-        return "Updated \(days)d ago"
+        return "\(days)d ago"
     }
 
     static func color(for date: Date) -> Color {
