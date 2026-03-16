@@ -170,114 +170,87 @@ struct HomeView: View {
     // MARK: - Quick Glance Bar
 
     /// Items to display in the Quick Glance bar, filtering out zero-value entries.
-    private var quickGlanceItems: [(icon: String, value: String, label: String, colorKey: String)] {
-        var items: [(icon: String, value: String, label: String, colorKey: String)] = []
+    // MARK: - Quick Glance Chip Strip
 
-        if let travelText = viewModel.travelQuickGlanceText {
-            items.append((icon: "airplane", value: travelText, label: "Travel", colorKey: "accent"))
-        }
-
-        let calText = viewModel.caloriesPercentText
-        if calText != "--%" {
-            items.append((icon: "flame.fill", value: calText, label: "Calories", colorKey: viewModel.caloriesColor))
-        }
-
-        let eventText = viewModel.nextEventTimeText
-        if eventText != "None" {
-            items.append((icon: "calendar", value: eventText, label: "Next event", colorKey: "accent"))
-        }
-
-        let count = viewModel.activeDeliveryCount
-        if count > 0 {
-            items.append((icon: "shippingbox.fill", value: "\(count)", label: count == 1 ? "Delivery" : "Deliveries", colorKey: "success"))
-        }
-
-        return items
+    private struct GlanceChip: Identifiable {
+        let id = UUID()
+        let emoji: String
+        let value: String
+        let label: String
+        let accent: Bool
     }
 
-    private func colorForKey(_ key: String) -> Color {
-        switch key {
-        case "error": return PerchTheme.error
-        case "success": return PerchTheme.success
-        case "accent": return PerchTheme.accent
-        default: return PerchTheme.textTertiary
+    private var quickGlanceChips: [GlanceChip] {
+        var chips: [GlanceChip] = []
+
+        // Chip 1: Next event (or travel countdown if no events)
+        let eventText = viewModel.nextEventTimeText
+        if eventText != "None", let nextTitle = viewModel.nextEventTitle {
+            chips.append(GlanceChip(emoji: "🗓", value: eventText, label: nextTitle, accent: true))
+        } else if let travelText = viewModel.travelQuickGlanceText {
+            chips.append(GlanceChip(emoji: "✈️", value: travelText, label: "Travel", accent: true))
         }
+
+        // Chip 2: Deliveries
+        let count = viewModel.activeDeliveryCount
+        if count > 0 {
+            chips.append(GlanceChip(emoji: "📦", value: "\(count)", label: count == 1 ? "Delivery" : "Deliveries", accent: false))
+        }
+
+        // Chip 3: Weather (if available) or Sleep score
+        if let weather = viewModel.weatherSummary {
+            chips.append(GlanceChip(emoji: "🌤", value: weather.temp, label: weather.condition, accent: false))
+        } else if let sleepText = viewModel.sleepScoreText {
+            chips.append(GlanceChip(emoji: "😴", value: sleepText, label: "Sleep", accent: false))
+        }
+
+        return chips
     }
 
     private var quickGlanceBar: some View {
-        let items = quickGlanceItems
-        return VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                    if index > 0 { divider }
-                    quickGlanceItem(
-                        icon: item.icon,
-                        value: item.value,
-                        label: item.label,
-                        color: colorForKey(item.colorKey)
-                    )
+        let chips = quickGlanceChips
+
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: PerchTheme.Spacing.small) {
+                ForEach(chips) { chip in
+                    glanceChipView(chip: chip)
                 }
             }
-            .padding(.vertical, PerchTheme.Spacing.medium)
-
-            if let timeStr = freshnessTracker.relativeTimeString(for: "all_records") {
-                Rectangle()
-                    .fill(PerchTheme.divider)
-                    .frame(height: 0.5)
-                    .padding(.horizontal, PerchTheme.Spacing.medium)
-
-                HStack(spacing: 4) {
-                    if freshnessTracker.isStale("all_records") {
-                        Circle()
-                            .fill(PerchTheme.warning)
-                            .frame(width: 4, height: 4)
-                    }
-                    Text(timeStr)
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(
-                            freshnessTracker.isStale("all_records")
-                                ? PerchTheme.warning
-                                : PerchTheme.textTertiary
-                        )
-                }
-                .padding(.vertical, 6)
-            }
+            .padding(.horizontal, PerchTheme.Spacing.large)
         }
-        .background(
-            LinearGradient(
-                colors: [PerchTheme.accent.opacity(0.03), Color.clear],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .cardStyle()
-        .staleBorder(tier: freshnessTracker.urgencyTier(for: "all_records"))
     }
 
     @ViewBuilder
-    private func quickGlanceItem(icon: String, value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(color)
-                Text(value)
-                    .font(PerchTheme.Font.titleNumeric)
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            Text(label)
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-    }
+    private func glanceChipView(chip: GlanceChip) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(chip.emoji)
+                .font(.system(size: 18))
 
-    private var divider: some View {
-        Rectangle()
-            .fill(PerchTheme.border)
-            .frame(width: 1, height: 40)
+            Text(chip.value)
+                .font(PerchTheme.Font.heading)
+                .fontWeight(.semibold)
+                .foregroundColor(PerchTheme.textPrimary)
+                .lineLimit(1)
+
+            Text(chip.label)
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textSecondary)
+                .lineLimit(1)
+        }
+        .frame(width: 140)
+        .frame(height: 88)
+        .padding(PerchTheme.Spacing.medium)
+        .background(PerchTheme.cardInnerBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(
+                    chip.accent
+                        ? PerchTheme.accent.opacity(0.25)
+                        : PerchTheme.border,
+                    lineWidth: 1
+                )
+        )
+        .cornerRadius(12)
     }
 
     // MARK: - Modular Card Builder
