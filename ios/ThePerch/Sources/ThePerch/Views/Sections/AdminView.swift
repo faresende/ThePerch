@@ -109,9 +109,13 @@ struct AdminView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(PerchTheme.textPrimary)
                                 Spacer()
+                                let heartbeatColor = heartbeatStatusColor
+                                Circle()
+                                    .fill(heartbeatColor)
+                                    .frame(width: 8, height: 8)
                                 Image(systemName: "heart.fill")
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.accent)
+                                    .foregroundColor(heartbeatColor)
                             }
 
                             if let heartbeat = viewModel.latestHeartbeat {
@@ -121,7 +125,7 @@ struct AdminView: View {
                             } else {
                                 Text("No pulse")
                                     .font(PerchTheme.Font.heading)
-                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .foregroundColor(PerchTheme.error)
                             }
 
                             Text("Last check-in")
@@ -274,6 +278,16 @@ struct AdminView: View {
                 agentDetailView(for: agent)
             }
         }
+    }
+
+    // MARK: - Heartbeat Status Color
+
+    private var heartbeatStatusColor: Color {
+        guard let heartbeat = viewModel.latestHeartbeat else { return PerchTheme.error }
+        let hours = Date.now.timeIntervalSince(heartbeat) / 3600
+        if hours < 2 { return PerchTheme.success }
+        if hours < 12 { return PerchTheme.warning }
+        return PerchTheme.error
     }
 
     // MARK: - Gateway Status Title
