@@ -98,39 +98,39 @@ struct HealthSummaryHomeCard: View {
             } else {
                 // Four metric circles
                 HStack(spacing: PerchTheme.Spacing.small) {
-                    if let sleep = sleepDuration {
+                    if let sleep = sleepDuration, sleepScore == nil {
                         metricCircle(
                             value: formatHours(sleep.value),
                             label: "sleep",
-                            color: sleep.value >= 7 ? PerchTheme.success : (sleep.value >= 6 ? PerchTheme.warning : PerchTheme.error)
+                            color: PerchTheme.warning
                         )
                     }
                     if let deep = deepSleep {
                         metricCircle(
                             value: formatHours(deep.value),
                             label: "deep",
-                            color: deep.value >= 1 ? PerchTheme.success : (deep.value >= 0.5 ? PerchTheme.warning : PerchTheme.error)
+                            color: PerchTheme.warning
                         )
                     }
                     if let h = hrv {
                         metricCircle(
                             value: "\(Int(h.value))",
                             label: "HRV",
-                            color: PerchTheme.textPrimary
+                            color: PerchTheme.warning
                         )
                     }
                     if let r = readiness {
                         metricCircle(
                             value: "\(Int(r.value))",
                             label: "ready",
-                            color: r.value >= 85 ? PerchTheme.success : (r.value >= 70 ? PerchTheme.warning : PerchTheme.error)
+                            color: PerchTheme.warning
                         )
                     }
                 }
 
                 // Sleep score bar (expanded mode only)
                 if let score = sleepScore {
-                    sleepScoreBar(score: score.value)
+                    sleepScoreBar(score: score.value, duration: sleepDuration?.value)
                 }
             }
         }
@@ -164,19 +164,31 @@ struct HealthSummaryHomeCard: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func sleepScoreBar(score: Double) -> some View {
+    private func sleepScoreBar(score: Double, duration: Double?) -> some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
             HStack {
-                Text("Sleep Score")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sleep Score")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+
+                    if let duration {
+                        Text("\(formatDuration(duration)) sleep")
+                            .font(PerchTheme.Font.micro)
+                            .foregroundColor(PerchTheme.textTertiary)
+                    }
+                }
+
                 Spacer()
-                Text("\(Int(score))")
-                    .font(PerchTheme.Font.headingNumeric)
-                    .foregroundColor(PerchTheme.textPrimary)
-                Text(scoreLabel(score))
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(scoreColor(score))
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(Int(score))")
+                        .font(PerchTheme.Font.displayNumeric)
+                        .foregroundColor(PerchTheme.textPrimary)
+                    Text(scoreLabel(score))
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(scoreColor(score))
+                }
             }
 
             GeometryReader { geometry in
@@ -200,6 +212,14 @@ struct HealthSummaryHomeCard: View {
         let minutes = Int((value - Double(hours)) * 60)
         if minutes == 0 { return "\(hours)h" }
         return "\(hours)h\(minutes)"
+    }
+
+    private func formatDuration(_ value: Double) -> String {
+        let totalMinutes = Int(round(value * 60))
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        if minutes == 0 { return "\(hours)h" }
+        return "\(hours)h \(minutes)m"
     }
 
     private func scoreLabel(_ score: Double) -> String {

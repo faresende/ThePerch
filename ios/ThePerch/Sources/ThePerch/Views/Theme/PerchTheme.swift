@@ -138,7 +138,12 @@ struct PerchTheme {
     /// Semantic macro colors — shared across Home and Health nutrition cards.
     static var macroProtein: Color { success }
     static var macroCarbs: Color { accent }
-    static var macroFat: Color { warning }
+    static var macroFat: Color {
+        adaptive(
+            light: UIColor(red: 0.900, green: 0.400, blue: 0.350, alpha: 1),
+            dark: UIColor(red: 0.900, green: 0.400, blue: 0.350, alpha: 1)
+        )
+    }
 
     static var macroProteinGradient: [Color] {
         [macroProtein.opacity(0.72), macroProtein]

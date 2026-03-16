@@ -16,7 +16,7 @@ struct DeliveryCard: View {
     private let steps: [(key: String, label: String)] = [
         ("ordered", "Ordered"),
         ("shipped", "Shipped"),
-        ("out_for_delivery", "Out"),
+        ("out_for_delivery", "Out for\nDelivery"),
         ("delivered", "Delivered"),
     ]
 
@@ -73,7 +73,7 @@ struct DeliveryCard: View {
                         Text(delivery.items.first?.name ?? "Package")
                             .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
-                            .lineLimit(1)
+                            .lineLimit(2)
 
                         HStack(spacing: 8) {
                             Text(delivery.carrier)
@@ -202,6 +202,7 @@ struct DeliveryCard: View {
                         .fontWeight(isCurrent ? .bold : .regular)
                         .foregroundColor(isComplete ? PerchTheme.textPrimary : PerchTheme.textTertiary)
                         .frame(width: 60)
+                        .multilineTextAlignment(.center)
                         .position(x: x, y: lineY + maxDot / 2 + 14)
                 }
             }

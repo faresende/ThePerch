@@ -93,50 +93,61 @@ struct DeliveriesView: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
 
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                            Button(action: {
-                                PerchHaptics.light()
-                                showCompleted.toggle()
-                            }) {
-                                HStack {
-                                    Text("Completed Deliveries")
-                                        .font(PerchTheme.Font.heading)
-                                        .foregroundColor(PerchTheme.textPrimary)
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.down")
-                                        .rotationEffect(.degrees(showCompleted ? 180 : 0))
-                                        .foregroundColor(PerchTheme.textSecondary)
-                                        .animation(
-                                            PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.2),
-                                            value: showCompleted
-                                        )
-                                }
-                            }
-
                             if completedDeliveries.isEmpty {
+                                Text("Completed Deliveries")
+                                    .font(PerchTheme.Font.heading)
+                                    .foregroundColor(PerchTheme.textPrimary)
+
                                 EmptyStateView(
                                     icon: "checkmark.circle",
                                     title: "No completed deliveries",
                                     subtitle: "Completed deliveries will appear here after they arrive."
                                 )
-                            } else if showCompleted {
-                                VStack(spacing: PerchTheme.Spacing.medium) {
-                                    ForEach(completedDeliveries) { record in
-                                        if let delivery = record.asDelivery() {
-                                            DeliveryCard(delivery: delivery)
-                                                .contextMenu {
-                                                    Button {
-                                                        Task { await dashboardViewModel.toggleRecordPin(recordId: record.id) }
-                                                    } label: {
-                                                        Label(
-                                                            record.pinned ? "Unpin" : "Pin",
-                                                            systemImage: record.pinned ? "pin.slash" : "pin"
-                                                        )
+                            } else {
+                                Button(action: {
+                                    PerchHaptics.light()
+                                    showCompleted.toggle()
+                                }) {
+                                    HStack {
+                                        Text("Completed Deliveries")
+                                            .font(PerchTheme.Font.heading)
+                                            .foregroundColor(PerchTheme.textPrimary)
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.down")
+                                            .rotationEffect(.degrees(showCompleted ? 180 : 0))
+                                            .foregroundColor(PerchTheme.textSecondary)
+                                            .animation(
+                                                PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.2),
+                                                value: showCompleted
+                                            )
+                                    }
+                                }
+                                .buttonStyle(.plain)
+
+                                if showCompleted {
+                                    VStack(spacing: PerchTheme.Spacing.medium) {
+                                        ForEach(completedDeliveries) { record in
+                                            if let delivery = record.asDelivery() {
+                                                DeliveryCard(delivery: delivery)
+                                                    .contextMenu {
+                                                        Button {
+                                                            Task { await dashboardViewModel.toggleRecordPin(recordId: record.id) }
+                                                        } label: {
+                                                            Label(
+                                                                record.pinned ? "Unpin" : "Pin",
+                                                                systemImage: record.pinned ? "pin.slash" : "pin"
+                                                            )
+                                                        }
                                                     }
-                                                }
+                                            }
                                         }
                                     }
+                                } else {
+                                    Text("\(completedDeliveries.count) completed deliver\(completedDeliveries.count == 1 ? "y" : "ies")")
+                                        .font(PerchTheme.Font.caption)
+                                        .foregroundColor(PerchTheme.textTertiary)
                                 }
                             }
                         }
