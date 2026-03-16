@@ -223,28 +223,29 @@ struct HomeView: View {
                 }
             }
         }
-        .frame(height: 90)
+        .frame(height: 76)
     }
 
     @ViewBuilder
     private func glanceChipView(chip: GlanceChip) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(chip.emoji)
-                .font(.system(size: 18))
+                .font(.system(size: 14))
 
             Text(chip.value)
                 .font(PerchTheme.Font.heading)
-                .fontWeight(.semibold)
+                .fontWeight(.bold)
                 .foregroundColor(PerchTheme.textPrimary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
             Text(chip.label)
                 .font(PerchTheme.Font.caption)
                 .foregroundColor(PerchTheme.textSecondary)
                 .lineLimit(1)
         }
-        .padding(PerchTheme.Spacing.medium)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(PerchTheme.Spacing.small)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .cardStyle()
     }
 
