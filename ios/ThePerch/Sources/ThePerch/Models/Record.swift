@@ -19,6 +19,14 @@ enum RecordType: String, Codable, CaseIterable, Sendable {
     case travelAlert = "travel_alert"
     case weatherForecast = "weather_forecast"
     case travelTask = "travel_task"
+    case calendarEvent = "calendar_event"
+    case unknown
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = RecordType(rawValue: rawValue) ?? .unknown
+    }
 
     var displayName: String {
         switch self {
@@ -52,6 +60,10 @@ enum RecordType: String, Codable, CaseIterable, Sendable {
             return "Weather Forecast"
         case .travelTask:
             return "Travel Task"
+        case .calendarEvent:
+            return "Calendar Event"
+        case .unknown:
+            return "Unknown"
         }
     }
 }
