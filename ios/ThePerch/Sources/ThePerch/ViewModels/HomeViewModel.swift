@@ -69,6 +69,28 @@ final class HomeViewModel {
         return "\(minutes)m"
     }
 
+    var nextEventTitle: String? {
+        let futureEvents = records.compactMap { record -> (Record, EventData)? in
+            guard let event = record.asEvent(), event.start > Date.now else { return nil }
+            return (record, event)
+        }.sorted { $0.1.start < $1.1.start }
+        return futureEvents.first?.1.title
+    }
+
+    var weatherSummary: (temp: String, condition: String)? {
+        // Check for weather records
+        guard let weather = records.first(where: { $0.asWeather() != nil })?.asWeather() else { return nil }
+        return (temp: "\(Int(weather.temperature))°", condition: weather.conditions)
+    }
+
+    var sleepScoreText: String? {
+        guard let sleep = records.first(where: {
+            guard let m = $0.asMeasurement() else { return false }
+            return m.metric == "sleep_score"
+        })?.asMeasurement() else { return nil }
+        return "\(Int(sleep.value))"
+    }
+
     var activeDeliveryCount: Int {
         records.filter {
             guard let d = $0.asDelivery() else { return false }
