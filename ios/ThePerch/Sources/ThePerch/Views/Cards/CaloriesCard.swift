@@ -72,9 +72,10 @@ struct CaloriesCard: View {
             // Stats
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
-                    Text("DAILY CALORIES")
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                    Text("CALORIES")
+                        .font(PerchTheme.Font.cardEyebrow)
+                        .foregroundColor(PerchTheme.textSecondary)
+                        .tracking(0.8)
 
                     Spacer()
 
