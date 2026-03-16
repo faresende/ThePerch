@@ -71,9 +71,17 @@ struct CaloriesCard: View {
 
             // Stats
             VStack(alignment: .leading, spacing: 12) {
-                Text("Daily Calories")
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
+                    Text("DAILY CALORIES")
+                        .font(PerchTheme.Font.heading)
+                        .foregroundColor(PerchTheme.textPrimary)
+
+                    Spacer()
+
+                    if let updated = lastUpdated {
+                        CardFreshnessLabel(date: updated)
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
@@ -102,10 +110,6 @@ struct CaloriesCard: View {
                         .foregroundColor(progressColor)
                         .scaleEffect(percentageScale)
                         .padding(.top, 2)
-                }
-
-                if let updated = lastUpdated {
-                    CardFreshnessLabel(date: updated)
                 }
             }
 

@@ -216,7 +216,7 @@ struct HealthView: View {
             HStack {
                 Text(emoji)
                     .font(PerchTheme.Font.title)
-                Text(title)
+                Text(title.uppercased())
                     .font(PerchTheme.Font.heading)
                     .foregroundColor(PerchTheme.textPrimary)
             }

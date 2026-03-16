@@ -26,9 +26,9 @@ struct SectionNavigator: View {
                         .id(index)
                     }
                 }
-                .padding(.horizontal, PerchTheme.Spacing.large)
                 .padding(.vertical, PerchTheme.Spacing.xSmall)
             }
+            .contentMargins(.horizontal, 16, for: .scrollContent)
             .onChange(of: selectedIndex) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     proxy.scrollTo(selectedIndex, anchor: .center)

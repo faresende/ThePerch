@@ -671,7 +671,7 @@ struct TravelView: View {
         case "delayed": return PerchTheme.warning
         case "cancelled": return PerchTheme.error
         case "pending": return PerchTheme.textTertiary
-        default: return PerchTheme.accent
+        default: return PerchTheme.success
         }
     }
 

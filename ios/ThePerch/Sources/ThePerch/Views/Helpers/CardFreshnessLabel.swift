@@ -11,19 +11,16 @@ enum CardFreshness {
         if hours < 24 { return "Updated \(hours)h ago" }
 
         let days = max(1, hours / 24)
-        return "\(days)d ago"
+        return "Updated \(days)d ago"
     }
 
     static func color(for date: Date) -> Color {
-        let hours = Date.now.timeIntervalSince(date) / 3600
-        if hours < 1 { return PerchTheme.textTertiary }
-        if hours < 24 { return PerchTheme.warning }
-        return PerchTheme.error
+        PerchTheme.textTertiary
     }
 }
 
 /// Displays a relative "Updated Xm ago" label for card freshness.
-/// Color adapts: tertiary for recent (<1h), amber for stale (1-24h), red for very stale (>24h).
+/// Uses a muted tertiary color to keep freshness labels visually secondary.
 struct CardFreshnessLabel: View {
     let date: Date?
 

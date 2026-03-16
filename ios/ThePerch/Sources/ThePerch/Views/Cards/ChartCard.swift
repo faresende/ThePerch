@@ -142,7 +142,7 @@ struct ChartCard: View {
             // Header
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
+                    Text(title.uppercased())
                         .font(PerchTheme.Font.heading)
                         .foregroundColor(PerchTheme.textSecondary)
 
@@ -167,6 +167,9 @@ struct ChartCard: View {
                     let isStable = abs(trend) < 0.5
                     let trendColor: Color = {
                         if isStable { return PerchTheme.textTertiary }
+                        if title.caseInsensitiveCompare("Weight") == .orderedSame {
+                            return PerchTheme.warning
+                        }
                         let isPositive = trend > 0
                         if higherIsBetter {
                             return isPositive ? PerchTheme.success : PerchTheme.error
