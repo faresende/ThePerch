@@ -210,13 +210,20 @@ struct HomeView: View {
     private var quickGlanceBar: some View {
         let chips = quickGlanceChips
 
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: PerchTheme.Spacing.small) {
+        return GeometryReader { geo in
+            let spacing: CGFloat = PerchTheme.Spacing.small
+            let chipCount = max(CGFloat(chips.count), 3)
+            let totalSpacing = spacing * (chipCount - 1)
+            let chipWidth = (geo.size.width - totalSpacing) / chipCount
+
+            HStack(spacing: spacing) {
                 ForEach(chips) { chip in
                     glanceChipView(chip: chip)
+                        .frame(width: chipWidth)
                 }
             }
         }
+        .frame(height: 90)
     }
 
     @ViewBuilder
@@ -236,8 +243,8 @@ struct HomeView: View {
                 .foregroundColor(PerchTheme.textSecondary)
                 .lineLimit(1)
         }
-        .frame(width: 150)
         .padding(PerchTheme.Spacing.medium)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
     }
 
