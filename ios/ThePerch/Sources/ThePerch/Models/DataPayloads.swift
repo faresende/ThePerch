@@ -599,6 +599,89 @@ struct TravelTaskData: Codable, Sendable {
     }
 }
 
+// MARK: - Workout Session Data
+
+/// A single set within an exercise.
+struct WorkoutSet: Codable {
+    let weightKg: Double?
+    let reps: Int?
+    let durationSec: Int?
+    let notes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case weightKg = "weight_kg"
+        case reps, notes
+        case durationSec = "duration_sec"
+    }
+}
+
+/// A single exercise performed in a workout session.
+struct WorkoutExercise: Codable {
+    let name: String
+    let sets: [WorkoutSet]
+    let notes: String?
+}
+
+/// Progressive overload status for an exercise.
+struct OverloadStatus: Codable {
+    let exercise: String
+    let status: String
+    let note: String?
+}
+
+/// Structured data for a workout session record.
+struct WorkoutSessionData: Codable {
+    let sessionNumber: Int?
+    let date: String
+    let muscleGroups: [String]
+    let durationMin: Int?
+    let activeCalories: Int?
+    let avgHr: Int?
+    let maxHr: Int?
+    let exercises: [WorkoutExercise]
+    let progressiveOverload: [OverloadStatus]?
+
+    enum CodingKeys: String, CodingKey {
+        case sessionNumber = "session_number"
+        case date
+        case muscleGroups = "muscle_groups"
+        case durationMin = "duration_min"
+        case activeCalories = "active_calories"
+        case avgHr = "avg_hr"
+        case maxHr = "max_hr"
+        case exercises
+        case progressiveOverload = "progressive_overload"
+    }
+
+    var dateParsed: Date? {
+        PerchFormatters.isoDate.date(from: date)
+    }
+
+    var totalSets: Int {
+        exercises.reduce(0) { $0 + $1.sets.count }
+    }
+
+    var totalVolume: Double {
+        exercises.flatMap { $0.sets }.reduce(0.0) { total, set in
+            total + (set.weightKg ?? 0) * Double(set.reps ?? 0)
+        }
+    }
+
+    var topLifts: [(name: String, weight: Double, reps: Int, est1rm: Double)] {
+        exercises.compactMap { exercise in
+            guard let heaviest = exercise.sets
+                .filter({ ($0.weightKg ?? 0) > 0 && ($0.reps ?? 0) > 0 })
+                .max(by: { ($0.weightKg ?? 0) < ($1.weightKg ?? 0) })
+            else { return nil }
+            let w = heaviest.weightKg ?? 0
+            let r = heaviest.reps ?? 1
+            let est = r == 1 ? w : w * (36.0 / (37.0 - Double(r)))
+            return (exercise.name, w, r, est)
+        }
+        .sorted { $0.est1rm > $1.est1rm }
+    }
+}
+
 // MARK: - Data Payload Decoding Extension
 
 /// Extension to Record for convenient typed data decoding.
@@ -708,5 +791,10 @@ extension Record {
     /// Decodes travel task data from this record.
     func asTravelTask() -> TravelTaskData? {
         decodeData(as: TravelTaskData.self)
+    }
+
+    /// Decodes workout session data from this record.
+    func asWorkoutSession() -> WorkoutSessionData? {
+        decodeData(as: WorkoutSessionData.self)
     }
 }

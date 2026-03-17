@@ -19,6 +19,7 @@ enum RecordType: String, Codable, CaseIterable, Sendable {
     case travelAlert = "travel_alert"
     case weatherForecast = "weather_forecast"
     case travelTask = "travel_task"
+    case workoutSession = "workout_session"
     case calendarEvent = "calendar_event"
     case unknown
 
@@ -60,6 +61,8 @@ enum RecordType: String, Codable, CaseIterable, Sendable {
             return "Weather Forecast"
         case .travelTask:
             return "Travel Task"
+        case .workoutSession:
+            return "Workout Session"
         case .calendarEvent:
             return "Calendar Event"
         case .unknown:

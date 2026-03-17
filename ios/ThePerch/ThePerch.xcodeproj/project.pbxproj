@@ -17,6 +17,8 @@
 		26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */; };
 		353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */; };
 		353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */; };
+		100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */; };
+		8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */; };
 		356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 356EB7102F5251A3009D0A53 /* Assets.xcassets */; };
 		35E8ADA32F5B18A100BAC8FE /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */; };
 		35E8ADA82F5B19CB00BAC8FE /* HealthKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */; };
@@ -174,6 +176,8 @@
 		194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCardRenderer.swift; sourceTree = "<group>"; };
 		260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardRenderer.swift; sourceTree = "<group>"; };
 		353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaloriesCard.swift; sourceTree = "<group>"; };
+		BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyVolumeCard.swift; sourceTree = "<group>"; };
+		E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCard.swift; sourceTree = "<group>"; };
 		353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacrosCard.swift; sourceTree = "<group>"; };
 		356EB7102F5251A3009D0A53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		35E8ADA02F5B181200BAC8FE /* ThePerch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ThePerch.entitlements; sourceTree = SOURCE_ROOT; };
@@ -446,6 +450,8 @@
 			children = (
 				HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */,
 				353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */,
+				BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */,
+				E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */,
 				353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */,
 				35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */,
 				35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */,
@@ -908,6 +914,8 @@
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */,
 				353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */,
 				353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */,
+				100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */,
+				8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */,
 				35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */,
 				35F5437D2F52411F00204F77 /* ThePerchApp.swift in Sources */,
 				35F5437F2F52411F00204F77 /* AdminView.swift in Sources */,

@@ -203,7 +203,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         var lastError: Error?
         for attempt in 0..<maxRetries {
             do {
-                return try await body()
+                let result = try await body()
+                self.connectionError = nil
+                return result
             } catch {
                 lastError = error
                 if attempt < maxRetries - 1 {
