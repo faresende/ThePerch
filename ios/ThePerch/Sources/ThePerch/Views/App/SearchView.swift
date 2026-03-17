@@ -214,6 +214,7 @@ struct SearchResultRow: View {
         case .travelAlert: return "exclamationmark.triangle"
         case .weatherForecast: return "cloud.sun"
         case .travelTask: return "checklist"
+        case .workoutSession: return "dumbbell"
         case .calendarEvent: return "calendar"
         case .unknown: return "questionmark.circle"
         }
