@@ -108,6 +108,7 @@ final class DashboardViewModel {
         case .success(let loaded):
             self.allRecords = loaded
             Self.preDecodeRecords(loaded)
+            self.error = nil
         case .failure(let err):
 #if DEBUG
             print("[DashboardVM] fetchRecords threw: \(err)")
@@ -160,6 +161,8 @@ final class DashboardViewModel {
             case .health:
                 if record.displayHint == .macrosBar {
                     _ = record.decodeData(as: MacrosData.self)
+                } else if record.type == .workoutSession {
+                    _ = record.decodeData(as: WorkoutSessionData.self)
                 } else {
                     _ = record.decodeData(as: MeasurementData.self)
                 }
