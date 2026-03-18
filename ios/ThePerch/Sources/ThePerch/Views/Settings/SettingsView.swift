@@ -8,6 +8,9 @@ struct SettingsView: View {
 
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @State private var isSigningOut = false
+    @State private var showChangeBackend = false
+    @State private var editableSections: [Section] = []
+    @State private var isSavingSections = false
 
     var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -68,36 +71,102 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
 
-                        // Section management
+                        // Section management — toggle visibility and reorder
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                            Text("Sections")
-                                .font(PerchTheme.Font.heading)
-                                .foregroundColor(PerchTheme.textPrimary)
+                            HStack {
+                                Text("Tabs")
+                                    .font(PerchTheme.Font.heading)
+                                    .foregroundColor(PerchTheme.textPrimary)
+                                Spacer()
+                                if isSavingSections {
+                                    ProgressView().scaleEffect(0.8)
+                                }
+                            }
 
-                            VStack(spacing: PerchTheme.Spacing.xSmall) {
-                                ForEach(dashboardViewModel.sections) { section in
-                                    HStack {
+                            Text("Toggle tabs on/off or drag to reorder.")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textTertiary)
+
+                            List {
+                                ForEach($editableSections) { $section in
+                                    HStack(spacing: PerchTheme.Spacing.medium) {
+                                        Image(systemName: "line.3.horizontal")
+                                            .foregroundColor(PerchTheme.textTertiary)
+                                            .font(.caption)
                                         Text(section.displayName)
                                             .font(PerchTheme.Font.body)
                                             .foregroundColor(PerchTheme.textPrimary)
-
                                         Spacer()
-
-                                        Image(systemName: "eye\(section.isVisible ? "" : ".slash")")
-                                            .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
-                                            .foregroundColor(
-                                                section.isVisible
-                                                    ? PerchTheme.accent
-                                                    : PerchTheme.textTertiary
-                                            )
+                                        Toggle("", isOn: Binding(
+                                            get: { section.isVisible },
+                                            set: { newValue in
+                                                section.isVisible = newValue
+                                                Task { await saveSections() }
+                                            }
+                                        ))
+                                            .labelsHidden()
+                                            .tint(PerchTheme.accent)
                                     }
-                                    .padding(PerchTheme.Spacing.small)
-                                    .background(PerchTheme.cardBackground)
-                                    .cornerRadius(PerchTheme.Card.cornerRadius)
+                                    .listRowBackground(PerchTheme.cardBackground)
+                                }
+                                .onMove { from, to in
+                                    editableSections.move(fromOffsets: from, toOffset: to)
+                                    Task { await saveSections() }
+                                }
+                            }
+                            .listStyle(.plain)
+                            .frame(height: CGFloat(editableSections.count) * 52)
+                            .cornerRadius(PerchTheme.Card.cornerRadius)
+                            .environment(\.editMode, .constant(.active))
+                        }
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+
+                        // Backend section
+                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                            Text("Backend")
+                                .font(PerchTheme.Font.heading)
+                                .foregroundColor(PerchTheme.textPrimary)
+
+                            CardContainer {
+                                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Mode")
+                                                .font(PerchTheme.Font.caption)
+                                                .foregroundColor(PerchTheme.textSecondary)
+                                            Text(KeychainService.shared.load()?.backendMode == .managedCloud ? "ThePerch Cloud" : "Self-hosted (Supabase)")
+                                                .font(PerchTheme.Font.body)
+                                                .foregroundColor(PerchTheme.textPrimary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(PerchTheme.success)
+                                    }
+
+                                    Divider().padding(.vertical, PerchTheme.Spacing.xSmall)
+
+                                    Button {
+                                        showChangeBackend = true
+                                    } label: {
+                                        HStack {
+                                            Text("Change backend")
+                                                .font(PerchTheme.Font.body)
+                                                .foregroundColor(PerchTheme.error)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption)
+                                                .foregroundColor(PerchTheme.textTertiary)
+                                        }
+                                    }
                                 }
                             }
                         }
                         .padding(.horizontal, PerchTheme.Spacing.large)
+                        .sheet(isPresented: $showChangeBackend) {
+                            OnboardingView {
+                                showChangeBackend = false
+                            }
+                        }
 
                         // About section
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
@@ -168,6 +237,11 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                editableSections = dashboardViewModel.sections
+                    .filter { $0.slug != "legal" }
+                    .sorted { $0.sortOrder < $1.sortOrder }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
@@ -189,6 +263,17 @@ struct SettingsView: View {
             await authViewModel.signOut()
             isSigningOut = false
         }
+    }
+
+    private func saveSections() async {
+        isSavingSections = true
+        // Update sort_order based on current array position
+        var updated = editableSections
+        for i in updated.indices {
+            updated[i].sortOrder = i
+        }
+        await dashboardViewModel.reorderSections(updated)
+        isSavingSections = false
     }
 }
 
