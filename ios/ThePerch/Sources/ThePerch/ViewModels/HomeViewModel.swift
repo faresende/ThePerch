@@ -117,7 +117,7 @@ final class HomeViewModel {
         // Always check today first
         let todayRecords = caloriesRecords
             .filter { $0.asMeasurement()?.context == todayString }
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted { $0.updatedAt > $1.updatedAt }
         if let todayRecord = todayRecords.first {
             return todayRecord
         }
@@ -134,8 +134,9 @@ final class HomeViewModel {
 
         // No today data: before 2am show yesterday, after 2am show nothing (0%)
         if isLateNight {
-            if let yesterdayRecord = caloriesRecords.first(where: { $0.asMeasurement()?.context == yesterdayString }) {
-                return yesterdayRecord
+            let yesterdayRecords = caloriesRecords.filter { $0.asMeasurement()?.context == yesterdayString }
+            if !yesterdayRecords.isEmpty {
+                return yesterdayRecords.sorted { $0.updatedAt > $1.updatedAt }.first
             }
         }
 
