@@ -688,7 +688,8 @@ struct WorkoutSessionData: Codable {
 extension Record {
     /// Decodes the measurement data from this record.
     func asMeasurement() -> MeasurementData? {
-        decodeData(as: MeasurementData.self)
+        guard type == .measurement else { return nil }
+        return decodeData(as: MeasurementData.self)
     }
 
     /// Decodes the delivery data from this record.

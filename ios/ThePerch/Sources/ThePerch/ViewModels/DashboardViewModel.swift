@@ -161,11 +161,11 @@ final class DashboardViewModel {
             case .health:
                 if record.displayHint == .macrosBar {
                     _ = record.decodeData(as: MacrosData.self)
-                } else if record.type == .workoutSession {
-                    _ = record.decodeData(as: WorkoutSessionData.self)
                 } else {
                     _ = record.decodeData(as: MeasurementData.self)
                 }
+            case .workouts:
+                _ = record.decodeData(as: WorkoutSessionData.self)
             case .deliveries:
                 _ = record.decodeData(as: DeliveryData.self)
             case .calendar:
