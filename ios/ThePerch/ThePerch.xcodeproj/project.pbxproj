@@ -41,6 +41,7 @@
 		35F543872F52411F00204F77 /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434C2F52411F00204F77 /* Agent.swift */; };
 		35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435E2F52411F00204F77 /* MainTabView.swift */; };
 		35F5438B2F52411F00204F77 /* HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543702F52411F00204F77 /* HealthView.swift */; };
+		5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */; };
 		36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */; };
 		2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD77E48492FF01406E3C35 /* TravelView.swift */; };
 		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
@@ -52,6 +53,7 @@
 		35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543632F52411F00204F77 /* ChecklistCard.swift */; };
 		35F543942F52411F00204F77 /* TokenUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543512F52411F00204F77 /* TokenUsage.swift */; };
 		35F543962F52411F00204F77 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543552F52411F00204F77 /* SupabaseService.swift */; };
+		8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27DBAD9446B0EA0E5642376 /* KeychainService.swift */; };
 		35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435B2F52411F00204F77 /* SectionViewModel.swift */; };
 		35F543982F52411F00204F77 /* EventKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543542F52411F00204F77 /* EventKitService.swift */; };
 		35F543992F52411F00204F77 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543522F52411F00204F77 /* UserProfile.swift */; };
@@ -202,6 +204,7 @@
 		35F543522F52411F00204F77 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		35F543542F52411F00204F77 /* EventKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitService.swift; sourceTree = "<group>"; };
 		35F543552F52411F00204F77 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
+		C27DBAD9446B0EA0E5642376 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		35F543592F52411F00204F77 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		35F5435A2F52411F00204F77 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		35F5435B2F52411F00204F77 /* SectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionViewModel.swift; sourceTree = "<group>"; };
@@ -220,6 +223,7 @@
 		35F5436E2F52411F00204F77 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		35F5436F2F52411F00204F77 /* DeliveriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveriesView.swift; sourceTree = "<group>"; };
 		35F543702F52411F00204F77 /* HealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthView.swift; sourceTree = "<group>"; };
+		5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutView.swift; sourceTree = "<group>"; };
 		D2FD77E48492FF01406E3C35 /* TravelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelView.swift; sourceTree = "<group>"; };
 		35F543712F52411F00204F77 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -407,6 +411,7 @@
 				35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */,
 				35F543542F52411F00204F77 /* EventKitService.swift */,
 				35F543552F52411F00204F77 /* SupabaseService.swift */,
+				C27DBAD9446B0EA0E5642376 /* KeychainService.swift */,
 				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
 				CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */,
 				CACH0001CACH0001CACH0001 /* CacheService.swift */,
@@ -503,6 +508,7 @@
 				35F5436E2F52411F00204F77 /* CalendarView.swift */,
 				35F5436F2F52411F00204F77 /* DeliveriesView.swift */,
 				35F543702F52411F00204F77 /* HealthView.swift */,
+				5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */,
 				9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */,
 				D2FD77E48492FF01406E3C35 /* TravelView.swift */,
 				35F543712F52411F00204F77 /* HomeView.swift */,
@@ -935,6 +941,7 @@
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
 				35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */,
 				35F5438B2F52411F00204F77 /* HealthView.swift in Sources */,
+				5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */,
 				36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */,
 				2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */,
 				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
@@ -949,6 +956,7 @@
 				35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */,
 				35F543942F52411F00204F77 /* TokenUsage.swift in Sources */,
 				35F543962F52411F00204F77 /* SupabaseService.swift in Sources */,
+				8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */,
 				35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */,
 				35F543982F52411F00204F77 /* EventKitService.swift in Sources */,
 				35F543992F52411F00204F77 /* UserProfile.swift in Sources */,
