@@ -13,6 +13,10 @@ struct ThePerchApp: App {
     /// Whether to show the crash report alert.
     @State private var showCrashAlert = false
 
+    /// Whether the app is configured with valid Supabase credentials.
+    /// False triggers OnboardingView instead of MainTabView.
+    @State private var isConfigured: Bool = !AppConfig.shared.isMisconfigured
+
     init() {
         // Install crash handler before anything else
         CrashReporter.shared.installHandler()
@@ -22,8 +26,12 @@ struct ThePerchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // TODO: Re-enable auth gate once Supabase Auth user is created
-            // if authViewModel.isAuthenticated {
+            if !isConfigured {
+                OnboardingView {
+                    // Reconfigure the app with new credentials and proceed
+                    isConfigured = true
+                }
+            } else {
             MainTabView()
                 .environment(authViewModel)
                 .environment(dashboardViewModel)
@@ -63,6 +71,7 @@ struct ThePerchApp: App {
             //     AuthView()
             //         .environment(authViewModel)
             // }
+            }
         }
     }
 }
