@@ -74,6 +74,7 @@ enum RecordType: String, Codable, CaseIterable, Sendable {
 /// The category a record belongs to (affects organization and filtering).
 enum RecordCategory: String, Codable, CaseIterable, Sendable {
     case health
+    case workouts
     case deliveries
     case calendar
     case admin
@@ -85,6 +86,8 @@ enum RecordCategory: String, Codable, CaseIterable, Sendable {
         switch self {
         case .health:
             return "Health"
+        case .workouts:
+            return "Workouts"
         case .deliveries:
             return "Deliveries"
         case .calendar:
