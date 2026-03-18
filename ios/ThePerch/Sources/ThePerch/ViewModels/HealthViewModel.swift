@@ -110,6 +110,8 @@ final class HealthViewModel {
                 let existingDate = effectiveDate(for: existing.0, measurement: existing.1)
                 if thisDate > existingDate {
                     latest[measurement.metric] = (record, measurement)
+                } else if thisDate == existingDate, record.updatedAt > existing.0.updatedAt {
+                    latest[measurement.metric] = (record, measurement)
                 }
             } else {
                 latest[measurement.metric] = (record, measurement)
@@ -125,7 +127,12 @@ final class HealthViewModel {
             return (record, macros)
         }
         return macrosRecords.sorted {
-            ($0.1.date ?? "") > ($1.1.date ?? "")
+            let d0 = $0.1.date ?? ""
+            let d1 = $1.1.date ?? ""
+            if d0 != d1 {
+                return d0 > d1
+            }
+            return $0.0.updatedAt > $1.0.updatedAt
         }.first
     }
 

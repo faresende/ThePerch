@@ -28,17 +28,17 @@ struct NutritionHomeCard: View {
         let caloriesRecords = records
             .filter { $0.asMeasurement()?.metric == "daily_calories" }
 
-        // Try exact date match first
-        if let match = caloriesRecords.first(where: { $0.asMeasurement()?.context == dateString }) {
-            return match.asMeasurement()
+        // Try exact date match first (always pick most recently updated)
+        let exactMatches = caloriesRecords.filter { $0.asMeasurement()?.context == dateString }
+        if !exactMatches.isEmpty {
+            return exactMatches.sorted(by: { $0.updatedAt > $1.updatedAt }).first?.asMeasurement()
         }
 
         // For today (afternoon), fall back to most recent
         if !isMorning {
             return caloriesRecords
-                .compactMap { $0.asMeasurement() }
-                .sorted { ($0.timestamp ?? .distantPast) > ($1.timestamp ?? .distantPast) }
-                .first
+                .sorted(by: { $0.updatedAt > $1.updatedAt })
+                .first?.asMeasurement()
         }
 
         return nil
@@ -46,8 +46,9 @@ struct NutritionHomeCard: View {
 
     private var macrosData: MacrosData? {
         records
-            .compactMap { $0.asMacros() }
-            .first { $0.date == dateString }
+            .filter { $0.asMacros()?.date == dateString }
+            .sorted { $0.updatedAt > $1.updatedAt }
+            .first?.asMacros()
     }
 
     private var hasData: Bool {

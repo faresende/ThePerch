@@ -85,15 +85,6 @@ struct HealthView: View {
                             placeholderCard(title: "Daily Macros", emoji: "🥩", hint: "Log food with Claudinho")
                         }
 
-                        // Workout: last session + weekly volume
-                        WorkoutCard(records: viewModel.records)
-                            .cardAppear(index: 2, appeared: cardsAppeared)
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
-                        WeeklyVolumeCard(records: viewModel.records)
-                            .cardAppear(index: 3, appeared: cardsAppeared)
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
                         // One chart card per metric — tap to see full detail
                         ForEach(Array(HealthViewModel.chartMetricOrder.enumerated()), id: \.element.key) { chartIndex, metricInfo in
                             let metricRecords = viewModel.recordsForMetric(metricInfo.key)

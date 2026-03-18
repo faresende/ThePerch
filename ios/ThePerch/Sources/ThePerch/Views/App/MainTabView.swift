@@ -198,6 +198,8 @@ struct SectionView: View {
                     HomeView()
                 case "health":
                     HealthView()
+                case "workouts":
+                    WorkoutView(dashboardViewModel: dashboardViewModel)
                 case "deliveries":
                     DeliveriesView()
                 case "calendar":
