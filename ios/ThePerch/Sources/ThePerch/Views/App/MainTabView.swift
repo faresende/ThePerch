@@ -225,7 +225,8 @@ struct SectionView: View {
                 value: appeared
             )
             .onAppear { appeared = true }
-            .onDisappear { appeared = false }
+            // Note: intentionally NOT resetting appeared on disappear
+            // so cards don't re-animate on every tab revisit
         }
     }
 
