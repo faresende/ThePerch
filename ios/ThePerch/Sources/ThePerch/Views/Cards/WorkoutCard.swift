@@ -1,58 +1,49 @@
 import SwiftUI
 
-/// Shows the most recent workout session summary.
-/// Hides when no workout data exists.
-struct WorkoutCard: View {
-    let records: [Record]
-
-    private var latestSession: (Record, WorkoutSessionData)? {
-        records.compactMap { r -> (Record, WorkoutSessionData)? in
-            guard r.type == .workoutSession, let ws = r.asWorkoutSession() else { return nil }
-            return (r, ws)
-        }
-        .sorted { ($0.1.dateParsed ?? .distantPast) > ($1.1.dateParsed ?? .distantPast) }
-        .first
-    }
+/// Shows a workout session. Can be expanded (full details) or collapsed (summary).
+struct WorkoutSessionFeedCard: View {
+    let session: WorkoutSessionData
+    let isExpanded: Bool
 
     var body: some View {
-        if let (_, session) = latestSession {
-            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                // Header
-                HStack {
-                    HStack(spacing: PerchTheme.Spacing.xSmall) {
-                        Image(systemName: "dumbbell.fill")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
-                        Text("LAST WORKOUT")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
-                            .tracking(1)
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            // Header
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    let muscleLabel = session.muscleGroups.map { $0.capitalized }.joined(separator: " + ")
+                    if let num = session.sessionNumber {
+                        Text("Session \(num) — \(muscleLabel)")
+                            .font(PerchTheme.Font.heading)
+                            .foregroundColor(PerchTheme.textPrimary)
+                    } else {
+                        Text(muscleLabel)
+                            .font(PerchTheme.Font.heading)
+                            .foregroundColor(PerchTheme.textPrimary)
                     }
-                    Spacer()
+                    
                     if let date = session.dateParsed {
                         Text(date.relativeTime)
                             .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textTertiary)
                     }
                 }
-
-                // Title: Session N — Muscle Groups
-                let muscleLabel = session.muscleGroups.map { $0.capitalized }.joined(separator: " + ")
-                if let num = session.sessionNumber {
-                    Text("Session \(num) — \(muscleLabel)")
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
-                } else {
-                    Text(muscleLabel)
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                Spacer()
+                
+                if let dur = session.durationMin {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.caption2)
+                            .foregroundColor(PerchTheme.textTertiary)
+                        Text("\(dur)m")
+                            .font(PerchTheme.Font.captionNumeric)
+                            .foregroundColor(PerchTheme.textSecondary)
+                    }
                 }
+            }
 
+            if isExpanded {
                 // Stats row
                 HStack(spacing: PerchTheme.Spacing.medium) {
-                    if let dur = session.durationMin {
-                        statPill(icon: "clock", value: "\(dur)m")
-                    }
                     if let cal = session.activeCalories {
                         statPill(icon: "flame", value: "\(cal) cal")
                     }
@@ -62,7 +53,7 @@ struct WorkoutCard: View {
                     }
                 }
 
-                // Top lifts (up to 3)
+                // Top lifts
                 let topLifts = Array(session.topLifts.prefix(3))
                 if !topLifts.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
@@ -100,10 +91,21 @@ struct WorkoutCard: View {
                         Spacer()
                     }
                 }
+            } else {
+                // Collapsed stats
+                HStack(spacing: PerchTheme.Spacing.medium) {
+                    statPill(icon: "number", value: "\(session.totalSets) sets")
+                    if let cal = session.activeCalories {
+                        statPill(icon: "flame", value: "\(cal) cal")
+                    }
+                    if let top = session.topLifts.first {
+                        statPill(icon: "arrow.up.right", value: "\(top.name) \(Int(top.weight))kg")
+                    }
+                }
             }
-            .padding(PerchTheme.Card.padding)
-            .cardStyle()
         }
+        .padding(PerchTheme.Card.padding)
+        .cardStyle()
     }
 
     private func statPill(icon: String, value: String) -> some View {
