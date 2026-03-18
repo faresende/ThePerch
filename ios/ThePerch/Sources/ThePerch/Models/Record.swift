@@ -81,6 +81,13 @@ enum RecordCategory: String, Codable, CaseIterable, Sendable {
     case legal
     case bookmarks
     case travel
+    case unknown
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = RecordCategory(rawValue: rawValue) ?? .unknown
+    }
 
     var displayName: String {
         switch self {
@@ -100,6 +107,8 @@ enum RecordCategory: String, Codable, CaseIterable, Sendable {
             return "Bookmarks"
         case .travel:
             return "Travel"
+        case .unknown:
+            return "Unknown"
         }
     }
 }
@@ -116,6 +125,14 @@ enum DisplayHint: String, Codable, CaseIterable, Sendable {
     case bookmarkGrid = "bookmark_grid"
     case progressGauge = "progress_gauge"
     case macrosBar = "macros_bar"
+    case calendarEvent = "calendar_event"
+    case unknown
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = DisplayHint(rawValue: rawValue) ?? .unknown
+    }
 
     var displayName: String {
         switch self {
@@ -139,6 +156,10 @@ enum DisplayHint: String, Codable, CaseIterable, Sendable {
             return "Progress Gauge"
         case .macrosBar:
             return "Macros Bar"
+        case .calendarEvent:
+            return "Calendar Event"
+        case .unknown:
+            return "Unknown"
         }
     }
 }

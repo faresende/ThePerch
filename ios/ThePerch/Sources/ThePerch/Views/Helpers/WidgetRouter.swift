@@ -61,6 +61,12 @@ struct WidgetRouter: View {
 
         case .macrosBar:
             macrosBarView
+        case .calendarEvent:
+            timelineView
+        case .unknown:
+            EmptyView()
+        @unknown default:
+            EmptyView()
         }
     }
 

@@ -369,7 +369,21 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                     .order("created_at", ascending: false)
                     .limit(limit)
                     .execute()
-                return try recordDecoder.decode([Record].self, from: result.data)
+                
+                let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
+                var records: [Record] = []
+                for item in rawArray {
+                    do {
+                        let itemData = try JSONSerialization.data(withJSONObject: item)
+                        let record = try recordDecoder.decode(Record.self, from: itemData)
+                        records.append(record)
+                    } catch {
+                        #if DEBUG
+                        print("[SupabaseService] Dropping malformed record: \(error)")
+                        #endif
+                    }
+                }
+                return records
             }
 
             recordsCache[cacheKey] = CacheEntry(value: records, fetchedAt: Date.now)
