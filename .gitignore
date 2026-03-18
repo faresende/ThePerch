@@ -1,0 +1,27 @@
+# Local workflow state — not repo content
+.bancada/
+
+# Supabase credentials — NEVER commit these
+ios/ThePerch/Sources/ThePerch/Config/Secrets.plist
+Secrets.plist
+
+# Apple Developer keys
+*.p8
+AuthKey_*.p8
+*.p12
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode
+*.xcuserdata
+DerivedData/
+*.moved-aside
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+
+# CocoaPods
+Pods/
