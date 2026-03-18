@@ -171,6 +171,24 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         startNetworkMonitoring()
     }
 
+    // MARK: - Connection Test
+
+    /// Tests a Supabase connection without affecting the shared service.
+    /// Used by OnboardingView to validate credentials before saving.
+    static func testConnection(url: String, anonKey: String) async throws {
+        guard let supabaseURL = URL(string: url) else {
+            throw URLError(.badURL)
+        }
+        let testClient = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: anonKey)
+        // Try fetching 1 section — if this succeeds the credentials are valid
+        let _: [Section] = try await testClient
+            .from("sections")
+            .select()
+            .limit(1)
+            .execute()
+            .value
+    }
+
     // MARK: - Network Monitoring
 
     private func startNetworkMonitoring() {

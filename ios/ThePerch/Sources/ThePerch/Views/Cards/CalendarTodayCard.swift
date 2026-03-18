@@ -180,6 +180,7 @@ struct CalendarTodayCard: View {
             }
         }
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
+        .padding(.horizontal, isHappening ? PerchTheme.Spacing.small : 0)
         .background(isHappening ? PerchTheme.success.opacity(0.08) : (isNext ? PerchTheme.accentMuted : Color.clear))
         .cornerRadius(PerchTheme.Card.innerCornerRadius)
     }
