@@ -238,7 +238,7 @@ struct BookmarksView: View {
                 }
                 .refreshable {
                     PerchHaptics.medium()
-                    await dashboardViewModel.refreshRecords()
+                    await dashboardViewModel.loadDashboard(forceRefresh: true)
                     PerchHaptics.success()
                 }
             }
