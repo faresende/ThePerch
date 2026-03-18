@@ -34,8 +34,7 @@ struct ThePerchApp: App {
                     // Schedule background refresh once we've loaded at least once
                     BackgroundRefreshService.shared.scheduleAppRefresh()
 
-                    // Request notification permission on first launch
-                    await NotificationService.shared.requestPermission()
+                    // Notification permission removed — no push notifications in the system yet
                     // Set up realtime subscriptions
                     await dashboardViewModel.setupRealtimeSubscriptions()
                     // Check for crash reports from previous session
