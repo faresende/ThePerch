@@ -19,13 +19,18 @@ struct WorkoutView: View {
     }
 
         var body: some View {
-        NavigationStack {
+        ZStack {
+            PerchTheme.background.ignoresSafeArea()
             ScrollView {
-                content
-                .padding(.vertical, PerchTheme.Spacing.large)
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                    SectionHeader(title: "Workouts", freshnessKey: "workouts")
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                        .padding(.top, PerchTheme.Spacing.medium)
+
+                    content
+                }
+                .padding(.bottom, PerchTheme.Spacing.large)
             }
-            .background(PerchTheme.background.ignoresSafeArea())
-            .navigationTitle("Workouts")
             .refreshable {
                 PerchHaptics.medium()
                 await dashboardViewModel.refreshRecords()
@@ -47,24 +52,23 @@ struct WorkoutView: View {
 
     @ViewBuilder
     private var content: some View {
-        VStack(spacing: PerchTheme.Spacing.large) {
-            if dashboardViewModel.isLoading && viewModel.records.isEmpty {
-                ProgressView()
-                    .padding(.top, 40)
-            } else if workoutRecords.isEmpty {
-                placeholderCard(title: "No Workouts", emoji: "🏋️", hint: "Log your first workout")
-            } else {
-                WeeklyVolumeCard(records: viewModel.records)
-                    .cardAppear(index: 0, appeared: cardsAppeared)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
+        if dashboardViewModel.isLoading && viewModel.records.isEmpty {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding(.top, 40)
+        } else if workoutRecords.isEmpty {
+            placeholderCard(title: "No Workouts", emoji: "🏋️", hint: "Log your first workout")
+        } else {
+            WeeklyVolumeCard(records: viewModel.records)
+                .cardAppear(index: 0, appeared: cardsAppeared)
+                .padding(.horizontal, PerchTheme.Spacing.large)
 
-                feedSection
+            feedSection
 
-                PersonalRecordsCard(sessions: workoutRecords.map { $0.1 })
-                    .cardAppear(index: workoutRecords.count + 1, appeared: cardsAppeared)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                    .padding(.bottom, 40)
-            }
+            PersonalRecordsCard(sessions: workoutRecords.map { $0.1 })
+                .cardAppear(index: workoutRecords.count + 1, appeared: cardsAppeared)
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .padding(.bottom, 40)
         }
     }
 

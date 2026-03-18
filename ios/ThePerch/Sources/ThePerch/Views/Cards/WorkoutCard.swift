@@ -1,13 +1,15 @@
 import SwiftUI
 
 /// Shows a workout session. Can be expanded (full details) or collapsed (summary).
+/// Expanded: all exercises in performance order + stats + overload indicators.
+/// Collapsed: top 1RM lift teaser + sets + cals.
 struct WorkoutSessionFeedCard: View {
     let session: WorkoutSessionData
     let isExpanded: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            // Header
+            // Header row — title + duration + chevron
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     let muscleLabel = session.muscleGroups.map { $0.capitalized }.joined(separator: " + ")
@@ -20,24 +22,33 @@ struct WorkoutSessionFeedCard: View {
                             .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
                     }
-                    
+
                     if let date = session.dateParsed {
                         Text(date.relativeTime)
                             .font(PerchTheme.Font.caption)
                             .foregroundColor(PerchTheme.textTertiary)
                     }
                 }
+
                 Spacer()
-                
-                if let dur = session.durationMin {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.caption2)
-                            .foregroundColor(PerchTheme.textTertiary)
-                        Text("\(dur)m")
-                            .font(PerchTheme.Font.captionNumeric)
-                            .foregroundColor(PerchTheme.textSecondary)
+
+                HStack(spacing: PerchTheme.Spacing.small) {
+                    if let dur = session.durationMin {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                                .foregroundColor(PerchTheme.textTertiary)
+                            Text("\(dur)m")
+                                .font(PerchTheme.Font.captionNumeric)
+                                .foregroundColor(PerchTheme.textSecondary)
+                        }
                     }
+
+                    // Chevron — the expand/collapse affordance
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(PerchTheme.textTertiary)
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
                 }
             }
 
@@ -53,19 +64,29 @@ struct WorkoutSessionFeedCard: View {
                     }
                 }
 
-                // Top lifts
-                let topLifts = Array(session.topLifts.prefix(3))
-                if !topLifts.isEmpty {
+                // ALL exercises in performance order (not sorted by 1RM)
+                if !session.exercises.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(topLifts.enumerated()), id: \.offset) { _, lift in
+                        ForEach(Array(session.exercises.enumerated()), id: \.offset) { _, exercise in
+                            let heaviestSet = exercise.sets
+                                .filter { ($0.weightKg ?? 0) > 0 && ($0.reps ?? 0) > 0 }
+                                .max(by: { ($0.weightKg ?? 0) < ($1.weightKg ?? 0) })
+
                             HStack {
-                                Text(lift.name)
+                                Text(exercise.name)
                                     .font(PerchTheme.Font.body)
                                     .foregroundColor(PerchTheme.textPrimary)
+                                    .lineLimit(1)
                                 Spacer()
-                                Text("\(Int(lift.weight))kg × \(lift.reps)")
-                                    .font(PerchTheme.Font.captionNumeric)
-                                    .foregroundColor(PerchTheme.textSecondary)
+                                if let best = heaviestSet {
+                                    Text("\(Int(best.weightKg ?? 0))kg × \(best.reps ?? 0)")
+                                        .font(PerchTheme.Font.captionNumeric)
+                                        .foregroundColor(PerchTheme.textSecondary)
+                                } else {
+                                    Text("\(exercise.sets.count) sets")
+                                        .font(PerchTheme.Font.captionNumeric)
+                                        .foregroundColor(PerchTheme.textTertiary)
+                                }
                             }
                         }
                     }
@@ -92,7 +113,7 @@ struct WorkoutSessionFeedCard: View {
                     }
                 }
             } else {
-                // Collapsed stats
+                // Collapsed teaser: top 1RM lift + sets + cals
                 HStack(spacing: PerchTheme.Spacing.medium) {
                     statPill(icon: "number", value: "\(session.totalSets) sets")
                     if let cal = session.activeCalories {
