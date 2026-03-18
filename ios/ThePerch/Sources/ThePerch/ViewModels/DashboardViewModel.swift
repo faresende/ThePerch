@@ -204,6 +204,8 @@ final class DashboardViewModel {
                 default:
                     break
                 }
+            case .unknown:
+                break
             }
         }
     }
