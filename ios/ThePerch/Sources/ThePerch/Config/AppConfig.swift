@@ -12,6 +12,17 @@ struct AppConfig {
     let isMisconfigured: Bool
 
     private init() {
+        // Priority 1: Keychain (runtime config — self-hosted or cloud)
+        if let keychainConfig = KeychainService.shared.load(),
+           let url = URL(string: keychainConfig.supabaseURL),
+           !keychainConfig.supabaseAnonKey.isEmpty {
+            self.supabaseURL = url
+            self.supabaseAnonKey = keychainConfig.supabaseAnonKey
+            self.isMisconfigured = false
+            return
+        }
+
+        // Priority 2: Secrets.plist / Info.plist / env (legacy / dev convenience)
         let urlString = Self.getConfigValue(key: "SUPABASE_URL")
         let anonKey = Self.getConfigValue(key: "SUPABASE_ANON_KEY")
 
@@ -20,8 +31,7 @@ struct AppConfig {
             self.supabaseAnonKey = anonKey
             self.isMisconfigured = false
         } else {
-            // Fallback to a placeholder so the app can launch and show an error state
-            // instead of crashing on missing config.
+            // No config found — app will show OnboardingView
 #if DEBUG
             print("[AppConfig] WARNING: Supabase credentials are missing or invalid. The app will run with mock data.")
 #endif
