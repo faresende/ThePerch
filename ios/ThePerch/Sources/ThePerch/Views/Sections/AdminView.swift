@@ -234,7 +234,7 @@ struct AdminView: View {
             }
             .refreshable {
                 PerchHaptics.medium()
-                await dashboardViewModel.refreshRecords()
+                await dashboardViewModel.loadDashboard(forceRefresh: true)
                 await dashboardViewModel.loadAgents(forceRefresh: true)
                 PerchHaptics.success()
             }
