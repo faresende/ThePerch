@@ -49,7 +49,7 @@ struct MainTabView: View {
                     cacheAgeBanner(age: lastUpdated.replacingOccurrences(of: "Last updated ", with: ""))
                 }
 
-                // Tab content
+                // Tab content — safeAreaInset pushes content below the floating pill bar
                 TabView(selection: $selectedIndex) {
                     ForEach(Array(visibleSections.enumerated()), id: \.offset) { index, section in
                         SectionView(section: section)
@@ -215,6 +215,7 @@ struct SectionView: View {
                     genericSectionView
                 }
             }
+            .safeAreaPadding(.top, 64) // Reserve space for the floating pill bar + breathing room
             .opacity(appeared ? 1 : 0)
             .offset(y: appeared ? 0 : (PerchMotion.prefersReduced ? 0 : 12))
             .animation(
