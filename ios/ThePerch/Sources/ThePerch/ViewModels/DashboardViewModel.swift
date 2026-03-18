@@ -17,7 +17,28 @@ final class DashboardViewModel {
     var error: SupabaseServiceError?
 
     /// Single source of truth: ALL records fetched in one request.
-    var allRecords: [Record] = []
+    /// Setting this rebuilds all filtered category arrays.
+    var allRecords: [Record] = [] {
+        didSet { rebuildFilteredArrays() }
+    }
+
+    // MARK: - Pre-filtered Record Arrays (updated only when allRecords changes)
+
+    private(set) var healthRecords: [Record] = []
+    private(set) var deliveryRecords: [Record] = []
+    private(set) var calendarRecords: [Record] = []
+    private(set) var adminRecords: [Record] = []
+    private(set) var bookmarkRecords: [Record] = []
+    private(set) var travelRecords: [Record] = []
+
+    private func rebuildFilteredArrays() {
+        healthRecords   = allRecords.filter { $0.category == .health || $0.category == .workouts }
+        deliveryRecords = allRecords.filter { $0.category == .deliveries }
+        calendarRecords = allRecords.filter { $0.category == .calendar }
+        adminRecords    = allRecords.filter { $0.category == .admin }
+        bookmarkRecords = allRecords.filter { $0.category == .bookmarks }
+        travelRecords   = allRecords.filter { $0.category == .travel }
+    }
 
     /// Agents are fetched separately (different table, admin-only).
     var agents: [Agent] = []
@@ -27,15 +48,6 @@ final class DashboardViewModel {
 
     /// True when displaying cached data that hasn't been refreshed from the network yet.
     var isShowingCachedData: Bool = false
-
-    // MARK: - Filtered Record Properties
-
-    var healthRecords: [Record] { allRecords.filter { $0.category == .health } }
-    var deliveryRecords: [Record] { allRecords.filter { $0.category == .deliveries } }
-    var calendarRecords: [Record] { allRecords.filter { $0.category == .calendar } }
-    var adminRecords: [Record] { allRecords.filter { $0.category == .admin } }
-    var bookmarkRecords: [Record] { allRecords.filter { $0.category == .bookmarks } }
-    var travelRecords: [Record] { allRecords.filter { $0.category == .travel } }
 
     // MARK: - Private Properties
 
