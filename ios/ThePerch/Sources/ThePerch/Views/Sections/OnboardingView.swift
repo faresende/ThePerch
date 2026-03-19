@@ -234,13 +234,8 @@ struct OnboardingView: View {
     private func connectManagedCloud() async {
         // ThePerch Cloud credentials — embedded in the app (anon key, safe)
         // When you provision the managed Supabase project, update these values
-        let cloudURL = "https://YOUR_MANAGED_PROJECT.supabase.co"
-        let cloudAnonKey = "YOUR_MANAGED_ANON_KEY"
-
-        guard cloudURL != "https://YOUR_MANAGED_PROJECT.supabase.co" else {
-            errorMessage = "ThePerch Cloud is not yet configured. Please check back soon."
-            return
-        }
+        let cloudURL = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
+        let cloudAnonKey = "sb_publishable_EAyfYGe3LQXCvmVDkgmiDw_H4u3lZbA"
 
         isConnecting = true
         errorMessage = nil
