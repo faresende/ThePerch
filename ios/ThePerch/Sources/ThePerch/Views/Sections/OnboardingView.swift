@@ -41,12 +41,13 @@ struct OnboardingView: View {
                         modeButton(
                             mode: .managedCloud,
                             title: "ThePerch Cloud",
-                            subtitle: "Coming soon",
+                            subtitle: "Sign in with your ThePerch account",
                             icon: "cloud.fill",
-                            disabled: true
+                            disabled: false
                         )
                     }
 
+                    // Self-hosted form
                     // Self-hosted form
                     if selectedMode == .selfHosted {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
@@ -103,6 +104,54 @@ struct OnboardingView: View {
                             .disabled(isConnecting || supabaseURL.isEmpty || supabaseAnonKey.isEmpty)
 
                             Text("Your credentials are stored securely in the system Keychain and never leave your device.")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textTertiary)
+                                .multilineTextAlignment(.leading)
+                        }
+                    }
+
+                    // Managed cloud section
+                    if selectedMode == .managedCloud {
+                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                            Text("ThePerch Cloud")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textSecondary)
+                                .textCase(.uppercase)
+                                .tracking(0.8)
+
+                            Button {
+                                Task { await connectManagedCloud() }
+                            } label: {
+                                HStack {
+                                    if isConnecting {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: PerchTheme.accentForeground))
+                                            .scaleEffect(0.8)
+                                    }
+                                    Text(isConnecting ? "Connecting..." : "Continue with ThePerch Cloud")
+                                        .font(PerchTheme.Font.body.bold())
+                                        .foregroundColor(PerchTheme.accentForeground)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, PerchTheme.Spacing.medium)
+                                .background(PerchTheme.accent)
+                                .cornerRadius(12)
+                            }
+                            .disabled(isConnecting)
+
+                            if let error = errorMessage {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .foregroundColor(PerchTheme.error)
+                                        .font(.caption)
+                                    Text(error)
+                                        .font(PerchTheme.Font.caption)
+                                        .foregroundColor(PerchTheme.error)
+                                }
+                                .padding(.horizontal, PerchTheme.Spacing.small)
+                            }
+
+                            Text("Your data is hosted securely by ThePerch. You can switch to self-hosted at any time.")
                                 .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textTertiary)
                                 .multilineTextAlignment(.leading)
@@ -180,6 +229,32 @@ struct OnboardingView: View {
     }
 
     // MARK: - Connection
+
+    @MainActor
+    private func connectManagedCloud() async {
+        // ThePerch Cloud credentials — embedded in the app (anon key, safe)
+        // When you provision the managed Supabase project, update these values
+        let cloudURL = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
+        let cloudAnonKey = "SCRUBBED_PUBLISHABLE_KEY"
+
+        isConnecting = true
+        errorMessage = nil
+
+        do {
+            try await SupabaseService.testConnection(url: cloudURL, anonKey: cloudAnonKey)
+            let config = AppConfiguration(
+                supabaseURL: cloudURL,
+                supabaseAnonKey: cloudAnonKey,
+                backendMode: .managedCloud
+            )
+            try KeychainService.shared.save(config)
+            onConfigured()
+        } catch {
+            errorMessage = "Could not connect to ThePerch Cloud. Please try again."
+        }
+
+        isConnecting = false
+    }
 
     @MainActor
     private func connect() async {

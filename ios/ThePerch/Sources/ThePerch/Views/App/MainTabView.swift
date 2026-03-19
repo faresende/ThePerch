@@ -233,8 +233,9 @@ struct SectionView: View {
     // MARK: - Generic Section (fallback for unknown slugs)
 
     private var genericRecords: [Record] {
-        guard let category = section.category else { return [] }
-        return dashboardViewModel.allRecords.filter { $0.category == category }
+        // Use the dynamic recordsBySlug lookup — handles any slug, including new ones
+        // that don't exist in the RecordCategory enum yet
+        return dashboardViewModel.recordsBySlug[section.slug] ?? []
     }
 
     @ViewBuilder
