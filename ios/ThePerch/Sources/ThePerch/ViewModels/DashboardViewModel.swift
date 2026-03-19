@@ -22,8 +22,10 @@ final class DashboardViewModel {
         didSet { rebuildFilteredArrays() }
     }
 
-    // MARK: - Pre-filtered Record Arrays (updated only when allRecords changes)
+    // MARK: - Pre-filtered Record Arrays
 
+    /// Records grouped by section slug. Driven by the sections array, not hardcoded enum cases.
+    /// This means any new section added to Supabase is automatically handled.
     private(set) var healthRecords: [Record] = []
     private(set) var deliveryRecords: [Record] = []
     private(set) var calendarRecords: [Record] = []
@@ -31,13 +33,27 @@ final class DashboardViewModel {
     private(set) var bookmarkRecords: [Record] = []
     private(set) var travelRecords: [Record] = []
 
+    /// Dynamic per-slug record lookup. Use this for any section slug not covered above.
+    /// e.g. `recordsBySlug["finance"]` returns all records with category == "finance"
+    private(set) var recordsBySlug: [String: [Record]] = [:]
+
     private func rebuildFilteredArrays() {
+        // Known slugs → typed arrays (fast path for existing views)
         healthRecords   = allRecords.filter { $0.category == .health || $0.category == .workouts }
         deliveryRecords = allRecords.filter { $0.category == .deliveries }
         calendarRecords = allRecords.filter { $0.category == .calendar }
         adminRecords    = allRecords.filter { $0.category == .admin }
         bookmarkRecords = allRecords.filter { $0.category == .bookmarks }
         travelRecords   = allRecords.filter { $0.category == .travel }
+
+        // Dynamic grouping: group ALL records by their category raw value
+        // This automatically handles any new section slug without code changes
+        var bySlug: [String: [Record]] = [:]
+        for record in allRecords {
+            let slug = record.category.rawValue
+            bySlug[slug, default: []].append(record)
+        }
+        recordsBySlug = bySlug
     }
 
     /// Agents are fetched separately (different table, admin-only).
