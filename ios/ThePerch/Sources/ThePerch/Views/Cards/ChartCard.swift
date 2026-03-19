@@ -1,25 +1,20 @@
 import SwiftUI
 import Charts
-import UIKit
 
-/// Displays measurement data as a line chart with gradient fill.
-/// Darker theme with amber line and warm glow.
 struct ChartCard: View {
     let title: String
     let records: [Record]
     let unit: String
     var formatAsTime: Bool = false
-    /// When true, an upward trend shows green (good). When false, upward = red (bad).
     var higherIsBetter: Bool = false
 
+    @State private var isExpanded: Bool = false
     @State private var selectedRange: TimeRange?
     @State private var selectedDataPoint: (date: Date, value: Double)?
     @State private var lastSnappedIndex: Int?
 
     private let hapticGenerator = UISelectionFeedbackGenerator()
 
-    /// Auto-selects the best time range on first appearance.
-    /// Picks the smallest range that contains at least 2 data points for a proper chart.
     private var resolvedRange: TimeRange {
         selectedRange ?? bestInitialRange
     }
@@ -47,231 +42,371 @@ struct ChartCard: View {
         }
     }
 
-    /// Returns the effective date for a record — uses the measurement's timestamp if available,
-    /// then tries parsing the context field as an ISO date (Claudinho stores date strings there
-    /// when bulk-inserting), otherwise falls back to the record's createdAt.
+    private struct ChartDataPoint: Identifiable, Equatable {
+        let id = UUID()
+        let date: Date
+        let value: Double
+    }
+
     private func effectiveDate(for record: Record) -> Date {
-        if let m = record.asMeasurement() {
-            if let ts = m.timestamp { return ts }
-            if let ctx = m.context,
-               let parsed = PerchFormatters.isoDate.date(from: ctx) {
-                return parsed
-            }
-        }
+        if let ts = record.asMeasurement()?.timestamp { return ts }
+        if let ctx = record.asMeasurement()?.context, let d = PerchFormatters.isoDate.date(from: ctx) { return d }
         return record.createdAt
     }
 
-    var filteredRecords: [Record] {
+    private var allChartData: [ChartDataPoint] {
+        let mRecords = records.compactMap { r -> (Record, MeasurementData)? in
+            guard let m = r.asMeasurement() else { return nil }
+            return (r, m)
+        }
+        return mRecords.map { r, m in
+            ChartDataPoint(date: effectiveDate(for: r), value: m.value)
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    private var filteredData: [ChartDataPoint] {
         let cutoff = Date.now.addingTimeInterval(-Double(resolvedRange.days) * 86400)
-        return records.filter { effectiveDate(for: $0) >= cutoff }
-            .sorted { effectiveDate(for: $0) < effectiveDate(for: $1) }
+        return allChartData.filter { $0.date >= cutoff }
     }
 
-    var chartData: [(date: Date, value: Double)] {
-        filteredRecords.compactMap { record in
-            guard let m = record.asMeasurement() else { return nil }
-            return (date: effectiveDate(for: record), value: m.value)
+    private var thirtyDayData: [ChartDataPoint] {
+        let cutoff = Date.now.addingTimeInterval(-Double(30) * 86400)
+        return allChartData.filter { $0.date >= cutoff }
+    }
+
+    private var latestValue: String {
+        guard let latest = allChartData.last else { return "--" }
+        return PerchFormatters.decimal.string(from: NSNumber(value: latest.value)) ?? "--"
+    }
+
+    private var trendPercent: Double? {
+        let sorted = allChartData
+        guard sorted.count >= 2 else { return nil }
+        let current = sorted.last!.value
+        let cutoff = Date.now.addingTimeInterval(-Double(resolvedRange.days) * 86400)
+        let relevant = sorted.filter { $0.date >= cutoff }
+        guard let first = relevant.first, first.value > 0 else { return nil }
+        return ((current - first.value) / first.value) * 100.0
+    }
+
+    private var trendView: some View {
+        Group {
+            if let trend = trendPercent {
+                let isStable = abs(trend) < 0.5
+                let trendColor: Color = {
+                    if isStable { return PerchTheme.textTertiary }
+                    if title.caseInsensitiveCompare("Weight") == .orderedSame {
+                        return PerchTheme.warning
+                    }
+                    let isPositive = trend > 0
+                    if higherIsBetter {
+                        return isPositive ? PerchTheme.success : PerchTheme.error
+                    } else {
+                        return isPositive ? PerchTheme.error : PerchTheme.success
+                    }
+                }()
+                let icon: String = {
+                    if isStable { return "arrow.right" }
+                    return trend > 0 ? "arrow.up.right" : "arrow.down.right"
+                }()
+
+                HStack(spacing: 4) {
+                    Image(systemName: icon)
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(.bold)
+                    Text(String(format: "%.1f%%", abs(trend)))
+                        .font(PerchTheme.Font.captionNumeric)
+                }
+                .foregroundColor(trendColor)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(trendColor.opacity(0.1))
+                .cornerRadius(4)
+            } else {
+                EmptyView()
+            }
         }
     }
 
-    /// All data points sorted by effective date, regardless of selected time range.
-    /// Used for the header to always show the most recent reading.
-    private var allChartData: [(date: Date, value: Double)] {
-        records.compactMap { record in
-            guard let m = record.asMeasurement() else { return nil }
-            return (date: effectiveDate(for: record), value: m.value)
-        }.sorted { $0.date < $1.date }
-    }
-
-    var latestValue: String {
-        guard let latest = allChartData.last?.value else { return "—" }
-        if formatAsTime {
-            return Self.formatHoursAsTime(latest)
-        }
-        return String(format: "%.1f", latest)
-    }
-
-    /// Converts decimal hours to "Xh Ym" format (e.g. 0.38 → "0h 23m", 6.45 → "6h 27m").
-    static func formatHoursAsTime(_ hours: Double) -> String {
-        let totalMinutes = Int(round(hours * 60))
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
-        return "\(h)h \(m)m"
-    }
-
-    /// Rich text view for time values with smaller h/m labels.
     @ViewBuilder
-    static func timeValueView(_ hours: Double) -> some View {
-        let totalMinutes = Int(round(hours * 60))
-        let h = totalMinutes / 60
-        let m = totalMinutes % 60
+    static func timeValueView(_ value: Double) -> some View {
+        let totalMinutes = Int(value * 60)
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
         HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text("\(h)")
+            Text("\(hours)")
                 .font(PerchTheme.Font.displayNumeric)
                 .foregroundColor(PerchTheme.textPrimary)
             Text("h")
-                .font(PerchTheme.Font.heading)
+                .font(PerchTheme.Font.body)
                 .foregroundColor(PerchTheme.textSecondary)
-            Text("\(m)")
+                .padding(.trailing, 2)
+            Text("\(minutes)")
                 .font(PerchTheme.Font.displayNumeric)
                 .foregroundColor(PerchTheme.textPrimary)
             Text("m")
-                .font(PerchTheme.Font.heading)
+                .font(PerchTheme.Font.body)
                 .foregroundColor(PerchTheme.textSecondary)
         }
     }
 
-    var trendPercent: Double? {
-        guard chartData.count >= 2 else { return nil }
-        let first = chartData.first!.value
-        let last = chartData.last!.value
-        guard first > 0 else { return nil }
-        return ((last - first) / first) * 100
-    }
-
-    var yRange: ClosedRange<Double> {
-        let values = chartData.map { $0.value }
-        guard let lo = values.min(), let hi = values.max() else { return 0...100 }
-        let range = hi - lo
-        let padding = max(range * 0.4, 0.5)
-        return (lo - padding)...(hi + padding)
+    static func formatHoursAsTime(_ value: Double) -> String {
+        let totalMinutes = Int(value * 60)
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return "\(hours)h \(minutes)m"
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Header
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title.uppercased())
-                        .font(PerchTheme.Font.heading)
+        VStack(spacing: 0) {
+            if !isExpanded {
+                collapsedView
+            } else {
+                expandedView
+            }
+        }
+        .background(PerchTheme.cardBackground)
+        .cornerRadius(PerchTheme.Card.cornerRadius)
+        .onTapGesture {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isExpanded.toggle()
+            }
+            if isExpanded {
+                hapticGenerator.prepare()
+            }
+        }
+    }
+
+    // MARK: - Collapsed State (Sparkline)
+    
+    private var collapsedView: some View {
+        HStack(spacing: PerchTheme.Spacing.medium) {
+            // Left: Value & Title
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: PerchTheme.Spacing.small) {
+                    Text(title)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textSecondary)
-
-                    if formatAsTime, let latest = allChartData.last?.value {
-                        Self.timeValueView(latest)
-                    } else {
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text(latestValue)
-                                .font(PerchTheme.Font.displayNumeric)
-                                .foregroundColor(PerchTheme.textPrimary)
-
-                            Text(unit)
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textSecondary)
-                        }
-                    }
+                    trendView
                 }
-
-                Spacer()
-
-                if let trend = trendPercent {
-                    let isStable = abs(trend) < 0.5
-                    let trendColor: Color = {
-                        if isStable { return PerchTheme.textTertiary }
-                        if title.caseInsensitiveCompare("Weight") == .orderedSame {
-                            return PerchTheme.warning
-                        }
-                        let isPositive = trend > 0
-                        if higherIsBetter {
-                            return isPositive ? PerchTheme.success : PerchTheme.error
-                        } else {
-                            return isPositive ? PerchTheme.error : PerchTheme.success
-                        }
-                    }()
-                    let icon: String = {
-                        if isStable { return "arrow.right" }
-                        return trend > 0 ? "arrow.up.right" : "arrow.down.right"
-                    }()
-
-                    HStack(spacing: 4) {
-                        Image(systemName: icon)
-                            .font(PerchTheme.Font.micro)
-                            .fontWeight(.bold)
-                        Text(String(format: "%.1f%%", abs(trend)))
-                            .font(PerchTheme.Font.captionNumeric)
+                
+                if formatAsTime, let latest = allChartData.last?.value {
+                    Self.timeValueView(latest)
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(latestValue)
+                            .font(PerchTheme.Font.titleNumeric)
+                            .foregroundColor(PerchTheme.textPrimary)
+                        Text(unit)
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textSecondary)
                     }
-                    .foregroundColor(trendColor)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(trendColor.opacity(0.15))
-                    .cornerRadius(8)
                 }
             }
-
-            // Chart
-            if chartData.count >= 2 {
-                Chart(chartData, id: \.date) { item in
-                    AreaMark(
-                        x: .value("Date", item.date),
-                        yStart: .value("Min", yRange.lowerBound),
-                        yEnd: .value("Value", item.value)
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                PerchTheme.accent.opacity(0.25),
-                                PerchTheme.accent.opacity(0.05),
-                                .clear,
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+            
+            Spacer()
+            
+            // Right: Sparkline
+            if !thirtyDayData.isEmpty {
+                let yMin = thirtyDayData.map(\.value).min() ?? 0
+                let yMax = thirtyDayData.map(\.value).max() ?? 100
+                let yPadding = (yMax - yMin) * 0.2
+                
+                Chart {
+                    ForEach(thirtyDayData) { dp in
+                        LineMark(
+                            x: .value("Date", dp.date),
+                            y: .value("Value", dp.value)
                         )
-                    )
-                    .interpolationMethod(.monotone)
-
-                    LineMark(
-                        x: .value("Date", item.date),
-                        y: .value("Value", item.value)
-                    )
-                    .foregroundStyle(PerchTheme.accent)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5))
-                    .interpolationMethod(.monotone)
-
-                    // Only show PointMark on most recent and selected data point
-                    let isLast = item.date == chartData.last?.date
-                    let isSelected = selectedDataPoint.map { $0.date == item.date } ?? false
-                    if isLast || isSelected {
-                        PointMark(
-                            x: .value("Date", item.date),
-                            y: .value("Value", item.value)
-                        )
+                        .interpolationMethod(.monotone)
                         .foregroundStyle(PerchTheme.accent)
-                        .symbolSize(isSelected ? 40 : 24)
-                    }
-
-                    // Vertical rule line at selected point
-                    if isSelected {
-                        RuleMark(x: .value("Date", item.date))
-                            .foregroundStyle(PerchTheme.accent.opacity(0.6))
-                            .lineStyle(StrokeStyle(lineWidth: 1))
+                        .lineStyle(StrokeStyle(lineWidth: 1.5))
                     }
                 }
-                .chartYScale(domain: yRange)
-                .chartYAxis(.hidden)
                 .chartXAxis(.hidden)
-                .chartPlotStyle { plot in
-                    plot.background(Color.clear)
+                .chartYAxis(.hidden)
+                .chartYScale(domain: (yMin - yPadding)...(yMax + yPadding))
+                .frame(width: 80, height: 40)
+            }
+        }
+        .padding(PerchTheme.Spacing.medium)
+    }
+
+    // MARK: - Expanded State (Full Chart)
+    
+    private var expandedView: some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            // Header Row
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: PerchTheme.Spacing.small) {
+                        Text(title)
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textSecondary)
+                        trendView
+                    }
+                    
+                    if let point = selectedDataPoint {
+                        if formatAsTime {
+                            Self.timeValueView(point.value)
+                        } else {
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text(PerchFormatters.decimal.string(from: NSNumber(value: point.value)) ?? "--")
+                                    .font(PerchTheme.Font.titleNumeric)
+                                    .foregroundColor(PerchTheme.textPrimary)
+                                Text(unit)
+                                    .font(PerchTheme.Font.caption)
+                                    .foregroundColor(PerchTheme.textSecondary)
+                            }
+                        }
+                    } else {
+                        if formatAsTime, let latest = allChartData.last?.value {
+                            Self.timeValueView(latest)
+                        } else {
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text(latestValue)
+                                    .font(PerchTheme.Font.titleNumeric)
+                                    .foregroundColor(PerchTheme.textPrimary)
+                                Text(unit)
+                                    .font(PerchTheme.Font.caption)
+                                    .foregroundColor(PerchTheme.textSecondary)
+                            }
+                        }
+                    }
                 }
+                
+                Spacer()
+                
+                // Timeframe Picker (moved to top right)
+                HStack(spacing: 8) {
+                    ForEach(TimeRange.allCases, id: \.self) { range in
+                        Text(range.rawValue)
+                            .font(PerchTheme.Font.micro)
+                            .foregroundColor(resolvedRange == range ? PerchTheme.accentForeground : PerchTheme.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(resolvedRange == range ? PerchTheme.accent : Color.clear)
+                            .cornerRadius(12)
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    selectedRange = range
+                                }
+                            }
+                    }
+                }
+                .padding(4)
+                .background(PerchTheme.cardInnerBackground)
+                .cornerRadius(16)
+            }
+            
+            // Full Chart
+            let data = filteredData
+            if data.isEmpty {
+                Text("Not enough data for this period")
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textTertiary)
+                    .frame(height: 140)
+                    .frame(maxWidth: .infinity)
+            } else {
+                let yMin = data.map(\.value).min() ?? 0
+                let yMax = data.map(\.value).max() ?? 100
+                let yPadding = (yMax - yMin) * 0.1
+                let hasEnoughPointsForLine = data.count > 2
+
+                Chart {
+                    ForEach(data) { dp in
+                        if hasEnoughPointsForLine {
+                            LineMark(
+                                x: .value("Date", dp.date),
+                                y: .value("Value", dp.value)
+                            )
+                            .interpolationMethod(.monotone)
+                            .foregroundStyle(PerchTheme.accent)
+                            .lineStyle(StrokeStyle(lineWidth: 1.5))
+                            
+                            PointMark(
+                                x: .value("Date", dp.date),
+                                y: .value("Value", dp.value)
+                            )
+                            .foregroundStyle(PerchTheme.accent)
+                            .symbolSize(12)
+                        } else {
+                            PointMark(
+                                x: .value("Date", dp.date),
+                                y: .value("Value", dp.value)
+                            )
+                            .foregroundStyle(PerchTheme.accent)
+                            .symbolSize(30)
+                        }
+                    }
+                    
+                    if let point = selectedDataPoint {
+                        RuleMark(x: .value("Date", point.date))
+                            .foregroundStyle(PerchTheme.textTertiary.opacity(0.5))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
+                            .annotation(position: .top) {
+                                Text(PerchFormatters.shortDate.string(from: point.date))
+                                    .font(PerchTheme.Font.micro)
+                                    .foregroundColor(PerchTheme.textSecondary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(PerchTheme.cardInnerBackground)
+                                    .cornerRadius(4)
+                            }
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(preset: .aligned, values: .stride(by: .day, count: resolvedRange == .sevenDays ? 1 : (resolvedRange == .thirtyDays ? 7 : 14))) { value in
+                        if let date = value.as(Date.self) {
+                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                                .foregroundStyle(PerchTheme.border)
+                            AxisValueLabel {
+                                Text(PerchFormatters.shortDate.string(from: date))
+                                    .font(PerchTheme.Font.micro)
+                                    .foregroundColor(PerchTheme.textTertiary)
+                            }
+                        }
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .trailing, values: .automatic(desiredCount: 4)) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
+                            .foregroundStyle(PerchTheme.border)
+                        AxisValueLabel {
+                            if let intVal = value.as(Double.self) {
+                                Text(formatAsTime ? "\(Int(intVal))h" : "\(Int(intVal))")
+                                    .font(PerchTheme.Font.microNumeric)
+                                    .foregroundColor(PerchTheme.textTertiary)
+                            }
+                        }
+                    }
+                }
+                .chartYScale(domain: (yMin - yPadding)...(yMax + yPadding))
+                .frame(height: 140)
                 .chartOverlay { proxy in
-                    GeometryReader { geometry in
+                    GeometryReader { geo in
                         Rectangle()
                             .fill(Color.clear)
                             .contentShape(Rectangle())
                             .gesture(
                                 DragGesture(minimumDistance: 0)
-                                    .onChanged { drag in
-                                        let origin = geometry[proxy.plotFrame!].origin
-                                        let locationX = drag.location.x - origin.x
-                                        guard let date: Date = proxy.value(atX: locationX) else { return }
-                                        // Snap to nearest data point
-                                        guard let closest = chartData.min(by: {
-                                            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
-                                        }) else { return }
-                                        let closestIndex = chartData.firstIndex(where: { $0.date == closest.date })
-                                        if closestIndex != lastSnappedIndex {
-                                            lastSnappedIndex = closestIndex
-                                            hapticGenerator.selectionChanged()
+                                    .onChanged { value in
+                                        let x = value.location.x - geo[proxy.plotAreaFrame].origin.x
+                                        guard let date: Date = proxy.value(atX: x) else { return }
+                                        
+                                        // Snap to closest point
+                                        if let closestIndex = data.enumerated()
+                                            .min(by: { abs($0.element.date.timeIntervalSince(date)) < abs($1.element.date.timeIntervalSince(date)) })?.offset {
+                                            
+                                            let point = data[closestIndex]
+                                            selectedDataPoint = (date: point.date, value: point.value)
+                                            
+                                            if lastSnappedIndex != closestIndex {
+                                                hapticGenerator.selectionChanged()
+                                                lastSnappedIndex = closestIndex
+                                            }
                                         }
-                                        selectedDataPoint = closest
                                     }
                                     .onEnded { _ in
                                         selectedDataPoint = nil
@@ -280,123 +415,8 @@ struct ChartCard: View {
                             )
                     }
                 }
-                .overlay(alignment: .topLeading) {
-                    if let selected = selectedDataPoint {
-                        chartTooltip(for: selected)
-                    }
-                }
-                .frame(height: 110)
-            } else {
-                // Single or no data
-                HStack {
-                    Spacer()
-                    VStack(spacing: 6) {
-                        Circle()
-                            .fill(PerchTheme.accent)
-                            .frame(width: 8, height: 8)
-                            .shadow(color: PerchTheme.accent.opacity(0.4), radius: 4)
-                        Text(chartData.isEmpty ? "No data yet" : "Single reading")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
-                    }
-                    Spacer()
-                }
-                .frame(height: 50)
-            }
-
-            // Time range selector
-            HStack(spacing: 4) {
-                ForEach(TimeRange.allCases, id: \.self) { range in
-                    Button(action: { selectedRange = range }) {
-                        Text(range.rawValue)
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(
-                                resolvedRange == range
-                                    ? PerchTheme.background
-                                    : PerchTheme.textSecondary
-                            )
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(
-                                resolvedRange == range
-                                    ? PerchTheme.accent
-                                    : PerchTheme.cardInnerBackground
-                            )
-                            .cornerRadius(10)
-                    }
-                }
             }
         }
-        .padding(PerchTheme.Spacing.large)
-        .cardStyle()
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilitySummary)
+        .padding(PerchTheme.Spacing.medium)
     }
-
-    private var accessibilitySummary: String {
-        var summary = "\(title): \(latestValue) \(unit)"
-        if let trend = trendPercent {
-            let direction = trend > 0.5 ? "up" : (trend < -0.5 ? "down" : "stable")
-            summary += ", trending \(direction) \(String(format: "%.1f", abs(trend))) percent"
-        }
-        summary += ", \(chartData.count) data points over \(resolvedRange.rawValue)"
-        return summary
-    }
-
-    // MARK: - Tooltip
-
-    @ViewBuilder
-    private func chartTooltip(for point: (date: Date, value: Double)) -> some View {
-        let dateText = Self.tooltipDateFormatter.string(from: point.date)
-        let valueText: String = {
-            if formatAsTime {
-                return Self.formatHoursAsTime(point.value)
-            }
-            return String(format: "%.1f", point.value) + " " + unit
-        }()
-
-        VStack(spacing: 2) {
-            Text(valueText)
-                .font(PerchTheme.Font.caption)
-                .fontWeight(.bold)
-                .foregroundColor(PerchTheme.textPrimary)
-            Text(dateText)
-                .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(PerchTheme.cardHover)
-        .cornerRadius(8)
-        .fixedSize()
-        // Position tooltip based on selected point's relative position in the data
-        .frame(maxWidth: .infinity, alignment: tooltipAlignment(for: point.date))
-    }
-
-    private func tooltipAlignment(for date: Date) -> Alignment {
-        guard let first = chartData.first?.date,
-              let last = chartData.last?.date,
-              last > first else { return .center }
-        let fraction = date.timeIntervalSince(first) / last.timeIntervalSince(first)
-        if fraction < 0.25 { return .leading }
-        if fraction > 0.75 { return .trailing }
-        return .center
-    }
-
-    private static var tooltipDateFormatter: DateFormatter { PerchFormatters.shortDate }
 }
-
-// MARK: - Preview
-
-#if DEBUG
-#Preview {
-    ChartCard(
-        title: "Weight",
-        records: MockData.measurementRecords,
-        unit: "kg"
-    )
-    .padding(PerchTheme.Spacing.large)
-    .background(PerchTheme.background)
-    .ignoresSafeArea()
-}
-#endif
