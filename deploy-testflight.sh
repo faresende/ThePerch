@@ -16,17 +16,25 @@ KEY="$HOME/.openclaw/secrets/AuthKey_SCRUBBED-APPLE-KEY-ID.p8"
 KEY_ID="SCRUBBED-APPLE-KEY-ID"
 ISSUER="00000000-0000-0000-0000-000000000000"
 READINESS_GATE="$HOME/.openclaw/workspace/scripts/readiness-gate.sh"
-TELEGRAM_BOT_TOKEN="SCRUBBED_TELEGRAM_TOKEN"
-TELEGRAM_CHAT_ID="0000000000"
+DEFAULT_TELEGRAM_CHAT_ID="0000000000"
+TELEGRAM_BOT_TOKEN="${THEPERCH_TELEGRAM_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}"
+TELEGRAM_CHAT_ID="${THEPERCH_TELEGRAM_CHAT_ID:-${TELEGRAM_CHAT_ID:-$DEFAULT_TELEGRAM_CHAT_ID}}"
 
 FORCE=false
 SKIP_QA=false
 SKIP_TESTS=false
+LANE="alpha"
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=true ;;
     --skip-qa) SKIP_QA=true ;;
     --skip-tests) SKIP_TESTS=true ;;
+    --lane=alpha) LANE="alpha" ;;
+    --lane=beta) LANE="beta" ;;
+    --lane=*)
+      echo "❌ Invalid lane '${arg#*=}'. Use --lane=alpha or --lane=beta."
+      exit 1
+      ;;
   esac
 done
 
@@ -39,6 +47,7 @@ AUTH="-allowProvisioningUpdates -authenticationKeyPath $KEY -authenticationKeyID
 cd "$REPO_ROOT"
 
 echo "🔍 Pre-flight checks..."
+echo "🛫 TestFlight lane: ${LANE}"
 
 # 1. Branch check
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -180,10 +189,21 @@ git push origin "build/$NEW_BUILD"
 
 echo ""
 echo "📣 Sending Telegram notification..."
-curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  -d chat_id="$TELEGRAM_CHAT_ID" \
-  -d text="🚀 ThePerch Build ${NEW_BUILD} uploaded to TestFlight. Should be available in ~5 minutes." \
-  -d parse_mode=Markdown
+if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+  echo "⚠️  Telegram notification skipped: bot token not configured"
+else
+  TELEGRAM_TEXT="🚀 ThePerch Build ${NEW_BUILD} uploaded to TestFlight (${LANE} lane). Should be available in ~5 minutes."
+  TELEGRAM_RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    -d chat_id="$TELEGRAM_CHAT_ID" \
+    -d text="$TELEGRAM_TEXT" \
+    -d parse_mode=Markdown)
+  if echo "$TELEGRAM_RESPONSE" | grep -q '"ok":true'; then
+    echo "✅ Telegram notification sent"
+  else
+    echo "⚠️  Telegram notification failed but deploy succeeded"
+    echo "   Response: $TELEGRAM_RESPONSE"
+  fi
+fi
 
 echo ""
-echo "✅ Done. Build $NEW_BUILD will appear in TestFlight in ~5 minutes."
+echo "✅ Done. Build $NEW_BUILD will appear in TestFlight in ~5 minutes (${LANE} lane)."
