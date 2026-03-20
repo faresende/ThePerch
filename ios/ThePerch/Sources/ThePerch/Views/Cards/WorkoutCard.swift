@@ -4,8 +4,33 @@ import SwiftUI
 /// Expanded: all exercises in performance order + stats + overload indicators.
 /// Collapsed: top 1RM lift teaser + sets + cals.
 struct WorkoutSessionFeedCard: View {
+    struct SummaryStat: Equatable {
+        let icon: String
+        let value: String
+    }
+
     let session: WorkoutSessionData
     let isExpanded: Bool
+
+    static func summaryStats(for session: WorkoutSessionData, isExpanded: Bool) -> [SummaryStat] {
+        var stats: [SummaryStat] = [
+            SummaryStat(icon: "number", value: "\(session.totalSets) sets")
+        ]
+
+        if let cal = session.activeCalories {
+            stats.append(SummaryStat(icon: "flame", value: "\(cal) cal"))
+        }
+
+        if isExpanded {
+            if let hr = session.avgHr {
+                stats.append(SummaryStat(icon: "heart", value: "\(hr) bpm"))
+            }
+        } else if let top = session.topLifts.first {
+            stats.append(SummaryStat(icon: "arrow.up.right", value: "\(top.name) \(Int(top.weight))kg"))
+        }
+
+        return stats
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
@@ -55,12 +80,8 @@ struct WorkoutSessionFeedCard: View {
             if isExpanded {
                 // Stats row
                 HStack(spacing: PerchTheme.Spacing.medium) {
-                    if let cal = session.activeCalories {
-                        statPill(icon: "flame", value: "\(cal) cal")
-                    }
-                    statPill(icon: "number", value: "\(session.totalSets) sets")
-                    if let hr = session.avgHr {
-                        statPill(icon: "heart", value: "\(hr) bpm")
+                    ForEach(Self.summaryStats(for: session, isExpanded: true), id: \.value) { stat in
+                        statPill(icon: stat.icon, value: stat.value)
                     }
                 }
 
@@ -113,14 +134,10 @@ struct WorkoutSessionFeedCard: View {
                     }
                 }
             } else {
-                // Collapsed teaser: top 1RM lift + sets + cals
+                // Collapsed teaser: same primary order as expanded, then top lift
                 HStack(spacing: PerchTheme.Spacing.medium) {
-                    statPill(icon: "number", value: "\(session.totalSets) sets")
-                    if let cal = session.activeCalories {
-                        statPill(icon: "flame", value: "\(cal) cal")
-                    }
-                    if let top = session.topLifts.first {
-                        statPill(icon: "arrow.up.right", value: "\(top.name) \(Int(top.weight))kg")
+                    ForEach(Self.summaryStats(for: session, isExpanded: false), id: \.value) { stat in
+                        statPill(icon: stat.icon, value: stat.value)
                     }
                 }
             }
