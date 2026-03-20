@@ -26,11 +26,25 @@ final class HealthViewModel {
     // MARK: - Private Properties
 
     private let syncService: HealthKitSyncService
+    private let calendar: Calendar
+    private let now: () -> Date
+
+    let syntheticNutritionRecordID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+    func isSyntheticNutritionRecord(_ record: Record) -> Bool {
+        record.id == syntheticNutritionRecordID
+    }
 
     // MARK: - Initialization
 
-    init(syncService: HealthKitSyncService = .shared) {
+    init(
+        syncService: HealthKitSyncService = .shared,
+        calendar: Calendar = .current,
+        now: @escaping () -> Date = { .now }
+    ) {
         self.syncService = syncService
+        self.calendar = calendar
+        self.now = now
         self.lastSyncDate = syncService.lastSyncDate
     }
 
@@ -120,20 +134,140 @@ final class HealthViewModel {
         return latest
     }
 
-    /// The latest macros record, sorted by the date field in the data payload.
+    /// The daily calories record for the current nutrition day.
+    /// Before 2am, falls back to yesterday's final tally.
+    /// After 2am, only today's data is shown.
+    var latestDailyCalories: (Record, MeasurementData)? {
+        let caloriesRecords = records.compactMap { record -> (Record, MeasurementData)? in
+            guard let measurement = record.asMeasurement(), measurement.metric == "daily_calories" else { return nil }
+            return (record, measurement)
+        }
+
+        let nutritionDay = currentNutritionDay()
+
+        let todayContextMatches = caloriesRecords
+            .filter { $0.1.context == nutritionDay.today }
+            .sorted { $0.0.updatedAt > $1.0.updatedAt }
+        if let match = todayContextMatches.first {
+            return match
+        }
+
+        let todayTimestampMatches = caloriesRecords
+            .filter { sample in
+                guard let timestamp = sample.1.timestamp else { return false }
+                return calendar.isDate(timestamp, inSameDayAs: now())
+            }
+            .sorted {
+                ($0.1.timestamp ?? $0.0.updatedAt) > ($1.1.timestamp ?? $1.0.updatedAt)
+            }
+        if let match = todayTimestampMatches.first {
+            return match
+        }
+
+        guard nutritionDay.isLateNight else { return nil }
+
+        return caloriesRecords
+            .filter { $0.1.context == nutritionDay.yesterday }
+            .sorted { $0.0.updatedAt > $1.0.updatedAt }
+            .first
+    }
+
+    /// The macros record for the current nutrition day.
+    /// Before 2am, falls back to yesterday's final tally.
+    /// After 2am, only today's data is shown.
     var latestMacros: (Record, MacrosData)? {
+        let nutritionDay = currentNutritionDay()
         let macrosRecords = records.compactMap { record -> (Record, MacrosData)? in
             guard let macros = record.asMacros() else { return nil }
             return (record, macros)
         }
-        return macrosRecords.sorted {
-            let d0 = $0.1.date ?? ""
-            let d1 = $1.1.date ?? ""
-            if d0 != d1 {
-                return d0 > d1
-            }
-            return $0.0.updatedAt > $1.0.updatedAt
-        }.first
+
+        let todayMatches = macrosRecords
+            .filter { $0.1.date == nutritionDay.today }
+            .sorted { $0.0.updatedAt > $1.0.updatedAt }
+        if let match = todayMatches.first {
+            return match
+        }
+
+        guard nutritionDay.isLateNight else { return nil }
+
+        return macrosRecords
+            .filter { $0.1.date == nutritionDay.yesterday }
+            .sorted { $0.0.updatedAt > $1.0.updatedAt }
+            .first
+    }
+
+    /// The calories card content to display in Health.
+    /// After 2am with no data for today, returns a synthetic zero-state.
+    var displayedDailyCalories: (Record, MeasurementData)? {
+        if let latestDailyCalories {
+            return latestDailyCalories
+        }
+
+        let nutritionDay = currentNutritionDay()
+        guard nutritionDay.isLateNight == false else {
+            return nil
+        }
+
+        return (syntheticNutritionRecord(for: nutritionDay.today), MeasurementData(
+            metric: "daily_calories",
+            value: 0,
+            unit: "kcal",
+            context: nutritionDay.today,
+            timestamp: nil,
+            target: 3400,
+            displayValue: nil
+        ))
+    }
+
+    /// The macros card content to display in Health.
+    /// After 2am with no data for today, returns a synthetic zero-state.
+    var displayedMacros: (Record, MacrosData)? {
+        if let latestMacros {
+            return latestMacros
+        }
+
+        let nutritionDay = currentNutritionDay()
+        guard nutritionDay.isLateNight == false else {
+            return nil
+        }
+
+        return (syntheticNutritionRecord(for: nutritionDay.today), MacrosData(
+            protein: 0,
+            proteinTarget: 180,
+            carbs: 0,
+            carbsTarget: 386,
+            fat: 0,
+            fatTarget: 110,
+            date: nutritionDay.today
+        ))
+    }
+
+    private func syntheticNutritionRecord(for date: String) -> Record {
+        Record(
+            id: syntheticNutritionRecordID,
+            agentId: "theperch-ui",
+            userId: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            type: .measurement,
+            category: .health,
+            title: "Daily Nutrition",
+            data: .object(["date": .string(date)]),
+            displayHint: .singleValue,
+            annotations: nil,
+            pinned: false,
+            createdAt: now(),
+            updatedAt: now(),
+            expiresAt: nil
+        )
+    }
+
+    private func currentNutritionDay() -> (today: String, yesterday: String, isLateNight: Bool) {
+        let currentDate = now()
+        let today = PerchFormatters.isoDate.string(from: currentDate)
+        let yesterdayDate = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
+        let yesterday = PerchFormatters.isoDate.string(from: yesterdayDate)
+        let isLateNight = calendar.component(.hour, from: currentDate) < 2
+        return (today, yesterday, isLateNight)
     }
 
     /// Ordered list of chart metrics to display (body comp → sleep → nutrition).
