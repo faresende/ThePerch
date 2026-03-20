@@ -224,3 +224,48 @@ struct HealthViewModelNutritionSelectionTests {
         #expect(displayed?.0.id == viewModel.syntheticNutritionRecordID)
     }
 }
+
+@Suite("WorkoutSessionFeedCard stat ordering")
+struct WorkoutSessionFeedCardTests {
+    private func makeSession(avgHr: Int? = 145, calories: Int? = 612) -> WorkoutSessionData {
+        WorkoutSessionData(
+            sessionNumber: 3,
+            date: "2026-03-20",
+            muscleGroups: ["push"],
+            durationMin: 68,
+            activeCalories: calories,
+            avgHr: avgHr,
+            maxHr: 171,
+            exercises: [
+                WorkoutExercise(
+                    name: "Bench Press",
+                    sets: [
+                        WorkoutSet(weightKg: 90, reps: 5, durationSec: nil, notes: nil),
+                        WorkoutSet(weightKg: 95, reps: 3, durationSec: nil, notes: nil)
+                    ],
+                    notes: nil
+                )
+            ],
+            progressiveOverload: nil
+        )
+    }
+
+    @Test("Expanded and collapsed workout summary stats use the same leading order")
+    func workoutSummaryStatsUseSameLeadingOrder() {
+        let session = makeSession()
+        let expanded = WorkoutSessionFeedCard.summaryStats(for: session, isExpanded: true).map(\.value)
+        let collapsed = WorkoutSessionFeedCard.summaryStats(for: session, isExpanded: false).map(\.value)
+
+        #expect(expanded.prefix(2).elementsEqual(["2 sets", "612 cal"]))
+        #expect(collapsed.prefix(2).elementsEqual(["2 sets", "612 cal"]))
+    }
+
+    @Test("Workout collapsed state still includes top lift after primary stats")
+    func workoutCollapsedStateKeepsTopLiftAsTertiaryStat() {
+        let session = makeSession()
+        let collapsed = WorkoutSessionFeedCard.summaryStats(for: session, isExpanded: false).map(\.value)
+
+        #expect(collapsed.count == 3)
+        #expect(collapsed[2] == "Bench Press 95kg")
+    }
+}

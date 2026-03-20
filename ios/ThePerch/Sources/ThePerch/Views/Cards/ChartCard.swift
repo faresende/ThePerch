@@ -80,20 +80,41 @@ struct ChartCard: View {
         return PerchFormatters.decimal.string(from: NSNumber(value: latest.value)) ?? "--"
     }
 
-    private var trendPercent: Double? {
+    private var trendDelta: Double? {
         let sorted = allChartData
         guard sorted.count >= 2 else { return nil }
         let current = sorted.last!.value
         let cutoff = Date.now.addingTimeInterval(-Double(resolvedRange.days) * 86400)
         let relevant = sorted.filter { $0.date >= cutoff }
-        guard let first = relevant.first, first.value > 0 else { return nil }
-        return ((current - first.value) / first.value) * 100.0
+        guard let first = relevant.first else { return nil }
+        return current - first.value
+    }
+
+    static func trendBadgeText(current: Double, baseline: Double, unit: String, formatAsTime: Bool) -> String {
+        let delta = abs(current - baseline)
+
+        if formatAsTime {
+            let minutes = Int((delta * 60).rounded())
+            return "\(minutes)m"
+        }
+
+        if unit == "%" {
+            return String(format: "%.1f pts", delta)
+        }
+
+        if let formatted = PerchFormatters.decimal.string(from: NSNumber(value: delta)) {
+            return formatted + (unit.isEmpty ? "" : " \(unit)")
+        }
+
+        return String(format: "%.1f", delta) + (unit.isEmpty ? "" : " \(unit)")
     }
 
     private var trendView: some View {
         Group {
-            if let trend = trendPercent {
-                let isStable = abs(trend) < 0.5
+            if let trend = trendDelta,
+               let first = allChartData.filter({ $0.date >= Date.now.addingTimeInterval(-Double(resolvedRange.days) * 86400) }).first,
+               let latest = allChartData.last {
+                let isStable = abs(trend) < 0.05
                 let trendColor: Color = {
                     if isStable { return PerchTheme.textTertiary }
                     if title.caseInsensitiveCompare("Weight") == .orderedSame {
@@ -115,7 +136,7 @@ struct ChartCard: View {
                     Image(systemName: icon)
                         .font(PerchTheme.Font.micro)
                         .fontWeight(.bold)
-                    Text(String(format: "%.1f%%", abs(trend)))
+                    Text(Self.trendBadgeText(current: latest.value, baseline: first.value, unit: unit, formatAsTime: formatAsTime))
                         .font(PerchTheme.Font.captionNumeric)
                 }
                 .foregroundColor(trendColor)
