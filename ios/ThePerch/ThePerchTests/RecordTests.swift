@@ -85,3 +85,142 @@ struct RecordTests {
         #expect(RecordCategory.bookmarks.displayName == "Bookmarks")
     }
 }
+
+@Suite("HealthViewModel nutrition day selection")
+struct HealthViewModelNutritionSelectionTests {
+    private let calendar = Calendar(identifier: .gregorian)
+
+    private func makeMacrosRecord(date: String, updatedAt: Date) -> Record {
+        Record(
+            id: UUID(),
+            agentId: "test-agent",
+            userId: UUID(),
+            type: .measurement,
+            category: .health,
+            title: "Daily Macros",
+            data: .object([
+                "protein": .double(180),
+                "protein_target": .double(180),
+                "carbs": .double(300),
+                "carbs_target": .double(350),
+                "fat": .double(90),
+                "fat_target": .double(100),
+                "date": .string(date),
+            ]),
+            displayHint: .macrosBar,
+            annotations: nil,
+            pinned: false,
+            createdAt: updatedAt,
+            updatedAt: updatedAt,
+            expiresAt: nil
+        )
+    }
+
+    private func makeCaloriesRecord(context: String, value: Double, updatedAt: Date) -> Record {
+        Record(
+            id: UUID(),
+            agentId: "test-agent",
+            userId: UUID(),
+            type: .measurement,
+            category: .health,
+            title: "Daily Calories",
+            data: .object([
+                "metric": .string("daily_calories"),
+                "value": .double(value),
+                "unit": .string("kcal"),
+                "target": .double(3400),
+                "context": .string(context),
+            ]),
+            displayHint: .progressGauge,
+            annotations: nil,
+            pinned: false,
+            createdAt: updatedAt,
+            updatedAt: updatedAt,
+            expiresAt: nil
+        )
+    }
+
+    @MainActor
+    @Test("After 2am, Health macros only shows today's record")
+    func latestMacrosAfter2amRequiresTodayData() {
+        let now = ISO8601DateFormatter().date(from: "2026-03-20T07:11:00Z")!
+        let yesterdayUpdate = ISO8601DateFormatter().date(from: "2026-03-19T21:24:00Z")!
+        let viewModel = HealthViewModel(
+            syncService: .shared,
+            calendar: calendar,
+            now: { now }
+        )
+        viewModel.records = [makeMacrosRecord(date: "2026-03-19", updatedAt: yesterdayUpdate)]
+
+        #expect(viewModel.latestMacros == nil)
+    }
+
+    @MainActor
+    @Test("Before 2am, Health macros falls back to yesterday's final tally")
+    func latestMacrosBefore2amFallsBackToYesterday() {
+        let now = ISO8601DateFormatter().date(from: "2026-03-20T01:30:00Z")!
+        let yesterdayUpdate = ISO8601DateFormatter().date(from: "2026-03-19T21:24:00Z")!
+        let viewModel = HealthViewModel(
+            syncService: .shared,
+            calendar: calendar,
+            now: { now }
+        )
+        viewModel.records = [makeMacrosRecord(date: "2026-03-19", updatedAt: yesterdayUpdate)]
+
+        #expect(viewModel.latestMacros?.1.date == "2026-03-19")
+    }
+
+    @MainActor
+    @Test("After 2am, Health calories only shows today's record")
+    func latestDailyCaloriesAfter2amRequiresTodayData() {
+        let now = ISO8601DateFormatter().date(from: "2026-03-20T07:11:00Z")!
+        let yesterdayUpdate = ISO8601DateFormatter().date(from: "2026-03-19T21:24:00Z")!
+        let viewModel = HealthViewModel(
+            syncService: .shared,
+            calendar: calendar,
+            now: { now }
+        )
+        viewModel.records = [makeCaloriesRecord(context: "2026-03-19", value: 3299, updatedAt: yesterdayUpdate)]
+
+        #expect(viewModel.latestDailyCalories == nil)
+    }
+
+    @MainActor
+    @Test("After 2am, Health exposes a zero calories state when nothing is logged today")
+    func displayedCaloriesAfter2amFallsBackToZeroState() {
+        let now = ISO8601DateFormatter().date(from: "2026-03-20T07:11:00Z")!
+        let yesterdayUpdate = ISO8601DateFormatter().date(from: "2026-03-19T21:24:00Z")!
+        let viewModel = HealthViewModel(
+            syncService: .shared,
+            calendar: calendar,
+            now: { now }
+        )
+        viewModel.records = [makeCaloriesRecord(context: "2026-03-19", value: 3299, updatedAt: yesterdayUpdate)]
+
+        let displayed = viewModel.displayedDailyCalories
+        #expect(displayed?.1.value == 0)
+        #expect(displayed?.1.target == 3400)
+        #expect(displayed?.1.context == "2026-03-20")
+        #expect(displayed?.0.id == viewModel.syntheticNutritionRecordID)
+    }
+
+    @MainActor
+    @Test("After 2am, Health exposes zero macros when nothing is logged today")
+    func displayedMacrosAfter2amFallsBackToZeroState() {
+        let now = ISO8601DateFormatter().date(from: "2026-03-20T07:11:00Z")!
+        let yesterdayUpdate = ISO8601DateFormatter().date(from: "2026-03-19T21:24:00Z")!
+        let viewModel = HealthViewModel(
+            syncService: .shared,
+            calendar: calendar,
+            now: { now }
+        )
+        viewModel.records = [makeMacrosRecord(date: "2026-03-19", updatedAt: yesterdayUpdate)]
+
+        let displayed = viewModel.displayedMacros
+        #expect(displayed?.1.protein == 0)
+        #expect(displayed?.1.carbs == 0)
+        #expect(displayed?.1.fat == 0)
+        #expect(displayed?.1.date == "2026-03-20")
+        #expect(displayed?.0.id == viewModel.syntheticNutritionRecordID)
+    }
+}
