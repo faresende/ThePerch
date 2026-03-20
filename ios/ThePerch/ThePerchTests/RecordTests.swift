@@ -225,6 +225,94 @@ struct HealthViewModelNutritionSelectionTests {
     }
 }
 
+@Suite("HealthViewModel Apple Health write-back")
+struct HealthViewModelAppleHealthWriteTests {
+    final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable {
+        var isAvailable: Bool = true
+        var savedMeasurements: [MeasurementData] = []
+        var saveError: Error?
+
+        func requestAuthorization() async -> Bool { true }
+        func fetchWeight(days: Int) async throws -> [HealthKitSample] { [] }
+        func fetchHeartRate(days: Int) async throws -> [HealthKitSample] { [] }
+        func fetchBloodPressure(days: Int) async throws -> [HealthKitSample] { [] }
+        func fetchSteps(days: Int) async throws -> [HealthKitSample] { [] }
+        func fetchSleep(days: Int) async throws -> [HealthKitSample] { [] }
+        func saveDailyCalories(_ measurement: MeasurementData) async throws {
+            if let saveError { throw saveError }
+            savedMeasurements.append(measurement)
+        }
+    }
+
+    private let calendar = Calendar(identifier: .gregorian)
+
+    private func makeCaloriesRecord(context: String, value: Double, updatedAt: Date) -> Record {
+        Record(
+            id: UUID(),
+            agentId: "test-agent",
+            userId: UUID(),
+            type: .measurement,
+            category: .health,
+            title: "Daily Calories",
+            data: .object([
+                "metric": .string("daily_calories"),
+                "value": .double(value),
+                "unit": .string("kcal"),
+                "target": .double(3400),
+                "context": .string(context),
+            ]),
+            displayHint: .progressGauge,
+            annotations: nil,
+            pinned: false,
+            createdAt: updatedAt,
+            updatedAt: updatedAt,
+            expiresAt: nil
+        )
+    }
+
+    enum MockWriteError: Error {
+        case denied
+    }
+
+    @MainActor
+    @Test("Saving calories to Apple Health writes the latest real daily calories")
+    func saveCaloriesToAppleHealthWritesLatestRealCalories() async {
+        let now = ISO8601DateFormatter().date(from: "2026-03-20T18:00:00Z")!
+        let service = MockHealthKitService()
+        let viewModel = HealthViewModel(
+            syncService: .shared,
+            healthKitService: service,
+            calendar: calendar,
+            now: { now }
+        )
+        viewModel.records = [makeCaloriesRecord(context: "2026-03-20", value: 2840, updatedAt: now)]
+
+        await viewModel.saveDailyCaloriesToHealth()
+
+        #expect(service.savedMeasurements.count == 1)
+        #expect(service.savedMeasurements.first?.value == 2840)
+        #expect(viewModel.healthExportSuccess == "Saved daily calories to Apple Health")
+    }
+
+    @MainActor
+    @Test("Saving calories to Apple Health does not export synthetic zero-state")
+    func saveCaloriesToAppleHealthDoesNotExportSyntheticZeroState() async {
+        let now = ISO8601DateFormatter().date(from: "2026-03-20T18:00:00Z")!
+        let service = MockHealthKitService()
+        let viewModel = HealthViewModel(
+            syncService: .shared,
+            healthKitService: service,
+            calendar: calendar,
+            now: { now }
+        )
+
+        await viewModel.saveDailyCaloriesToHealth()
+
+        #expect(service.savedMeasurements.isEmpty)
+        #expect(viewModel.healthExportError == "No real daily calories available to save")
+    }
+}
+
 @Suite("WorkoutSessionFeedCard stat ordering")
 struct WorkoutSessionFeedCardTests {
     private func makeSession(avgHr: Int? = 145, calories: Int? = 612) -> WorkoutSessionData {

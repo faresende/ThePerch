@@ -17,15 +17,19 @@ final class HealthViewModel {
     var lastSyncDate: Date?
     var syncedCount: Int = 0
     var error: SupabaseServiceError?
+    var isSavingToHealth: Bool = false
+    var healthExportError: String?
+    var healthExportSuccess: String?
 
     /// Whether HealthKit is available on this device.
     var isHealthKitAvailable: Bool {
-        HealthKitService.shared.isAvailable
+        healthKitService.isAvailable
     }
 
     // MARK: - Private Properties
 
     private let syncService: HealthKitSyncService
+    private let healthKitService: HealthKitServiceProtocol
     private let calendar: Calendar
     private let now: () -> Date
 
@@ -39,11 +43,13 @@ final class HealthViewModel {
 
     init(
         syncService: HealthKitSyncService? = nil,
+        healthKitService: HealthKitServiceProtocol? = nil,
         calendar: Calendar = .current,
         now: @escaping () -> Date = { .now }
     ) {
         let syncService = syncService ?? .shared
         self.syncService = syncService
+        self.healthKitService = healthKitService ?? HealthKitService.shared
         self.calendar = calendar
         self.now = now
         self.lastSyncDate = syncService.lastSyncDate
@@ -67,6 +73,27 @@ final class HealthViewModel {
         self.syncError = syncService.syncError
         self.lastSyncDate = syncService.lastSyncDate
         self.isSyncing = false
+    }
+
+    /// Saves the latest real daily calories measurement into Apple Health.
+    func saveDailyCaloriesToHealth() async {
+        healthExportError = nil
+        healthExportSuccess = nil
+
+        guard let (_, measurement) = latestDailyCalories else {
+            healthExportError = "No real daily calories available to save"
+            return
+        }
+
+        isSavingToHealth = true
+        defer { isSavingToHealth = false }
+
+        do {
+            try await healthKitService.saveDailyCalories(measurement)
+            healthExportSuccess = "Saved daily calories to Apple Health"
+        } catch {
+            healthExportError = error.localizedDescription
+        }
     }
 
     // MARK: - Computed Properties
