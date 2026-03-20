@@ -37,4 +37,23 @@ struct PerchFormattersTests {
         let result = PerchFormatters.percent.string(from: NSNumber(value: 0.856))
         #expect(result != nil)
     }
+
+    @Test("ChartCard trend badge uses absolute kilograms for weight")
+    func chartCardTrendBadgeUsesAbsoluteKilograms() {
+        let result = ChartCard.trendBadgeText(current: 95.1, baseline: 92.6, unit: "kg", formatAsTime: false)
+        #expect(result.contains("kg"))
+        #expect(result.contains("2.5") || result.contains("2,5"))
+    }
+
+    @Test("ChartCard trend badge uses percentage points for body fat")
+    func chartCardTrendBadgeUsesPercentagePoints() {
+        let result = ChartCard.trendBadgeText(current: 13.0, baseline: 13.7, unit: "%", formatAsTime: false)
+        #expect(result == "0.7 pts")
+    }
+
+    @Test("ChartCard trend badge uses minutes for time-based metrics")
+    func chartCardTrendBadgeUsesMinutesForSleep() {
+        let result = ChartCard.trendBadgeText(current: 6.65, baseline: 6.25, unit: "", formatAsTime: true)
+        #expect(result == "24m")
+    }
 }
