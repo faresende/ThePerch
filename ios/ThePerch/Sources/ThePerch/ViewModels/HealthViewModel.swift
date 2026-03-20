@@ -38,10 +38,11 @@ final class HealthViewModel {
     // MARK: - Initialization
 
     init(
-        syncService: HealthKitSyncService = .shared,
+        syncService: HealthKitSyncService? = nil,
         calendar: Calendar = .current,
         now: @escaping () -> Date = { .now }
     ) {
+        let syncService = syncService ?? .shared
         self.syncService = syncService
         self.calendar = calendar
         self.now = now

@@ -49,7 +49,8 @@ final class AuthViewModel {
 
     // MARK: - Initialization
 
-    init(supabaseService: SupabaseService = .shared) {
+    init(supabaseService: SupabaseService? = nil) {
+        let supabaseService = supabaseService ?? .shared
         self.supabaseService = supabaseService
         self.isAuthenticated = supabaseService.isAuthenticated
 
