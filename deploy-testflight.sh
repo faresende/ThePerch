@@ -23,7 +23,7 @@ TELEGRAM_CHAT_ID="${THEPERCH_TELEGRAM_CHAT_ID:-${TELEGRAM_CHAT_ID:-$DEFAULT_TELE
 FORCE=false
 SKIP_QA=false
 SKIP_TESTS=false
-LANE="alpha"
+LANE=""
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=true ;;
@@ -37,6 +37,11 @@ for arg in "$@"; do
       ;;
   esac
 done
+
+if [ -z "$LANE" ]; then
+  echo "❌ Missing lane. Use --lane=alpha or --lane=beta."
+  exit 1
+fi
 
 AUTH="-allowProvisioningUpdates -authenticationKeyPath $KEY -authenticationKeyID $KEY_ID -authenticationKeyIssuerID $ISSUER"
 
