@@ -413,7 +413,7 @@ struct ChartCard: View {
                             .gesture(
                                 DragGesture(minimumDistance: 0)
                                     .onChanged { value in
-                                        let x = value.location.x - geo[proxy.plotAreaFrame].origin.x
+                                        let x = value.location.x - geo[proxy.plotFrame!].origin.x
                                         guard let date: Date = proxy.value(atX: x) else { return }
                                         
                                         // Snap to closest point

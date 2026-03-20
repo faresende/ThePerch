@@ -73,8 +73,8 @@ final class DashboardViewModel {
 
     // MARK: - Initialization
 
-    init(supabaseService: SupabaseService = .shared) {
-        self.supabaseService = supabaseService
+    init(supabaseService: SupabaseService? = nil) {
+        self.supabaseService = supabaseService ?? .shared
     }
 
     // MARK: - Loading Data
@@ -183,7 +183,7 @@ final class DashboardViewModel {
 
     /// Pre-populates the DecodingCache for all records in a single pass.
     /// Front-loads ALL decoding after network response so views never pay the cost.
-    nonisolated private static func preDecodeRecords(_ records: [Record]) {
+    private static func preDecodeRecords(_ records: [Record]) {
         for record in records {
             switch record.category {
             case .health:

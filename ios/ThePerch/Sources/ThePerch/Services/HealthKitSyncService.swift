@@ -52,11 +52,11 @@ final class HealthKitSyncService {
     // MARK: - Initialization
 
     private init(
-        healthKitService: HealthKitService = .shared,
-        supabaseService: SupabaseService = .shared
+        healthKitService: HealthKitService? = nil,
+        supabaseService: SupabaseService? = nil
     ) {
-        self.healthKitService = healthKitService
-        self.supabaseService = supabaseService
+        self.healthKitService = healthKitService ?? .shared
+        self.supabaseService = supabaseService ?? .shared
     }
 
     // MARK: - Sync All Metrics
@@ -206,7 +206,6 @@ final class HealthKitSyncService {
 
     /// Returns only the most recent sample per calendar day (to avoid flooding).
     private func mostRecentPerDay(_ samples: [HealthKitSample]) -> [HealthKitSample] {
-        let calendar = Calendar.current
         var byDay: [String: HealthKitSample] = [:]
         for sample in samples {
             let dayKey = PerchFormatters.isoDate.string(from: sample.timestamp)
