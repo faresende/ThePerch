@@ -54,13 +54,13 @@ struct HealthView: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     } else {
                         // Daily calories card
-                        if let (record, measurement) = viewModel.latestByMetric["daily_calories"],
+                        if let (record, measurement) = viewModel.displayedDailyCalories,
                            let target = measurement.target {
                             CaloriesCard(
                                 consumed: measurement.value,
                                 target: target,
                                 unit: measurement.unit,
-                                lastUpdated: measurement.timestamp ?? record.updatedAt
+                                lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (measurement.timestamp ?? record.updatedAt)
                             )
                             .cardAppear(index: 0, appeared: cardsAppeared)
                             .padding(.horizontal, PerchTheme.Spacing.large)
@@ -69,7 +69,7 @@ struct HealthView: View {
                         }
 
                         // Daily macros card
-                        if let (record, macros) = viewModel.latestMacros {
+                        if let (record, macros) = viewModel.displayedMacros {
                             MacrosCard(
                                 protein: macros.protein,
                                 proteinTarget: macros.proteinTarget,
@@ -77,7 +77,7 @@ struct HealthView: View {
                                 carbsTarget: macros.carbsTarget,
                                 fat: macros.fat,
                                 fatTarget: macros.fatTarget,
-                                lastUpdated: macros.dateAsDate ?? record.updatedAt
+                                lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (macros.dateAsDate ?? record.updatedAt)
                             )
                             .cardAppear(index: 1, appeared: cardsAppeared)
                             .padding(.horizontal, PerchTheme.Spacing.large)
