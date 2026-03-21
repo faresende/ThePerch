@@ -56,12 +56,49 @@ struct HealthView: View {
                         // Daily calories card
                         if let (record, measurement) = viewModel.displayedDailyCalories,
                            let target = measurement.target {
-                            CaloriesCard(
-                                consumed: measurement.value,
-                                target: target,
-                                unit: measurement.unit,
-                                lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (measurement.timestamp ?? record.updatedAt)
-                            )
+                            VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+                                CaloriesCard(
+                                    consumed: measurement.value,
+                                    target: target,
+                                    unit: measurement.unit,
+                                    lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (measurement.timestamp ?? record.updatedAt)
+                                )
+
+                                if !viewModel.isSyntheticNutritionRecord(record) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Button {
+                                            Task { await viewModel.saveDailyCaloriesToHealth() }
+                                        } label: {
+                                            HStack(spacing: 8) {
+                                                if viewModel.isSavingToHealth {
+                                                    ProgressView()
+                                                        .progressViewStyle(CircularProgressViewStyle())
+                                                        .scaleEffect(0.8)
+                                                } else {
+                                                    Image(systemName: "square.and.arrow.down")
+                                                }
+                                                Text(viewModel.isSavingToHealth ? "Saving to Apple Health..." : "Save daily calories to Apple Health")
+                                            }
+                                            .font(PerchTheme.Font.caption)
+                                            .foregroundColor(PerchTheme.accent)
+                                        }
+                                        .disabled(viewModel.isSavingToHealth)
+
+                                        if let success = viewModel.healthExportSuccess {
+                                            Text(success)
+                                                .font(PerchTheme.Font.caption)
+                                                .foregroundColor(PerchTheme.success)
+                                        }
+
+                                        if let error = viewModel.healthExportError {
+                                            Text(error)
+                                                .font(PerchTheme.Font.caption)
+                                                .foregroundColor(PerchTheme.error)
+                                        }
+                                    }
+                                    .padding(.horizontal, PerchTheme.Spacing.small)
+                                }
+                            }
                             .cardAppear(index: 0, appeared: cardsAppeared)
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         } else {

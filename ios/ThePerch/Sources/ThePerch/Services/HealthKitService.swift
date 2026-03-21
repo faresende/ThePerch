@@ -8,6 +8,7 @@ enum HealthKitServiceError: LocalizedError {
     case notAvailable
     case permissionDenied(String)
     case queryError(String)
+    case unsupportedWrite(String)
 
     var errorDescription: String? {
         switch self {
@@ -17,6 +18,8 @@ enum HealthKitServiceError: LocalizedError {
             return "Health permission denied: \(message)"
         case .queryError(let message):
             return "HealthKit query error: \(message)"
+        case .unsupportedWrite(let message):
+            return "HealthKit write unsupported: \(message)"
         }
     }
 }
@@ -107,7 +110,19 @@ final class HealthKitService: NSObject, HealthKitServiceProtocol, @unchecked Sen
         return types
     }
 
-    /// Requests read-only authorization for all health metrics.
+    private var dailyCaloriesType: HKQuantityType? {
+        HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)
+    }
+
+    private var shareTypes: Set<HKSampleType> {
+        var types = Set<HKSampleType>()
+        if let dailyCaloriesType {
+            types.insert(dailyCaloriesType)
+        }
+        return types
+    }
+
+    /// Requests read/write authorization for supported health metrics.
     /// - Returns: True if authorization was granted (or already available).
     func requestAuthorization() async -> Bool {
         guard let healthStore else {
@@ -118,7 +133,7 @@ final class HealthKitService: NSObject, HealthKitServiceProtocol, @unchecked Sen
         }
 
         do {
-            try await healthStore.requestAuthorization(toShare: [], read: readTypes)
+            try await healthStore.requestAuthorization(toShare: shareTypes, read: readTypes)
 #if DEBUG
             print("[HealthKitService] Authorization granted")
 #endif
@@ -348,6 +363,55 @@ final class HealthKitService: NSObject, HealthKitServiceProtocol, @unchecked Sen
                 timestamp: date
             )
         }.sorted { $0.timestamp > $1.timestamp }
+    }
+
+    // MARK: - Writing Daily Calories
+
+    func saveDailyCalories(_ measurement: MeasurementData) async throws {
+        guard let healthStore else { throw HealthKitServiceError.notAvailable }
+        guard let dailyCaloriesType else {
+            throw HealthKitServiceError.unsupportedWrite("Dietary energy is not available")
+        }
+
+        let authorizationGranted = await requestAuthorization()
+        guard authorizationGranted else {
+            throw HealthKitServiceError.permissionDenied("Please allow dietary energy write access")
+        }
+
+        let startDate: Date
+        let endDate: Date
+        if let context = measurement.context,
+           let parsedDate = PerchFormatters.isoDate.date(from: context) {
+            let calendar = Calendar.current
+            startDate = calendar.startOfDay(for: parsedDate)
+            endDate = calendar.date(byAdding: .day, value: 1, to: startDate) ?? startDate
+        } else if let timestamp = measurement.timestamp {
+            startDate = timestamp
+            endDate = timestamp
+        } else {
+            startDate = Date()
+            endDate = startDate
+        }
+
+        let quantity = HKQuantity(unit: .kilocalorie(), doubleValue: measurement.value)
+        let sample = HKQuantitySample(
+            type: dailyCaloriesType,
+            quantity: quantity,
+            start: startDate,
+            end: endDate
+        )
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.save(sample) { success, error in
+                if let error {
+                    continuation.resume(throwing: HealthKitServiceError.queryError(error.localizedDescription))
+                } else if success {
+                    continuation.resume(returning: ())
+                } else {
+                    continuation.resume(throwing: HealthKitServiceError.queryError("Unknown save failure"))
+                }
+            }
+        }
     }
 
     // MARK: - Private Helpers
