@@ -255,17 +255,17 @@ struct TravelHomeCard: View {
 
         HStack(spacing: PerchTheme.Spacing.medium) {
             if flights > 0 {
-                Label("\(flights)", systemImage: "airplane")
+                Text("\(flights) flight\(flights == 1 ? "" : "s")")
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
             }
             if hotels > 0 {
-                Label("\(hotels)", systemImage: "bed.double")
+                Text("\(hotels) hotel\(hotels == 1 ? "" : "s")")
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
             }
             if other > 0 {
-                Label("\(other)", systemImage: "map")
+                Text("\(other) item\(other == 1 ? "" : "s")")
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
             }

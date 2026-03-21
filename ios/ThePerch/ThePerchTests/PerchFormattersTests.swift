@@ -63,7 +63,9 @@ struct PerchFormattersTests {
         #expect(PerchTheme.HomeCard.verticalPadding == 16)
         #expect(PerchTheme.HomeCard.rowSpacing == 8)
         #expect(PerchTheme.HomeCard.columnGutter == 8)
-        #expect(PerchTheme.HomeCard.trailingColumnMinWidth == 88)
+        #expect(PerchTheme.HomeCard.trailingColumnMinWidth == 96)
+        #expect(PerchTheme.HomeCard.rowVerticalPadding == 4)
+        #expect(PerchTheme.HomeCard.itemPadding == 8)
     }
 
     @Test("Calendar today past label removes the redundant verb")

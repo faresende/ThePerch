@@ -235,13 +235,13 @@ final class HomeViewModel {
     var travelQuickGlanceText: String? {
         if let trip = relevantTravelTrip, trip.status == "active" {
             if let day = trip.currentTripDay {
-                return "📍 \(trip.destination) Day \(day)"
+                return "\(trip.destination) Day \(day)"
             }
-            return "📍 \(trip.destination)"
+            return trip.destination
         }
 
         if let trip = relevantTravelTrip, trip.status == "upcoming", let days = trip.daysUntilStart {
-            return "✈️ \(trip.destination) in \(days)d"
+            return "\(trip.destination) in \(days)d"
         }
 
         return nil

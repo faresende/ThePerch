@@ -37,3 +37,29 @@ struct HomeCardHeader: View {
         }
     }
 }
+
+private struct HomeCardRowModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.vertical, PerchTheme.HomeCard.rowVerticalPadding)
+    }
+}
+
+private struct HomeCardItemModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(PerchTheme.HomeCard.itemPadding)
+            .background(PerchTheme.cardInnerBackground)
+            .cornerRadius(PerchTheme.HomeCard.itemCornerRadius)
+    }
+}
+
+extension View {
+    func homeCardRowStyle() -> some View {
+        modifier(HomeCardRowModifier())
+    }
+
+    func homeCardItemStyle() -> some View {
+        modifier(HomeCardItemModifier())
+    }
+}

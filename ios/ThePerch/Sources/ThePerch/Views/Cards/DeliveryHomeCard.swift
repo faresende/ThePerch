@@ -5,13 +5,6 @@ import SwiftUI
 struct DeliveryHomeCard: View {
     let records: [Record]
 
-    private var latestUpdate: Date? {
-        records
-            .filter { $0.category == .deliveries && $0.type == .delivery }
-            .map(\.updatedAt)
-            .max()
-    }
-
     private var activeDeliveries: [(record: Record, delivery: DeliveryData)] {
         records.compactMap { record -> (Record, DeliveryData)? in
             guard record.category == .deliveries,
@@ -78,12 +71,14 @@ struct DeliveryHomeCard: View {
                         }
                     }
                 }
+                .offset(x: -2)
 
                 Spacer(minLength: PerchTheme.HomeCard.columnGutter)
 
                 VStack(alignment: .trailing, spacing: 4) {
                     statusBadge(status: status)
-                        .frame(maxWidth: PerchTheme.HomeCard.badgeMaxWidth, alignment: .trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .offset(x: PerchTheme.Spacing.xSmall)
 
                     if let eta = delivery.eta {
                         Text("ETA \(PerchFormatters.shortDate.string(from: eta))")
@@ -91,15 +86,15 @@ struct DeliveryHomeCard: View {
                             .foregroundColor(PerchTheme.accent)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .offset(x: PerchTheme.Spacing.xSmall)
                     }
                 }
-                .frame(minWidth: PerchTheme.HomeCard.trailingColumnMinWidth, alignment: .trailing)
+                .frame(minWidth: PerchTheme.HomeCard.trailingColumnMinWidth, maxWidth: .infinity, alignment: .trailing)
             }
 
         }
-        .padding(PerchTheme.Spacing.small)
-        .background(PerchTheme.cardInnerBackground)
-        .cornerRadius(PerchTheme.Card.innerCornerRadius)
+        .homeCardItemStyle()
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
                 .stroke(
@@ -132,6 +127,8 @@ struct DeliveryHomeCard: View {
                 .font(PerchTheme.Font.caption)
                 .foregroundColor(color)
                 .fontWeight(.medium)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, PerchTheme.Spacing.xSmall)
         .padding(.vertical, PerchTheme.Spacing.xxxSmall)
