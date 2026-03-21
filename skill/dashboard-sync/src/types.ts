@@ -3,8 +3,8 @@
  * Covers all record types, tool parameters, and response shapes.
  */
 
-export type RecordType = 'measurement' | 'delivery' | 'event' | 'status' | 'reminder' | 'text_note' | 'checklist' | 'cost_summary' | 'bookmark';
-export type RecordCategory = 'health' | 'deliveries' | 'calendar' | 'admin' | 'legal' | 'bookmarks';
+export type RecordType = 'measurement' | 'delivery' | 'event' | 'status' | 'reminder' | 'text_note' | 'checklist' | 'cost_summary' | 'bookmark' | 'order' | 'shipment' | 'review_item';
+export type RecordCategory = 'health' | 'deliveries' | 'calendar' | 'admin' | 'legal' | 'bookmarks' | 'commerce';
 export type DisplayHint = 'chart' | 'single_value' | 'status_list' | 'timeline' | 'checklist' | 'cost_breakdown' | 'bookmark_card' | 'bookmark_grid';
 
 /**
@@ -21,6 +21,40 @@ export interface DeliveryData {
   tracking_number: string;
   status: string;
   delivery_date?: string;
+}
+
+export interface OrderData {
+  merchant_name: string;
+  normalized_merchant: string;
+  order_number: string;
+  order_date: string;
+  total_amount?: number;
+  currency?: string;
+  source_email_ids: string[];
+  confidence_score: number;
+  status: 'ordered' | 'processing' | 'shipped_partial' | 'shipped' | 'delivered' | 'issue';
+}
+
+export interface ShipmentData {
+  order_id?: string;
+  tracking_number: string;
+  carrier: string;
+  provider?: string;
+  status: 'label_created' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'exception' | 'unknown';
+  latest_checkpoint?: string;
+  shipped_at?: string;
+  delivered_at?: string;
+  source_email_ids: string[];
+  confidence_score: number;
+}
+
+export interface ReviewItemData {
+  type: 'ambiguous_order_match' | 'missing_order_for_tracking' | 'missing_tracking_for_order' | 'duplicate_order_candidate';
+  reason: string;
+  suggested_action: string;
+  confidence_score: number;
+  related_order_id?: string;
+  related_shipment_id?: string;
 }
 
 export interface EventData {
@@ -74,6 +108,9 @@ export interface BookmarkData {
 export type RecordData =
   | MeasurementData
   | DeliveryData
+  | OrderData
+  | ShipmentData
+  | ReviewItemData
   | EventData
   | ReminderData
   | ChecklistData
