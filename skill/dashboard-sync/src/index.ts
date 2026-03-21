@@ -39,6 +39,9 @@ function validatePushInput(input: DashboardPushInput): void {
     'checklist',
     'cost_summary',
     'bookmark',
+    'order',
+    'shipment',
+    'review_item',
   ];
   if (!validTypes.includes(input.type)) {
     throw new Error(`type must be one of: ${validTypes.join(', ')}`);
@@ -51,6 +54,7 @@ function validatePushInput(input: DashboardPushInput): void {
     'admin',
     'legal',
     'bookmarks',
+    'commerce',
   ];
   if (!validCategories.includes(input.category)) {
     throw new Error(`category must be one of: ${validCategories.join(', ')}`);
