@@ -10,4 +10,5 @@ protocol HealthKitServiceProtocol: AnyObject, Sendable {
     func fetchBloodPressure(days: Int) async throws -> [HealthKitSample]
     func fetchSteps(days: Int) async throws -> [HealthKitSample]
     func fetchSleep(days: Int) async throws -> [HealthKitSample]
+    func saveDailyCalories(_ measurement: MeasurementData) async throws
 }
