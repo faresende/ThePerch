@@ -8,6 +8,11 @@ import type {
   RecordType,
   RecordCategory,
 } from './types';
+import {
+  extractOrderCandidate,
+  extractShipmentCandidate,
+  normalizeMerchantName,
+} from './orders';
 
 test('canonical commerce types are supported', () => {
   const orderType: RecordType = 'order';
@@ -69,4 +74,49 @@ test('ReviewItemData captures ambiguous cases without unsafe auto-merge', () => 
 
   assert.equal(reviewItem.type, 'ambiguous_order_match');
   assert.equal(reviewItem.related_shipment_id, 'shipment_123');
+});
+
+test('normalizeMerchantName lowercases and strips common suffix noise', () => {
+  assert.equal(normalizeMerchantName('Amazon EU S.a r.l.'), 'amazon');
+  assert.equal(normalizeMerchantName('ZARA Portugal, Lda.'), 'zara portugal');
+});
+
+test('extractOrderCandidate parses purchase confirmation text', () => {
+  const candidate = extractOrderCandidate(`
+    Your Amazon order has been placed.
+    Order number: 112-1234567-7654321
+    Total: EUR 42.50
+    Merchant: Amazon EU S.a r.l.
+    Ordered on 2026-03-21
+  `);
+
+  assert.ok(candidate);
+  assert.equal(candidate?.merchant_name, 'Amazon EU S.a r.l.');
+  assert.equal(candidate?.normalized_merchant, 'amazon');
+  assert.equal(candidate?.order_number, '112-1234567-7654321');
+  assert.equal(candidate?.total_amount, 42.5);
+  assert.equal(candidate?.currency, 'EUR');
+});
+
+test('extractShipmentCandidate parses shipment update text with tracking', () => {
+  const candidate = extractShipmentCandidate(`
+    UPS shipment update
+    Tracking number 1Z999AA10123456784
+    Status: out for delivery
+    Carrier: UPS
+  `);
+
+  assert.ok(candidate);
+  assert.equal(candidate?.tracking_number, '1Z999AA10123456784');
+  assert.equal(candidate?.carrier, 'UPS');
+  assert.equal(candidate?.status, 'out_for_delivery');
+});
+
+test('extractOrderCandidate does not invent an order from shipment-only text', () => {
+  const candidate = extractOrderCandidate(`
+    DHL tracking 00340434161234567890 is in transit.
+    Expected delivery tomorrow.
+  `);
+
+  assert.equal(candidate, null);
 });
