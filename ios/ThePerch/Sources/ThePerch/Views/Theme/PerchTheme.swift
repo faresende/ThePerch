@@ -261,10 +261,13 @@ struct PerchTheme {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 16
         static let rowSpacing: CGFloat = 8
+        static let rowVerticalPadding: CGFloat = 4
         static let sectionSpacing: CGFloat = 24
         static let columnGutter: CGFloat = 8
-        static let trailingColumnMinWidth: CGFloat = 88
-        static let badgeMaxWidth: CGFloat = 72
+        static let trailingColumnMinWidth: CGFloat = 96
+        static let badgeMaxWidth: CGFloat = 96
+        static let itemPadding: CGFloat = 8
+        static let itemCornerRadius: CGFloat = 12
     }
 
     // MARK: - Icon Sizing
