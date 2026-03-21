@@ -16,24 +16,13 @@ struct CalendarTomorrowCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+        VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
             // Header
-            HStack(spacing: PerchTheme.Spacing.xSmall) {
-                Image(systemName: "calendar.badge.clock")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.accent)
-                Text("TOMORROW")
-                    .font(PerchTheme.Font.cardEyebrow)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .textCase(.uppercase)
-                    .tracking(0.8)
-                Spacer()
-                if !tomorrowEvents.isEmpty {
-                    Text("\(tomorrowEvents.count) event\(tomorrowEvents.count == 1 ? "" : "s")")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-            }
+            HomeCardHeader(
+                systemImage: "calendar.badge.clock",
+                title: "TOMORROW",
+                trailingText: tomorrowEvents.isEmpty ? nil : "\(tomorrowEvents.count) event\(tomorrowEvents.count == 1 ? "" : "s")"
+            )
 
             if tomorrowEvents.isEmpty {
                 Text("Tomorrow is clear")
@@ -56,14 +45,15 @@ struct CalendarTomorrowCard: View {
                 }
             }
         }
-        .padding(PerchTheme.Card.padding)
+        .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
+        .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
         .cardStyle()
     }
 
     // MARK: - Components
 
     private func compactEventRow(event: EventData) -> some View {
-        HStack(spacing: PerchTheme.Spacing.small) {
+        HStack(spacing: PerchTheme.HomeCard.rowSpacing) {
             Circle()
                 .fill(PerchTheme.textTertiary)
                 .frame(width: 6, height: 6)
@@ -80,7 +70,7 @@ struct CalendarTomorrowCard: View {
 
             Spacer()
         }
-        .padding(.vertical, PerchTheme.Spacing.xxxSmall)
+        .homeCardRowStyle()
     }
 }
 

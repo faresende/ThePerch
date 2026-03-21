@@ -34,13 +34,6 @@ struct CalendarTodayCard: View {
         todayEvents.filter { $0.event.end < now }
     }
 
-    private var latestUpdate: Date? {
-        records
-            .filter { $0.category == .calendar && $0.type == .event }
-            .map(\.updatedAt)
-            .max()
-    }
-
     /// Compact summary for calendar card
     private var compactSummary: String {
         let upcoming = upcomingEvents
@@ -174,10 +167,10 @@ struct CalendarTodayCard: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
         }
-        .padding(.vertical, PerchTheme.Spacing.xxSmall)
         .padding(.horizontal, isHappening ? PerchTheme.Spacing.small : 0)
         .background(isHappening ? PerchTheme.success.opacity(0.08) : (isNext ? PerchTheme.accentMuted : Color.clear))
         .cornerRadius(PerchTheme.Card.innerCornerRadius)
+        .homeCardRowStyle()
     }
 
     private func pastEventRow(event: EventData) -> some View {
@@ -211,7 +204,7 @@ struct CalendarTodayCard: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .frame(minWidth: PerchTheme.HomeCard.trailingColumnMinWidth, alignment: .trailing)
         }
-        .padding(.vertical, PerchTheme.Spacing.xxSmall)
+        .homeCardRowStyle()
         .opacity(endedMinutesAgo > 120 ? 0.6 : 0.8)
     }
 
