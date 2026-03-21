@@ -27,30 +27,21 @@ struct DeliveryHomeCard: View {
         if activeDeliveries.isEmpty {
             EmptyView()
         } else {
-            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
                 // Header
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image(systemName: "shippingbox.fill")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.accent)
-                    Text("DELIVERIES")
-                        .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                    Spacer()
-                    CardFreshnessLabel(date: latestUpdate)
-                    Text("\(activeDeliveries.count) active")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
+                HomeCardHeader(
+                    systemImage: "shippingbox.fill",
+                    title: "DELIVERIES",
+                    trailingText: "\(activeDeliveries.count) active"
+                )
 
                 // Delivery sub-cards
                 ForEach(activeDeliveries, id: \.record.id) { item in
                     deliverySubCard(delivery: item.delivery)
                 }
             }
-            .padding(PerchTheme.Card.padding)
+            .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
+            .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
             .cardStyle()
         }
     }
@@ -61,46 +52,50 @@ struct DeliveryHomeCard: View {
         let status = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
         let isOutForDelivery = status == "out_for_delivery"
 
-        return VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
-            HStack(spacing: PerchTheme.Spacing.small) {
-                // Status badge
-                statusBadge(status: status)
+        return VStack(alignment: .leading, spacing: PerchTheme.HomeCard.rowSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: PerchTheme.HomeCard.columnGutter) {
+                VStack(alignment: .leading, spacing: 4) {
+                    let itemNames = delivery.items.map(\.name).joined(separator: ", ")
+                    if !itemNames.isEmpty {
+                        Text(itemNames)
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(PerchTheme.textPrimary)
+                            .lineLimit(1)
+                    }
 
-                Spacer()
+                    HStack(spacing: PerchTheme.Spacing.xSmall) {
+                        Text(delivery.carrier)
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textSecondary)
 
-                // ETA
-                if let eta = delivery.eta {
-                    Text("ETA \(PerchFormatters.shortDate.string(from: eta))")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.accent)
+                        if !delivery.trackingNumber.isEmpty {
+                            Text("•")
+                                .font(PerchTheme.Font.micro)
+                                .foregroundColor(PerchTheme.textTertiary)
+                            Text("#\(String(delivery.trackingNumber.suffix(6)))")
+                                .font(PerchTheme.Font.microMono)
+                                .foregroundColor(PerchTheme.textTertiary)
+                        }
+                    }
                 }
-            }
 
-            HStack(spacing: PerchTheme.Spacing.xSmall) {
-                // Carrier
-                Text(delivery.carrier)
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                Spacer(minLength: PerchTheme.HomeCard.columnGutter)
 
-                // Truncated tracking number
-                if !delivery.trackingNumber.isEmpty {
-                    Text("•")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
-                    Text("#\(String(delivery.trackingNumber.suffix(6)))")
-                        .font(PerchTheme.Font.microMono)
-                        .foregroundColor(PerchTheme.textTertiary)
+                VStack(alignment: .trailing, spacing: 4) {
+                    statusBadge(status: status)
+                        .frame(maxWidth: PerchTheme.HomeCard.badgeMaxWidth, alignment: .trailing)
+
+                    if let eta = delivery.eta {
+                        Text("ETA \(PerchFormatters.shortDate.string(from: eta))")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.accent)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
                 }
+                .frame(minWidth: PerchTheme.HomeCard.trailingColumnMinWidth, alignment: .trailing)
             }
 
-            // Items summary
-            let itemNames = delivery.items.map(\.name).joined(separator: ", ")
-            if !itemNames.isEmpty {
-                Text(itemNames)
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .lineLimit(1)
-            }
         }
         .padding(PerchTheme.Spacing.small)
         .background(PerchTheme.cardInnerBackground)
