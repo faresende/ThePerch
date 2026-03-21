@@ -61,7 +61,6 @@ struct CalendarTodayCard: View {
                         .textCase(.uppercase)
                         .tracking(0.8)
                     Spacer()
-                    CardFreshnessLabel(date: latestUpdate)
                     if !todayEvents.isEmpty {
                         Text("\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")")
                             .font(PerchTheme.Font.caption)
@@ -211,13 +210,17 @@ struct CalendarTodayCard: View {
 
             // Show "Ended Xm ago" for recently ended, "done" for older
             if endedMinutesAgo < 60 {
-                Text("Ended \(endedMinutesAgo)m ago")
+                Text("\(endedMinutesAgo)m ago")
                     .font(PerchTheme.Font.micro)
                     .foregroundColor(PerchTheme.textTertiary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             } else {
                 Text("done")
                     .font(PerchTheme.Font.micro)
                     .foregroundColor(PerchTheme.textTertiary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
