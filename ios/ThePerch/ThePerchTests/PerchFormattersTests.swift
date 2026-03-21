@@ -56,4 +56,19 @@ struct PerchFormattersTests {
         let result = ChartCard.trendBadgeText(current: 6.65, baseline: 6.25, unit: "", formatAsTime: true)
         #expect(result == "24m")
     }
+
+    @Test("Home card grid tokens use the 4pt spacing system")
+    func homeCardGridTokens() {
+        #expect(PerchTheme.HomeCard.horizontalPadding == 16)
+        #expect(PerchTheme.HomeCard.verticalPadding == 16)
+        #expect(PerchTheme.HomeCard.rowSpacing == 8)
+        #expect(PerchTheme.HomeCard.columnGutter == 8)
+        #expect(PerchTheme.HomeCard.trailingColumnMinWidth == 88)
+    }
+
+    @Test("Calendar today past label removes the redundant verb")
+    func calendarTodayPastLabelUsesCompactCopy() {
+        #expect(CalendarTodayCard.pastRelativeLabel(minutesAgo: 28) == "28m ago")
+        #expect(CalendarTodayCard.pastRelativeLabel(minutesAgo: 121) == "done")
+    }
 }

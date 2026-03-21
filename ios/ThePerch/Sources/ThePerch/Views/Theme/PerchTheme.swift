@@ -257,6 +257,16 @@ struct PerchTheme {
         static let borderWidth: CGFloat = 1
     }
 
+    enum HomeCard {
+        static let horizontalPadding: CGFloat = 16
+        static let verticalPadding: CGFloat = 16
+        static let rowSpacing: CGFloat = 8
+        static let sectionSpacing: CGFloat = 24
+        static let columnGutter: CGFloat = 8
+        static let trailingColumnMinWidth: CGFloat = 88
+        static let badgeMaxWidth: CGFloat = 72
+    }
+
     // MARK: - Icon Sizing
 
     enum Icon {
