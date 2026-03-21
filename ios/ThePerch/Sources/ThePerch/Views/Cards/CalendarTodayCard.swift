@@ -6,6 +6,13 @@ import SwiftUI
 struct CalendarTodayCard: View {
     let records: [Record]
 
+    static func pastRelativeLabel(minutesAgo: Int) -> String {
+        if minutesAgo < 60 {
+            return "\(minutesAgo)m ago"
+        }
+        return "done"
+    }
+
     @State private var now = Date.now
     @AppStorage("card_compact_calendar") private var isCompact = false
 
@@ -43,7 +50,7 @@ struct CalendarTodayCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+        VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
             // Tappable header
             Button {
                 PerchHaptics.selection()
@@ -51,25 +58,13 @@ struct CalendarTodayCard: View {
                     isCompact.toggle()
                 }
             } label: {
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image(systemName: "calendar")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.accent)
-                    Text("TODAY")
-                        .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                    Spacer()
-                    if !todayEvents.isEmpty {
-                        Text("\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
-                    }
-                    Image(systemName: isCompact ? "chevron.down" : "chevron.up")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
+                HomeCardHeader(
+                    systemImage: "calendar",
+                    title: "TODAY",
+                    trailingText: todayEvents.isEmpty ? nil : "\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")",
+                    showsChevron: true,
+                    isExpanded: !isCompact
+                )
                 .contentShape(Rectangle())
             }
             .buttonStyle(CardPressStyle())
@@ -118,7 +113,8 @@ struct CalendarTodayCard: View {
                 }
             }
         }
-        .padding(PerchTheme.Card.padding)
+        .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
+        .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
         .cardStyle()
         .animation(.easeInOut(duration: 0.3), value: isCompact)
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
@@ -131,7 +127,7 @@ struct CalendarTodayCard: View {
     private func eventRow(event: EventData, isNext: Bool) -> some View {
         let isHappening = event.start <= now && event.end > now
 
-        return HStack(spacing: PerchTheme.Spacing.small) {
+        return HStack(spacing: PerchTheme.HomeCard.rowSpacing) {
             // Status indicator — green dot when event is happening now
             if isHappening {
                 Circle()
@@ -187,7 +183,7 @@ struct CalendarTodayCard: View {
     private func pastEventRow(event: EventData) -> some View {
         let endedMinutesAgo = Int(now.timeIntervalSince(event.end) / 60)
 
-        return HStack(spacing: PerchTheme.Spacing.small) {
+        return HStack(spacing: PerchTheme.HomeCard.rowSpacing) {
             Image(systemName: "checkmark")
                 .font(PerchTheme.Font.micro)
                 .foregroundColor(PerchTheme.textTertiary)
@@ -208,20 +204,12 @@ struct CalendarTodayCard: View {
 
             Spacer()
 
-            // Show "Ended Xm ago" for recently ended, "done" for older
-            if endedMinutesAgo < 60 {
-                Text("\(endedMinutesAgo)m ago")
-                    .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            } else {
-                Text("done")
-                    .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
+            Text(Self.pastRelativeLabel(minutesAgo: endedMinutesAgo))
+                .font(PerchTheme.Font.micro)
+                .foregroundColor(PerchTheme.textTertiary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(minWidth: PerchTheme.HomeCard.trailingColumnMinWidth, alignment: .trailing)
         }
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
         .opacity(endedMinutesAgo > 120 ? 0.6 : 0.8)
