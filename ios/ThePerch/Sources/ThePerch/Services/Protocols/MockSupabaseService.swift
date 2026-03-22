@@ -56,6 +56,7 @@ final class MockSupabaseService: SupabaseServiceProtocol {
     // MARK: - Mutation Methods
 
     func updateRecordPin(id: UUID, pinned: Bool) async throws {}
+    func updateRecordData(recordId: UUID, data: [String: JSONValue]) async throws {}
     func updateSectionOrder(sections: [Section]) async throws {}
 
     func insertRecord(
