@@ -192,6 +192,8 @@ final class DashboardViewModel {
                 } else {
                     _ = record.decodeData(as: MeasurementData.self)
                 }
+            case .nutrition:
+                break
             case .workouts:
                 _ = record.decodeData(as: WorkoutSessionData.self)
             case .deliveries:

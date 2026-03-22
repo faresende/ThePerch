@@ -17,6 +17,10 @@
 		26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */; };
 		353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */; };
 		353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */; };
+		DSBR0002DSBR0002DSBR0002 /* DailySummaryBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DSBR0001DSBR0001DSBR0001 /* DailySummaryBar.swift */; };
+		MLCD0002MLCD0002MLCD0002 /* MealCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MLCD0001MLCD0001MLCD0001 /* MealCard.swift */; };
+		MLIS0002MLIS0002MLIS0002 /* MealInputSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = MLIS0001MLIS0001MLIS0001 /* MealInputSheet.swift */; };
+		NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */; };
 		100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */; };
 		8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */; };
 		356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 356EB7102F5251A3009D0A53 /* Assets.xcassets */; };
@@ -183,6 +187,7 @@
 		194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCardRenderer.swift; sourceTree = "<group>"; };
 		260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardRenderer.swift; sourceTree = "<group>"; };
 		353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaloriesCard.swift; sourceTree = "<group>"; };
+		DSBR0001DSBR0001DSBR0001 /* DailySummaryBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailySummaryBar.swift; sourceTree = "<group>"; };
 		BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyVolumeCard.swift; sourceTree = "<group>"; };
 		E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCard.swift; sourceTree = "<group>"; };
 		353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacrosCard.swift; sourceTree = "<group>"; };
@@ -283,12 +288,15 @@
 		LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchLockScreenWidgets.swift; path = ThePerchWidgets/PerchLockScreenWidgets.swift; sourceTree = "<group>"; };
 				TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelTasksCard.swift; sourceTree = "<group>"; };
 		MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsCard.swift; sourceTree = "<group>"; };
+		MLCD0001MLCD0001MLCD0001 /* MealCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCard.swift; sourceTree = "<group>"; };
+		MLIS0001MLIS0001MLIS0001 /* MealInputSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealInputSheet.swift; sourceTree = "<group>"; };
 		MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSupabaseService.swift; sourceTree = "<group>"; };
 		NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionModels.swift; sourceTree = "<group>"; };
 		NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionHomeCard.swift; sourceTree = "<group>"; };
 		NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionService.swift; sourceTree = "<group>"; };
 		NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
+		NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperlessCard.swift; sourceTree = "<group>"; };
 		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
 		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
@@ -468,6 +476,7 @@
 			children = (
 				HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */,
 				353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */,
+				DSBR0001DSBR0001DSBR0001 /* DailySummaryBar.swift */,
 				BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */,
 				E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */,
 				353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */,
@@ -492,6 +501,8 @@
 				TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */,
 				WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */,
 				EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */,
+				MLCD0001MLCD0001MLCD0001 /* MealCard.swift */,
+				MLIS0001MLIS0001MLIS0001 /* MealInputSheet.swift */,
 				544E19CFE605483095619EE8 /* UniversalCard */,
 				3FBBCE373D0B4F9A9B10CA71 /* Renderers */,
 				AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */,
@@ -520,6 +531,7 @@
 				35F5436F2F52411F00204F77 /* DeliveriesView.swift */,
 				35F543702F52411F00204F77 /* HealthView.swift */,
 				5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */,
+				NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */,
 				9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */,
 				D2FD77E48492FF01406E3C35 /* TravelView.swift */,
 				35F543712F52411F00204F77 /* HomeView.swift */,
@@ -935,6 +947,7 @@
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */,
 				353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */,
 				353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */,
+				DSBR0002DSBR0002DSBR0002 /* DailySummaryBar.swift in Sources */,
 				100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */,
 				8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */,
 				35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */,
@@ -1011,7 +1024,10 @@
 				HCHD0002HCHD0002HCHD0002 /* HomeCardHeader.swift in Sources */,
 				CLTD0002CLTD0002CLTD0002 /* CalendarTodayCard.swift in Sources */,
 				CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */,
+				MLCD0002MLCD0002MLCD0002 /* MealCard.swift in Sources */,
+				MLIS0002MLIS0002MLIS0002 /* MealInputSheet.swift in Sources */,
 				NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */,
+				NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */,
 				DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */,
 				90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */,
 				MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */,
