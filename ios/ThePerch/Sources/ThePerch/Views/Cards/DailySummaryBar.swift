@@ -4,15 +4,18 @@ import SwiftUI
 struct DailySummaryBar: View {
     private let summary: DailyNutritionSummary?
     private let isShimmer: Bool
+    private let title: String
 
-    init(summary: DailyNutritionSummary) {
+    init(summary: DailyNutritionSummary, title: String = "TODAY'S TOTAL") {
         self.summary = summary
         self.isShimmer = false
+        self.title = title
     }
 
     private init(shimmer: Bool) {
         self.summary = nil
         self.isShimmer = shimmer
+        self.title = "TODAY'S TOTAL"
     }
 
     static var shimmer: some View {
@@ -27,7 +30,7 @@ struct DailySummaryBar: View {
                     Spacer()
                     SkeletonLine(width: 92, height: 18)
                 } else if let summary {
-                    Text("TODAY'S TOTAL")
+                    Text(title)
                         .font(PerchTheme.Font.cardEyebrow)
                         .foregroundColor(PerchTheme.textSecondary)
                         .tracking(0.8)
