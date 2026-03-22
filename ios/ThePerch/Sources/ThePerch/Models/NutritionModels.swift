@@ -1,6 +1,7 @@
 import Foundation
 
 struct MealRecord: Sendable {
+    let id: UUID
     let mealName: String
     let calories: Double
     let protein: Double
@@ -16,6 +17,7 @@ struct MealRecord: Sendable {
     init(from record: Record) {
         let data = record.data.objectValue ?? [:]
 
+        self.id = record.id
         self.mealName = data["meal_name"]?.stringValue ?? record.title
         self.calories = data["calories"]?.numberValue ?? 0
         self.protein = data["protein"]?.numberValue ?? 0
@@ -53,13 +55,17 @@ struct MealRecord: Sendable {
     }
 }
 
-struct MealSuggestion: Codable, Sendable {
+struct MealSuggestion: Codable, Identifiable, Sendable {
     let mealName: String
     let calories: Double
     let protein: Double
     let carbs: Double
     let fat: Double
     let analysisLine: String
+
+    var id: String {
+        "\(mealName)-\(Int(calories))-\(analysisLine)"
+    }
 
     enum CodingKeys: String, CodingKey {
         case mealName = "meal_name"
@@ -81,4 +87,26 @@ struct NutritionTargets: Sendable {
 struct DailyNutritionSummary: Sendable {
     var consumed: NutritionTargets
     var targets: NutritionTargets
+}
+
+struct NutritionDaySection: Identifiable, Sendable {
+    let id: Date
+    let date: Date
+    let meals: [MealRecord]
+    let summary: DailyNutritionSummary
+
+    init(date: Date, meals: [MealRecord], targets: NutritionTargets = NutritionTargets()) {
+        self.id = date
+        self.date = date
+        self.meals = meals
+
+        let consumed = NutritionTargets(
+            calories: meals.reduce(0) { $0 + $1.calories },
+            protein: meals.reduce(0) { $0 + $1.protein },
+            carbs: meals.reduce(0) { $0 + $1.carbs },
+            fat: meals.reduce(0) { $0 + $1.fat }
+        )
+
+        self.summary = DailyNutritionSummary(consumed: consumed, targets: targets)
+    }
 }

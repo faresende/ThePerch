@@ -1,17 +1,33 @@
 import SwiftUI
 
-/// Nutrition meal card showing meal timing, macro totals, and analysis output.
+/// Nutrition meal card showing meal timing, macro totals, and inline correction tools.
 struct MealCard: View {
     private let meal: MealRecord?
+    private let viewModel: NutritionViewModel?
     private let isShimmer: Bool
 
-    init(meal: MealRecord) {
+    @State private var isExpanded = false
+    @State private var showingCorrectionField = false
+    @State private var showingManualEditor = false
+    @State private var correctionText = ""
+    @State private var caloriesText = ""
+    @State private var proteinText = ""
+    @State private var carbsText = ""
+    @State private var fatText = ""
+
+    init(meal: MealRecord, viewModel: NutritionViewModel? = nil) {
         self.meal = meal
+        self.viewModel = viewModel
         self.isShimmer = false
+    }
+
+    init(record: Record, viewModel: NutritionViewModel) {
+        self.init(meal: MealRecord(from: record), viewModel: viewModel)
     }
 
     private init(shimmer: Bool) {
         self.meal = nil
+        self.viewModel = nil
         self.isShimmer = shimmer
     }
 
@@ -32,7 +48,7 @@ struct MealCard: View {
                         Text(meal.mealName)
                             .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
-                            .lineLimit(2)
+                            .lineLimit(isExpanded ? nil : 2)
 
                         Text(meal.mealTime.formatted(date: .omitted, time: .shortened))
                             .font(PerchTheme.Font.caption)
@@ -60,13 +76,38 @@ struct MealCard: View {
                 Text(meal.analysis)
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(isExpanded ? nil : 2)
+            }
+
+            if !isShimmer, let meal, isExpanded {
+                expandedControls(for: meal)
+            } else if !isShimmer {
+                Text("Tap to expand.")
+                    .font(PerchTheme.Font.micro)
+                    .foregroundColor(PerchTheme.textTertiary)
             }
         }
         .padding(PerchTheme.Card.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
+                .fill(isExpanded ? PerchTheme.cardHover.opacity(0.35) : .clear)
+        )
         .cardStyle()
-        .accessibilityElement(children: .combine)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard isShimmer == false else { return }
+            PerchMotion.withOptionalAnimation {
+                isExpanded.toggle()
+            }
+        }
+        .onAppear {
+            syncManualFields()
+        }
+        .onChange(of: meal?.id) { _, _ in
+            syncManualFields()
+        }
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
     }
 
@@ -103,6 +144,99 @@ struct MealCard: View {
         }
     }
 
+    @ViewBuilder
+    private func expandedControls(for meal: MealRecord) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            HStack(spacing: PerchTheme.Spacing.small) {
+                actionButton(
+                    title: showingCorrectionField ? "Hide Correction" : "Correct",
+                    systemImage: "wand.and.stars",
+                    tint: PerchTheme.accentMuted,
+                    foreground: PerchTheme.accent
+                ) {
+                    PerchMotion.withOptionalAnimation {
+                        showingCorrectionField.toggle()
+                        if showingCorrectionField { showingManualEditor = false }
+                    }
+                }
+
+                actionButton(
+                    title: showingManualEditor ? "Close Editor" : "Edit manually",
+                    systemImage: "slider.horizontal.3",
+                    tint: PerchTheme.cardInnerBackground,
+                    foreground: PerchTheme.textPrimary
+                ) {
+                    PerchMotion.withOptionalAnimation {
+                        showingManualEditor.toggle()
+                        if showingManualEditor { showingCorrectionField = false }
+                    }
+                }
+            }
+
+            if showingCorrectionField {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+                    TextField("What was different?", text: $correctionText, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .font(PerchTheme.Font.body)
+                        .foregroundColor(PerchTheme.textPrimary)
+                        .padding(PerchTheme.Spacing.medium)
+                        .background(
+                            RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
+                                .fill(PerchTheme.cardInnerBackground)
+                        )
+                        .onSubmit {
+                            submitCorrection()
+                        }
+
+                    HStack {
+                        Spacer()
+                        Button("Submit correction") {
+                            submitCorrection()
+                        }
+                        .font(PerchTheme.Font.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(PerchTheme.accent)
+                        .disabled(correctionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel?.isAnalyzing == true)
+                    }
+                }
+            }
+
+            if showingManualEditor {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+                    Text("Edit macros")
+                        .font(PerchTheme.Font.cardEyebrow)
+                        .foregroundColor(PerchTheme.textSecondary)
+
+                    HStack(spacing: PerchTheme.Spacing.small) {
+                        manualField(title: "Cal", value: $caloriesText)
+                        manualField(title: "P", value: $proteinText)
+                        manualField(title: "C", value: $carbsText)
+                        manualField(title: "F", value: $fatText)
+                    }
+
+                    HStack {
+                        Spacer()
+                        Button("Save edits") {
+                            submitManualEdit(for: meal)
+                        }
+                        .font(PerchTheme.Font.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(PerchTheme.accent)
+                        .disabled(viewModel?.isAnalyzing == true || parsedManualValues == nil)
+                    }
+                }
+                .padding(PerchTheme.Spacing.medium)
+                .background(
+                    RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
+                        .fill(PerchTheme.cardInnerBackground.opacity(0.85))
+                )
+            }
+            Text("Tap anywhere on the card to collapse.")
+                .font(PerchTheme.Font.micro)
+                .foregroundColor(PerchTheme.textTertiary)
+        }
+    }
+
     private var correctedBadge: some View {
         Text("Corrected")
             .font(PerchTheme.Font.micro)
@@ -118,6 +252,101 @@ struct MealCard: View {
     private var accessibilityLabel: String {
         guard let meal else { return "Loading meal" }
         return "\(meal.mealName), \(Int(meal.calories)) calories, \(Int(meal.protein)) grams protein, \(Int(meal.carbs)) grams carbs, \(Int(meal.fat)) grams fat"
+    }
+
+    @ViewBuilder
+    private func manualField(title: String, value: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
+            Text(title)
+                .font(PerchTheme.Font.micro)
+                .foregroundColor(PerchTheme.textSecondary)
+
+            TextField(title, text: value)
+                .keyboardType(.decimalPad)
+                .font(PerchTheme.Font.bodyNumeric)
+                .foregroundColor(PerchTheme.textPrimary)
+                .padding(.horizontal, PerchTheme.Spacing.small)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(PerchTheme.background.opacity(0.75))
+                )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func actionButton(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        foreground: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(PerchTheme.Font.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(foreground)
+                .padding(.horizontal, PerchTheme.Spacing.medium)
+                .padding(.vertical, PerchTheme.Spacing.small)
+                .background(
+                    Capsule()
+                        .fill(tint)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var parsedManualValues: (Double, Double, Double, Double)? {
+        guard
+            let calories = Double(caloriesText),
+            let protein = Double(proteinText),
+            let carbs = Double(carbsText),
+            let fat = Double(fatText)
+        else {
+            return nil
+        }
+
+        return (calories, protein, carbs, fat)
+    }
+
+    private func submitCorrection() {
+        guard let meal else { return }
+        let trimmed = correctionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty == false else { return }
+
+        Task {
+            await viewModel?.correctMeal(recordId: meal.id.uuidString, correction: trimmed)
+            await MainActor.run {
+                correctionText = ""
+                showingCorrectionField = false
+            }
+        }
+    }
+
+    private func submitManualEdit(for meal: MealRecord) {
+        guard let values = parsedManualValues else { return }
+
+        Task {
+            await viewModel?.updateMealMacros(
+                recordId: meal.id,
+                calories: values.0,
+                protein: values.1,
+                carbs: values.2,
+                fat: values.3
+            )
+            await MainActor.run {
+                showingManualEditor = false
+            }
+        }
+    }
+
+    private func syncManualFields() {
+        guard let meal else { return }
+        caloriesText = String(Int(meal.calories))
+        proteinText = String(Int(meal.protein))
+        carbsText = String(Int(meal.carbs))
+        fatText = String(Int(meal.fat))
     }
 }
 

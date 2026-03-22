@@ -38,6 +38,18 @@ final class NutritionService {
         return try await performRequest(body: body)
     }
 
+    func decodeSuggestions(from response: [String: Any]) throws -> [MealSuggestion] {
+        let candidates = response["suggestions"] ?? response["meals"] ?? response["results"]
+
+        guard let candidates else {
+            throw SupabaseServiceError.decodingError("Missing meal suggestions in nutrition response")
+        }
+
+        let data = try JSONSerialization.data(withJSONObject: candidates)
+        let decoder = JSONDecoder()
+        return try decoder.decode([MealSuggestion].self, from: data)
+    }
+
     private func performRequest(body: [String: Any]) async throws -> [String: Any] {
         var request = URLRequest(url: edgeFunctionURL)
         request.httpMethod = "POST"
