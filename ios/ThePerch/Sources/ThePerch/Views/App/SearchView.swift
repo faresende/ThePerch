@@ -203,6 +203,7 @@ struct SearchResultRow: View {
         case .event: return "calendar"
         case .bookmark: return "bookmark"
         case .measurement: return "heart"
+        case .meal: return "fork.knife"
         case .status: return "circle.fill"
         case .reminder: return "bell"
         case .textNote: return "note.text"
