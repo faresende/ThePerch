@@ -5,6 +5,7 @@ import Foundation
 /// The type of record (measurement, delivery, event, etc.).
 enum RecordType: String, Codable, CaseIterable, Sendable {
     case measurement
+    case meal
     case delivery
     case event
     case status
@@ -33,6 +34,8 @@ enum RecordType: String, Codable, CaseIterable, Sendable {
         switch self {
         case .measurement:
             return "Measurement"
+        case .meal:
+            return "Meal"
         case .delivery:
             return "Delivery"
         case .event:
@@ -74,6 +77,7 @@ enum RecordType: String, Codable, CaseIterable, Sendable {
 /// The category a record belongs to (affects organization and filtering).
 enum RecordCategory: String, Codable, CaseIterable, Sendable {
     case health
+    case nutrition
     case workouts
     case deliveries
     case calendar
@@ -93,6 +97,8 @@ enum RecordCategory: String, Codable, CaseIterable, Sendable {
         switch self {
         case .health:
             return "Health"
+        case .nutrition:
+            return "Nutrition"
         case .workouts:
             return "Workouts"
         case .deliveries:

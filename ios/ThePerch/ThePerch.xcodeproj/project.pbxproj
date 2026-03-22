@@ -121,7 +121,10 @@
 		MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */; };
 		MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */; };
 		NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */; };
+		NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */; };
 		NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */; };
+		NTRS0002NTRS0002NTRS0002 /* NutritionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */; };
+		NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */; };
 		PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */; };
 		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
 		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
@@ -282,7 +285,10 @@
 		MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsCard.swift; sourceTree = "<group>"; };
 		MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSupabaseService.swift; sourceTree = "<group>"; };
 		NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionModels.swift; sourceTree = "<group>"; };
 		NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionHomeCard.swift; sourceTree = "<group>"; };
+		NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionService.swift; sourceTree = "<group>"; };
+		NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperlessCard.swift; sourceTree = "<group>"; };
 		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
 		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
@@ -396,6 +402,7 @@
 				35F5434C2F52411F00204F77 /* Agent.swift */,
 				35F5434D2F52411F00204F77 /* DataPayloads.swift */,
 				35F5434E2F52411F00204F77 /* JSONValue.swift */,
+				NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */,
 				35F5434F2F52411F00204F77 /* Record.swift */,
 				35F543502F52411F00204F77 /* Section.swift */,
 				35F543512F52411F00204F77 /* TokenUsage.swift */,
@@ -412,6 +419,7 @@
 				35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */,
 				35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */,
 				35F543542F52411F00204F77 /* EventKitService.swift */,
+				NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */,
 				35F543552F52411F00204F77 /* SupabaseService.swift */,
 				C27DBAD9446B0EA0E5642376 /* KeychainService.swift */,
 				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
@@ -435,6 +443,7 @@
 			isa = PBXGroup;
 			children = (
 				35E8ADAA2F5B19E100BAC8FE /* HealthViewModel.swift */,
+				NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */,
 				5C887520E395213A3CA8757C /* TravelViewModel.swift */,
 				35F543592F52411F00204F77 /* AuthViewModel.swift */,
 				35F5435A2F52411F00204F77 /* DashboardViewModel.swift */,
@@ -939,6 +948,7 @@
 				35F543852F52411F00204F77 /* Section.swift in Sources */,
 				35F543862F52411F00204F77 /* AppConfig.swift in Sources */,
 				35F543872F52411F00204F77 /* Agent.swift in Sources */,
+				NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */,
 				35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */,
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
@@ -952,12 +962,14 @@
 				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,
 				35F543902F52411F00204F77 /* DeliveriesView.swift in Sources */,
 				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
+				NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */,
 				2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */,
 				35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */,
 				PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */,
 				35F543922F52411F00204F77 /* HomeView.swift in Sources */,
 				35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */,
 				35F543942F52411F00204F77 /* TokenUsage.swift in Sources */,
+				NTRS0002NTRS0002NTRS0002 /* NutritionService.swift in Sources */,
 				35F543962F52411F00204F77 /* SupabaseService.swift in Sources */,
 				8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */,
 				35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */,
