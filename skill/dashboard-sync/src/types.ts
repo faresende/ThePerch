@@ -37,6 +37,9 @@ export interface OrderData {
 
 export interface ShipmentData {
   order_id?: string;
+  merchant_name?: string;
+  normalized_merchant?: string;
+  order_number?: string;
   tracking_number: string;
   carrier: string;
   provider?: string;
