@@ -165,7 +165,7 @@ async function handleSuggest(
     .from('records')
     .select('id, title, data, created_at')
     .eq('user_id', request.user_id)
-    .eq('agent_id', RECORD_DEFAULTS.agent_id)
+    .eq('category', RECORD_DEFAULTS.category)
     .eq('type', RECORD_DEFAULTS.type)
     .gte('created_at', start)
     .lt('created_at', end)

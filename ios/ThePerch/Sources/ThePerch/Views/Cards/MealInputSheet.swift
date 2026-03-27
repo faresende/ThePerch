@@ -5,7 +5,7 @@ import UIKit
 /// Sheet for logging a meal via text, photo, or both.
 struct MealInputSheet: View {
     let isSubmitting: Bool
-    let onSubmit: (_ text: String?, _ image: UIImage?) async -> Void
+    let onSubmit: (_ text: String?, _ image: UIImage?) async -> Bool
 
     @Environment(\.dismiss) private var dismiss
 
@@ -107,8 +107,10 @@ struct MealInputSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task {
-                            await onSubmit(trimmedDescription, selectedImage)
-                            dismiss()
+                            let didSubmit = await onSubmit(trimmedDescription, selectedImage)
+                            if didSubmit {
+                                dismiss()
+                            }
                         }
                     } label: {
                         if isSubmitting {

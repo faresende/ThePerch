@@ -77,16 +77,85 @@ struct MealSuggestion: Codable, Identifiable, Sendable {
     }
 }
 
-struct NutritionTargets: Sendable {
-    var calories: Double = 3000
-    var protein: Double = 180
-    var carbs: Double = 250
-    var fat: Double = 80
+struct NutritionTargets: Sendable, Equatable {
+    var calories: Double
+    var protein: Double
+    var carbs: Double
+    var fat: Double
+
+    init(
+        calories: Double = 2200,
+        protein: Double = 180,
+        carbs: Double = 250,
+        fat: Double = 70
+    ) {
+        self.calories = calories
+        self.protein = protein
+        self.carbs = carbs
+        self.fat = fat
+    }
+
+    static func resolved(
+        for date: Date,
+        records: [Record],
+        calendar: Calendar = .current
+    ) -> NutritionTargets {
+        let dateString = PerchFormatters.isoDate.string(from: date)
+        var targets = NutritionTargets()
+
+        let caloriesTarget = records
+            .compactMap { record -> (Record, MeasurementData)? in
+                guard let measurement = record.asMeasurement(), measurement.metric == "daily_calories" else {
+                    return nil
+                }
+                return (record, measurement)
+            }
+            .filter { sample in
+                sample.1.context == dateString || sample.1.timestamp.map { calendar.isDate($0, inSameDayAs: date) } == true
+            }
+            .sorted { $0.0.updatedAt > $1.0.updatedAt }
+            .first?
+            .1
+            .target
+
+        if let caloriesTarget, caloriesTarget > 0 {
+            targets.calories = caloriesTarget
+        }
+
+        let macros = records
+            .compactMap { record -> (Record, MacrosData)? in
+                guard let macros = record.asMacros() else { return nil }
+                return (record, macros)
+            }
+            .filter { $0.1.date == dateString }
+            .sorted { $0.0.updatedAt > $1.0.updatedAt }
+            .first?
+            .1
+
+        if let proteinTarget = macros?.proteinTarget, proteinTarget > 0 {
+            targets.protein = proteinTarget
+        }
+        if let carbsTarget = macros?.carbsTarget, carbsTarget > 0 {
+            targets.carbs = carbsTarget
+        }
+        if let fatTarget = macros?.fatTarget, fatTarget > 0 {
+            targets.fat = fatTarget
+        }
+
+        return targets
+    }
 }
 
-struct DailyNutritionSummary: Sendable {
+struct DailyNutritionSummary: Sendable, Equatable {
     var consumed: NutritionTargets
     var targets: NutritionTargets
+
+    static var empty: DailyNutritionSummary {
+        DailyNutritionSummary(
+            consumed: NutritionTargets(calories: 0, protein: 0, carbs: 0, fat: 0),
+            targets: NutritionTargets()
+        )
+    }
 }
 
 struct NutritionDaySection: Identifiable, Sendable {

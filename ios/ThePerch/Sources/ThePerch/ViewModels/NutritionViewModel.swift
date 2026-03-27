@@ -15,6 +15,7 @@ final class NutritionViewModel {
     private let nutritionService: NutritionService
     private let supabaseService: SupabaseServiceProtocol
     private let pageSize = 7
+    private var targetSourceRecords: [Record] = []
 
     init(
         nutritionService: NutritionService = .shared,
@@ -25,6 +26,13 @@ final class NutritionViewModel {
     }
 
     func loadMeals(from records: [Record]) {
+        let containsTargetContext = records.contains {
+            $0.asMeasurement()?.metric == "daily_calories" || $0.asMacros() != nil
+        }
+        if containsTargetContext || targetSourceRecords.isEmpty {
+            targetSourceRecords = records
+        }
+
         meals = records
             .filter { $0.category == .nutrition && $0.type == .meal }
             .sorted { $0.createdAt > $1.createdAt }
@@ -37,18 +45,20 @@ final class NutritionViewModel {
         }
     }
 
-    func logMeal(text: String?, image: UIImage?, userId: String) async {
+    @discardableResult
+    func logMeal(text: String?, image: UIImage?, userId: String) async -> Bool {
         isAnalyzing = true
         error = nil
         defer { isAnalyzing = false }
 
         do {
             let imageData = image?.jpegData(compressionQuality: 1.0)
-            _ = try await nutritionService.analyzeMeal(text: text, imageData: imageData)
-            _ = userId
+            _ = try await nutritionService.analyzeMeal(text: text, imageData: imageData, userId: userId)
             try await refreshMeals()
+            return true
         } catch {
             self.error = error.localizedDescription
+            return false
         }
     }
 
@@ -124,7 +134,8 @@ final class NutritionViewModel {
         }
     }
 
-    func logSuggestedMeal(_ suggestion: MealSuggestion, userId: String) async {
+    @discardableResult
+    func logSuggestedMeal(_ suggestion: MealSuggestion, userId: String) async -> Bool {
         error = nil
 
         do {
@@ -147,8 +158,10 @@ final class NutritionViewModel {
                 displayHint: .unknown
             )
             try await refreshMeals()
+            return true
         } catch {
             self.error = error.localizedDescription
+            return false
         }
     }
 
@@ -179,7 +192,11 @@ final class NutritionViewModel {
             .map { date in
                 let mealsForDay = groupedMeals[date, default: []]
                     .sorted { $0.mealTime > $1.mealTime }
-                return NutritionDaySection(date: date, meals: mealsForDay)
+                return NutritionDaySection(
+                    date: date,
+                    meals: mealsForDay,
+                    targets: NutritionTargets.resolved(for: date, records: targetSourceRecords)
+                )
             }
     }
 
@@ -188,7 +205,7 @@ final class NutritionViewModel {
     }
 
     var dailySummary: DailyNutritionSummary {
-        visibleSections.first?.summary ?? DailyNutritionSummary(consumed: NutritionTargets(calories: 0, protein: 0, carbs: 0, fat: 0), targets: NutritionTargets())
+        visibleSections.first?.summary ?? .empty
     }
 
     private func refreshMeals() async throws {
