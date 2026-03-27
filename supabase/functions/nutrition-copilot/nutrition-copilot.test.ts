@@ -69,8 +69,8 @@ test('mealRecordPayload produces a records-row payload for analyzed meals', () =
     },
   });
 
-  assert.equal(payload.type, 'measurement');
-  assert.equal(payload.category, 'health');
+  assert.equal(payload.type, 'meal');
+  assert.equal(payload.category, 'nutrition');
   assert.equal(payload.display_hint, 'meal_log');
   assert.equal(payload.data.meal_name, 'Chicken salad');
   assert.equal(payload.data.corrected, false);

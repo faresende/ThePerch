@@ -79,8 +79,8 @@ export function mealRecordPayload(input: { userId: string; analysis: MealAnalysi
 
   return {
     user_id: userId,
-    type: 'measurement',
-    category: 'health',
+    type: 'meal',
+    category: 'nutrition',
     title: analysis.meal_name,
     display_hint: 'meal_log',
     data: {
