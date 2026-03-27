@@ -16,6 +16,9 @@ import {
   DisplayHint,
 } from './types';
 
+export { extractOrderCandidate, extractShipmentCandidate, normalizeMerchantName } from './orders';
+export { buildReviewItem, deriveOrderStatusFromShipments, matchShipmentToOrder } from './matching';
+
 /**
  * Validates record input parameters
  * @throws Error if validation fails
