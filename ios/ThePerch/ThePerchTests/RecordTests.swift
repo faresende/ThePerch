@@ -225,6 +225,93 @@ struct HealthViewModelNutritionSelectionTests {
     }
 }
 
+@Suite("Nutrition targets")
+struct NutritionTargetsTests {
+    private let date = ISO8601DateFormatter().date(from: "2026-03-26T12:00:00Z")!
+
+    private func makeCaloriesRecord(target: Double, context: String, updatedAt: Date) -> Record {
+        Record(
+            id: UUID(),
+            agentId: "health-agent",
+            userId: UUID(),
+            type: .measurement,
+            category: .health,
+            title: "Daily Calories",
+            data: .object([
+                "metric": .string("daily_calories"),
+                "value": .double(1840),
+                "unit": .string("kcal"),
+                "target": .double(target),
+                "context": .string(context),
+            ]),
+            displayHint: .progressGauge,
+            annotations: nil,
+            pinned: false,
+            createdAt: updatedAt,
+            updatedAt: updatedAt,
+            expiresAt: nil
+        )
+    }
+
+    private func makeMacrosRecord(
+        date: String,
+        proteinTarget: Double,
+        carbsTarget: Double,
+        fatTarget: Double,
+        updatedAt: Date
+    ) -> Record {
+        Record(
+            id: UUID(),
+            agentId: "health-agent",
+            userId: UUID(),
+            type: .measurement,
+            category: .health,
+            title: "Daily Macros",
+            data: .object([
+                "protein": .double(150),
+                "protein_target": .double(proteinTarget),
+                "carbs": .double(190),
+                "carbs_target": .double(carbsTarget),
+                "fat": .double(55),
+                "fat_target": .double(fatTarget),
+                "date": .string(date),
+            ]),
+            displayHint: .macrosBar,
+            annotations: nil,
+            pinned: false,
+            createdAt: updatedAt,
+            updatedAt: updatedAt,
+            expiresAt: nil
+        )
+    }
+
+    @Test("resolved targets prefer daily calorie and macro records for the same day")
+    func resolvesTargetsFromRecords() {
+        let updatedAt = ISO8601DateFormatter().date(from: "2026-03-26T21:00:00Z")!
+        let targets = NutritionTargets.resolved(
+            for: date,
+            records: [
+                makeCaloriesRecord(target: 2600, context: "2026-03-26", updatedAt: updatedAt),
+                makeMacrosRecord(
+                    date: "2026-03-26",
+                    proteinTarget: 210,
+                    carbsTarget: 275,
+                    fatTarget: 75,
+                    updatedAt: updatedAt
+                ),
+            ]
+        )
+
+        #expect(targets == NutritionTargets(calories: 2600, protein: 210, carbs: 275, fat: 75))
+    }
+
+    @Test("resolved targets fall back to app defaults when no matching records exist")
+    func fallsBackToDefaults() {
+        let targets = NutritionTargets.resolved(for: date, records: [])
+        #expect(targets == NutritionTargets())
+    }
+}
+
 @Suite("HealthViewModel Apple Health write-back")
 struct HealthViewModelAppleHealthWriteTests {
     final class MockHealthKitService: HealthKitServiceProtocol, @unchecked Sendable {

@@ -66,8 +66,11 @@ struct NutritionView: View {
         }
         .sheet(isPresented: $showingInputSheet) {
             MealInputSheet(isSubmitting: vm.isAnalyzing) { text, image in
-                await vm.logMeal(text: text, image: image, userId: submissionUserId)
-                await dashboardViewModel.refreshRecords(forceRefresh: true)
+                let didSubmit = await vm.logMeal(text: text, image: image, userId: submissionUserId)
+                if didSubmit {
+                    await dashboardViewModel.refreshRecords(forceRefresh: true)
+                }
+                return didSubmit
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -79,9 +82,12 @@ struct NutritionView: View {
                 viewModel: vm,
                 userId: submissionUserId,
                 onLogSuggestion: { suggestion in
-                    await vm.logSuggestedMeal(suggestion, userId: submissionUserId)
-                    await dashboardViewModel.refreshRecords(forceRefresh: true)
-                    showingSuggestionsSheet = false
+                    let didSubmit = await vm.logSuggestedMeal(suggestion, userId: submissionUserId)
+                    if didSubmit {
+                        await dashboardViewModel.refreshRecords(forceRefresh: true)
+                        showingSuggestionsSheet = false
+                    }
+                    return didSubmit
                 }
             )
             .presentationDetents([.medium, .large])
@@ -237,7 +243,7 @@ private struct MealSuggestionsSheet: View {
 
     let viewModel: NutritionViewModel
     let userId: String
-    let onLogSuggestion: (MealSuggestion) async -> Void
+    let onLogSuggestion: (MealSuggestion) async -> Bool
 
     @State private var context = ""
 
@@ -305,8 +311,10 @@ private struct MealSuggestionsSheet: View {
 
                             ForEach(viewModel.mealSuggestions.prefix(3)) { suggestion in
                                 SuggestionCard(suggestion: suggestion) {
-                                    await onLogSuggestion(suggestion)
-                                    dismiss()
+                                    let didLog = await onLogSuggestion(suggestion)
+                                    if didLog {
+                                        dismiss()
+                                    }
                                 }
                             }
                         }

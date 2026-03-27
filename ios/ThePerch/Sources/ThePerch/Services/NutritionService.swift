@@ -8,8 +8,11 @@ final class NutritionService {
 
     private init() {}
 
-    func analyzeMeal(text: String?, imageData: Data?) async throws -> [String: Any] {
-        var body: [String: Any] = ["mode": "analyze"]
+    func analyzeMeal(text: String?, imageData: Data?, userId: String) async throws -> [String: Any] {
+        var body: [String: Any] = [
+            "mode": "analyze",
+            "user_id": userId
+        ]
         if let text, text.isEmpty == false {
             body["text"] = text
         }
