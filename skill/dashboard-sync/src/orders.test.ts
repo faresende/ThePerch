@@ -102,13 +102,17 @@ test('extractShipmentCandidate parses shipment update text with tracking', () =>
   const candidate = extractShipmentCandidate(`
     UPS shipment update
     Tracking number 1Z999AA10123456784
+    Order number: 112-1234567-7654321
     Status: out for delivery
+    Merchant: Amazon EU S.a r.l.
     Carrier: UPS
   `);
 
   assert.ok(candidate);
   assert.equal(candidate?.tracking_number, '1Z999AA10123456784');
   assert.equal(candidate?.carrier, 'UPS');
+  assert.equal(candidate?.order_number, '112-1234567-7654321');
+  assert.equal(candidate?.normalized_merchant, 'amazon');
   assert.equal(candidate?.status, 'out_for_delivery');
 });
 

@@ -54,7 +54,10 @@ export function extractShipmentCandidate(text: string): ShipmentData | null {
   if (!trackingMatch) return null;
 
   const carrierMatch = text.match(/\b(UPS|FedEx|DHL|USPS|DPD|Amazon)\b/i);
+  const merchantMatch = text.match(/merchant[:\s]+(.+)/i);
+  const orderNumberMatch = text.match(/order\s+number[:\s]+([A-Z0-9-]{6,})/i);
   const normalizedText = text.toLowerCase();
+  const merchantName = merchantMatch?.[1]?.trim();
 
   let status: ShipmentData['status'] = 'unknown';
   if (normalizedText.includes('out for delivery')) status = 'out_for_delivery';
@@ -64,6 +67,9 @@ export function extractShipmentCandidate(text: string): ShipmentData | null {
   else if (normalizedText.includes('exception')) status = 'exception';
 
   return {
+    merchant_name: merchantName,
+    normalized_merchant: merchantName ? normalizeMerchantName(merchantName) : undefined,
+    order_number: orderNumberMatch?.[1],
     tracking_number: trackingMatch[1],
     carrier: carrierMatch?.[1]?.toUpperCase() || 'UNKNOWN',
     provider: 'email',
