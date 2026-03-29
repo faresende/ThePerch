@@ -95,8 +95,12 @@ export interface MealSuggestion {
   analysis_line: string;
 }
 
-export async function analyzeMeal(text?: string, imageBase64?: string): Promise<MealAnalysisResult> {
-  const content = buildAnalyzeContent(text, imageBase64);
+export async function analyzeMeal(
+  text?: string,
+  imageBase64?: string,
+  options?: { memoryPrior?: Record<string, unknown> | null },
+): Promise<MealAnalysisResult> {
+  const content = buildAnalyzeContent(text, imageBase64, options?.memoryPrior ?? null);
   const parsed = await callAnthropicJson({
     system: ANALYZE_SYSTEM_PROMPT,
     content,
@@ -217,8 +221,23 @@ async function callAnthropicJson(input: {
   return parsed;
 }
 
-function buildAnalyzeContent(text?: string, imageBase64?: string): Array<Record<string, unknown>> {
+function buildAnalyzeContent(
+  text?: string,
+  imageBase64?: string,
+  memoryPrior?: Record<string, unknown> | null,
+): Array<Record<string, unknown>> {
   const content: Array<Record<string, unknown>> = [];
+
+  if (memoryPrior) {
+    content.push({
+      type: 'text',
+      text: [
+        'Food memory prior:',
+        JSON.stringify(memoryPrior, null, 2),
+        'Use this as a prior when the identity match is strong, but still estimate the portion from the current input.',
+      ].join('\n'),
+    });
+  }
 
   if (text) {
     content.push({
