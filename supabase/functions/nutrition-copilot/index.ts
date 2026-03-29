@@ -2,13 +2,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import {
-  mealRecordPayload,
   normalizeAnalyzeRequest,
   normalizeCorrectRequest,
   normalizeSuggestRequest,
-  type MealAnalysisResult,
 } from './nutrition-copilot.ts';
 import { analyzeMeal, correctMeal, suggestMeals, type RemainingMacros } from './llm.ts';
+import { analyzeAndCreateRecord, correctAndLearnRecord } from './nutrition-service.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -26,10 +25,8 @@ const DAILY_TARGETS = {
 };
 
 const RECORD_DEFAULTS = {
-  agent_id: 'nutrition-copilot',
   type: 'meal',
   category: 'nutrition',
-  display_hint: 'meal_log',
 } as const;
 
 serve(async (req: Request) => {
@@ -70,22 +67,7 @@ async function handleAnalyze(
   input: Record<string, unknown>,
 ): Promise<Response> {
   const request = normalizeAnalyzeRequest(input);
-  const analysis = await analyzeMeal(request.text, request.image_base64);
-
-  const insertPayload = {
-    ...mealRecordPayload({ userId: request.user_id, analysis }),
-    ...RECORD_DEFAULTS,
-  };
-
-  const { data, error } = await supabase
-    .from('records')
-    .insert(insertPayload)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new HttpError(500, `Failed to write meal record: ${error.message}`);
-  }
+  const data = await analyzeAndCreateRecord(supabase, request, { analyzeMeal });
 
   return jsonResponse({ record: data });
 }
@@ -95,63 +77,18 @@ async function handleCorrect(
   input: Record<string, unknown>,
 ): Promise<Response> {
   const request = normalizeCorrectRequest(input);
-
-  const { data: existing, error: fetchError } = await supabase
-    .from('records')
-    .select('*')
-    .eq('id', request.record_id)
-    .single();
-
-  if (fetchError) {
-    if (fetchError.code === 'PGRST116') {
-      throw new HttpError(404, 'Meal record not found');
+  try {
+    const updated = await correctAndLearnRecord(supabase, request, { correctMeal });
+    return jsonResponse({ record: updated });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Meal record not found') {
+      throw new HttpError(404, error.message);
     }
-    throw new HttpError(500, `Failed to load meal record: ${fetchError.message}`);
+    if (error instanceof Error) {
+      throw new HttpError(500, error.message);
+    }
+    throw error;
   }
-
-  const original = recordToMealAnalysis(existing);
-  const corrected = await correctMeal(original, request.correction_text);
-  const previousHistory = Array.isArray(existing.data?.correction_history)
-    ? existing.data.correction_history
-    : [];
-
-  const updatedData = {
-    ...mealRecordPayload({ userId: existing.user_id, analysis: corrected }).data,
-    corrected: true,
-    correction_history: [
-      ...previousHistory,
-      {
-        corrected_at: new Date().toISOString(),
-        correction_text: request.correction_text,
-        previous: {
-          meal_name: original.meal_name,
-          calories: original.calories,
-          protein: original.protein,
-          carbs: original.carbs,
-          fat: original.fat,
-          fiber: original.fiber ?? null,
-          analysis_line: original.analysis_line,
-          confidence: original.confidence,
-        },
-      },
-    ],
-  };
-
-  const { data: updated, error: updateError } = await supabase
-    .from('records')
-    .update({
-      title: corrected.meal_name,
-      data: updatedData,
-    })
-    .eq('id', request.record_id)
-    .select('*')
-    .single();
-
-  if (updateError) {
-    throw new HttpError(500, `Failed to update meal record: ${updateError.message}`);
-  }
-
-  return jsonResponse({ record: updated });
 }
 
 async function handleSuggest(
@@ -213,24 +150,6 @@ function createServiceClient() {
       autoRefreshToken: false,
     },
   });
-}
-
-function recordToMealAnalysis(record: Record<string, unknown>): MealAnalysisResult {
-  const data = isRecord(record.data) ? record.data : {};
-
-  return {
-    meal_name: asString(data.meal_name) || asString(record.title) || 'Meal',
-    calories: asNumber(data.calories),
-    protein: asNumber(data.protein),
-    carbs: asNumber(data.carbs),
-    fat: asNumber(data.fat),
-    fiber: hasValue(data.fiber) ? asNumber(data.fiber) : undefined,
-    analysis_line: asString(data.analysis) || 'Meal updated.',
-    confidence: asNumber(data.confidence),
-    input_text: hasValue(data.input_text) ? asNullableString(data.input_text) : null,
-    photo_url: hasValue(data.photo_url) ? asNullableString(data.photo_url) : null,
-    meal_time: asString(data.meal_time) || asString(record.created_at) || new Date().toISOString(),
-  };
 }
 
 function sumConsumedMacros(records: Array<Record<string, unknown>>) {
@@ -297,22 +216,6 @@ class HttpError extends Error {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
-function hasValue(value: unknown): boolean {
-  return value !== null && typeof value !== 'undefined';
-}
-
-function asString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function asNullableString(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
-
 function asNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -324,4 +227,8 @@ function asNumber(value: unknown): number {
   }
 
   return 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
 }
