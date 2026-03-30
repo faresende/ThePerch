@@ -132,6 +132,7 @@ enum DisplayHint: String, Codable, CaseIterable, Sendable {
     case progressGauge = "progress_gauge"
     case macrosBar = "macros_bar"
     case calendarEvent = "calendar_event"
+    case mealLog = "meal_log"
     case unknown
 
     init(from decoder: Decoder) throws {
@@ -164,6 +165,8 @@ enum DisplayHint: String, Codable, CaseIterable, Sendable {
             return "Macros Bar"
         case .calendarEvent:
             return "Calendar Event"
+        case .mealLog:
+            return "Meal Log"
         case .unknown:
             return "Unknown"
         }
