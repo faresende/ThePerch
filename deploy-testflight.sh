@@ -5,7 +5,8 @@ set -euo pipefail
 # ThePerch — Deploy to TestFlight
 # ─────────────────────────────────────────────────────────────
 
-REPO_ROOT="$HOME/Documents/Apps/ThePerch"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$SCRIPT_DIR"
 PROJECT="$REPO_ROOT/ios/ThePerch/ThePerch.xcodeproj"
 PBXPROJ="$PROJECT/project.pbxproj"
 SCHEME="ThePerch"
@@ -44,6 +45,10 @@ if [ -z "$LANE" ]; then
 fi
 
 AUTH="-allowProvisioningUpdates -authenticationKeyPath $KEY -authenticationKeyID $KEY_ID -authenticationKeyIssuerID $ISSUER"
+
+log_deploy_success() {
+  echo "✅ Deploy succeeded: build $NEW_BUILD uploaded to TestFlight (${LANE} lane)."
+}
 
 # ─────────────────────────────────────────────────────────────
 # PRE-FLIGHT CHECKS
@@ -118,7 +123,7 @@ QA_SCRIPT="$HOME/.openclaw/workspace/scripts/qa-predeploy.sh"
 if [ "$SKIP_QA" = false ] && [ -f "$QA_SCRIPT" ]; then
   echo ""
   echo "🔍 Running QA pre-deploy check..."
-  if bash "$QA_SCRIPT"; then
+  if bash "$QA_SCRIPT" "$REPO_ROOT"; then
     echo "✅ QA check passed"
   else
     echo "❌ QA check failed. Aborting deploy."
@@ -194,19 +199,24 @@ git push origin "build/$NEW_BUILD"
 
 echo ""
 echo "📣 Sending Telegram notification..."
+log_deploy_success
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
   echo "⚠️  Telegram notification skipped: bot token not configured"
+elif ! printf '%s' "$TELEGRAM_BOT_TOKEN" | grep -Eq '^[0-9]{6,}:[A-Za-z0-9_-]{20,}$'; then
+  echo "⚠️  Telegram notification skipped: invalid bot token format"
 else
   TELEGRAM_TEXT="🚀 ThePerch Build ${NEW_BUILD} uploaded to TestFlight (${LANE} lane). Should be available in ~5 minutes."
-  TELEGRAM_RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+  TELEGRAM_RESPONSE=$(curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     -d chat_id="$TELEGRAM_CHAT_ID" \
     -d text="$TELEGRAM_TEXT" \
-    -d parse_mode=Markdown)
-  if echo "$TELEGRAM_RESPONSE" | grep -q '"ok":true'; then
+    -d parse_mode=Markdown 2>&1) || CURL_STATUS=$?
+  CURL_STATUS=${CURL_STATUS:-0}
+  if [ "$CURL_STATUS" -eq 0 ] && echo "$TELEGRAM_RESPONSE" | grep -q '"ok":true'; then
     echo "✅ Telegram notification sent"
   else
     echo "⚠️  Telegram notification failed but deploy succeeded"
-    echo "   Response: $TELEGRAM_RESPONSE"
+    echo "   Error body: $TELEGRAM_RESPONSE"
+    log_deploy_success
   fi
 fi
 
