@@ -1,0 +1,16 @@
+export const perch = {
+  bg: "#1a1a2e",
+  card: "#2a2a3e",
+  cardHover: "#32324a",
+  amber: "#e6a040",
+  amberMuted: "rgba(230, 160, 64, 0.15)",
+  amberGlow: "rgba(230, 160, 64, 0.3)",
+  text: "#f0f0f0",
+  textSecondary: "#8b8ba0",
+  textTertiary: "#5a5a70",
+  success: "#34b86e",
+  warning: "#e6a040",
+  error: "#e35252",
+  border: "#3a3a52",
+  radius: "16px",
+} as const;

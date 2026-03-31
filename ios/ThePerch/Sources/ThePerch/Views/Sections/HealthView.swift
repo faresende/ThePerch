@@ -1,0 +1,295 @@
+import SwiftUI
+
+/// Health section showing one chart card per metric, plus calories and macros cards.
+/// Reads records from DashboardViewModel (single-fetch architecture).
+struct HealthView: View {
+    @Environment(DashboardViewModel.self) var dashboardViewModel
+    @State private var viewModel = HealthViewModel()
+    @State private var selectedDetail: HealthDetailInfo?
+    @State private var cardsAppeared = false
+
+    struct HealthDetailInfo: Identifiable {
+        let id = UUID()
+        let title: String
+        let records: [Record]
+        let unit: String
+        let formatAsTime: Bool
+        let higherIsBetter: Bool
+    }
+
+    var body: some View {
+        ZStack {
+            PerchTheme.background.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                    // Section header with freshness
+                    SectionHeader(title: "Health", freshnessKey: "health")
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                        .padding(.top, PerchTheme.Spacing.medium)
+
+                    // Error banner
+                    if viewModel.error != nil {
+                        ErrorBanner(
+                            message: "Failed to load health data",
+                            retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
+                            onDismiss: { viewModel.clearError() }
+                        )
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                    }
+
+                    if dashboardViewModel.isLoading && viewModel.records.isEmpty {
+                        SkeletonCardsSection(count: 3)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                    } else if viewModel.records.isEmpty {
+                        EmptyStateView(
+                            icon: "heart.text.square",
+                            title: "No health data",
+                            subtitle: viewModel.isHealthKitAvailable
+                                ? "Connect Apple Health to start syncing your latest health metrics."
+                                : "Health data will appear here once your sources start syncing.",
+                            actionTitle: viewModel.isHealthKitAvailable ? "Connect Apple Health" : nil,
+                            action: viewModel.isHealthKitAvailable ? { Task { await viewModel.syncWithHealthKit() } } : nil
+                        )
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                    } else {
+                        // Daily calories card
+                        if let (record, measurement) = viewModel.displayedDailyCalories,
+                           let target = measurement.target {
+                            VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+                                CaloriesCard(
+                                    consumed: measurement.value,
+                                    target: target,
+                                    unit: measurement.unit,
+                                    lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (measurement.timestamp ?? record.updatedAt)
+                                )
+
+                                if !viewModel.isSyntheticNutritionRecord(record) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Button {
+                                            Task { await viewModel.saveDailyCaloriesToHealth() }
+                                        } label: {
+                                            HStack(spacing: 8) {
+                                                if viewModel.isSavingToHealth {
+                                                    ProgressView()
+                                                        .progressViewStyle(CircularProgressViewStyle())
+                                                        .scaleEffect(0.8)
+                                                } else {
+                                                    Image(systemName: "square.and.arrow.down")
+                                                }
+                                                Text(viewModel.isSavingToHealth ? "Saving to Apple Health..." : "Save daily calories to Apple Health")
+                                            }
+                                            .font(PerchTheme.Font.caption)
+                                            .foregroundColor(PerchTheme.accent)
+                                        }
+                                        .disabled(viewModel.isSavingToHealth)
+
+                                        if let success = viewModel.healthExportSuccess {
+                                            Text(success)
+                                                .font(PerchTheme.Font.caption)
+                                                .foregroundColor(PerchTheme.success)
+                                        }
+
+                                        if let error = viewModel.healthExportError {
+                                            Text(error)
+                                                .font(PerchTheme.Font.caption)
+                                                .foregroundColor(PerchTheme.error)
+                                        }
+                                    }
+                                    .padding(.horizontal, PerchTheme.Spacing.small)
+                                }
+                            }
+                            .cardAppear(index: 0, appeared: cardsAppeared)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                        } else {
+                            placeholderCard(title: "Daily Calories", emoji: "🔥", hint: "Log food with Claudinho")
+                        }
+
+                        // Daily macros card
+                        if let (record, macros) = viewModel.displayedMacros {
+                            MacrosCard(
+                                protein: macros.protein,
+                                proteinTarget: macros.proteinTarget,
+                                carbs: macros.carbs,
+                                carbsTarget: macros.carbsTarget,
+                                fat: macros.fat,
+                                fatTarget: macros.fatTarget,
+                                lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (macros.dateAsDate ?? record.updatedAt)
+                            )
+                            .cardAppear(index: 1, appeared: cardsAppeared)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                        } else {
+                            placeholderCard(title: "Daily Macros", emoji: "🥩", hint: "Log food with Claudinho")
+                        }
+
+                        // One chart card per metric — tap to see full detail
+                        ForEach(Array(HealthViewModel.chartMetricOrder.enumerated()), id: \.element.key) { chartIndex, metricInfo in
+                            let metricRecords = viewModel.recordsForMetric(metricInfo.key)
+                            let isTimeBased = metricInfo.key == "sleep_duration" || metricInfo.key == "deep_sleep"
+                            if !metricRecords.isEmpty {
+                                Button {
+                                    PerchHaptics.light()
+                                    selectedDetail = HealthDetailInfo(
+                                        title: metricInfo.title,
+                                        records: metricRecords,
+                                        unit: isTimeBased ? "" : metricInfo.unit,
+                                        formatAsTime: isTimeBased,
+                                        higherIsBetter: metricInfo.higherIsBetter
+                                    )
+                                } label: {
+                                    ChartCard(
+                                        title: metricInfo.title,
+                                        records: metricRecords,
+                                        unit: isTimeBased ? "" : metricInfo.unit,
+                                        formatAsTime: isTimeBased,
+                                        higherIsBetter: metricInfo.higherIsBetter
+                                    )
+                                }
+                                .buttonStyle(CardPressStyle())
+                                .cardAppear(index: chartIndex + 4, appeared: cardsAppeared)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+                            } else {
+                                placeholderCard(
+                                    title: metricInfo.title,
+                                    emoji: metricInfo.emoji,
+                                    hint: placeholderHint(for: metricInfo.key)
+                                )
+                            }
+                        }
+                    }
+                    Color.clear
+                        .frame(height: 0)
+                        .onAppear {
+                            PerchMotion.withOptionalAnimation { cardsAppeared = true }
+                        }
+
+                    Spacer()
+                        .frame(height: PerchTheme.Spacing.large)
+                }
+            }
+            .refreshable {
+                PerchHaptics.medium()
+                await dashboardViewModel.loadDashboard(forceRefresh: true)
+                PerchHaptics.success()
+            }
+        }
+        .onChange(of: dashboardViewModel.healthRecords) { _, newRecords in
+            viewModel.records = newRecords
+        }
+        .onAppear {
+            if !dashboardViewModel.healthRecords.isEmpty {
+                viewModel.records = dashboardViewModel.healthRecords
+            }
+        }
+        .sheet(item: $selectedDetail) { detail in
+            HealthDetailView(
+                title: detail.title,
+                records: detail.records,
+                unit: detail.unit,
+                formatAsTime: detail.formatAsTime,
+                higherIsBetter: detail.higherIsBetter
+            )
+        }
+    }
+
+    // MARK: - Sync Section
+
+    private var syncSection: some View {
+        VStack(spacing: PerchTheme.Spacing.small) {
+            Button {
+                Task { await viewModel.syncWithHealthKit() }
+            } label: {
+                HStack(spacing: PerchTheme.Spacing.small) {
+                    if viewModel.isSyncing {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "heart.fill")
+                            .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
+                    }
+                    Text(viewModel.isSyncing ? "Syncing..." : "Sync with Apple Health")
+                        .font(PerchTheme.Font.heading)
+                }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, PerchTheme.Spacing.medium)
+                .background(
+                    RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
+                        .fill(viewModel.isSyncing ? PerchTheme.textSecondary : PerchTheme.accent)
+                )
+            }
+            .disabled(viewModel.isSyncing)
+
+            HStack {
+                if let lastSync = viewModel.lastSyncFormatted {
+                    Text("Last synced \(lastSync)")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textTertiary)
+                }
+                Spacer()
+                if viewModel.syncedCount > 0 {
+                    Text("\(viewModel.syncedCount) new records")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.success)
+                }
+            }
+
+            if let syncError = viewModel.syncError {
+                Text(syncError)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.error)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, PerchTheme.Spacing.large)
+        .padding(.top, PerchTheme.Spacing.small)
+    }
+
+    // MARK: - Placeholder Card
+
+    private func placeholderCard(title: String, emoji: String, hint: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(emoji)
+                    .font(PerchTheme.Font.title)
+                Text(title.uppercased())
+                    .font(PerchTheme.Font.heading)
+                    .foregroundColor(PerchTheme.textPrimary)
+            }
+
+            Text("No data yet")
+                .font(PerchTheme.Font.displayNumeric)
+                .foregroundColor(PerchTheme.textTertiary)
+
+            Text(hint)
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(PerchTheme.Card.padding)
+        .cardStyle()
+        .padding(.horizontal, PerchTheme.Spacing.large)
+    }
+
+    private func placeholderHint(for metricKey: String) -> String {
+        switch metricKey {
+        case "weight":
+            return "Sync Apple Health or log with Claudinho"
+        case "skeletal_muscle", "body_fat_mass":
+            return "Share your InBody scan with Claudinho"
+        case "sleep_duration", "deep_sleep", "lowest_sleep_hr", "avg_sleep_hrv":
+            return "Share your Oura data with Claudinho"
+        default:
+            return "Ask Claudinho to log this metric"
+        }
+    }
+
+}
+
+// MARK: - Preview
+
+#Preview {
+    HealthView()
+        .environment(DashboardViewModel())
+}

@@ -1,0 +1,182 @@
+import SwiftUI
+
+/// Compact metric card matching the React MetricCard design.
+/// Displays: source icon | label + value + unit | sparkline | trend arrow | timestamp
+struct SingleValueCard: View {
+    let value: String
+    let label: String
+    let unit: String?
+    let trend: TrendIndicator?
+    let lastUpdated: Date
+    let sourceIcon: String?
+    let sparklineData: [Double]?
+
+    enum TrendIndicator {
+        case up(Double)
+        case down(Double)
+        case neutral
+
+        var icon: String {
+            switch self {
+            case .up: return "arrow.up"
+            case .down: return "arrow.down"
+            case .neutral: return "arrow.right"
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .up: return PerchTheme.success
+            case .down: return PerchTheme.error
+            case .neutral: return PerchTheme.textSecondary
+            }
+        }
+
+        var text: String {
+            switch self {
+            case .up(let percent):
+                return "+\(String(format: "%.1f", percent))%"
+            case .down(let percent):
+                return "-\(String(format: "%.1f", percent))%"
+            case .neutral:
+                return "No change"
+            }
+        }
+    }
+
+    init(
+        value: String,
+        label: String,
+        unit: String? = nil,
+        trend: TrendIndicator? = nil,
+        lastUpdated: Date,
+        sourceIcon: String? = nil,
+        sparklineData: [Double]? = nil
+    ) {
+        self.value = value
+        self.label = label
+        self.unit = unit
+        self.trend = trend
+        self.lastUpdated = lastUpdated
+        self.sourceIcon = sourceIcon
+        self.sparklineData = sparklineData
+    }
+
+    var body: some View {
+        HStack(spacing: PerchTheme.Spacing.small) {
+            // Source icon
+            if let sourceIcon {
+                Text(sourceIcon)
+                    .font(PerchTheme.Font.title)
+            }
+
+            // Label + value + unit — larger value
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textSecondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(value)
+                        .font(PerchTheme.Font.titleNumeric)
+                        .foregroundColor(PerchTheme.textPrimary)
+                        .contentTransition(.numericText())
+
+                    if let unit {
+                        Text(unit)
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(PerchTheme.textSecondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Sparkline (7-day trend)
+            if let data = sparklineData, data.count >= 2 {
+                SparklineView(
+                    dataPoints: data,
+                    lineColor: trend?.color.opacity(0.6) ?? PerchTheme.accent.opacity(0.6)
+                )
+            }
+
+            // Trend badge
+            if let trend {
+                HStack(spacing: 4) {
+                    Image(systemName: trend.icon)
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(.bold)
+                    Text(trend.text)
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(trend.color)
+                .padding(.horizontal, PerchTheme.Spacing.xSmall)
+                .padding(.vertical, PerchTheme.Spacing.xxSmall)
+                .background(trend.color.opacity(0.12))
+                .cornerRadius(8)
+            }
+
+            // Timestamp
+            Text(CardFreshness.text(for: lastUpdated))
+                .font(PerchTheme.Font.micro)
+                .foregroundColor(CardFreshness.color(for: lastUpdated))
+                .lineLimit(2)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.horizontal, PerchTheme.Spacing.large)
+        .padding(.vertical, PerchTheme.Spacing.medium)
+        .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = ["\(label): \(value)"]
+        if let unit { parts[0] += " \(unit)" }
+        if let trend {
+            switch trend {
+            case .up: parts.append("trending up")
+            case .down: parts.append("trending down")
+            case .neutral: parts.append("no change")
+            }
+        }
+        return parts.joined(separator: ", ")
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    VStack(spacing: PerchTheme.Spacing.small) {
+        SingleValueCard(
+            value: "81.5",
+            label: "Weight",
+            unit: "kg",
+            trend: .down(2.3),
+            lastUpdated: Date.now,
+            sourceIcon: "❤️",
+            sparklineData: [82.0, 81.8, 81.5, 81.3, 81.2, 81.5, 81.5]
+        )
+
+        SingleValueCard(
+            value: "72",
+            label: "Heart Rate",
+            unit: "bpm",
+            trend: .neutral,
+            lastUpdated: Date.now.addingTimeInterval(-3600),
+            sourceIcon: "💓",
+            sparklineData: [70, 74, 71, 73, 72, 74, 72]
+        )
+
+        SingleValueCard(
+            value: "$4.75",
+            label: "Today's Cost",
+            trend: .up(5.2),
+            lastUpdated: Date.now.addingTimeInterval(-1800)
+        )
+    }
+    .padding(PerchTheme.Spacing.medium)
+    .background(PerchTheme.background)
+    .ignoresSafeArea()
+}

@@ -1,0 +1,1540 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0385F06533E708330AFA01B0 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B954EE98DF57B9774F8D30 /* SearchView.swift */; };
+		04D79066DBA65FB6D46550DD /* ThePerchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */; };
+		06CAFBE9E741F0F8744E8709 /* SectionNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837659300DEF6DC763F7F917 /* SectionNavigator.swift */; };
+		137B70EC203CFFD874359DBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
+		1C78119AA900E1C8B90682DF /* PerchQuickGlanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */; };
+		24C1850ACFD14218804CCF55 /* TextCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525629949349400A9FE8F436 /* TextCardRenderer.swift */; };
+		24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */; };
+		26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */; };
+		353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */; };
+		353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */; };
+		DSBR0002DSBR0002DSBR0002 /* DailySummaryBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = DSBR0001DSBR0001DSBR0001 /* DailySummaryBar.swift */; };
+		MLCD0002MLCD0002MLCD0002 /* MealCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MLCD0001MLCD0001MLCD0001 /* MealCard.swift */; };
+		MLIS0002MLIS0002MLIS0002 /* MealInputSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = MLIS0001MLIS0001MLIS0001 /* MealInputSheet.swift */; };
+		NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */; };
+		100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */; };
+		8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */; };
+		356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 356EB7102F5251A3009D0A53 /* Assets.xcassets */; };
+		35E8ADA32F5B18A100BAC8FE /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */; };
+		35E8ADA82F5B19CB00BAC8FE /* HealthKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */; };
+		35E8ADA92F5B19CB00BAC8FE /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */; };
+		35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAA2F5B19E100BAC8FE /* HealthViewModel.swift */; };
+		2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C887520E395213A3CA8757C /* TravelViewModel.swift */; };
+		35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */; };
+		35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */; };
+		35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */; };
+		35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543612F52411F00204F77 /* CardContainer.swift */; };
+		35F5437D2F52411F00204F77 /* ThePerchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5437A2F52411F00204F77 /* ThePerchApp.swift */; };
+		35F5437F2F52411F00204F77 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436C2F52411F00204F77 /* AdminView.swift */; };
+		35F543802F52411F00204F77 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436E2F52411F00204F77 /* CalendarView.swift */; };
+		35F543812F52411F00204F77 /* Record.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434F2F52411F00204F77 /* Record.swift */; };
+		35F543822F52411F00204F77 /* ChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543622F52411F00204F77 /* ChartCard.swift */; };
+		35F543832F52411F00204F77 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434E2F52411F00204F77 /* JSONValue.swift */; };
+		35F543842F52411F00204F77 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435A2F52411F00204F77 /* DashboardViewModel.swift */; };
+		35F543852F52411F00204F77 /* Section.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543502F52411F00204F77 /* Section.swift */; };
+		35F543862F52411F00204F77 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543492F52411F00204F77 /* AppConfig.swift */; };
+		35F543872F52411F00204F77 /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434C2F52411F00204F77 /* Agent.swift */; };
+		35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435E2F52411F00204F77 /* MainTabView.swift */; };
+		35F5438B2F52411F00204F77 /* HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543702F52411F00204F77 /* HealthView.swift */; };
+		5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */; };
+		36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */; };
+		2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD77E48492FF01406E3C35 /* TravelView.swift */; };
+		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
+		35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436D2F52411F00204F77 /* BookmarksView.swift */; };
+		35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436A2F52411F00204F77 /* WidgetRouter.swift */; };
+		35F543902F52411F00204F77 /* DeliveriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436F2F52411F00204F77 /* DeliveriesView.swift */; };
+		35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543602F52411F00204F77 /* BookmarkCard.swift */; };
+		35F543922F52411F00204F77 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543712F52411F00204F77 /* HomeView.swift */; };
+		35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543632F52411F00204F77 /* ChecklistCard.swift */; };
+		35F543942F52411F00204F77 /* TokenUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543512F52411F00204F77 /* TokenUsage.swift */; };
+		35F543962F52411F00204F77 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543552F52411F00204F77 /* SupabaseService.swift */; };
+		8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27DBAD9446B0EA0E5642376 /* KeychainService.swift */; };
+		35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435B2F52411F00204F77 /* SectionViewModel.swift */; };
+		35F543982F52411F00204F77 /* EventKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543542F52411F00204F77 /* EventKitService.swift */; };
+		35F543992F52411F00204F77 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543522F52411F00204F77 /* UserProfile.swift */; };
+		35F5439A2F52411F00204F77 /* SingleValueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543652F52411F00204F77 /* SingleValueCard.swift */; };
+		35F5439B2F52411F00204F77 /* CostBreakdownCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543642F52411F00204F77 /* CostBreakdownCard.swift */; };
+		35F5439C2F52411F00204F77 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543742F52411F00204F77 /* SettingsView.swift */; };
+		35F5439D2F52411F00204F77 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543592F52411F00204F77 /* AuthViewModel.swift */; };
+		35F5439E2F52411F00204F77 /* PerchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543762F52411F00204F77 /* PerchTheme.swift */; };
+		35F5439F2F52411F00204F77 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435D2F52411F00204F77 /* AuthView.swift */; };
+		35F543A02F52411F00204F77 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543692F52411F00204F77 /* MockData.swift */; };
+		35F543A12F52411F00204F77 /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = 35F5434A2F52411F00204F77 /* Secrets.plist */; };
+		35F543A62F52449100204F77 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A52F52449100204F77 /* Auth */; };
+		35F543A82F52449100204F77 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A72F52449100204F77 /* Functions */; };
+		35F543AA2F52449100204F77 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A92F52449100204F77 /* PostgREST */; };
+		35F543AC2F52449100204F77 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543AB2F52449100204F77 /* Realtime */; };
+		35F543AE2F52449100204F77 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543AD2F52449100204F77 /* Storage */; };
+		35F543B12F52453F00204F77 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543B02F52453F00204F77 /* Supabase */; };
+		364018BE553B4FD19C5ABD37 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		3749D01A490DDFA35F9DD843 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
+		3D7E9154E605502C7EB865B0 /* TimeOfDayAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */; };
+		3F6A37B86C02CC8B9BE415C1 /* DeliveryActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */; };
+		5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E4BAE3418A661ACF7991AE /* SectionHeader.swift */; };
+		5CC4FE16D0724E1B90BD8BDA /* UniversalCardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */; };
+		HCHD0002HCHD0002HCHD0002 /* HomeCardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCHD0001HCHD0001HCHD0001 /* HomeCardHeader.swift */; };
+		6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */; };
+		822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */; };
+		99E67B0E893542999222D13B /* UniversalCardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */; };
+		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
+		ACMS0002ACMS0002ACMS0002 /* AdminCommandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */; };
+		ADVM0002ADVM0002ADVM0002 /* AdminViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */; };
+		AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */; };
+		B147D8B3A44F493392626D00 /* MetricCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */; };
+		B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC61D48E7054D783C5A2B /* NotificationService.swift */; };
+		BGRE0002BGRE0002BGRE0002 /* BackgroundRefreshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */; };
+		C395841AE66C9EF1B7E55F90 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
+		CA0301F8D5324ED0983AB80C /* ListCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */; };
+		CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACH0001CACH0001CACH0001 /* CacheService.swift */; };
+		CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */; };
+		CLTD0002CLTD0002CLTD0002 /* CalendarTodayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */; };
+		CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */; };
+		CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */; };
+		D259FD4EDAA14C63BED05FD3 /* StatusCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */; };
+		D6835F8D85F6945DB95754DB /* DeliveryLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */; };
+		DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */; };
+		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
+		DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */; };
+		90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */; };
+		E345BD6F3BBD44B8B7F62E07 /* TimelineCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E19BC5C1C4464178BFB03223 /* TimelineCardRenderer.swift */; };
+		E84531AD71195AC9C765C1C9 /* SparklineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */; };
+		EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */; };
+		ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */; };
+		EMPT0002EMPT0002EMPT0002 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMPT0001EMPT0001EMPT0001 /* EmptyStateView.swift */; };
+		F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */; };
+		F3083CD70F004A46A9706D46 /* CardRendererFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */; };
+		F4C6D71B135641088ADEC4D7 /* CardGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBC038A620A4778B341EA85 /* CardGalleryView.swift */; };
+		FF602294F262630BC98CFF64 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
+		HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */; };
+		HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */; };
+		HMVM0002HMVM0002HMVM0002 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */; };
+		HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */; };
+		HSHC0002HSHC0002HSHC0002 /* HealthSummaryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */; };
+		JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */; };
+		LKSW0002LKSW0002LKSW0002 /* PerchLockScreenWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */; };
+				TRVT0002TRVT0002TRVT0002 /* TravelTasksCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */; };
+		MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */; };
+		MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */; };
+		NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */; };
+		NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */; };
+		NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */; };
+		NTRS0002NTRS0002NTRS0002 /* NutritionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */; };
+		NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */; };
+		PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */; };
+		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
+		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
+		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
+		TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */; };
+		TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */; };
+		TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0031TEST0031TEST0031 /* RecordTests.swift */; };
+		WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D3B39FCCC427BF30E1E91527 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 35F542DB2F522B6D00204F77 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB235DEAFB31769E6E9981C7;
+			remoteInfo = ThePerchWidgets;
+		};
+		TEST0041TEST0041TEST0041 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 35F542DB2F522B6D00204F77 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 35F542E22F522B6D00204F77;
+			remoteInfo = ThePerch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		005BFD8FEEDB4EFEB75BE109 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2F1BF96B66F7CED12CFDCF40 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				364018BE553B4FD19C5ABD37 /* PerchSharedKit.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PerchSharedKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		03B91F417EA96A65024733B2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCardRenderer.swift; sourceTree = "<group>"; };
+		260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardRenderer.swift; sourceTree = "<group>"; };
+		353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaloriesCard.swift; sourceTree = "<group>"; };
+		DSBR0001DSBR0001DSBR0001 /* DailySummaryBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailySummaryBar.swift; sourceTree = "<group>"; };
+		BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyVolumeCard.swift; sourceTree = "<group>"; };
+		E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCard.swift; sourceTree = "<group>"; };
+		353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacrosCard.swift; sourceTree = "<group>"; };
+		356EB7102F5251A3009D0A53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		35E8ADA02F5B181200BAC8FE /* ThePerch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ThePerch.entitlements; sourceTree = SOURCE_ROOT; };
+		35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitSyncService.swift; sourceTree = "<group>"; };
+		35E8ADAA2F5B19E100BAC8FE /* HealthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthViewModel.swift; sourceTree = "<group>"; };
+		5C887520E395213A3CA8757C /* TravelViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelViewModel.swift; sourceTree = "<group>"; };
+		35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentStatusCard.swift; sourceTree = "<group>"; };
+		35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCard.swift; sourceTree = "<group>"; };
+		35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCard.swift; sourceTree = "<group>"; };
+		35F542E32F522B6D00204F77 /* ThePerch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThePerch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		35F543492F52411F00204F77 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		35F5434A2F52411F00204F77 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
+		35F5434C2F52411F00204F77 /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
+		35F5434D2F52411F00204F77 /* DataPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloads.swift; sourceTree = "<group>"; };
+		35F5434E2F52411F00204F77 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
+		35F5434F2F52411F00204F77 /* Record.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Record.swift; sourceTree = "<group>"; };
+		35F543502F52411F00204F77 /* Section.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Section.swift; sourceTree = "<group>"; };
+		35F543512F52411F00204F77 /* TokenUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenUsage.swift; sourceTree = "<group>"; };
+		35F543522F52411F00204F77 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		35F543542F52411F00204F77 /* EventKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitService.swift; sourceTree = "<group>"; };
+		35F543552F52411F00204F77 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
+		C27DBAD9446B0EA0E5642376 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		35F543592F52411F00204F77 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		35F5435A2F52411F00204F77 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		35F5435B2F52411F00204F77 /* SectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionViewModel.swift; sourceTree = "<group>"; };
+		35F5435D2F52411F00204F77 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		35F5435E2F52411F00204F77 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		35F543602F52411F00204F77 /* BookmarkCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCard.swift; sourceTree = "<group>"; };
+		35F543612F52411F00204F77 /* CardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardContainer.swift; sourceTree = "<group>"; };
+		35F543622F52411F00204F77 /* ChartCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartCard.swift; sourceTree = "<group>"; };
+		35F543632F52411F00204F77 /* ChecklistCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCard.swift; sourceTree = "<group>"; };
+		35F543642F52411F00204F77 /* CostBreakdownCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CostBreakdownCard.swift; sourceTree = "<group>"; };
+		35F543652F52411F00204F77 /* SingleValueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleValueCard.swift; sourceTree = "<group>"; };
+		35F543692F52411F00204F77 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
+		35F5436A2F52411F00204F77 /* WidgetRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRouter.swift; sourceTree = "<group>"; };
+		35F5436C2F52411F00204F77 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
+		35F5436D2F52411F00204F77 /* BookmarksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarksView.swift; sourceTree = "<group>"; };
+		35F5436E2F52411F00204F77 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		35F5436F2F52411F00204F77 /* DeliveriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveriesView.swift; sourceTree = "<group>"; };
+		35F543702F52411F00204F77 /* HealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthView.swift; sourceTree = "<group>"; };
+		5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutView.swift; sourceTree = "<group>"; };
+		D2FD77E48492FF01406E3C35 /* TravelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelView.swift; sourceTree = "<group>"; };
+		35F543712F52411F00204F77 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
+		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
+		3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOfDayAtmosphere.swift; sourceTree = "<group>"; };
+		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
+		49B954EE98DF57B9774F8D30 /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		HCHD0001HCHD0001HCHD0001 /* HomeCardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardHeader.swift; sourceTree = "<group>"; };
+		525629949349400A9FE8F436 /* TextCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCardRenderer.swift; sourceTree = "<group>"; };
+		571AC61D48E7054D783C5A2B /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardContainer.swift; sourceTree = "<group>"; };
+		66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
+		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
+		837659300DEF6DC763F7F917 /* SectionNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionNavigator.swift; sourceTree = "<group>"; };
+		90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardHeader.swift; sourceTree = "<group>"; };
+		971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardRenderer.swift; sourceTree = "<group>"; };
+		9BBC038A620A4778B341EA85 /* CardGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGalleryView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordDetailView.swift; sourceTree = "<group>"; };
+		AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRendererFactory.swift; sourceTree = "<group>"; };
+		ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminCommandService.swift; sourceTree = "<group>"; };
+		ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminViewModel.swift; sourceTree = "<group>"; };
+		AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbienceManager.swift; sourceTree = "<group>"; };
+		BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRefreshService.swift; sourceTree = "<group>"; };
+		CACH0001CACH0001CACH0001 /* CacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheService.swift; sourceTree = "<group>"; };
+		CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryLiveActivity.swift; path = ThePerchWidgets/DeliveryLiveActivity.swift; sourceTree = "<group>"; };
+		CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFreshnessLabel.swift; sourceTree = "<group>"; };
+		CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTodayCard.swift; sourceTree = "<group>"; };
+		CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTomorrowCard.swift; sourceTree = "<group>"; };
+		CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
+		D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryActivityAttributes.swift; path = PerchSharedKit/DeliveryActivityAttributes.swift; sourceTree = "<group>"; };
+		DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCompletionOverlay.swift; sourceTree = "<group>"; };
+		DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchQuickGlanceWidget.swift; path = ThePerchWidgets/PerchQuickGlanceWidget.swift; sourceTree = "<group>"; };
+		DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLiveActivityManager.swift; sourceTree = "<group>"; };
+		DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryHomeCard.swift; sourceTree = "<group>"; };
+		0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelHomeCard.swift; sourceTree = "<group>"; };
+		E19BC5C1C4464178BFB03223 /* TimelineCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineCardRenderer.swift; sourceTree = "<group>"; };
+		ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthDetailView.swift; sourceTree = "<group>"; };
+		EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailSummaryCard.swift; sourceTree = "<group>"; };
+		ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorBanner.swift; sourceTree = "<group>"; };
+		EMPT0001EMPT0001EMPT0001 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListCardRenderer.swift; sourceTree = "<group>"; };
+		F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardFooter.swift; sourceTree = "<group>"; };
+		F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThePerchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ThePerchWidgets.swift; path = ThePerchWidgets/ThePerchWidgets.swift; sourceTree = "<group>"; };
+		HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardOrdering.swift; sourceTree = "<group>"; };
+		HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceProtocol.swift; sourceTree = "<group>"; };
+		HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
+		HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryCard.swift; sourceTree = "<group>"; };
+		HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryHomeCard.swift; sourceTree = "<group>"; };
+		JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueDecoder.swift; sourceTree = "<group>"; };
+		LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchLockScreenWidgets.swift; path = ThePerchWidgets/PerchLockScreenWidgets.swift; sourceTree = "<group>"; };
+				TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelTasksCard.swift; sourceTree = "<group>"; };
+		MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsCard.swift; sourceTree = "<group>"; };
+		MLCD0001MLCD0001MLCD0001 /* MealCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCard.swift; sourceTree = "<group>"; };
+		MLIS0001MLIS0001MLIS0001 /* MealInputSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealInputSheet.swift; sourceTree = "<group>"; };
+		MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSupabaseService.swift; sourceTree = "<group>"; };
+		NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionModels.swift; sourceTree = "<group>"; };
+		NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionHomeCard.swift; sourceTree = "<group>"; };
+		NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionService.swift; sourceTree = "<group>"; };
+		NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
+		NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
+		PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperlessCard.swift; sourceTree = "<group>"; };
+		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
+		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
+		SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceProtocol.swift; sourceTree = "<group>"; };
+		TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloadsTests.swift; sourceTree = "<group>"; };
+		TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormattersTests.swift; sourceTree = "<group>"; };
+		TEST0031TEST0031TEST0031 /* RecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTests.swift; sourceTree = "<group>"; };
+		TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThePerchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCompactCard.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		14B53A84F0B9A8A0509D53F2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C395841AE66C9EF1B7E55F90 /* Foundation.framework in Frameworks */,
+				3749D01A490DDFA35F9DD843 /* PerchSharedKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		35F542E02F522B6D00204F77 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				35F543AA2F52449100204F77 /* PostgREST in Frameworks */,
+				35F543A82F52449100204F77 /* Functions in Frameworks */,
+				35F543B12F52453F00204F77 /* Supabase in Frameworks */,
+				35F543A62F52449100204F77 /* Auth in Frameworks */,
+				35E8ADA32F5B18A100BAC8FE /* HealthKit.framework in Frameworks */,
+				35F543AE2F52449100204F77 /* Storage in Frameworks */,
+				35F543AC2F52449100204F77 /* Realtime in Frameworks */,
+				FF602294F262630BC98CFF64 /* PerchSharedKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA39F7B8AD89679790A13590 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				137B70EC203CFFD874359DBE /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TEST0061TEST0061TEST0061 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0ED0468A0EC22FFB1C923F80 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F41256BEB4DAFEA3C7235882 /* Helpers */,
+				F7A98B0547DF8F41CD675CDB /* App */,
+				50E2DAC2E7213FC52067B201 /* Cards */,
+				5D26D5715A724D319B268491 /* Detail */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		10A2197FEA5D801CEE79D1B7 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				03B91F417EA96A65024733B2 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		35F542DA2F522B6D00204F77 = {
+			isa = PBXGroup;
+			children = (
+				35F5437B2F52411F00204F77 /* ThePerch */,
+				35F543AF2F52453F00204F77 /* Frameworks */,
+				35F542E42F522B6D00204F77 /* Products */,
+				TEST0071TEST0071TEST0071 /* ThePerchTests */,
+				8DB3C8496B82346C4D499E69 /* Sources */,
+				BBDDE57EC2648178F513B452 /* ios */,
+				D37761C71C8DF09D1BAE6D3C /* PerchSharedKit */,
+				B3B359429D5BEA7791E046D2 /* ThePerchWidgets */,
+			);
+			sourceTree = "<group>";
+		};
+		35F542E42F522B6D00204F77 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				35F542E32F522B6D00204F77 /* ThePerch.app */,
+				02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */,
+				F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */,
+				TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		35F5434B2F52411F00204F77 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				35F543492F52411F00204F77 /* AppConfig.swift */,
+				35F5434A2F52411F00204F77 /* Secrets.plist */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		35F543532F52411F00204F77 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				35F5434C2F52411F00204F77 /* Agent.swift */,
+				35F5434D2F52411F00204F77 /* DataPayloads.swift */,
+				35F5434E2F52411F00204F77 /* JSONValue.swift */,
+				NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */,
+				35F5434F2F52411F00204F77 /* Record.swift */,
+				35F543502F52411F00204F77 /* Section.swift */,
+				35F543512F52411F00204F77 /* TokenUsage.swift */,
+				35F543522F52411F00204F77 /* UserProfile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		35F543562F52411F00204F77 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				PROT0000PROT0000PROT0000 /* Protocols */,
+				DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */,
+				35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */,
+				35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */,
+				35F543542F52411F00204F77 /* EventKitService.swift */,
+				NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */,
+				35F543552F52411F00204F77 /* SupabaseService.swift */,
+				C27DBAD9446B0EA0E5642376 /* KeychainService.swift */,
+				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
+				CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */,
+				CACH0001CACH0001CACH0001 /* CacheService.swift */,
+				BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */,
+				JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */,
+				RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		35F543582F52411F00204F77 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		35F5435C2F52411F00204F77 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				35E8ADAA2F5B19E100BAC8FE /* HealthViewModel.swift */,
+				NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */,
+				5C887520E395213A3CA8757C /* TravelViewModel.swift */,
+				35F543592F52411F00204F77 /* AuthViewModel.swift */,
+				35F5435A2F52411F00204F77 /* DashboardViewModel.swift */,
+				35F5435B2F52411F00204F77 /* SectionViewModel.swift */,
+				ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */,
+				HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		35F5435F2F52411F00204F77 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				35F5435D2F52411F00204F77 /* AuthView.swift */,
+				35F5435E2F52411F00204F77 /* MainTabView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		35F543682F52411F00204F77 /* Cards */ = {
+			isa = PBXGroup;
+			children = (
+				HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */,
+				353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */,
+				DSBR0001DSBR0001DSBR0001 /* DailySummaryBar.swift */,
+				BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */,
+				E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */,
+				353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */,
+				35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */,
+				35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */,
+				DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */,
+				35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */,
+				35F543602F52411F00204F77 /* BookmarkCard.swift */,
+				PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */,
+				35F543612F52411F00204F77 /* CardContainer.swift */,
+				35F543622F52411F00204F77 /* ChartCard.swift */,
+				35F543632F52411F00204F77 /* ChecklistCard.swift */,
+				35F543642F52411F00204F77 /* CostBreakdownCard.swift */,
+				35F543652F52411F00204F77 /* SingleValueCard.swift */,
+				HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */,
+				CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */,
+				CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */,
+				NTHC0001NTHC0001NTHC0001 /* NutritionHomeCard.swift */,
+				DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */,
+				0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */,
+				MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */,
+				TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */,
+				WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */,
+				EMSC0001EMSC0001EMSC0001 /* EmailSummaryCard.swift */,
+				MLCD0001MLCD0001MLCD0001 /* MealCard.swift */,
+				MLIS0001MLIS0001MLIS0001 /* MealInputSheet.swift */,
+				544E19CFE605483095619EE8 /* UniversalCard */,
+				3FBBCE373D0B4F9A9B10CA71 /* Renderers */,
+				AAEA065F1B0847478E0EC3C3 /* CardRendererFactory.swift */,
+			);
+			path = Cards;
+			sourceTree = "<group>";
+		};
+		35F5436B2F52411F00204F77 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				35F543692F52411F00204F77 /* MockData.swift */,
+				35F5436A2F52411F00204F77 /* WidgetRouter.swift */,
+				HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */,
+				AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */,
+				CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		35F543732F52411F00204F77 /* Sections */ = {
+			isa = PBXGroup;
+			children = (
+				35F5436C2F52411F00204F77 /* AdminView.swift */,
+				35F5436D2F52411F00204F77 /* BookmarksView.swift */,
+				35F5436E2F52411F00204F77 /* CalendarView.swift */,
+				35F5436F2F52411F00204F77 /* DeliveriesView.swift */,
+				35F543702F52411F00204F77 /* HealthView.swift */,
+				5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */,
+				NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */,
+				9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */,
+				D2FD77E48492FF01406E3C35 /* TravelView.swift */,
+				35F543712F52411F00204F77 /* HomeView.swift */,
+			);
+			path = Sections;
+			sourceTree = "<group>";
+		};
+		35F543752F52411F00204F77 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				35F543742F52411F00204F77 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		35F543772F52411F00204F77 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */,
+				35F543762F52411F00204F77 /* PerchTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		35F543782F52411F00204F77 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				35F5435F2F52411F00204F77 /* App */,
+				35F543682F52411F00204F77 /* Cards */,
+				89F1570CF26987B35512250E /* Components */,
+				35F5436B2F52411F00204F77 /* Helpers */,
+				35F543732F52411F00204F77 /* Sections */,
+				35F543752F52411F00204F77 /* Settings */,
+				35F543772F52411F00204F77 /* Theme */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		35F5437B2F52411F00204F77 /* ThePerch */ = {
+			isa = PBXGroup;
+			children = (
+				35E8ADA02F5B181200BAC8FE /* ThePerch.entitlements */,
+				356EB7102F5251A3009D0A53 /* Assets.xcassets */,
+				35F5434B2F52411F00204F77 /* Config */,
+				35F543532F52411F00204F77 /* Models */,
+				35F543562F52411F00204F77 /* Services */,
+				35F543582F52411F00204F77 /* Utilities */,
+				35F5435C2F52411F00204F77 /* ViewModels */,
+				35F543782F52411F00204F77 /* Views */,
+				35F5437A2F52411F00204F77 /* ThePerchApp.swift */,
+			);
+			name = ThePerch;
+			path = Sources/ThePerch;
+			sourceTree = "<group>";
+		};
+		35F543AF2F52453F00204F77 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */,
+				10A2197FEA5D801CEE79D1B7 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3FBBCE373D0B4F9A9B10CA71 /* Renderers */ = {
+			isa = PBXGroup;
+			children = (
+				260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */,
+				F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */,
+				E19BC5C1C4464178BFB03223 /* TimelineCardRenderer.swift */,
+				194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */,
+				525629949349400A9FE8F436 /* TextCardRenderer.swift */,
+				971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */,
+			);
+			path = Renderers;
+			sourceTree = "<group>";
+		};
+		45CD6F981C79A4A548131E02 /* ThePerch */ = {
+			isa = PBXGroup;
+			children = (
+				73105E6837758D67AB779F36 /* PerchSharedKit */,
+				7FD2C8EEEC36D0DD71465876 /* ThePerchWidgets */,
+			);
+			name = ThePerch;
+			sourceTree = "<group>";
+		};
+		50E2DAC2E7213FC52067B201 /* Cards */ = {
+			isa = PBXGroup;
+			children = (
+				ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */,
+			);
+			path = Cards;
+			sourceTree = "<group>";
+		};
+		544E19CFE605483095619EE8 /* UniversalCard */ = {
+			isa = PBXGroup;
+			children = (
+				90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */,
+				F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */,
+				63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */,
+			);
+			path = UniversalCard;
+			sourceTree = "<group>";
+		};
+		5D26D5715A724D319B268491 /* Detail */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */,
+			);
+			path = Detail;
+			sourceTree = "<group>";
+		};
+		5D7EB590EB720B1A3616B3BC /* ThePerch */ = {
+			isa = PBXGroup;
+			children = (
+				0ED0468A0EC22FFB1C923F80 /* Views */,
+				7847BFF91CB709C3562363C7 /* Services */,
+			);
+			path = ThePerch;
+			sourceTree = "<group>";
+		};
+		73105E6837758D67AB779F36 /* PerchSharedKit */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = PerchSharedKit;
+			sourceTree = "<group>";
+		};
+		7847BFF91CB709C3562363C7 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				571AC61D48E7054D783C5A2B /* NotificationService.swift */,
+				ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		7FD2C8EEEC36D0DD71465876 /* ThePerchWidgets */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = ThePerchWidgets;
+			sourceTree = "<group>";
+		};
+		89F1570CF26987B35512250E /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				EMPT0001EMPT0001EMPT0001 /* EmptyStateView.swift */,
+				ERBN0001ERBN0001ERBN0001 /* ErrorBanner.swift */,
+				837659300DEF6DC763F7F917 /* SectionNavigator.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		8DB3C8496B82346C4D499E69 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				5D7EB590EB720B1A3616B3BC /* ThePerch */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		B3B359429D5BEA7791E046D2 /* ThePerchWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */,
+				DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */,
+				LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */,
+				CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */,
+			);
+			name = ThePerchWidgets;
+			sourceTree = "<group>";
+		};
+		BBDDE57EC2648178F513B452 /* ios */ = {
+			isa = PBXGroup;
+			children = (
+				45CD6F981C79A4A548131E02 /* ThePerch */,
+			);
+			name = ios;
+			sourceTree = "<group>";
+		};
+		D37761C71C8DF09D1BAE6D3C /* PerchSharedKit */ = {
+			isa = PBXGroup;
+			children = (
+				D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */,
+			);
+			name = PerchSharedKit;
+			sourceTree = "<group>";
+		};
+		F41256BEB4DAFEA3C7235882 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */,
+				3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */,
+				67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */,
+				44E4BAE3418A661ACF7991AE /* SectionHeader.swift */,
+				HCHD0001HCHD0001HCHD0001 /* HomeCardHeader.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		F7A98B0547DF8F41CD675CDB /* App */ = {
+			isa = PBXGroup;
+			children = (
+				49B954EE98DF57B9774F8D30 /* SearchView.swift */,
+				9BBC038A620A4778B341EA85 /* CardGalleryView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		PROT0000PROT0000PROT0000 /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */,
+				HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */,
+				MKSB0001MKSB0001MKSB0001 /* MockSupabaseService.swift */,
+			);
+			path = Protocols;
+			sourceTree = "<group>";
+		};
+		TEST0071TEST0071TEST0071 /* ThePerchTests */ = {
+			isa = PBXGroup;
+			children = (
+				TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */,
+				TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */,
+				TEST0031TEST0031TEST0031 /* RecordTests.swift */,
+			);
+			path = ThePerchTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		4AC68011ACB41ABED3620D19 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		35F542E22F522B6D00204F77 /* ThePerch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 35F542EE2F522B6E00204F77 /* Build configuration list for PBXNativeTarget "ThePerch" */;
+			buildPhases = (
+				35F542DF2F522B6D00204F77 /* Sources */,
+				35F542E02F522B6D00204F77 /* Frameworks */,
+				35F542E12F522B6D00204F77 /* Resources */,
+				2F1BF96B66F7CED12CFDCF40 /* Embed Frameworks */,
+				005BFD8FEEDB4EFEB75BE109 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FCB66C313E2AD861DEF15D53 /* PBXTargetDependency */,
+			);
+			name = ThePerch;
+			packageProductDependencies = (
+				35F543A52F52449100204F77 /* Auth */,
+				35F543A72F52449100204F77 /* Functions */,
+				35F543A92F52449100204F77 /* PostgREST */,
+				35F543AB2F52449100204F77 /* Realtime */,
+				35F543AD2F52449100204F77 /* Storage */,
+				35F543B02F52453F00204F77 /* Supabase */,
+			);
+			productName = ThePerch;
+			productReference = 35F542E32F522B6D00204F77 /* ThePerch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AB235DEAFB31769E6E9981C7 /* ThePerchWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA82D13B76551F595C30ED3A /* Build configuration list for PBXNativeTarget "ThePerchWidgets" */;
+			buildPhases = (
+				74181201DAA04FC626BC416F /* Sources */,
+				14B53A84F0B9A8A0509D53F2 /* Frameworks */,
+				33CC87FF3CC80ED413D3C5B9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ThePerchWidgets;
+			productName = ThePerchWidgets;
+			productReference = F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		C9C2C2A1188F4CAC45522924 /* PerchSharedKit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A907BF261AE33E0E41D4D4C9 /* Build configuration list for PBXNativeTarget "PerchSharedKit" */;
+			buildPhases = (
+				4AC68011ACB41ABED3620D19 /* Headers */,
+				1F42F19F29029900596F0657 /* Sources */,
+				BA39F7B8AD89679790A13590 /* Frameworks */,
+				BD5FA33C6D1946103C35C326 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PerchSharedKit;
+			productName = PerchSharedKit;
+			productReference = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		TEST0081TEST0081TEST0081 /* ThePerchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TEST0091TEST0091TEST0091 /* Build configuration list for PBXNativeTarget "ThePerchTests" */;
+			buildPhases = (
+				TEST00A1TEST00A1TEST00A1 /* Sources */,
+				TEST0061TEST0061TEST0061 /* Frameworks */,
+				TEST00B1TEST00B1TEST00B1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				TEST00C1TEST00C1TEST00C1 /* PBXTargetDependency */,
+			);
+			name = ThePerchTests;
+			productName = ThePerchTests;
+			productReference = TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		35F542DB2F522B6D00204F77 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					35F542E22F522B6D00204F77 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				};
+			};
+			buildConfigurationList = 35F542DE2F522B6D00204F77 /* Build configuration list for PBXProject "ThePerch" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 35F542DA2F522B6D00204F77;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 35F542E42F522B6D00204F77 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				35F542E22F522B6D00204F77 /* ThePerch */,
+				C9C2C2A1188F4CAC45522924 /* PerchSharedKit */,
+				AB235DEAFB31769E6E9981C7 /* ThePerchWidgets */,
+				TEST0081TEST0081TEST0081 /* ThePerchTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		33CC87FF3CC80ED413D3C5B9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		35F542E12F522B6D00204F77 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */,
+				35F543A12F52411F00204F77 /* Secrets.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BD5FA33C6D1946103C35C326 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TEST00B1TEST00B1TEST00B1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1F42F19F29029900596F0657 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3F6A37B86C02CC8B9BE415C1 /* DeliveryActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		35F542DF2F522B6D00204F77 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */,
+				HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */,
+				F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */,
+				353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */,
+				353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */,
+				DSBR0002DSBR0002DSBR0002 /* DailySummaryBar.swift in Sources */,
+				100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */,
+				8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */,
+				35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */,
+				35F5437D2F52411F00204F77 /* ThePerchApp.swift in Sources */,
+				35F5437F2F52411F00204F77 /* AdminView.swift in Sources */,
+				35F543802F52411F00204F77 /* CalendarView.swift in Sources */,
+				35F543812F52411F00204F77 /* Record.swift in Sources */,
+				35F543822F52411F00204F77 /* ChartCard.swift in Sources */,
+				35F543832F52411F00204F77 /* JSONValue.swift in Sources */,
+				35F543842F52411F00204F77 /* DashboardViewModel.swift in Sources */,
+				35F543852F52411F00204F77 /* Section.swift in Sources */,
+				35F543862F52411F00204F77 /* AppConfig.swift in Sources */,
+				35F543872F52411F00204F77 /* Agent.swift in Sources */,
+				NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */,
+				35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */,
+				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
+				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
+				35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */,
+				35F5438B2F52411F00204F77 /* HealthView.swift in Sources */,
+				5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */,
+				36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */,
+				2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */,
+				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
+				35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */,
+				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,
+				35F543902F52411F00204F77 /* DeliveriesView.swift in Sources */,
+				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
+				NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */,
+				2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */,
+				35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */,
+				PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */,
+				35F543922F52411F00204F77 /* HomeView.swift in Sources */,
+				35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */,
+				35F543942F52411F00204F77 /* TokenUsage.swift in Sources */,
+				NTRS0002NTRS0002NTRS0002 /* NutritionService.swift in Sources */,
+				35F543962F52411F00204F77 /* SupabaseService.swift in Sources */,
+				8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */,
+				35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */,
+				35F543982F52411F00204F77 /* EventKitService.swift in Sources */,
+				35F543992F52411F00204F77 /* UserProfile.swift in Sources */,
+				35E8ADA82F5B19CB00BAC8FE /* HealthKitSyncService.swift in Sources */,
+				35E8ADA92F5B19CB00BAC8FE /* HealthKitService.swift in Sources */,
+				35F5439A2F52411F00204F77 /* SingleValueCard.swift in Sources */,
+				35F5439B2F52411F00204F77 /* CostBreakdownCard.swift in Sources */,
+				35F5439C2F52411F00204F77 /* SettingsView.swift in Sources */,
+				35F5439D2F52411F00204F77 /* AuthViewModel.swift in Sources */,
+				06CAFBE9E741F0F8744E8709 /* SectionNavigator.swift in Sources */,
+				35F5439E2F52411F00204F77 /* PerchTheme.swift in Sources */,
+				35F5439F2F52411F00204F77 /* AuthView.swift in Sources */,
+				35F543A02F52411F00204F77 /* MockData.swift in Sources */,
+				6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */,
+				3D7E9154E605502C7EB865B0 /* TimeOfDayAtmosphere.swift in Sources */,
+				E84531AD71195AC9C765C1C9 /* SparklineView.swift in Sources */,
+				5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */,
+				0385F06533E708330AFA01B0 /* SearchView.swift in Sources */,
+				A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */,
+				B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */,
+				EMPT0002EMPT0002EMPT0002 /* EmptyStateView.swift in Sources */,
+				ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */,
+				PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */,
+				NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */,
+				CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */,
+				CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */,
+				BGRE0002BGRE0002BGRE0002 /* BackgroundRefreshService.swift in Sources */,
+				JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */,
+				RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */,
+				SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */,
+				HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */,
+				MKSB0002MKSB0002MKSB0002 /* MockSupabaseService.swift in Sources */,
+				DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */,
+				ADVM0002ADVM0002ADVM0002 /* AdminViewModel.swift in Sources */,
+				HMVM0002HMVM0002HMVM0002 /* HomeViewModel.swift in Sources */,
+				HSHC0002HSHC0002HSHC0002 /* HealthSummaryHomeCard.swift in Sources */,
+				HCHD0002HCHD0002HCHD0002 /* HomeCardHeader.swift in Sources */,
+				CLTD0002CLTD0002CLTD0002 /* CalendarTodayCard.swift in Sources */,
+				CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */,
+				MLCD0002MLCD0002MLCD0002 /* MealCard.swift in Sources */,
+				MLIS0002MLIS0002MLIS0002 /* MealInputSheet.swift in Sources */,
+				NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */,
+				NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */,
+				DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */,
+				90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */,
+				MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */,
+				TRVT0002TRVT0002TRVT0002 /* TravelTasksCard.swift in Sources */,
+				WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */,
+				EMSC0002EMSC0002EMSC0002 /* EmailSummaryCard.swift in Sources */,
+				HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */,
+				AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */,
+				CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */,
+				ACMS0002ACMS0002ACMS0002 /* AdminCommandService.swift in Sources */,
+				5CC4FE16D0724E1B90BD8BDA /* UniversalCardHeader.swift in Sources */,
+				822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */,
+				99E67B0E893542999222D13B /* UniversalCardContainer.swift in Sources */,
+				B147D8B3A44F493392626D00 /* MetricCardRenderer.swift in Sources */,
+				CA0301F8D5324ED0983AB80C /* ListCardRenderer.swift in Sources */,
+				E345BD6F3BBD44B8B7F62E07 /* TimelineCardRenderer.swift in Sources */,
+				D259FD4EDAA14C63BED05FD3 /* StatusCardRenderer.swift in Sources */,
+				24C1850ACFD14218804CCF55 /* TextCardRenderer.swift in Sources */,
+				26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */,
+				F3083CD70F004A46A9706D46 /* CardRendererFactory.swift in Sources */,
+				F4C6D71B135641088ADEC4D7 /* CardGalleryView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		74181201DAA04FC626BC416F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04D79066DBA65FB6D46550DD /* ThePerchWidgets.swift in Sources */,
+				1C78119AA900E1C8B90682DF /* PerchQuickGlanceWidget.swift in Sources */,
+				LKSW0002LKSW0002LKSW0002 /* PerchLockScreenWidgets.swift in Sources */,
+				D6835F8D85F6945DB95754DB /* DeliveryLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TEST00A1TEST00A1TEST00A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */,
+				TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */,
+				TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FCB66C313E2AD861DEF15D53 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ThePerchWidgets;
+			target = AB235DEAFB31769E6E9981C7 /* ThePerchWidgets */;
+			targetProxy = D3B39FCCC427BF30E1E91527 /* PBXContainerItemProxy */;
+		};
+		TEST00C1TEST00C1TEST00C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ThePerch;
+			target = 35F542E22F522B6D00204F77 /* ThePerch */;
+			targetProxy = TEST0041TEST0041TEST0041 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		166382D5FC68BDB1FA1D546F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CURRENT_PROJECT_VERSION = 53;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 47;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch.sharedkit;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		231DA023B5A9C3815DA60BF3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CURRENT_PROJECT_VERSION = 53;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 47;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch.sharedkit;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		35F542EC2F522B6E00204F77 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		35F542ED2F522B6E00204F77 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		35F542EF2F522B6E00204F77 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ThePerch.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 53;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		35F542F02F522B6E00204F77 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ThePerch.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 53;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		6B1682FFC7D5E6B83DCD948A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 53;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ThePerchWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch.widgets;
+				PRODUCT_NAME = ThePerchWidgets;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C4BD02E9B8DC02949C33EAA4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 53;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ThePerchWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch.widgets;
+				PRODUCT_NAME = ThePerchWidgets;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		TEST00D1TEST00D1TEST00D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 53;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ThePerch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ThePerch";
+			};
+			name = Debug;
+		};
+		TEST00E1TEST00E1TEST00E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 53;
+				DEVELOPMENT_TEAM = RA9YY36MWN;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerchTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ThePerch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ThePerch";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		35F542DE2F522B6D00204F77 /* Build configuration list for PBXProject "ThePerch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				35F542EC2F522B6E00204F77 /* Debug */,
+				35F542ED2F522B6E00204F77 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		35F542EE2F522B6E00204F77 /* Build configuration list for PBXNativeTarget "ThePerch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				35F542EF2F522B6E00204F77 /* Debug */,
+				35F542F02F522B6E00204F77 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A907BF261AE33E0E41D4D4C9 /* Build configuration list for PBXNativeTarget "PerchSharedKit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				166382D5FC68BDB1FA1D546F /* Release */,
+				231DA023B5A9C3815DA60BF3 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA82D13B76551F595C30ED3A /* Build configuration list for PBXNativeTarget "ThePerchWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C4BD02E9B8DC02949C33EAA4 /* Release */,
+				6B1682FFC7D5E6B83DCD948A /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TEST0091TEST0091TEST0091 /* Build configuration list for PBXNativeTarget "ThePerchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TEST00D1TEST00D1TEST00D1 /* Debug */,
+				TEST00E1TEST00E1TEST00E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		35F543A52F52449100204F77 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		35F543A72F52449100204F77 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		35F543A92F52449100204F77 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		35F543AB2F52449100204F77 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		35F543AD2F52449100204F77 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		35F543B02F52453F00204F77 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 35F543A42F52449100204F77 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 35F542DB2F522B6D00204F77 /* Project object */;
+}
