@@ -47,7 +47,7 @@ struct DeliveryHomeCard: View {
 
         return VStack(alignment: .leading, spacing: PerchTheme.HomeCard.rowSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: PerchTheme.HomeCard.columnGutter) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
                     let itemNames = delivery.items.map(\.name).joined(separator: ", ")
                     if !itemNames.isEmpty {
                         Text(itemNames)
@@ -75,7 +75,7 @@ struct DeliveryHomeCard: View {
 
                 Spacer(minLength: PerchTheme.HomeCard.columnGutter)
 
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: PerchTheme.Spacing.xxSmall) {
                     statusBadge(status: status)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .offset(x: PerchTheme.Spacing.xSmall)
@@ -112,7 +112,7 @@ struct DeliveryHomeCard: View {
         let (label, color) = statusInfo(status)
         let isOutForDelivery = status == "out_for_delivery"
 
-        return HStack(spacing: 4) {
+        return HStack(spacing: PerchTheme.Spacing.xxSmall) {
             Circle()
                 .fill(color)
                 .frame(width: 7, height: 7)
@@ -133,7 +133,7 @@ struct DeliveryHomeCard: View {
         .padding(.horizontal, PerchTheme.Spacing.xSmall)
         .padding(.vertical, PerchTheme.Spacing.xxxSmall)
         .background(color.opacity(0.12))
-        .cornerRadius(8)
+        .cornerRadius(PerchTheme.Spacing.xSmall)
         .onAppear {
             if isOutForDelivery { isPulsing = true }
         }

@@ -241,6 +241,7 @@ struct PerchTheme {
         static let xSmall: CGFloat = 8
         static let small: CGFloat = 12
         static let medium: CGFloat = 16
+        static let mediumLarge: CGFloat = 20
         static let large: CGFloat = 24
         static let xLarge: CGFloat = 32
         static let xxLarge: CGFloat = 48
@@ -259,7 +260,7 @@ struct PerchTheme {
 
     enum HomeCard {
         static let horizontalPadding: CGFloat = 16
-        static let verticalPadding: CGFloat = 16
+        static let verticalPadding: CGFloat = 14
         static let rowSpacing: CGFloat = 8
         static let rowVerticalPadding: CGFloat = 4
         static let sectionSpacing: CGFloat = 24
