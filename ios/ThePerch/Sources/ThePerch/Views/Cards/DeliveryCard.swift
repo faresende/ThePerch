@@ -56,9 +56,9 @@ struct DeliveryCard: View {
 
     var body: some View {
         Button(action: openTracking) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                 // Header
-                HStack(spacing: 12) {
+                HStack(spacing: PerchTheme.Spacing.small) {
                     // Emoji icon
                     RoundedRectangle(cornerRadius: 10)
                         .fill(PerchTheme.accentMuted)
@@ -69,13 +69,13 @@ struct DeliveryCard: View {
                         )
 
                     // Item name + carrier
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
                         Text(delivery.items.first?.name ?? "Package")
                             .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
                             .lineLimit(2)
 
-                        HStack(spacing: 8) {
+                        HStack(spacing: PerchTheme.Spacing.xSmall) {
                             Text(delivery.carrier)
                                 .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textSecondary)
@@ -91,14 +91,14 @@ struct DeliveryCard: View {
                     Spacer()
 
                     // ETA badge + tracking indicator
-                    VStack(alignment: .trailing, spacing: 4) {
+                    VStack(alignment: .trailing, spacing: PerchTheme.Spacing.xxSmall) {
                         if let eta = etaFormatted {
                             Text("ETA \(eta)")
                                 .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.accent)
                         }
                         if hasTrackingUrl {
-                            HStack(spacing: 3) {
+                            HStack(spacing: PerchTheme.Spacing.xxxSmall) {
                                 Text("Track")
                                     .font(PerchTheme.Font.micro)
                                 Image(systemName: "arrow.up.right")
