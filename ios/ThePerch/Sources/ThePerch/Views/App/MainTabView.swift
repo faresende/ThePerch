@@ -203,7 +203,7 @@ struct SectionView: View {
                 case "workouts":
                     WorkoutView(dashboardViewModel: dashboardViewModel)
                 case "deliveries":
-                    DeliveriesView()
+                    OrdersView()
                 case "calendar":
                     CalendarView()
                 case "admin":
