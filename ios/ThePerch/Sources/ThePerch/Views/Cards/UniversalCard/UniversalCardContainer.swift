@@ -44,12 +44,11 @@ struct UniversalCardContainer<Content: View>: View {
     private var headerSubtitle: String? { subtitleOverride }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+        VStack(alignment: .leading, spacing: PerchTheme.HomeCard.rowSpacing) {
             UniversalCardHeader(
                 icon: headerIcon,
                 title: headerTitle,
                 subtitle: headerSubtitle,
-                freshnessDate: record.updatedAt,
                 isPinned: record.pinned
             )
 
@@ -66,7 +65,8 @@ struct UniversalCardContainer<Content: View>: View {
 
             UniversalCardFooter(actions: actions)
         }
-        .padding(PerchTheme.Card.padding)
+        .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
+        .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
         .cardStyle()
         .accessibilityElement(children: .contain)
     }

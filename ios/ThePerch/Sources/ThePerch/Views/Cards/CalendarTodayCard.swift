@@ -150,7 +150,7 @@ struct CalendarTodayCard: View {
 
             // Relative time — "Now" with green, countdown with accent
             if isHappening {
-                HStack(spacing: 4) {
+                HStack(spacing: PerchTheme.Spacing.xxSmall) {
                     Circle()
                         .fill(PerchTheme.success)
                         .frame(width: 6, height: 6)
