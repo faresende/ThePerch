@@ -171,6 +171,10 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         startNetworkMonitoring()
     }
 
+    var databaseClient: SupabaseClient {
+        client
+    }
+
     // MARK: - Connection Test
 
     /// Tests a Supabase connection without affecting the shared service.
