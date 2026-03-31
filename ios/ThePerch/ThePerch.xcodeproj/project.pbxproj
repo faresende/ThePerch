@@ -32,6 +32,9 @@
 		35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */; };
 		35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */; };
 		ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */; };
+		ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */; };
+		ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */; };
+		ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */; };
 		35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */; };
 		35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543612F52411F00204F77 /* CardContainer.swift */; };
 		35F5437D2F52411F00204F77 /* ThePerchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5437A2F52411F00204F77 /* ThePerchApp.swift */; };
@@ -203,6 +206,9 @@
 		35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentStatusCard.swift; sourceTree = "<group>"; };
 		35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCard.swift; sourceTree = "<group>"; };
 		ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCard.swift; sourceTree = "<group>"; };
+		ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersService.swift; sourceTree = "<group>"; };
+		ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersViewModel.swift; sourceTree = "<group>"; };
+		ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersView.swift; sourceTree = "<group>"; };
 		35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCard.swift; sourceTree = "<group>"; };
 		35F542E32F522B6D00204F77 /* ThePerch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThePerch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35F543492F52411F00204F77 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
@@ -433,6 +439,7 @@
 				35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */,
 				35F543542F52411F00204F77 /* EventKitService.swift */,
 				NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */,
+				ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */,
 				35F543552F52411F00204F77 /* SupabaseService.swift */,
 				C27DBAD9446B0EA0E5642376 /* KeychainService.swift */,
 				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
@@ -457,6 +464,7 @@
 			children = (
 				35E8ADAA2F5B19E100BAC8FE /* HealthViewModel.swift */,
 				NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */,
+				ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */,
 				5C887520E395213A3CA8757C /* TravelViewModel.swift */,
 				35F543592F52411F00204F77 /* AuthViewModel.swift */,
 				35F5435A2F52411F00204F77 /* DashboardViewModel.swift */,
@@ -535,6 +543,7 @@
 				35F5436D2F52411F00204F77 /* BookmarksView.swift */,
 				35F5436E2F52411F00204F77 /* CalendarView.swift */,
 				35F5436F2F52411F00204F77 /* DeliveriesView.swift */,
+				ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */,
 				35F543702F52411F00204F77 /* HealthView.swift */,
 				5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */,
 				NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */,
@@ -973,6 +982,7 @@
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
 				ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */,
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
+				ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */,
 				35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */,
 				35F5438B2F52411F00204F77 /* HealthView.swift in Sources */,
 				5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */,
@@ -984,6 +994,7 @@
 				35F543902F52411F00204F77 /* DeliveriesView.swift in Sources */,
 				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
 				NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */,
+				ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */,
 				2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */,
 				35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */,
 				PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */,
@@ -991,6 +1002,7 @@
 				35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */,
 				35F543942F52411F00204F77 /* TokenUsage.swift in Sources */,
 				NTRS0002NTRS0002NTRS0002 /* NutritionService.swift in Sources */,
+				ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */,
 				35F543962F52411F00204F77 /* SupabaseService.swift in Sources */,
 				8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */,
 				35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */,
