@@ -5,7 +5,7 @@
 
 export type RecordType = 'measurement' | 'delivery' | 'event' | 'status' | 'reminder' | 'text_note' | 'checklist' | 'cost_summary' | 'bookmark' | 'order' | 'shipment' | 'review_item';
 export type RecordCategory = 'health' | 'deliveries' | 'calendar' | 'admin' | 'legal' | 'bookmarks' | 'commerce';
-export type DisplayHint = 'chart' | 'single_value' | 'status_list' | 'timeline' | 'checklist' | 'cost_breakdown' | 'bookmark_card' | 'bookmark_grid';
+export type DisplayHint = 'chart' | 'single_value' | 'status_list' | 'timeline' | 'checklist' | 'cost_breakdown' | 'bookmark_card' | 'bookmark_grid' | 'order_card' | 'shipment_timeline' | 'review_item_card';
 
 /**
  * Type-specific data payloads
@@ -23,41 +23,50 @@ export interface DeliveryData {
   delivery_date?: string;
 }
 
+// Orders Autopilot types
+export type OrderStatus = 'ordered' | 'processing' | 'shipped_partial' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
+export type ShipmentStatus = 'unknown' | 'label_created' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'exception';
+export type ReviewItemType = 'duplicate_order' | 'orphan_shipment' | 'order_no_shipment' | 'shipment_no_order' | 'low_confidence_match' | 'ambiguous_order_match' | 'other';
+
 export interface OrderData {
+  record_type: 'order';
+  order_id: string;
   merchant_name: string;
-  normalized_merchant: string;
-  order_number: string;
-  order_date: string;
-  total_amount?: number;
-  currency?: string;
-  source_email_ids: string[];
+  normalized_merchant?: string;
+  order_number: string | null;
+  order_date: string | null;
+  total_amount: number | null;
+  currency: string;
+  status: OrderStatus;
   confidence_score: number;
-  status: 'ordered' | 'processing' | 'shipped_partial' | 'shipped' | 'delivered' | 'issue';
+  source_email_ids?: string[];
+  created_at?: string;
 }
 
 export interface ShipmentData {
-  order_id?: string;
-  merchant_name?: string;
-  normalized_merchant?: string;
-  order_number?: string;
+  record_type: 'shipment';
+  shipment_id: string;
+  order_id: string;
   tracking_number: string;
-  carrier: string;
-  provider?: string;
-  status: 'label_created' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'exception' | 'unknown';
-  latest_checkpoint?: string;
-  shipped_at?: string;
-  delivered_at?: string;
-  source_email_ids: string[];
+  carrier: string | null;
+  status: ShipmentStatus;
+  latest_checkpoint: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
   confidence_score: number;
+  source_email_ids?: string[];
 }
 
 export interface ReviewItemData {
-  type: 'ambiguous_order_match' | 'missing_order_for_tracking' | 'missing_tracking_for_order' | 'duplicate_order_candidate';
+  record_type?: 'review_item';
+  review_item_id?: string;
+  type: ReviewItemType;
+  related_order_id: string | null;
+  related_shipment_id: string | null;
   reason: string;
-  suggested_action: string;
+  suggested_action: string | null;
   confidence_score: number;
-  related_order_id?: string;
-  related_shipment_id?: string;
+  created_at?: string;
 }
 
 export interface EventData {
@@ -111,14 +120,14 @@ export interface BookmarkData {
 export type RecordData =
   | MeasurementData
   | DeliveryData
-  | OrderData
-  | ShipmentData
-  | ReviewItemData
   | EventData
   | ReminderData
   | ChecklistData
   | CostSummaryData
   | BookmarkData
+  | OrderData
+  | ShipmentData
+  | ReviewItemData
   | Record<string, unknown>;
 
 /**
@@ -226,6 +235,7 @@ export interface DashboardHeartbeatOutput {
   success: boolean;
   agent_updated?: boolean;
   usage_recorded?: boolean;
+  gateway_updated?: boolean;
   last_heartbeat?: string;
   error?: string;
 }
