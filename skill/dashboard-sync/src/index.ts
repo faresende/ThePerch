@@ -16,9 +16,6 @@ import {
   DisplayHint,
 } from './types';
 
-export { extractOrderCandidate, extractShipmentCandidate, normalizeMerchantName } from './orders';
-export { buildReviewItem, deriveOrderStatusFromShipments, matchShipmentToOrder } from './matching';
-
 /**
  * Validates record input parameters
  * @throws Error if validation fails
@@ -81,6 +78,9 @@ function validatePushInput(input: DashboardPushInput): void {
       'cost_breakdown',
       'bookmark_card',
       'bookmark_grid',
+      'order_card',
+      'shipment_timeline',
+      'review_item_card',
     ];
     if (!validHints.includes(input.display_hint)) {
       throw new Error(`display_hint must be one of: ${validHints.join(', ')}`);
@@ -123,7 +123,7 @@ export async function dashboard_push(
     };
 
     const { data, error } = await supabase
-      .from('records')
+      .from('dashboard_records')
       .insert([record])
       .select('id, created_at')
       .single();
@@ -169,7 +169,7 @@ export async function dashboard_query(
     const limit = Math.min(input.limit || 50, 500);
 
     let query = supabase
-      .from('records')
+      .from('dashboard_records')
       .select('*')
       .eq('user_id', input.user_id);
 
@@ -290,10 +290,57 @@ export async function dashboard_heartbeat(
       }
     }
 
+    // Update gateway status record so the app's freshness indicator stays current
+    let gateway_updated = false;
+    const gatewayData = {
+      is_running: true,
+      active_models: input.model ? [{ model_id: input.model, job_count: 1 }] : [],
+      active_session_count: 1,
+    };
+    // Try to update existing gateway status record first
+    const { data: gwRows, error: gwSelectErr } = await supabase
+      .from('dashboard_records')
+      .select('id')
+      .eq('user_id', input.user_id)
+      .eq('type', 'status')
+      .eq('category', 'admin')
+      .eq('title', 'Gateway Status')
+      .limit(1);
+    if (!gwSelectErr && gwRows && gwRows.length > 0) {
+      const { error: gwUpdateErr } = await supabase
+        .from('dashboard_records')
+        .update({ data: gatewayData, updated_at: now })
+        .eq('id', gwRows[0].id);
+      if (gwUpdateErr) {
+        console.error('Failed to update gateway status:', gwUpdateErr);
+      } else {
+        gateway_updated = true;
+      }
+    } else {
+      // Insert new record
+      const { error: gwInsertErr } = await supabase
+        .from('dashboard_records')
+        .insert([{
+          agent_id: input.agent_id,
+          user_id: input.user_id,
+          type: 'status',
+          category: 'admin',
+          title: 'Gateway Status',
+          data: gatewayData,
+          display_hint: 'single_value',
+        }]);
+      if (gwInsertErr) {
+        console.error('Failed to insert gateway status:', gwInsertErr);
+      } else {
+        gateway_updated = true;
+      }
+    }
+
     return {
-      success: agent_updated || usage_recorded,
+      success: agent_updated || usage_recorded || gateway_updated,
       agent_updated,
       usage_recorded,
+      gateway_updated,
       last_heartbeat: now,
     };
   } catch (error) {
