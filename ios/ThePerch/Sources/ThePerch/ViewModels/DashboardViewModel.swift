@@ -70,6 +70,8 @@ final class DashboardViewModel {
     private let supabaseService: SupabaseService
     private let cacheService = CacheService.shared
     private let cacheUserId = "default_user"
+    private let recentRecordsLimit = 500
+    private let bookmarkBackfillLimit = 500
 
     // MARK: - Initialization
 
@@ -103,11 +105,15 @@ final class DashboardViewModel {
             catch { return .failure(error) }
         }()
         async let recordsResult: Result<[Record], Error> = {
-            do { return .success(try await supabaseService.fetchRecords(limit: 500, forceRefresh: forceRefresh)) }
+            do { return .success(try await supabaseService.fetchRecords(limit: recentRecordsLimit, forceRefresh: forceRefresh)) }
+            catch { return .failure(error) }
+        }()
+        async let bookmarkRecordsResult: Result<[Record], Error> = {
+            do { return .success(try await supabaseService.fetchRecords(category: .bookmarks, limit: bookmarkBackfillLimit, forceRefresh: forceRefresh)) }
             catch { return .failure(error) }
         }()
 
-        let (sections, widgets, records) = await (sectionsResult, widgetsResult, recordsResult)
+        let (sections, widgets, records, bookmarkRecords) = await (sectionsResult, widgetsResult, recordsResult, bookmarkRecordsResult)
 
         switch sections {
         case .success(let loaded):
@@ -134,8 +140,9 @@ final class DashboardViewModel {
 
         switch records {
         case .success(let loaded):
-            self.allRecords = loaded
-            Self.preDecodeRecords(loaded)
+            let merged = Self.mergeRecords(loaded, with: resultValue(bookmarkRecords))
+            self.allRecords = merged
+            Self.preDecodeRecords(merged)
             self.error = nil
         case .failure(let err):
 #if DEBUG
@@ -249,15 +256,36 @@ final class DashboardViewModel {
         }
 
         do {
-            let records = try await supabaseService.fetchRecords(limit: 500, forceRefresh: forceRefresh)
-            allRecords = records
+            async let recentRecords = supabaseService.fetchRecords(limit: recentRecordsLimit, forceRefresh: forceRefresh)
+            async let bookmarkRecords = supabaseService.fetchRecords(category: .bookmarks, limit: bookmarkBackfillLimit, forceRefresh: forceRefresh)
+
+            let merged = Self.mergeRecords(try await recentRecords, with: try await bookmarkRecords)
+            allRecords = merged
             error = nil
-            Self.preDecodeRecords(records)
+            Self.preDecodeRecords(merged)
         } catch let error as SupabaseServiceError {
             self.error = error
         } catch {
             print("[DashboardVM] refreshRecords threw: \(error)")
             self.error = .unknownError(error.localizedDescription)
+        }
+    }
+
+    private static func mergeRecords(_ primary: [Record], with secondary: [Record]) -> [Record] {
+        let combined = (primary + secondary).sorted { $0.createdAt > $1.createdAt }
+        var seen = Set<UUID>()
+        return combined.filter { seen.insert($0.id).inserted }
+    }
+
+    private func resultValue(_ result: Result<[Record], Error>) -> [Record] {
+        switch result {
+        case .success(let value):
+            return value
+        case .failure(let err):
+#if DEBUG
+            print("[DashboardVM] bookmark backfill fetch threw: \(err)")
+#endif
+            return []
         }
     }
 

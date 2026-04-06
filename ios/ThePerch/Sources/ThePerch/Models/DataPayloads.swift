@@ -435,6 +435,26 @@ struct TripData: Codable, Sendable {
         PerchFormatters.isoDate.date(from: endDate)
     }
 
+    /// Status derived from the trip dates.
+    ///
+    /// This lets the UI recover gracefully when the backend trip-status updater
+    /// lags behind and a finished trip is still marked as `upcoming`.
+    var effectiveStatus: String {
+        guard let start = startDateParsed,
+              let end = endDateParsed else {
+            return status
+        }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let tripStart = calendar.startOfDay(for: start)
+        let tripEnd = calendar.startOfDay(for: end)
+
+        if today < tripStart { return "upcoming" }
+        if today > tripEnd { return "completed" }
+        return "active"
+    }
+
     /// Days until trip starts (negative if already started).
     var daysUntilStart: Int? {
         guard let start = startDateParsed else { return nil }
@@ -443,7 +463,7 @@ struct TripData: Codable, Sendable {
 
     /// Current day number within the trip (1-indexed). Nil if not active.
     var currentTripDay: Int? {
-        guard status == "active",
+        guard effectiveStatus == "active",
               let start = startDateParsed else { return nil }
         let days = Calendar.current.dateComponents([.day], from: start, to: .now).day ?? 0
         return days + 1

@@ -210,11 +210,11 @@ final class HomeViewModel {
         let tripRecords = records.compactMap { r -> TripData? in r.asTrip() }
             .sorted { ($0.startDateParsed ?? .distantFuture) < ($1.startDateParsed ?? .distantFuture) }
 
-        if let activeTrip = tripRecords.first(where: { $0.status == "active" }) {
+        if let activeTrip = tripRecords.first(where: { $0.effectiveStatus == "active" }) {
             return activeTrip
         }
 
-        return tripRecords.first { $0.status == "upcoming" && ($0.daysUntilStart ?? 99) <= 7 }
+        return tripRecords.first { $0.effectiveStatus == "upcoming" && ($0.daysUntilStart ?? 99) <= 7 }
     }
 
     /// Returns dual clock info when an active/upcoming trip has a different timezone.
@@ -233,14 +233,14 @@ final class HomeViewModel {
     }
 
     var travelQuickGlanceText: String? {
-        if let trip = relevantTravelTrip, trip.status == "active" {
+        if let trip = relevantTravelTrip, trip.effectiveStatus == "active" {
             if let day = trip.currentTripDay {
                 return "\(trip.destination) Day \(day)"
             }
             return trip.destination
         }
 
-        if let trip = relevantTravelTrip, trip.status == "upcoming", let days = trip.daysUntilStart {
+        if let trip = relevantTravelTrip, trip.effectiveStatus == "upcoming", let days = trip.daysUntilStart {
             return "\(trip.destination) in \(days)d"
         }
 
@@ -251,7 +251,7 @@ final class HomeViewModel {
 
     /// Deliveries that will arrive during an active trip (when no one's home).
     var deliveriesWhileAway: [(Record, DeliveryData)] {
-        guard let trip = records.compactMap({ $0.asTrip() }).first(where: { $0.status == "active" || $0.status == "upcoming" }),
+        guard let trip = records.compactMap({ $0.asTrip() }).first(where: { $0.effectiveStatus == "active" || $0.effectiveStatus == "upcoming" }),
               let start = trip.startDateParsed,
               let end = trip.endDateParsed else { return [] }
 
