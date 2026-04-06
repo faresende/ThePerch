@@ -6,6 +6,7 @@ struct SettingsTab: View {
     @Environment(\.dismiss) var dismiss
     @Environment(AuthViewModel.self) var authViewModel
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @EnvironmentObject private var tabBarState: TabBarState
 
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @State private var isSigningOut = false
@@ -65,6 +66,7 @@ struct SettingsTab: View {
                             .frame(height: PerchTheme.TabBar.height + 34)
                     }
                 }
+            .trackScrollForTabBar()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .safeAreaInset(edge: .bottom, spacing: 0) {
