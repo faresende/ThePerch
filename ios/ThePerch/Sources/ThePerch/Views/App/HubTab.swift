@@ -47,10 +47,7 @@ struct HubTab: View {
     }
 
     var body: some View {
-        ZStack {
-            PerchTheme.background.ignoresSafeArea()
-
-            ScrollView {
+        ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Hub header
                     HStack {
@@ -86,7 +83,7 @@ struct HubTab: View {
                     }
 
                     Spacer()
-                        .frame(height: PerchTheme.Spacing.large)
+                        .frame(height: PerchTheme.TabBar.height + 34)
                 }
             }
             .refreshable {
@@ -94,7 +91,6 @@ struct HubTab: View {
                 await dashboardViewModel.loadDashboard(forceRefresh: true)
                 PerchHaptics.success()
             }
-        }
         .onChange(of: dashboardViewModel.travelRecords) { _, newRecords in
             travelViewModel.records = newRecords
         }

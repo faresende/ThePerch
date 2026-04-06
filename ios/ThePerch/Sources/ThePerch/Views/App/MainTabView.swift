@@ -10,52 +10,41 @@ struct MainTabView: View {
 
     private var reconnectManager: RealtimeReconnectManager { RealtimeReconnectManager.shared }
 
-    /// Extra bottom padding injected into tab content so ScrollViews
-    /// never clip behind the glass tab bar.
-    private let tabBarBottomInset: CGFloat = PerchTheme.TabBar.height + 8
-
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             PerchTheme.background.ignoresSafeArea()
 
             // Time-of-day atmosphere gradient (behind everything)
             TimeOfDayAtmosphere()
 
-            // Tab content fills the full screen
             VStack(spacing: 0) {
                 // Banners
                 bannerStack
 
                 // Tab content
-                ZStack {
+                Group {
                     switch selectedTabId {
                     case "today":
                         TodayTab()
-                            .transition(.opacity)
                     case "health":
                         HealthTab()
-                            .transition(.opacity)
                     case "hub":
                         HubTab()
-                            .transition(.opacity)
                     case "settings":
                         SettingsTab()
-                            .transition(.opacity)
                     default:
                         TodayTab()
-                            .transition(.opacity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(.easeInOut(duration: 0.15), value: selectedTabId)
             }
-            .safeAreaInset(edge: .bottom) {
-                // Invisible spacer that makes ScrollViews add bottom inset
-                Color.clear.frame(height: tabBarBottomInset)
+            // Render tab bar as a bottom safe-area inset so SwiftUI
+            // reserves layout space for it across all tabs/ScrollViews.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                GlassTabBar(selectedId: $selectedTabId)
+                    .zIndex(1000)
             }
-
-            // Glass bottom tab bar floats on top
-            GlassTabBar(selectedId: $selectedTabId)
         }
         .task {
             await dashboardViewModel.loadDashboard()

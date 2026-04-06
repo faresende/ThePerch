@@ -25,37 +25,31 @@ struct GlassTabBar: View {
 
     @State private var pressedId: String?
 
+
     init(selectedId: Binding<String>, onSelect: ((String) -> Void)? = nil) {
         self._selectedId = selectedId
         self.onSelect = onSelect
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(GlassTabItem.items) { item in
-                tabButton(for: item)
+        ZStack(alignment: .top) {
+            // Fully opaque edge-to-edge backing (includes home indicator zone)
+            Rectangle()
+                .fill(PerchTheme.background)
+
+            HStack(spacing: 0) {
+                ForEach(GlassTabItem.items) { item in
+                    tabButton(for: item)
+                }
             }
+            .padding(.horizontal, PerchTheme.Spacing.medium)
+            .padding(.top, PerchTheme.Spacing.xSmall)
+            .padding(.bottom, PerchTheme.Spacing.small)
+            .frame(height: PerchTheme.TabBar.height)
         }
-        .padding(.horizontal, PerchTheme.Spacing.medium)
-        .padding(.top, PerchTheme.Spacing.xSmall)
-        .padding(.bottom, PerchTheme.Spacing.small)
+        .frame(maxWidth: .infinity)
         .frame(height: PerchTheme.TabBar.height)
-        .background(tabBarBackground)
-        .overlay(alignment: .top) {
-            topAccentLine
-        }
-        .overlay(alignment: .top) {
-            // Warm tint overlay for iOS 26+ glass effect fallback
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(0.04),
-                    Color.clear
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 1)
-        }
+        .shadow(color: .black.opacity(0.06), radius: 8, y: -2)
     }
 
     // MARK: - Background
@@ -65,8 +59,8 @@ struct GlassTabBar: View {
         let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
 
         shape
-            .fill(.ultraThinMaterial)
-            .opacity(PerchTheme.TabBar.glassOpacity)
+            .fill(PerchTheme.background)
+            .shadow(color: .black.opacity(0.06), radius: 8, y: -2)
     }
 
     // MARK: - Top Accent Line
