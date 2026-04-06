@@ -4,7 +4,6 @@ import SwiftUI
 /// Reads records from DashboardViewModel (single-fetch architecture).
 struct HealthTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @EnvironmentObject private var tabBarState: TabBarState
     @State private var selectedSegment: HealthSegment = .overview
 
     enum HealthSegment: String, CaseIterable {
@@ -212,7 +211,6 @@ struct HealthOverviewSegment: View {
             await dashboardViewModel.loadDashboard(forceRefresh: true)
             PerchHaptics.success()
         }
-        .trackScrollForTabBar()
         .onChange(of: dashboardViewModel.healthRecords) { _, newRecords in
             viewModel.records = newRecords
         }
@@ -323,7 +321,6 @@ struct WorkoutsSegment: View {
             await dashboardViewModel.loadDashboard(forceRefresh: true)
             PerchHaptics.success()
         }
-        .trackScrollForTabBar()
         .onChange(of: dashboardViewModel.healthRecords) { _, newRecords in
             viewModel.records = newRecords
         }
@@ -436,7 +433,6 @@ struct NutritionSegment: View {
                 await dashboardViewModel.refreshRecords(forceRefresh: true)
                 PerchHaptics.success()
             }
-            .trackScrollForTabBar()
 
             floatingActions
         }
