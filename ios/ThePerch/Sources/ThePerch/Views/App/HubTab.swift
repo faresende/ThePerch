@@ -12,7 +12,6 @@ private struct HubTimelineEntry: Identifiable {
 /// Container with collapsible DisclosureGroup sections.
 struct HubTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @EnvironmentObject private var tabBarState: TabBarState
     @State private var travelViewModel = TravelViewModel()
 
     /// Sections shown in the Hub, with their collapsed state.
@@ -92,7 +91,6 @@ struct HubTab: View {
                 await dashboardViewModel.loadDashboard(forceRefresh: true)
                 PerchHaptics.success()
             }
-            .trackScrollForTabBar()
         .onChange(of: dashboardViewModel.travelRecords) { _, newRecords in
             travelViewModel.records = newRecords
         }

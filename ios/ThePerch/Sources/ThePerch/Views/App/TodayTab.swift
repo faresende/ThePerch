@@ -5,7 +5,6 @@ import SwiftUI
 /// Reads all records from DashboardViewModel (single-fetch architecture).
 struct TodayTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @EnvironmentObject private var tabBarState: TabBarState
     @State private var viewModel = HomeViewModel()
     @State private var searchText = ""
     @State private var cardsAppeared = false
@@ -107,7 +106,6 @@ struct TodayTab: View {
                 await dashboardViewModel.loadDashboard(forceRefresh: true)
                 PerchHaptics.success()
             }
-            .trackScrollForTabBar()
         }
         .onChange(of: dashboardViewModel.allRecords) { _, newRecords in
             viewModel.updateRecords(newRecords)

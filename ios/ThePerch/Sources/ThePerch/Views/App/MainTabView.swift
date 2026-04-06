@@ -1,152 +1,41 @@
 import SwiftUI
 
 /// Root navigation view — bottom tab bar with 4 tabs: Today, Health, Hub, Settings.
-/// Uses Apple's Liquid Glass floating pill tab bar (iOS 26 native or iOS 17-25 fallback).
+/// Uses Apple's native iOS 26 TabView with Liquid Glass floating pill.
+/// No custom tab bar needed — SwiftUI handles everything natively.
 struct MainTabView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @Environment(NetworkMonitor.self) var networkMonitor
     @ObservedObject private var supabaseService = SupabaseService.shared
-    @State private var selectedTabId: String = "today"
-    @StateObject private var tabBarState = TabBarState()
-
-    private var reconnectManager: RealtimeReconnectManager { RealtimeReconnectManager.shared }
+    @State private var selectedTab: String = "today"
 
     var body: some View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
-
-            // Time-of-day atmosphere gradient (behind everything)
             TimeOfDayAtmosphere()
 
-            VStack(spacing: 0) {
-                // Banners
-                bannerStack
-
-                // Tab content
-                Group {
-                    switch selectedTabId {
-                    case "today":
-                        TodayTab()
-                    case "health":
-                        HealthTab()
-                    case "hub":
-                        HubTab()
-                    case "settings":
-                        SettingsTab()
-                    default:
-                        TodayTab()
-                    }
+            TabView(selection: $selectedTab) {
+                Tab("Today", systemImage: "house.fill", value: "today") {
+                    TodayTab()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .animation(.easeInOut(duration: 0.15), value: selectedTabId)
-                // Share tab bar state (source of truth) with all child views.
-                .environmentObject(tabBarState)
-            }
-            // Render tab bar as a bottom safe-area inset so SwiftUI
-            // reserves layout space for it across all tabs/ScrollViews.
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                // Reserve space for the floating pill + home indicator padding.
-                // The pill itself floats above the content — no opaque background here.
-                Color.clear
-                    .frame(height: PerchTheme.TabBar.height + 34)
 
-                // Floating pill — centered at bottom, above the home indicator.
-                LiquidGlassTabBar(
-                    selectedId: $selectedTabId,
-                    isCollapsed: $tabBarState.isCollapsed
-                )
-                .zIndex(1000)
-                .offset(y: -17) // Float just above the reserved safe-area space
+                Tab("Health", systemImage: "heart.fill", value: "health") {
+                    HealthTab()
+                }
+
+                Tab("Hub", systemImage: "square.grid.2x2.fill", value: "hub") {
+                    HubTab()
+                }
+
+                Tab("Settings", systemImage: "gearshape.fill", value: "settings") {
+                    SettingsTab()
+                }
             }
+            .tabBarMinimizeBehavior(.onScrollDown)  // Collapses on scroll like Apple Music
         }
         .task {
             await dashboardViewModel.loadDashboard()
         }
-    }
-
-    // MARK: - Banner Stack
-
-    @ViewBuilder
-    private var bannerStack: some View {
-        VStack(spacing: 0) {
-            // Offline banner
-            if !networkMonitor.isConnected {
-                offlineBanner
-            }
-
-            // Connection error banner
-            if let connectionError = supabaseService.connectionError, networkMonitor.isConnected {
-                errorBanner(message: connectionError)
-            }
-
-            // Dashboard-level error banner
-            if let error = dashboardViewModel.error, supabaseService.connectionError == nil {
-                errorBanner(message: error.localizedDescription)
-            }
-
-            // Cache staleness warning
-            if !networkMonitor.isConnected,
-               let meta = CacheService.shared.metadata(for: nil, userId: "default_user") {
-                cacheAgeBanner(age: meta.relativeAgeString)
-            } else if dashboardViewModel.isShowingCachedData,
-                      let lastUpdated = dashboardViewModel.lastUpdatedString {
-                cacheAgeBanner(age: lastUpdated.replacingOccurrences(of: "Last updated ", with: ""))
-            }
-        }
-    }
-
-    // MARK: - Offline Banner
-
-    private var offlineBanner: some View {
-        HStack(spacing: PerchTheme.Spacing.xSmall) {
-            Image(systemName: "wifi.slash")
-                .font(PerchTheme.Font.caption)
-            Text("You're offline")
-                .font(PerchTheme.Font.caption)
-                .fontWeight(.medium)
-        }
-        .foregroundColor(.white)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, PerchTheme.Spacing.xSmall)
-        .background(PerchTheme.textTertiary)
-    }
-
-    // MARK: - Cache Age Banner
-
-    private func cacheAgeBanner(age: String) -> some View {
-        HStack(spacing: PerchTheme.Spacing.xSmall) {
-            Image(systemName: "clock.arrow.circlepath")
-                .font(PerchTheme.Font.caption)
-            Text("Last updated \(age)")
-                .font(PerchTheme.Font.caption)
-                .fontWeight(.medium)
-        }
-        .foregroundColor(PerchTheme.textSecondary)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 4)
-        .background(PerchTheme.warning.opacity(0.15))
-    }
-
-    // MARK: - Error Banner
-
-    private func errorBanner(message: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(PerchTheme.error)
-            Text(message)
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textSecondary)
-                .lineLimit(2)
-            Spacer()
-            Button("Retry") {
-                Task { await dashboardViewModel.loadDashboard(forceRefresh: true) }
-            }
-            .font(PerchTheme.Font.caption)
-            .foregroundColor(PerchTheme.accent)
-        }
-        .padding(PerchTheme.Spacing.small)
-        .background(PerchTheme.error.opacity(0.1))
-        .padding(.horizontal, PerchTheme.Spacing.large)
     }
 }
 
