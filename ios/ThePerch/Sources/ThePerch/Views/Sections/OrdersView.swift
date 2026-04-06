@@ -54,6 +54,15 @@ struct OrdersView: View {
         if viewModel.isLoading && viewModel.orders.isEmpty {
             SkeletonCardsSection(count: 3)
                 .padding(.horizontal, PerchTheme.Spacing.large)
+        } else if let error = viewModel.error, viewModel.orders.isEmpty {
+            EmptyStateView(
+                icon: "shippingbox",
+                title: "Orders backend unavailable",
+                subtitle: error.contains("public.orders")
+                    ? "This backend does not have the new orders tables yet, so the Orders tab cannot load real data here yet."
+                    : error
+            )
+            .padding(.horizontal, PerchTheme.Spacing.large)
         } else if viewModel.orders.isEmpty {
             EmptyStateView(
                 icon: "shippingbox",

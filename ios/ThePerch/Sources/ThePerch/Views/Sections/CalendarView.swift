@@ -66,8 +66,8 @@ struct CalendarView: View {
     }
 
     private var currentTrip: TripData? {
-        travelTrips.first(where: { $0.status == "active" })
-        ?? travelTrips.first(where: { $0.status == "upcoming" })
+        travelTrips.first(where: { $0.effectiveStatus == "active" })
+        ?? travelTrips.first(where: { $0.effectiveStatus == "upcoming" })
     }
 
     private var selectedDayEvents: [EventData] {
@@ -312,7 +312,7 @@ struct CalendarView: View {
             return day >= tripStart && day <= tripEnd
         } ?? {
             guard let trip = currentTrip,
-                  trip.status == "active",
+                  trip.effectiveStatus == "active",
                   let origin = trip.originTz,
                   let destination = trip.destinationTz,
                   origin != destination else {

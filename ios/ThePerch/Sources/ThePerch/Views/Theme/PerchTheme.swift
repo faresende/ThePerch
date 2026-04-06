@@ -26,8 +26,8 @@ struct PerchTheme {
     /// Elevated surface for cards (semi-transparent for glass effect)
     static var cardBackground: Color {
         adaptive(
-            light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.85),     // #FFFFFF 85%
-            dark: UIColor(red: 0.098, green: 0.102, blue: 0.106, alpha: 0.75) // #191A1B 75%
+            light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.80),     // #FFFFFF 80%
+            dark: UIColor(red: 0.098, green: 0.102, blue: 0.106, alpha: 0.70) // #191A1B 70%
         )
     }
 
@@ -200,12 +200,14 @@ struct PerchTheme {
     // MARK: - Typography
 
     enum Font {
-        /// 32pt — large hero numbers, page titles
-        static let display = SwiftUI.Font.system(size: 32, weight: .bold)
-        /// 22pt — section titles
-        static let title = SwiftUI.Font.system(size: 22, weight: .semibold)
-        /// 17pt — card titles, emphasis
-        static let heading = SwiftUI.Font.system(size: 17, weight: .semibold)
+        /// 40pt — tab page headers
+        static let largeTitle = SwiftUI.Font.system(size: 40, weight: .bold)
+        /// 34pt — large hero numbers, page titles
+        static let display = SwiftUI.Font.system(size: 34, weight: .bold)
+        /// 24pt — section titles
+        static let title = SwiftUI.Font.system(size: 24, weight: .semibold)
+        /// 18pt — card titles, emphasis
+        static let heading = SwiftUI.Font.system(size: 18, weight: .semibold)
         /// 15pt — regular text
         static let body = SwiftUI.Font.system(size: 15, weight: .regular)
         /// 13pt — metadata, labels
@@ -216,9 +218,10 @@ struct PerchTheme {
         static let cardEyebrow = SwiftUI.Font.system(size: 12, weight: .semibold)
 
         // Numeric variants — .rounded design for data displays
-        static let displayNumeric = SwiftUI.Font.system(size: 32, weight: .bold, design: .rounded)
-        static let titleNumeric = SwiftUI.Font.system(size: 22, weight: .bold, design: .rounded)
-        static let headingNumeric = SwiftUI.Font.system(size: 17, weight: .bold, design: .rounded)
+        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .bold, design: .rounded)
+        static let displayNumeric = SwiftUI.Font.system(size: 34, weight: .bold, design: .rounded)
+        static let titleNumeric = SwiftUI.Font.system(size: 24, weight: .bold, design: .rounded)
+        static let headingNumeric = SwiftUI.Font.system(size: 18, weight: .bold, design: .rounded)
         static let bodyNumeric = SwiftUI.Font.system(size: 15, weight: .semibold, design: .rounded)
         static let captionNumeric = SwiftUI.Font.system(size: 13, weight: .semibold, design: .rounded)
         static let microNumeric = SwiftUI.Font.system(size: 11, weight: .semibold, design: .rounded)
@@ -236,39 +239,57 @@ struct PerchTheme {
     // MARK: - Spacing
 
     enum Spacing {
-        static let xxxSmall: CGFloat = 2
-        static let xxSmall: CGFloat = 4
-        static let xSmall: CGFloat = 8
-        static let small: CGFloat = 12
-        static let medium: CGFloat = 16
-        static let mediumLarge: CGFloat = 20
-        static let large: CGFloat = 24
-        static let xLarge: CGFloat = 32
-        static let xxLarge: CGFloat = 48
+        static let xxxSmall: CGFloat = 3
+        static let xxSmall: CGFloat = 6
+        static let xSmall: CGFloat = 10
+        static let small: CGFloat = 14
+        static let medium: CGFloat = 20
+        static let mediumLarge: CGFloat = 24
+        static let large: CGFloat = 28
+        static let xLarge: CGFloat = 40
+        static let xxLarge: CGFloat = 56
+        static let xxxLarge: CGFloat = 80
     }
 
     // MARK: - Card Styling
 
     enum Card {
-        static let cornerRadius: CGFloat = 20
-        static let innerCornerRadius: CGFloat = 12
+        static let cornerRadius: CGFloat = 16
+        static let innerCornerRadius: CGFloat = 10
         static let padding: CGFloat = 20
-        static let shadowRadius: CGFloat = 12
-        static let shadowOpacity: Double = 0.4
-        static let borderWidth: CGFloat = 1
+        static let shadowRadius: CGFloat = 6
+        static let shadowOpacity: Double = 0.2
+        static let borderWidth: CGFloat = 0.5
     }
 
     enum HomeCard {
-        static let horizontalPadding: CGFloat = 16
-        static let verticalPadding: CGFloat = 14
-        static let rowSpacing: CGFloat = 8
-        static let rowVerticalPadding: CGFloat = 4
-        static let sectionSpacing: CGFloat = 24
-        static let columnGutter: CGFloat = 8
+        static let horizontalPadding: CGFloat = 20
+        static let verticalPadding: CGFloat = 18
+        static let rowSpacing: CGFloat = 10
+        static let rowVerticalPadding: CGFloat = 6
+        static let sectionSpacing: CGFloat = 28
+        static let columnGutter: CGFloat = 10
         static let trailingColumnMinWidth: CGFloat = 96
         static let badgeMaxWidth: CGFloat = 96
-        static let itemPadding: CGFloat = 8
-        static let itemCornerRadius: CGFloat = 12
+        static let itemPadding: CGFloat = 10
+        static let itemCornerRadius: CGFloat = 10
+    }
+
+    // MARK: - Tab Bar
+
+    enum TabBar {
+        static let height: CGFloat = 83
+        static let iconSize: CGFloat = 24
+        static let labelSize: CGFloat = 10
+        static let glassOpacity: Double = 0.72
+    }
+
+    // MARK: - Glass Card Style
+
+    /// Glass material card — ultraThinMaterial with subtle accent tint on top border.
+    /// Use for navigation chrome only (e.g. tab bar). Content cards use standard cardStyle().
+    static func glassCard() -> some View {
+        EmptyView() // Placeholder; actual implementation in GlassTabBar.swift
     }
 
     // MARK: - Icon Sizing

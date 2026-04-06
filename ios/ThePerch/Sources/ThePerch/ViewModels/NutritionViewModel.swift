@@ -187,7 +187,13 @@ final class NutritionViewModel {
             calendar.startOfDay(for: meal.mealTime)
         }
 
-        return groupedMeals.keys
+        var dates = groupedMeals.keys.sorted(by: >)
+        let today = calendar.startOfDay(for: .now)
+        if !dates.contains(today) {
+            dates.insert(today, at: 0)
+        }
+
+        return dates
             .sorted(by: >)
             .map { date in
                 let mealsForDay = groupedMeals[date, default: []]

@@ -24,12 +24,12 @@ final class TravelViewModel {
 
     /// The currently active trip, if any.
     var activeTrip: (Record, TripData)? {
-        trips.first { $0.1.status == "active" }
+        trips.first { $0.1.effectiveStatus == "active" }
     }
 
     /// The next upcoming trip (not yet active).
     var upcomingTrip: (Record, TripData)? {
-        trips.first { $0.1.status == "upcoming" }
+        trips.first { $0.1.effectiveStatus == "upcoming" }
     }
 
     /// The most relevant trip: active takes priority, then upcoming.
@@ -39,7 +39,7 @@ final class TravelViewModel {
 
     /// Past trips, most recent first.
     var pastTrips: [(Record, TripData)] {
-        trips.filter { $0.1.status == "completed" }
+        trips.filter { $0.1.effectiveStatus == "completed" }
             .sorted { ($0.1.startDateParsed ?? .distantPast) > ($1.1.startDateParsed ?? .distantPast) }
     }
 
@@ -146,7 +146,7 @@ final class TravelViewModel {
     var shouldShowHomeCard: Bool {
         guard let trip = currentTrip else { return false }
         // Show if trip is active, or upcoming within 7 days
-        if trip.1.status == "active" { return true }
+        if trip.1.effectiveStatus == "active" { return true }
         if let days = trip.1.daysUntilStart, days <= 7 { return true }
         return false
     }
@@ -161,7 +161,7 @@ final class TravelViewModel {
     var homeCardTier: CardTier {
         guard let trip = currentTrip else { return .upcoming }
         if hasActiveAlerts { return .disruption }
-        if trip.1.status == "active" { return .travelDay }
+        if trip.1.effectiveStatus == "active" { return .travelDay }
         if let days = trip.1.daysUntilStart, days <= 1 { return .travelDay }
         return .upcoming
     }
