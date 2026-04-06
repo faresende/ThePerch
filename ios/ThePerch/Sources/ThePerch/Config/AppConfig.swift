@@ -8,6 +8,9 @@ struct AppConfig {
     let supabaseURL: URL
     let supabaseAnonKey: String
 
+    /// Karakeep API token for direct bookmark fetching.
+    let karakeepToken: String
+
     /// True when Supabase credentials are missing or invalid.
     let isMisconfigured: Bool
 
@@ -18,6 +21,7 @@ struct AppConfig {
            !keychainConfig.supabaseAnonKey.isEmpty {
             self.supabaseURL = url
             self.supabaseAnonKey = keychainConfig.supabaseAnonKey
+            self.karakeepToken = Self.getConfigValue(key: "KARAKEEP_TOKEN")
             self.isMisconfigured = false
             return
         }
@@ -29,6 +33,7 @@ struct AppConfig {
         if let url = URL(string: urlString), !urlString.isEmpty, !anonKey.isEmpty {
             self.supabaseURL = url
             self.supabaseAnonKey = anonKey
+            self.karakeepToken = Self.getConfigValue(key: "KARAKEEP_TOKEN")
             self.isMisconfigured = false
         } else {
             // No config found — app will show OnboardingView
@@ -37,6 +42,7 @@ struct AppConfig {
 #endif
             self.supabaseURL = URL(string: "https://placeholder.supabase.co")!
             self.supabaseAnonKey = ""
+            self.karakeepToken = ""
             self.isMisconfigured = true
         }
     }

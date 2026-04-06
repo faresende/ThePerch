@@ -1,12 +1,12 @@
 import SwiftUI
 
 /// Bookmarks section with Karakeep/Paperless tabs, search, and filtering.
-/// Reads records from DashboardViewModel (single-fetch architecture).
+/// Karakeep tab uses BookmarksViewModel + KarakeepService for reliable direct API access.
+/// Paperless tab reads records from DashboardViewModel (single-fetch architecture).
 struct BookmarksView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
 
-    @State private var searchText = ""
-    @State private var selectedTags: Set<String> = []
+    @State private var viewModel = BookmarksViewModel()
     @State private var selectedTab: BookmarkSource = .karakeep
 
     private var records: [Record] { dashboardViewModel.bookmarkRecords }
@@ -20,6 +20,13 @@ struct BookmarksView: View {
         pending: [Record],
         processed: [Record]
     ) {
+        // Karakeep tab uses BookmarksViewModel (direct API) — handled separately below
+        // Paperless tab uses Record-based decoding (existing architecture)
+        guard selectedTab == .paperless else {
+            // Return empty — Karakeep tab renders from viewModel directly
+            return ([], [], [], [])
+        }
+
         // Step 1: filter to active tab (single decode per record)
         var tabRecords: [(Record, BookmarkData)] = []
         for record in records {
@@ -42,13 +49,13 @@ struct BookmarksView: View {
         var pending: [Record] = []
         var processed: [Record] = []
         for (record, bookmark) in tabRecords {
-            let matchesSearch = searchText.isEmpty ||
-                bookmark.displayTitle.localizedCaseInsensitiveContains(searchText) ||
-                (bookmark.summary?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-                (bookmark.fileName?.localizedCaseInsensitiveContains(searchText) ?? false)
+            let matchesSearch = viewModel.searchQuery.isEmpty ||
+                bookmark.displayTitle.localizedCaseInsensitiveContains(viewModel.searchQuery) ||
+                (bookmark.summary?.localizedCaseInsensitiveContains(viewModel.searchQuery) ?? false) ||
+                (bookmark.fileName?.localizedCaseInsensitiveContains(viewModel.searchQuery) ?? false)
 
-            let matchesTags = selectedTags.isEmpty ||
-                selectedTags.allSatisfy { bookmark.tags.contains($0) }
+            let matchesTags = viewModel.selectedTags.isEmpty ||
+                viewModel.selectedTags.allSatisfy { bookmark.tags.contains($0) }
 
             guard matchesSearch && matchesTags else { continue }
             filtered.append(record)
@@ -63,16 +70,32 @@ struct BookmarksView: View {
         return (sortedTags, filtered, pending, processed)
     }
 
-    var allTags: [String] { bookmarkData.allTags }
-    var filteredBookmarks: [Record] { bookmarkData.filtered }
-    var pendingBookmarks: [Record] { bookmarkData.pending }
-    var processedBookmarks: [Record] { bookmarkData.processed }
+    private var karakeepData: (
+        allTags: [String],
+        pending: [KarakeepBookmark],
+        processed: [KarakeepBookmark],
+        count: Int
+    ) {
+        let pending = viewModel.pendingKarakeepBookmarks
+        let processed = viewModel.processedKarakeepBookmarks
+        let allTags = viewModel.allTags
+        return (allTags, pending, processed, pending.count + processed.count)
+    }
 
-    private var tabCount: Int { bookmarkData.filtered.count }
+    var allTags: [String] {
+        selectedTab == .karakeep ? karakeepData.allTags : bookmarkData.allTags
+    }
+
+    private var tabCount: Int {
+        selectedTab == .karakeep ? karakeepData.count : bookmarkData.filtered.count
+    }
 
     /// Whether the current tab has any records (before search/tag filter).
     private var tabHasRecords: Bool {
-        records.contains { record in
+        if selectedTab == .karakeep {
+            return viewModel.karakeepTabHasRecords
+        }
+        return records.contains { record in
             guard let bookmark = record.asBookmark() else { return false }
             return (bookmark.source ?? .karakeep) == selectedTab
         }
@@ -111,7 +134,8 @@ struct BookmarksView: View {
                     .pickerStyle(.segmented)
                     .onChange(of: selectedTab) { _, _ in
                         PerchHaptics.selection()
-                        selectedTags.removeAll()
+                        viewModel.selectedTags.removeAll()
+                        viewModel.searchQuery = ""
                     }
 
                     // Search bar
@@ -122,12 +146,12 @@ struct BookmarksView: View {
 
                         TextField(
                             selectedTab == .karakeep ? "Search bookmarks" : "Search documents",
-                            text: $searchText
+                            text: $viewModel.searchQuery
                         )
                         .autocorrectionDisabled()
 
-                        if !searchText.isEmpty {
-                            Button(action: { searchText = "" }) {
+                        if !viewModel.searchQuery.isEmpty {
+                            Button(action: { viewModel.clearSearch() }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
                                     .foregroundColor(PerchTheme.textTertiary)
@@ -147,18 +171,18 @@ struct BookmarksView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: PerchTheme.Spacing.xSmall) {
                                 ForEach(allTags, id: \.self) { tag in
-                                    Button(action: { toggleTag(tag) }) {
+                                    Button(action: { viewModel.toggleTag(tag) }) {
                                         Text(tag)
                                             .font(PerchTheme.Font.caption)
                                             .foregroundColor(
-                                                selectedTags.contains(tag)
+                                                viewModel.selectedTags.contains(tag)
                                                     ? .white
                                                     : PerchTheme.accent
                                             )
                                             .padding(.horizontal, PerchTheme.Spacing.small)
                                             .padding(.vertical, PerchTheme.Spacing.xxSmall)
                                             .background(
-                                                selectedTags.contains(tag)
+                                                viewModel.selectedTags.contains(tag)
                                                     ? PerchTheme.accent
                                                     : PerchTheme.accent.opacity(0.1)
                                             )
@@ -175,61 +199,36 @@ struct BookmarksView: View {
                 // Content
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                        if dashboardViewModel.isLoading && records.isEmpty {
+                        // Loading state
+                        if shouldShowLoadingState {
                             SkeletonCardsSection(count: 3)
                                 .padding(.horizontal, PerchTheme.Spacing.large)
-                        } else {
-                        // Count indicator
-                        if !filteredBookmarks.isEmpty {
-                            Text("\(tabCount) \(selectedTab == .karakeep ? "bookmark" : "document")\(tabCount == 1 ? "" : "s")")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textTertiary)
-                                .padding(.horizontal, PerchTheme.Spacing.large)
                         }
-
-                        // Pending/processing bookmarks
-                        if !pendingBookmarks.isEmpty {
-                            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                                Text("Processing")
-                                    .font(PerchTheme.Font.heading)
-                                    .foregroundColor(PerchTheme.textPrimary)
-
-                                VStack(spacing: PerchTheme.Spacing.medium) {
-                                    ForEach(pendingBookmarks) { record in
-                                        if let bookmark = record.asBookmark() {
-                                            bookmarkCardView(bookmark: bookmark)
-                                        }
-                                    }
-                                }
-                            }
+                        // Error state (Karakeep tab)
+                        else if selectedTab == .karakeep, let error = viewModel.error {
+                            ErrorBanner(
+                                message: error,
+                                retryAction: { Task { await viewModel.loadBookmarks() } },
+                                onDismiss: { viewModel.clearError() }
+                            )
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         }
-
-                        // Processed bookmarks
-                        if !processedBookmarks.isEmpty {
-                            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                                Text(selectedTab == .karakeep ? "Bookmarks" : "Documents")
-                                    .font(PerchTheme.Font.heading)
-                                    .foregroundColor(PerchTheme.textPrimary)
-
-                                VStack(spacing: PerchTheme.Spacing.medium) {
-                                    ForEach(processedBookmarks) { record in
-                                        if let bookmark = record.asBookmark() {
-                                            bookmarkCardView(bookmark: bookmark)
-                                        }
-                                    }
-                                }
-                            }
+                        // Error state (Paperless tab)
+                        else if selectedTab == .paperless, dashboardViewModel.error != nil {
+                            ErrorBanner(
+                                message: "Failed to load documents",
+                                retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
+                                onDismiss: { dashboardViewModel.clearError() }
+                            )
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         }
-
-                        // Empty state
-                        if filteredBookmarks.isEmpty && !searchText.isEmpty {
-                            emptySearchView
-                        } else if !tabHasRecords && !dashboardViewModel.isLoading {
-                            emptyStateView
+                        // Karakeep tab content
+                        else if selectedTab == .karakeep {
+                            karakeepContent
                         }
-
+                        // Paperless tab content
+                        else {
+                            paperlessContent
                         }
 
                         Spacer()
@@ -238,10 +237,155 @@ struct BookmarksView: View {
                 }
                 .refreshable {
                     PerchHaptics.medium()
-                    await dashboardViewModel.loadDashboard(forceRefresh: true)
+                    if selectedTab == .karakeep {
+                        await viewModel.loadBookmarks()
+                    } else {
+                        await dashboardViewModel.loadDashboard(forceRefresh: true)
+                    }
                     PerchHaptics.success()
                 }
             }
+        }
+        .onAppear {
+            // Load Karakeep bookmarks when the view first appears
+            if !viewModel.hasLoaded {
+                Task { await viewModel.loadBookmarks() }
+            }
+        }
+    }
+
+    // MARK: - State Helpers
+
+    private var shouldShowLoadingState: Bool {
+        if selectedTab == .karakeep {
+            return viewModel.isLoading && viewModel.karakeepBookmarks.isEmpty
+        }
+        return dashboardViewModel.isLoading && records.isEmpty
+    }
+
+    private var shouldShowEmptyState: Bool {
+        if selectedTab == .karakeep {
+            return !viewModel.isLoading && viewModel.karakeepBookmarks.isEmpty && viewModel.hasLoaded
+        }
+        return !dashboardViewModel.isLoading && records.isEmpty &&
+            !records.contains { record in
+                guard let bookmark = record.asBookmark() else { return false }
+                return (bookmark.source ?? .karakeep) == selectedTab
+            }
+    }
+
+    // MARK: - Karakeep Content
+
+    @ViewBuilder
+    private var karakeepContent: some View {
+        // Count indicator
+        if !viewModel.filteredKarakeepBookmarks.isEmpty {
+            Text("\(karakeepData.count) bookmark\(karakeepData.count == 1 ? "" : "s")")
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textTertiary)
+                .padding(.horizontal, PerchTheme.Spacing.large)
+        }
+
+        // Pending/processing bookmarks
+        if !karakeepData.pending.isEmpty {
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                Text("Processing")
+                    .font(PerchTheme.Font.heading)
+                    .foregroundColor(PerchTheme.textPrimary)
+
+                VStack(spacing: PerchTheme.Spacing.medium) {
+                    ForEach(karakeepData.pending) { bookmark in
+                        bookmarkCardView(bookmark: bookmark)
+                    }
+                }
+            }
+            .padding(.horizontal, PerchTheme.Spacing.large)
+        }
+
+        // Processed bookmarks
+        if !karakeepData.processed.isEmpty {
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                Text("Bookmarks")
+                    .font(PerchTheme.Font.heading)
+                    .foregroundColor(PerchTheme.textPrimary)
+
+                VStack(spacing: PerchTheme.Spacing.medium) {
+                    ForEach(karakeepData.processed) { bookmark in
+                        bookmarkCardView(bookmark: bookmark)
+                    }
+                }
+            }
+            .padding(.horizontal, PerchTheme.Spacing.large)
+        }
+
+        // Empty search result
+        if viewModel.filteredKarakeepBookmarks.isEmpty && !viewModel.searchQuery.isEmpty {
+            emptySearchView
+        }
+        // Empty tab
+        else if !tabHasRecords && viewModel.hasLoaded {
+            emptyStateView
+        }
+    }
+
+    // MARK: - Paperless Content
+
+    @ViewBuilder
+    private var paperlessContent: some View {
+        let pendingBookmarks = bookmarkData.pending
+        let processedBookmarks = bookmarkData.processed
+
+        // Count indicator
+        if !bookmarkData.filtered.isEmpty {
+            Text("\(tabCount) document\(tabCount == 1 ? "" : "s")")
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textTertiary)
+                .padding(.horizontal, PerchTheme.Spacing.large)
+        }
+
+        // Pending/processing
+        if !pendingBookmarks.isEmpty {
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                Text("Processing")
+                    .font(PerchTheme.Font.heading)
+                    .foregroundColor(PerchTheme.textPrimary)
+
+                VStack(spacing: PerchTheme.Spacing.medium) {
+                    ForEach(pendingBookmarks) { record in
+                        if let bookmark = record.asBookmark() {
+                            bookmarkCardView(bookmark: bookmark)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, PerchTheme.Spacing.large)
+        }
+
+        // Processed
+        if !processedBookmarks.isEmpty {
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                Text("Documents")
+                    .font(PerchTheme.Font.heading)
+                    .foregroundColor(PerchTheme.textPrimary)
+
+                VStack(spacing: PerchTheme.Spacing.medium) {
+                    ForEach(processedBookmarks) { record in
+                        if let bookmark = record.asBookmark() {
+                            bookmarkCardView(bookmark: bookmark)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, PerchTheme.Spacing.large)
+        }
+
+        // Empty search result
+        if bookmarkData.filtered.isEmpty && !viewModel.searchQuery.isEmpty {
+            emptySearchView
+        }
+        // Empty tab
+        else if !tabHasRecords && !dashboardViewModel.isLoading {
+            emptyStateView
         }
     }
 
@@ -260,6 +404,34 @@ struct BookmarksView: View {
         } else {
             BookmarkCard(bookmark: bookmark, onTap: tapAction)
         }
+    }
+
+    @ViewBuilder
+    private func bookmarkCardView(bookmark: KarakeepBookmark) -> some View {
+        let tapAction = {
+            if let url = URL(string: bookmark.url) {
+                UIApplication.shared.open(url)
+            }
+        }
+
+        // Convert to BookmarkData for consistent card rendering
+        let bookmarkData = BookmarkData(
+            url: bookmark.url,
+            originalTitle: bookmark.title,
+            enrichedTitle: nil,
+            summary: bookmark.summary,
+            tags: bookmark.tags,
+            status: BookmarkStatus(rawValue: bookmark.status.rawValue) ?? .processed,
+            domain: bookmark.domain,
+            imageUrl: bookmark.imageURL,
+            readingTimeMinutes: bookmark.readingTimeMinutes,
+            submittedFrom: nil,
+            processedAt: nil,
+            source: .karakeep,
+            fileType: nil,
+            fileName: nil
+        )
+        BookmarkCard(bookmark: bookmarkData, onTap: tapAction)
     }
 
     // MARK: - Empty States
@@ -295,15 +467,6 @@ struct BookmarksView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(PerchTheme.Spacing.large)
-    }
-
-    private func toggleTag(_ tag: String) {
-        PerchHaptics.selection()
-        if selectedTags.contains(tag) {
-            selectedTags.remove(tag)
-        } else {
-            selectedTags.insert(tag)
-        }
     }
 }
 

@@ -53,11 +53,22 @@ struct WorkoutView: View {
     @ViewBuilder
     private var content: some View {
         if dashboardViewModel.isLoading && viewModel.records.isEmpty {
-            ProgressView()
-                .frame(maxWidth: .infinity)
-                .padding(.top, 40)
+            SkeletonCardsSection(count: 3)
+                .padding(.horizontal, PerchTheme.Spacing.large)
+        } else if let error = dashboardViewModel.error {
+            ErrorBanner(
+                message: error.localizedDescription,
+                retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
+                onDismiss: { dashboardViewModel.clearError() }
+            )
+            .padding(.horizontal, PerchTheme.Spacing.large)
         } else if workoutRecords.isEmpty {
-            placeholderCard(title: "No Workouts", emoji: "🏋️", hint: "Log your first workout")
+            EmptyStateView(
+                icon: "figure.strengthtraining.traditional",
+                title: "No workouts yet",
+                subtitle: "Log your first workout to start tracking your progress."
+            )
+            .padding(.horizontal, PerchTheme.Spacing.large)
         } else {
             WeeklyVolumeCard(records: viewModel.records)
                 .cardAppear(index: 0, appeared: cardsAppeared)
