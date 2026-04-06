@@ -1,12 +1,13 @@
 import SwiftUI
 
 /// Root navigation view — bottom tab bar with 4 tabs: Today, Health, Hub, Settings.
-/// Uses custom GlassTabBar for navigation chrome.
+/// Uses Apple's Liquid Glass floating pill tab bar (iOS 26 native or iOS 17-25 fallback).
 struct MainTabView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @Environment(NetworkMonitor.self) var networkMonitor
     @ObservedObject private var supabaseService = SupabaseService.shared
     @State private var selectedTabId: String = "today"
+    @StateObject private var tabBarState = TabBarState()
 
     private var reconnectManager: RealtimeReconnectManager { RealtimeReconnectManager.shared }
 
@@ -38,12 +39,24 @@ struct MainTabView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(.easeInOut(duration: 0.15), value: selectedTabId)
+                // Share tab bar state (source of truth) with all child views.
+                .environmentObject(tabBarState)
             }
             // Render tab bar as a bottom safe-area inset so SwiftUI
             // reserves layout space for it across all tabs/ScrollViews.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                GlassTabBar(selectedId: $selectedTabId)
-                    .zIndex(1000)
+                // Reserve space for the floating pill + home indicator padding.
+                // The pill itself floats above the content — no opaque background here.
+                Color.clear
+                    .frame(height: PerchTheme.TabBar.height + 34)
+
+                // Floating pill — centered at bottom, above the home indicator.
+                LiquidGlassTabBar(
+                    selectedId: $selectedTabId,
+                    isCollapsed: $tabBarState.isCollapsed
+                )
+                .zIndex(1000)
+                .offset(y: -17) // Float just above the reserved safe-area space
             }
         }
         .task {
