@@ -26,10 +26,7 @@ struct SettingsTab: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                PerchTheme.background.ignoresSafeArea()
-
-                ScrollView {
+            ScrollView {
                     LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                         // User profile section
                         profileSection
@@ -65,12 +62,14 @@ struct SettingsTab: View {
                             .padding(.horizontal, PerchTheme.Spacing.large)
 
                         Spacer()
-                            .frame(height: PerchTheme.Spacing.large)
+                            .frame(height: PerchTheme.TabBar.height + 34)
                     }
                 }
-            }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: PerchTheme.TabBar.height + 34)
+            }
             .onAppear {
                 editableSections = dashboardViewModel.sections
                     .filter { $0.slug != "legal" }
@@ -82,25 +81,36 @@ struct SettingsTab: View {
     // MARK: - Profile Section
 
     private var profileSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
             Text("Profile")
                 .font(PerchTheme.Font.heading)
                 .foregroundColor(PerchTheme.textPrimary)
 
             CardContainer {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                    ProfileField(
-                        label: "Display Name",
-                        value: authViewModel.displayName.isEmpty ? "there" : authViewModel.displayName
-                    )
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+                    HStack {
+                        Text("Display Name")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textTertiary)
+                        Spacer()
+                        Text(authViewModel.displayName.isEmpty ? "Not set" : authViewModel.displayName)
+                            .font(PerchTheme.Font.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(PerchTheme.textPrimary)
+                    }
 
                     Divider()
-                        .padding(.vertical, PerchTheme.Spacing.xSmall)
 
-                    ProfileField(
-                        label: "Email",
-                        value: authViewModel.email
-                    )
+                    HStack {
+                        Text("Email")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.textTertiary)
+                        Spacer()
+                        Text(authViewModel.email.isEmpty ? "Not set" : authViewModel.email)
+                            .font(PerchTheme.Font.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(PerchTheme.textPrimary)
+                    }
                 }
             }
         }
@@ -134,7 +144,7 @@ struct SettingsTab: View {
     // MARK: - Section Management
 
     private var sectionManagementSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
             HStack {
                 Text("Tabs")
                     .font(PerchTheme.Font.heading)
@@ -149,37 +159,35 @@ struct SettingsTab: View {
                 .font(PerchTheme.Font.caption)
                 .foregroundColor(PerchTheme.textTertiary)
 
-            List {
-                ForEach($editableSections) { $section in
-                    HStack(spacing: PerchTheme.Spacing.medium) {
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundColor(PerchTheme.textTertiary)
-                            .font(.caption)
-                        Text(section.displayName)
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
-                        Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { section.isVisible },
-                            set: { newValue in
-                                section.isVisible = newValue
-                                Task { await saveSections() }
-                            }
-                        ))
-                            .labelsHidden()
-                            .tint(PerchTheme.accent)
+            CardContainer {
+                List {
+                    ForEach($editableSections) { $section in
+                        HStack(spacing: PerchTheme.Spacing.medium) {
+                            Text(section.displayName)
+                                .font(PerchTheme.Font.body)
+                                .foregroundColor(PerchTheme.textPrimary)
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { section.isVisible },
+                                set: { newValue in
+                                    section.isVisible = newValue
+                                    Task { await saveSections() }
+                                }
+                            ))
+                                .labelsHidden()
+                                .tint(PerchTheme.accent)
+                        }
+                        .listRowBackground(Color.clear)
                     }
-                    .listRowBackground(PerchTheme.cardBackground)
+                    .onMove { from, to in
+                        editableSections.move(fromOffsets: from, toOffset: to)
+                        Task { await saveSections() }
+                    }
                 }
-                .onMove { from, to in
-                    editableSections.move(fromOffsets: from, toOffset: to)
-                    Task { await saveSections() }
-                }
+                .listStyle(.plain)
+                .frame(height: CGFloat(editableSections.count) * 52)
+                .environment(\.editMode, .constant(.active))
             }
-            .listStyle(.plain)
-            .frame(height: CGFloat(editableSections.count) * 52)
-            .cornerRadius(PerchTheme.Card.cornerRadius)
-            .environment(\.editMode, .constant(.active))
         }
     }
 
