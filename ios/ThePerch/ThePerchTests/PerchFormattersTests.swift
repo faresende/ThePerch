@@ -57,15 +57,15 @@ struct PerchFormattersTests {
         #expect(result == "24m")
     }
 
-    @Test("Home card grid tokens use the 4pt spacing system")
+    @Test("Home card grid tokens use the updated spacing system")
     func homeCardGridTokens() {
-        #expect(PerchTheme.HomeCard.horizontalPadding == 16)
-        #expect(PerchTheme.HomeCard.verticalPadding == 16)
-        #expect(PerchTheme.HomeCard.rowSpacing == 8)
-        #expect(PerchTheme.HomeCard.columnGutter == 8)
+        #expect(PerchTheme.HomeCard.horizontalPadding == 20)
+        #expect(PerchTheme.HomeCard.verticalPadding == 18)
+        #expect(PerchTheme.HomeCard.rowSpacing == 10)
+        #expect(PerchTheme.HomeCard.columnGutter == 10)
         #expect(PerchTheme.HomeCard.trailingColumnMinWidth == 96)
-        #expect(PerchTheme.HomeCard.rowVerticalPadding == 4)
-        #expect(PerchTheme.HomeCard.itemPadding == 8)
+        #expect(PerchTheme.HomeCard.rowVerticalPadding == 6)
+        #expect(PerchTheme.HomeCard.itemPadding == 10)
     }
 
     @Test("Calendar today past label removes the redundant verb")

@@ -76,7 +76,7 @@ struct TravelHomeCard: View {
                     .tracking(1)
 
                 HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    if trip.status == "active", let day = trip.currentTripDay, let total = trip.totalDays {
+                    if trip.effectiveStatus == "active", let day = trip.currentTripDay, let total = trip.totalDays {
                         Text("Day \(day) of \(total)")
                             .font(PerchTheme.Font.heading)
                             .foregroundColor(PerchTheme.textPrimary)
@@ -98,7 +98,7 @@ struct TravelHomeCard: View {
 
             Spacer()
 
-            if trip.status == "active" {
+            if trip.effectiveStatus == "active" {
                 Text("📍")
                     .font(PerchTheme.Font.body)
             }
