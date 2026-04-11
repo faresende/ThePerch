@@ -27,6 +27,15 @@ struct TravelView: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
 
+                    if let error = dashboardViewModel.error {
+                        ErrorBanner(
+                            message: error.localizedDescription,
+                            retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
+                            onDismiss: { dashboardViewModel.clearError() }
+                        )
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                    }
+
                     if dashboardViewModel.isLoading && viewModel.records.isEmpty {
                         SkeletonCardsSection(count: 3)
                             .padding(.horizontal, PerchTheme.Spacing.large)
@@ -115,7 +124,7 @@ struct TravelView: View {
                         PerchHaptics.light()
                     } label: {
                         HStack(spacing: 4) {
-                            Text(statusEmoji(trip.status))
+                            Text(statusEmoji(trip.effectiveStatus))
                             Text(trip.destination)
                                 .font(PerchTheme.Font.caption)
                         }
@@ -685,9 +694,11 @@ struct TravelView: View {
     }
 
     private func statusBadge(trip: TripData) -> some View {
-        HStack(spacing: 4) {
-            Text(statusEmoji(trip.status))
-            if trip.status == "active", let day = trip.currentTripDay, let total = trip.totalDays {
+        let status = trip.effectiveStatus
+
+        return HStack(spacing: 4) {
+            Text(statusEmoji(status))
+            if status == "active", let day = trip.currentTripDay, let total = trip.totalDays {
                 Text("Day \(day)/\(total)")
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.accent)
@@ -696,7 +707,7 @@ struct TravelView: View {
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textSecondary)
             } else {
-                Text(trip.status.capitalized)
+                Text(status.capitalized)
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
             }

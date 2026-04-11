@@ -63,9 +63,9 @@ struct WidgetRouter: View {
             macrosBarView
         case .calendarEvent:
             timelineView
+        case .mealLog:
+            EmptyView() // Handled by NutritionSegment directly
         case .unknown:
-            EmptyView()
-        @unknown default:
             EmptyView()
         }
     }
