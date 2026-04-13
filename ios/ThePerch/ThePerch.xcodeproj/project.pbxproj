@@ -149,6 +149,7 @@
 		TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */; };
 		TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */; };
 		TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0031TEST0031TEST0031 /* RecordTests.swift */; };
+		ORDT0002ORDT0002ORDT0002 /* OrderModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */; };
 		TRVT0002TRVT0002TRVT0002 /* TravelTasksCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */; };
 		WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */; };
 /* End PBXBuildFile section */
@@ -331,6 +332,7 @@
 		TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloadsTests.swift; sourceTree = "<group>"; };
 		TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormattersTests.swift; sourceTree = "<group>"; };
 		TEST0031TEST0031TEST0031 /* RecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTests.swift; sourceTree = "<group>"; };
+		ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModelsTests.swift; sourceTree = "<group>"; };
 		TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThePerchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelTasksCard.swift; sourceTree = "<group>"; };
 		WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCompactCard.swift; sourceTree = "<group>"; };
@@ -861,6 +863,7 @@
 				TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */,
 				TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */,
 				TEST0031TEST0031TEST0031 /* RecordTests.swift */,
+				ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */,
 			);
 			path = ThePerchTests;
 			sourceTree = "<group>";
@@ -1187,6 +1190,7 @@
 				TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */,
 				TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */,
 				TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */,
+				ORDT0002ORDT0002ORDT0002 /* OrderModelsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

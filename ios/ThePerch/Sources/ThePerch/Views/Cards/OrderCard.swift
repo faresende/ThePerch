@@ -2,6 +2,10 @@ import SwiftUI
 
 struct OrderCard: View {
     let model: OrderWithShipments
+    /// Called when the user long-presses and selects "Mark as Delivered".
+    var onMarkDelivered: (() -> Void)?
+    /// Called when the user long-presses and selects "Undo Delivery Override".
+    var onUndoDelivered: (() -> Void)?
 
     private let steps: [(key: String, label: String)] = [
         ("ordered", "Ordered"),
@@ -15,7 +19,8 @@ struct OrderCard: View {
     }
 
     private var activeStepIndex: Int {
-        let normalized = normalizedStatus(model.displayStatus)
+        // Use effectiveStatus so manually-overridden orders show the delivered step.
+        let normalized = normalizedStatus(model.effectiveStatus)
         return steps.firstIndex(where: { $0.key == normalized }) ?? 0
     }
 
@@ -74,13 +79,64 @@ struct OrderCard: View {
                 .cornerRadius(PerchTheme.Card.innerCornerRadius)
             }
 
+            manualOverrideBadge
+
             timeline
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
+        .contextMenu {
+            contextMenuItems
+        }
     }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private var contextMenuItems: some View {
+        if model.order.isManuallyDelivered {
+            // Offer undo when user previously set the override
+            if onUndoDelivered != nil {
+                Button(role: .destructive) {
+                    onUndoDelivered?()
+                } label: {
+                    Label("Undo Delivery Override", systemImage: "clock.arrow.circlepath")
+                }
+            }
+        } else {
+            // Offer mark-as-delivered for untrackable shipments
+            if onMarkDelivered != nil {
+                Button {
+                    onMarkDelivered?()
+                } label: {
+                    Label("Mark as Delivered", systemImage: "checkmark.circle.fill")
+                }
+            }
+        }
+    }
+
+    // MARK: - Manual override badge
+
+    @ViewBuilder
+    private var manualOverrideBadge: some View {
+        if model.order.isManuallyDelivered {
+            HStack(spacing: PerchTheme.Spacing.xxxSmall) {
+                Image(systemName: "hand.tap")
+                    .font(.system(size: 10, weight: .medium))
+                Text("Manually marked delivered")
+                    .font(PerchTheme.Font.micro)
+            }
+            .foregroundColor(PerchTheme.success)
+            .padding(.horizontal, PerchTheme.Spacing.small)
+            .padding(.vertical, PerchTheme.Spacing.xxxSmall)
+            .background(PerchTheme.success.opacity(0.12))
+            .cornerRadius(PerchTheme.Card.innerCornerRadius)
+        }
+    }
+
+    // MARK: - Timeline
 
     private var timeline: some View {
         HStack(alignment: .top, spacing: PerchTheme.Spacing.xSmall) {
@@ -151,14 +207,18 @@ struct OrderCard: View {
         if let shipmentLine {
             summary += ", shipment \(shipmentLine)"
         }
-        summary += ", status \(stepTitle(for: model.displayStatus))"
+        summary += ", status \(stepTitle(for: model.effectiveStatus))"
+        if model.order.isManuallyDelivered {
+            summary += ", manually marked as delivered"
+        }
         return summary
     }
 }
 
 #Preview {
+    let orderId = UUID()
     let order = Order(
-        id: UUID(),
+        id: orderId,
         merchant: "Amazon",
         orderNumber: "112-1234567-1234567",
         total: Decimal(string: "129.99"),
@@ -166,12 +226,25 @@ struct OrderCard: View {
         status: "shipped",
         sourceEmailId: "email_123",
         confidence: 0.92,
-        createdAt: .now
+        createdAt: .now,
+        manualDeliveredAt: nil
+    )
+    let manualOrder = Order(
+        id: UUID(),
+        merchant: "Zara",
+        orderNumber: "ZR-9999",
+        total: Decimal(string: "59.99"),
+        currency: "EUR",
+        status: "shipped",
+        sourceEmailId: "email_456",
+        confidence: 0.85,
+        createdAt: .now,
+        manualDeliveredAt: .now  // manually overridden
     )
 
     let shipment = Shipment(
         id: UUID(),
-        orderId: order.id,
+        orderId: orderId,
         trackingNumber: "1Z999AA10123456784",
         carrier: "UPS",
         status: "in_transit",
@@ -179,8 +252,16 @@ struct OrderCard: View {
     )
 
     return VStack(spacing: PerchTheme.Spacing.medium) {
-        OrderCard(model: OrderWithShipments(order: order, shipments: [shipment]))
-        OrderCard(model: OrderWithShipments(order: order, shipments: []))
+        // Normal in-transit card with context menu callbacks
+        OrderCard(
+            model: OrderWithShipments(order: order, shipments: [shipment]),
+            onMarkDelivered: { print("Mark delivered tapped") }
+        )
+        // Manually-overridden card showing badge + undo option
+        OrderCard(
+            model: OrderWithShipments(order: manualOrder, shipments: []),
+            onUndoDelivered: { print("Undo tapped") }
+        )
     }
     .padding(PerchTheme.Spacing.medium)
     .background(PerchTheme.background)

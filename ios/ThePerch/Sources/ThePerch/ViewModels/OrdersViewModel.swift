@@ -30,6 +30,31 @@ final class OrdersViewModel {
         }
     }
 
+    // MARK: - Manual Delivery Override
+
+    /// Marks an order as delivered by the user. Persists to Supabase and reloads.
+    /// The `manual_delivered_at` DB column is never written by automated agents,
+    /// so this override cannot be silently clobbered by later tracking updates.
+    func markAsDelivered(_ order: OrderWithShipments) async {
+        do {
+            try await ordersService.markAsDelivered(orderId: order.id)
+            // Reload to reflect the persisted state from the server
+            await loadOrders(forceRefresh: true)
+        } catch {
+            self.error = "Couldn't mark as delivered: \(error.localizedDescription)"
+        }
+    }
+
+    /// Reverses a manual delivery override, handing control back to automated tracking.
+    func undoDelivered(_ order: OrderWithShipments) async {
+        do {
+            try await ordersService.undoDelivered(orderId: order.id)
+            await loadOrders(forceRefresh: true)
+        } catch {
+            self.error = "Couldn't undo delivery override: \(error.localizedDescription)"
+        }
+    }
+
     var activeOrders: [OrderWithShipments] {
         groupedOrders.active
     }
@@ -77,6 +102,10 @@ final class OrdersViewModel {
     }
 
     private func normalizedStatus(for order: OrderWithShipments) -> String {
+        // Manual override always wins — the user explicitly set this and automated
+        // agents cannot overwrite manual_delivered_at, so it stays sticky.
+        if order.order.isManuallyDelivered { return "delivered" }
+
         let shipmentStatus = order.primaryShipment?.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let orderStatus = order.order.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return shipmentStatus?.isEmpty == false ? shipmentStatus! : orderStatus
