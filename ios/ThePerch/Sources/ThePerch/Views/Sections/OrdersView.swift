@@ -76,7 +76,9 @@ struct OrdersView: View {
                     title: "Active",
                     subtitle: "Ordered, processing, and in-flight shipments.",
                     orders: viewModel.activeOrders,
-                    cardsAppeared: cardsAppeared
+                    cardsAppeared: cardsAppeared,
+                    onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
+                    onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
                 )
 
                 if !viewModel.issueOrders.isEmpty {
@@ -85,7 +87,9 @@ struct OrdersView: View {
                         subtitle: "Exceptions and orders that need a closer look.",
                         orders: viewModel.issueOrders,
                         cardsAppeared: cardsAppeared,
-                        startIndex: viewModel.activeOrders.count
+                        startIndex: viewModel.activeOrders.count,
+                        onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
+                        onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
                     )
                 }
 
@@ -94,7 +98,9 @@ struct OrdersView: View {
                     subtitle: "Completed orders that have already landed.",
                     orders: viewModel.deliveredOrders,
                     cardsAppeared: cardsAppeared,
-                    startIndex: viewModel.activeOrders.count + viewModel.issueOrders.count
+                    startIndex: viewModel.activeOrders.count + viewModel.issueOrders.count,
+                    onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
+                    onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
                 )
             }
             .padding(.horizontal, PerchTheme.Spacing.large)
@@ -108,6 +114,10 @@ private struct OrdersGroupSection: View {
     let orders: [OrderWithShipments]
     let cardsAppeared: Bool
     var startIndex: Int = 0
+    /// Called with the specific order when the user selects "Mark as Delivered".
+    var onMarkDelivered: ((OrderWithShipments) -> Void)?
+    /// Called with the specific order when the user selects "Undo Delivery Override".
+    var onUndoDelivered: ((OrderWithShipments) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
@@ -129,8 +139,12 @@ private struct OrdersGroupSection: View {
             } else {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     ForEach(Array(orders.enumerated()), id: \.element.id) { index, order in
-                        OrderCard(model: order)
-                            .cardAppear(index: startIndex + index, appeared: cardsAppeared)
+                        OrderCard(
+                            model: order,
+                            onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
+                            onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
+                        )
+                        .cardAppear(index: startIndex + index, appeared: cardsAppeared)
                     }
                 }
             }

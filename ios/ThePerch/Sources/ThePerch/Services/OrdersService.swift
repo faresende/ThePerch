@@ -100,4 +100,63 @@ final class OrdersService {
     private func sortDate(for model: OrderWithShipments) -> Date {
         model.primaryShipment?.createdAt ?? model.order.createdAt
     }
+
+    // MARK: - Manual Delivery Override
+
+    /// Persistently marks an order as delivered by the user.
+    /// Sets `manual_delivered_at` to the current timestamp.
+    /// Automated agents never touch this column, so it won't be clobbered by tracking updates.
+    func markAsDelivered(orderId: UUID) async throws {
+        struct DeliveredSet: Encodable {
+            // swiftlint:disable:next identifier_name
+            let manual_delivered_at: String
+        }
+        let iso = ISO8601DateFormatter().string(from: .now)
+        do {
+            try await supabaseService.databaseClient
+                .from("orders")
+                .update(DeliveredSet(manual_delivered_at: iso))
+                .eq("id", value: orderId.uuidString)
+                .execute()
+        } catch {
+            throw OrdersServiceError.updateFailed(error.localizedDescription)
+        }
+    }
+
+    /// Reverses a manual delivery override, restoring automated tracking control.
+    /// Sets `manual_delivered_at` back to NULL.
+    func undoDelivered(orderId: UUID) async throws {
+        // Explicit encode(to:) required — Swift's auto-synthesis uses encodeIfPresent
+        // which omits nil keys instead of encoding them as JSON null.
+        struct DeliveredClear: Encodable {
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encodeNil(forKey: .manualDeliveredAt)
+            }
+            private enum CodingKeys: String, CodingKey {
+                case manualDeliveredAt = "manual_delivered_at"
+            }
+        }
+        do {
+            try await supabaseService.databaseClient
+                .from("orders")
+                .update(DeliveredClear())
+                .eq("id", value: orderId.uuidString)
+                .execute()
+        } catch {
+            throw OrdersServiceError.updateFailed(error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - Errors
+
+enum OrdersServiceError: LocalizedError {
+    case updateFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .updateFailed(let msg): return "Order update failed: \(msg)"
+        }
+    }
 }

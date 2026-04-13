@@ -10,6 +10,12 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
     let sourceEmailId: String
     let confidence: Double
     let createdAt: Date
+    /// Set by the user to mark an order delivered when automated tracking cannot confirm it.
+    /// `nil` means automated tracking controls status. Never written by automated agents.
+    let manualDeliveredAt: Date?
+
+    /// True when the user has manually overridden this order's status to delivered.
+    var isManuallyDelivered: Bool { manualDeliveredAt != nil }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -21,6 +27,7 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
         case sourceEmailId = "source_email_id"
         case confidence
         case createdAt = "created_at"
+        case manualDeliveredAt = "manual_delivered_at"
     }
 }
 
@@ -54,5 +61,13 @@ struct OrderWithShipments: Identifiable, Sendable, Equatable {
 
     var displayStatus: String {
         primaryShipment?.status ?? order.status
+    }
+
+    /// Status that respects manual delivery overrides.
+    /// If the user has manually marked the order delivered, this always returns "delivered"
+    /// regardless of what automated tracking or the `status` column say.
+    var effectiveStatus: String {
+        if order.isManuallyDelivered { return "delivered" }
+        return primaryShipment?.status ?? order.status
     }
 }
