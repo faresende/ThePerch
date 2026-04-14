@@ -59,13 +59,10 @@ struct AppConfig {
     }
 
     private static func migrateLegacyKeychainConfigIfNeeded(_ config: AppConfiguration) -> AppConfiguration {
-        guard config.supabaseURL == legacySelfHostedURLString else {
-            return config
-        }
-
-        let migrated = managedCloudConfiguration
-        try? KeychainService.shared.save(migrated)
-        return migrated
+        // The managed cloud project is temporarily inactive.
+        // Keep existing self-hosted installs on their current backend until
+        // the cloud endpoint is verified healthy again.
+        return config
     }
 
     /// Retrieves a configuration value from Info.plist or environment.
