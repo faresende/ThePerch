@@ -20,6 +20,10 @@ struct OrderCard: View {
         model.primaryShipment
     }
 
+    private var statusPresentation: OrderStatusPresentation {
+        statusPresentation(for: model.effectiveStatus)
+    }
+
     private var activeStepIndex: Int {
         let normalized = normalizedStatus(model.effectiveStatus)
         return steps.firstIndex(where: { $0.key == normalized }) ?? 0
@@ -36,16 +40,43 @@ struct OrderCard: View {
         return formatter.string(from: amount) ?? "\(model.order.currency) \(amount)"
     }
 
+    private var trackingReferenceDisplay: String? {
+        guard let trackingNumber = primaryShipment?.trackingNumber.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trackingNumber.isEmpty else {
+            return nil
+        }
+
+        if trackingNumber.count > 12 {
+            return "#" + String(trackingNumber.suffix(8))
+        }
+
+        return trackingNumber
+    }
+
     private var shipmentLine: String? {
         guard let primaryShipment else { return nil }
 
+        let shipmentStatus = statusPresentation(for: primaryShipment.status)
         let parts = [
             primaryShipment.carrier.isEmpty ? nil : primaryShipment.carrier,
-            primaryShipment.trackingNumber.isEmpty ? nil : primaryShipment.trackingNumber,
-            stepTitle(for: primaryShipment.status),
+            trackingReferenceDisplay,
+            shipmentStatus.label,
         ].compactMap { $0 }
 
         return parts.isEmpty ? nil : parts.joined(separator: " • ")
+    }
+
+    private var shipmentAccessibilityLine: String? {
+        guard let primaryShipment else { return nil }
+
+        let shipmentStatus = statusPresentation(for: primaryShipment.status)
+        let parts = [
+            primaryShipment.carrier.isEmpty ? nil : primaryShipment.carrier,
+            primaryShipment.trackingNumber.isEmpty ? nil : primaryShipment.trackingNumber,
+            shipmentStatus.label,
+        ].compactMap { $0 }
+
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 
     private var trackingURL: URL? {
@@ -61,28 +92,15 @@ struct OrderCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
-                    Text(model.order.merchant)
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
-                        .lineLimit(2)
-
-                    Text("Order \(model.order.orderNumber)")
-                        .font(PerchTheme.Font.captionMono)
-                        .foregroundColor(PerchTheme.textSecondary)
-
-                    Text(totalText)
-                        .font(PerchTheme.Font.bodyNumeric)
-                        .foregroundColor(PerchTheme.accent)
-                }
-
-                Spacer(minLength: 0)
-            }
+            header
 
             shipmentSummary
 
             manualOverrideBadge
+
+            Rectangle()
+                .fill(PerchTheme.divider.opacity(0.7))
+                .frame(height: 1)
 
             timeline
         }
@@ -97,6 +115,79 @@ struct OrderCard: View {
         }
     }
 
+    private var header: some View {
+        HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(statusPresentation.tint.opacity(0.14))
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Image(systemName: statusPresentation.symbol)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(statusPresentation.tint)
+                )
+
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+                Text(model.order.merchant)
+                    .font(PerchTheme.Font.heading)
+                    .foregroundColor(PerchTheme.textPrimary)
+                    .lineLimit(2)
+
+                Text("Order \(model.order.orderNumber)")
+                    .font(PerchTheme.Font.captionMono)
+                    .foregroundColor(PerchTheme.textSecondary)
+
+                Text(totalText)
+                    .font(PerchTheme.Font.bodyNumeric)
+                    .foregroundColor(PerchTheme.accent)
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .trailing, spacing: PerchTheme.Spacing.xxSmall) {
+                statusBadge
+
+                if let statusDateText {
+                    Text(statusDateText)
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(PerchTheme.textTertiary)
+                }
+            }
+        }
+    }
+
+    private var statusBadge: some View {
+        Text(statusPresentation.label)
+            .font(PerchTheme.Font.micro)
+            .fontWeight(.semibold)
+            .foregroundColor(statusPresentation.tint)
+            .padding(.horizontal, PerchTheme.Spacing.small)
+            .padding(.vertical, PerchTheme.Spacing.xxxSmall)
+            .background(statusPresentation.tint.opacity(0.14))
+            .clipShape(Capsule())
+    }
+
+    private var statusDateText: String? {
+        let date = model.displayDate
+        let shortDate = PerchFormatters.shortDate.string(from: date)
+
+        if model.order.isManuallyDelivered {
+            return "Marked \(shortDate)"
+        }
+
+        switch normalizedStatus(model.effectiveStatus) {
+        case "delivered":
+            return "Delivered \(shortDate)"
+        case "ordered":
+            return "Added \(shortDate)"
+        case "shipped":
+            return "Shipped \(shortDate)"
+        case "in_transit":
+            return "In Transit \(shortDate)"
+        default:
+            return "Added \(shortDate)"
+        }
+    }
+
     @ViewBuilder
     private var shipmentSummary: some View {
         if let shipmentLine {
@@ -106,8 +197,8 @@ struct OrderCard: View {
                 } label: {
                     shipmentSummaryContent(shipmentLine: shipmentLine, isTrackable: true)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Shipment \(shipmentLine), opens tracking in browser")
+                .buttonStyle(CardPressStyle())
+                .accessibilityLabel("Shipment \(shipmentAccessibilityLine ?? shipmentLine), opens tracking in browser")
             } else {
                 shipmentSummaryContent(shipmentLine: shipmentLine, isTrackable: false)
             }
@@ -115,31 +206,39 @@ struct OrderCard: View {
     }
 
     private func shipmentSummaryContent(shipmentLine: String, isTrackable: Bool) -> some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
-            HStack(alignment: .center, spacing: PerchTheme.Spacing.small) {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
-                    Text("Shipment")
+        HStack(alignment: .center, spacing: PerchTheme.Spacing.small) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(PerchTheme.accentMuted)
+                .frame(width: 34, height: 34)
+                .overlay(
+                    Image(systemName: isTrackable ? "arrow.triangle.branch" : "shippingbox")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(PerchTheme.accent)
+                )
+
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+                Text(isTrackable ? "Tracking" : "Shipment")
+                    .font(PerchTheme.Font.micro)
+                    .foregroundColor(PerchTheme.textTertiary)
+
+                Text(shipmentLine)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+
+            if isTrackable {
+                HStack(spacing: PerchTheme.Spacing.xxxSmall) {
+                    Text("Track")
                         .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
-
-                    Text(shipmentLine)
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .lineLimit(2)
+                        .fontWeight(.semibold)
+                    Image(systemName: "arrow.up.right.square")
+                        .font(PerchTheme.Font.micro)
+                        .fontWeight(.bold)
                 }
-
-                Spacer(minLength: 0)
-
-                if isTrackable {
-                    HStack(spacing: PerchTheme.Spacing.xxxSmall) {
-                        Text("Track")
-                            .font(PerchTheme.Font.micro)
-                        Image(systemName: "arrow.up.right")
-                            .font(PerchTheme.Font.micro)
-                            .fontWeight(.bold)
-                    }
-                    .foregroundColor(PerchTheme.accent)
-                }
+                .foregroundColor(PerchTheme.accent)
             }
         }
         .padding(PerchTheme.Spacing.small)
@@ -147,7 +246,7 @@ struct OrderCard: View {
         .cornerRadius(PerchTheme.Card.innerCornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                .stroke(isTrackable ? PerchTheme.accent.opacity(0.18) : .clear, lineWidth: 1)
+                .stroke(isTrackable ? PerchTheme.accent.opacity(0.18) : PerchTheme.border.opacity(0.45), lineWidth: 1)
         )
     }
 
@@ -182,14 +281,19 @@ struct OrderCard: View {
             HStack(spacing: PerchTheme.Spacing.xxxSmall) {
                 Image(systemName: "hand.tap")
                     .font(.system(size: 10, weight: .medium))
-                Text("Manually marked delivered")
+                Text("Manual override")
                     .font(PerchTheme.Font.micro)
+                    .fontWeight(.semibold)
             }
-            .foregroundColor(PerchTheme.success)
+            .foregroundColor(PerchTheme.steel)
             .padding(.horizontal, PerchTheme.Spacing.small)
             .padding(.vertical, PerchTheme.Spacing.xxxSmall)
-            .background(PerchTheme.success.opacity(0.12))
-            .cornerRadius(PerchTheme.Card.innerCornerRadius)
+            .background(PerchTheme.steelMuted)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(PerchTheme.border.opacity(0.55), lineWidth: 1)
+            )
         }
     }
 
@@ -219,12 +323,23 @@ struct OrderCard: View {
 
                 if index < steps.count - 1 {
                     Rectangle()
-                        .fill(index < activeStepIndex ? PerchTheme.accent : PerchTheme.border)
+                        .fill(index < activeStepIndex ? timelineConnectorColor : PerchTheme.border)
                         .frame(height: 2)
                         .frame(maxWidth: .infinity)
                         .padding(.top, 5)
                 }
             }
+        }
+    }
+
+    private var timelineConnectorColor: Color {
+        switch normalizedStatus(model.effectiveStatus) {
+        case "delivered":
+            return PerchTheme.success
+        case "in_transit":
+            return PerchTheme.warning
+        default:
+            return PerchTheme.accent
         }
     }
 
@@ -243,9 +358,19 @@ struct OrderCard: View {
         }
     }
 
-    private func stepTitle(for status: String) -> String {
-        let normalized = normalizedStatus(status)
-        return steps.first(where: { $0.key == normalized })?.label ?? status.capitalized
+    private func statusPresentation(for status: String) -> OrderStatusPresentation {
+        switch status.lowercased() {
+        case "delivered":
+            return OrderStatusPresentation(label: "Delivered", symbol: "checkmark.circle.fill", tint: PerchTheme.success)
+        case "in_transit", "out_for_delivery":
+            return OrderStatusPresentation(label: "In Transit", symbol: "truck.box.fill", tint: PerchTheme.warning)
+        case "shipped", "label_created":
+            return OrderStatusPresentation(label: "Shipped", symbol: "shippingbox.fill", tint: PerchTheme.accent)
+        case "exception", "needs_review", "issue":
+            return OrderStatusPresentation(label: "Needs Review", symbol: "exclamationmark.triangle.fill", tint: PerchTheme.error)
+        default:
+            return OrderStatusPresentation(label: "Ordered", symbol: "cart.fill", tint: PerchTheme.accent)
+        }
     }
 
     private func timelineColor(for status: String) -> Color {
@@ -261,18 +386,25 @@ struct OrderCard: View {
 
     private var accessibilitySummary: String {
         var summary = "\(model.order.merchant) order \(model.order.orderNumber), \(totalText)"
-        if let shipmentLine {
-            summary += ", shipment \(shipmentLine)"
+        let shipmentSummaryText = shipmentAccessibilityLine ?? shipmentLine
+        if let shipmentSummaryText {
+            summary += ", shipment \(shipmentSummaryText)"
             if trackingURL != nil {
                 summary += ", tracking available in browser"
             }
         }
-        summary += ", status \(stepTitle(for: model.effectiveStatus))"
+        summary += ", status \(statusPresentation.label)"
         if model.order.isManuallyDelivered {
             summary += ", manually marked as delivered"
         }
         return summary
     }
+}
+
+private struct OrderStatusPresentation {
+    let label: String
+    let symbol: String
+    let tint: Color
 }
 
 #Preview {
