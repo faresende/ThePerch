@@ -5,7 +5,7 @@ import SwiftUI
 struct OnboardingView: View {
     let onConfigured: () -> Void
 
-    @State private var selectedMode: SetupMode = .managedCloud
+    @State private var selectedMode: SetupMode = .selfHosted
     @State private var supabaseURL = ""
     @State private var supabaseAnonKey = ""
     @State private var isConnecting = false
@@ -41,9 +41,9 @@ struct OnboardingView: View {
                         modeButton(
                             mode: .managedCloud,
                             title: "ThePerch Cloud",
-                            subtitle: "Sign in with your ThePerch account",
+                            subtitle: "Temporarily unavailable",
                             icon: "cloud.fill",
-                            disabled: false
+                            disabled: true
                         )
                     }
 
@@ -151,7 +151,7 @@ struct OnboardingView: View {
                                 .padding(.horizontal, PerchTheme.Spacing.small)
                             }
 
-                            Text("Your data is hosted securely by ThePerch. You can switch to self-hosted at any time.")
+                            Text("ThePerch Cloud is temporarily unavailable today. Please use self-hosted Supabase for now.")
                                 .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textTertiary)
                                 .multilineTextAlignment(.leading)
@@ -232,26 +232,7 @@ struct OnboardingView: View {
 
     @MainActor
     private func connectManagedCloud() async {
-        let cloudURL = AppConfig.managedCloudURLString
-        let cloudAnonKey = AppConfig.managedCloudAnonKey
-
-        isConnecting = true
-        errorMessage = nil
-
-        do {
-            try await SupabaseService.testConnection(url: cloudURL, anonKey: cloudAnonKey)
-            let config = AppConfiguration(
-                supabaseURL: cloudURL,
-                supabaseAnonKey: cloudAnonKey,
-                backendMode: .managedCloud
-            )
-            try KeychainService.shared.save(config)
-            onConfigured()
-        } catch {
-            errorMessage = "Could not connect to ThePerch Cloud. Please try again."
-        }
-
-        isConnecting = false
+        errorMessage = "ThePerch Cloud is temporarily unavailable. Use Self-hosted for now."
     }
 
     @MainActor
