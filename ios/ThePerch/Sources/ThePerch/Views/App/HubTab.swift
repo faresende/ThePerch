@@ -133,10 +133,6 @@ private struct OrdersSectionContent: View {
                 .padding(.horizontal, PerchTheme.Spacing.large)
             } else {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                    Text("Tip: use the ••• button on a card to mark it delivered manually.")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
-
                     OrdersGroupSection(
                         title: "Active",
                         subtitle: "Ordered, processing, and in-flight shipments.",
@@ -158,9 +154,7 @@ private struct OrdersSectionContent: View {
                         )
                     }
 
-                    OrdersGroupSection(
-                        title: "Delivered",
-                        subtitle: "Completed orders that have already landed.",
+                    DeliveredOrdersSection(
                         orders: viewModel.deliveredOrders,
                         cardsAppeared: cardsAppeared,
                         startIndex: viewModel.activeOrders.count + viewModel.issueOrders.count,

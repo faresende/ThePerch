@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct OrderCard: View {
+    @Environment(\.openURL) private var openURL
+
     let model: OrderWithShipments
     /// Called when the user long-presses and selects "Mark as Delivered".
     var onMarkDelivered: (() -> Void)?
@@ -19,7 +21,6 @@ struct OrderCard: View {
     }
 
     private var activeStepIndex: Int {
-        // Use effectiveStatus so manually-overridden orders show the delivered step.
         let normalized = normalizedStatus(model.effectiveStatus)
         return steps.firstIndex(where: { $0.key == normalized }) ?? 0
     }
@@ -45,6 +46,10 @@ struct OrderCard: View {
         ].compactMap { $0 }
 
         return parts.isEmpty ? nil : parts.joined(separator: " • ")
+    }
+
+    private var trackingURL: URL? {
+        primaryShipment?.resolvedTrackingURL
     }
 
     private var hasActionMenu: Bool {
@@ -73,34 +78,9 @@ struct OrderCard: View {
                 }
 
                 Spacer(minLength: 0)
-
-                if hasActionMenu {
-                    Menu {
-                        contextMenuItems
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(PerchTheme.textSecondary)
-                            .padding(.top, 2)
-                    }
-                    .accessibilityLabel("Order actions")
-                }
             }
 
-            if let shipmentLine {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
-                    Text("Shipment")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
-                    Text(shipmentLine)
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .lineLimit(2)
-                }
-                .padding(PerchTheme.Spacing.small)
-                .background(PerchTheme.cardInnerBackground)
-                .cornerRadius(PerchTheme.Card.innerCornerRadius)
-            }
+            shipmentSummary
 
             manualOverrideBadge
 
@@ -108,11 +88,67 @@ struct OrderCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
         .contextMenu {
-            contextMenuItems
+            if hasActionMenu {
+                contextMenuItems
+            }
         }
+    }
+
+    @ViewBuilder
+    private var shipmentSummary: some View {
+        if let shipmentLine {
+            if let trackingURL {
+                Button {
+                    openURL(trackingURL)
+                } label: {
+                    shipmentSummaryContent(shipmentLine: shipmentLine, isTrackable: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Shipment \(shipmentLine), opens tracking in browser")
+            } else {
+                shipmentSummaryContent(shipmentLine: shipmentLine, isTrackable: false)
+            }
+        }
+    }
+
+    private func shipmentSummaryContent(shipmentLine: String, isTrackable: Bool) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+            HStack(alignment: .center, spacing: PerchTheme.Spacing.small) {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+                    Text("Shipment")
+                        .font(PerchTheme.Font.micro)
+                        .foregroundColor(PerchTheme.textTertiary)
+
+                    Text(shipmentLine)
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+
+                if isTrackable {
+                    HStack(spacing: PerchTheme.Spacing.xxxSmall) {
+                        Text("Track")
+                            .font(PerchTheme.Font.micro)
+                        Image(systemName: "arrow.up.right")
+                            .font(PerchTheme.Font.micro)
+                            .fontWeight(.bold)
+                    }
+                    .foregroundColor(PerchTheme.accent)
+                }
+            }
+        }
+        .padding(PerchTheme.Spacing.small)
+        .background(PerchTheme.cardInnerBackground)
+        .cornerRadius(PerchTheme.Card.innerCornerRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
+                .stroke(isTrackable ? PerchTheme.accent.opacity(0.18) : .clear, lineWidth: 1)
+        )
     }
 
     // MARK: - Context Menu
@@ -120,7 +156,6 @@ struct OrderCard: View {
     @ViewBuilder
     private var contextMenuItems: some View {
         if model.order.isManuallyDelivered {
-            // Offer undo when user previously set the override
             if onUndoDelivered != nil {
                 Button(role: .destructive) {
                     onUndoDelivered?()
@@ -129,7 +164,6 @@ struct OrderCard: View {
                 }
             }
         } else {
-            // Offer mark-as-delivered for untrackable shipments
             if onMarkDelivered != nil {
                 Button {
                     onMarkDelivered?()
@@ -229,6 +263,9 @@ struct OrderCard: View {
         var summary = "\(model.order.merchant) order \(model.order.orderNumber), \(totalText)"
         if let shipmentLine {
             summary += ", shipment \(shipmentLine)"
+            if trackingURL != nil {
+                summary += ", tracking available in browser"
+            }
         }
         summary += ", status \(stepTitle(for: model.effectiveStatus))"
         if model.order.isManuallyDelivered {
@@ -262,7 +299,7 @@ struct OrderCard: View {
         sourceEmailId: "email_456",
         confidence: 0.85,
         createdAt: .now,
-        manualDeliveredAt: .now  // manually overridden
+        manualDeliveredAt: .now
     )
 
     let shipment = Shipment(
@@ -275,12 +312,10 @@ struct OrderCard: View {
     )
 
     return VStack(spacing: PerchTheme.Spacing.medium) {
-        // Normal in-transit card with context menu callbacks
         OrderCard(
             model: OrderWithShipments(order: order, shipments: [shipment]),
             onMarkDelivered: { print("Mark delivered tapped") }
         )
-        // Manually-overridden card showing badge + undo option
         OrderCard(
             model: OrderWithShipments(order: manualOrder, shipments: []),
             onUndoDelivered: { print("Undo tapped") }
