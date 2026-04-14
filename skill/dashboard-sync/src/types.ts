@@ -26,16 +26,16 @@ export interface DeliveryData {
 // Orders Autopilot types
 export type OrderStatus = 'ordered' | 'processing' | 'shipped_partial' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
 export type ShipmentStatus = 'unknown' | 'label_created' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'exception';
-export type ReviewItemType = 'duplicate_order' | 'orphan_shipment' | 'order_no_shipment' | 'shipment_no_order' | 'low_confidence_match' | 'ambiguous_order_match' | 'other';
+export type ReviewItemType = 'duplicate_order' | 'orphan_shipment' | 'order_no_shipment' | 'shipment_no_order' | 'low_confidence_match' | 'ambiguous_order_match' | 'missing_order_for_tracking' | 'missing_tracking_for_order' | 'other';
 
 export interface OrderData {
-  record_type: 'order';
-  order_id: string;
+  record_type?: 'order';
+  order_id?: string;
   merchant_name: string;
   normalized_merchant?: string;
   order_number: string | null;
   order_date: string | null;
-  total_amount: number | null;
+  total_amount?: number | null;
   currency: string;
   status: OrderStatus;
   confidence_score: number;
@@ -44,27 +44,32 @@ export interface OrderData {
 }
 
 export interface ShipmentData {
-  record_type: 'shipment';
-  shipment_id: string;
-  order_id: string;
+  record_type?: 'shipment';
+  shipment_id?: string;
+  order_id?: string;
   tracking_number: string;
   carrier: string | null;
   status: ShipmentStatus;
-  latest_checkpoint: string | null;
-  shipped_at: string | null;
-  delivered_at: string | null;
+  latest_checkpoint?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
   confidence_score: number;
   source_email_ids?: string[];
+  /** Transient fields set during extraction / matching, not stored in DB */
+  merchant_name?: string;
+  normalized_merchant?: string;
+  order_number?: string;
+  provider?: string;
 }
 
 export interface ReviewItemData {
   record_type?: 'review_item';
   review_item_id?: string;
   type: ReviewItemType;
-  related_order_id: string | null;
-  related_shipment_id: string | null;
+  related_order_id?: string | null;
+  related_shipment_id?: string | null;
   reason: string;
-  suggested_action: string | null;
+  suggested_action?: string | null;
   confidence_score: number;
   created_at?: string;
 }

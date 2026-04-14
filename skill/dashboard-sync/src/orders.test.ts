@@ -41,7 +41,7 @@ test('OrderData captures normalized order identity and confidence', () => {
 
   assert.equal(order.normalized_merchant, 'amazon');
   assert.equal(order.status, 'ordered');
-  assert.equal(order.source_email_ids.length, 1);
+  assert.equal(order.source_email_ids?.length, 1);
 });
 
 test('ShipmentData captures tracking, provider, and confidence', () => {
