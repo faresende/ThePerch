@@ -93,9 +93,7 @@ struct OrdersView: View {
                     )
                 }
 
-                OrdersGroupSection(
-                    title: "Delivered",
-                    subtitle: "Completed orders that have already landed.",
+                DeliveredOrdersSection(
                     orders: viewModel.deliveredOrders,
                     cardsAppeared: cardsAppeared,
                     startIndex: viewModel.activeOrders.count + viewModel.issueOrders.count,
@@ -114,9 +112,7 @@ struct OrdersGroupSection: View {
     let orders: [OrderWithShipments]
     let cardsAppeared: Bool
     var startIndex: Int = 0
-    /// Called with the specific order when the user selects "Mark as Delivered".
     var onMarkDelivered: ((OrderWithShipments) -> Void)?
-    /// Called with the specific order when the user selects "Undo Delivery Override".
     var onUndoDelivered: ((OrderWithShipments) -> Void)?
 
     var body: some View {
@@ -161,4 +157,141 @@ struct OrdersGroupSection: View {
             return "No orders need attention."
         }
     }
+}
+
+struct DeliveredOrdersSection: View {
+    let orders: [OrderWithShipments]
+    let cardsAppeared: Bool
+    var startIndex: Int = 0
+    var onMarkDelivered: ((OrderWithShipments) -> Void)?
+    var onUndoDelivered: ((OrderWithShipments) -> Void)?
+
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            if orders.isEmpty {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+                    Text("Delivered")
+                        .font(PerchTheme.Font.heading)
+                        .foregroundColor(PerchTheme.textPrimary)
+
+                    Text("Completed orders that have already landed.")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+                }
+
+                Text("No delivered orders yet.")
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textTertiary)
+                    .padding(.top, PerchTheme.Spacing.xxxSmall)
+            } else {
+                Button {
+                    PerchHaptics.light()
+                    PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack(alignment: .center, spacing: PerchTheme.Spacing.medium) {
+                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+                            Text("Delivered")
+                                .font(PerchTheme.Font.heading)
+                                .foregroundColor(PerchTheme.textPrimary)
+
+                            Text(isExpanded ? "Completed orders that have already landed." : collapsedSummary)
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textSecondary)
+                                .multilineTextAlignment(.leading)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        HStack(spacing: PerchTheme.Spacing.xSmall) {
+                            Text("\(orders.count)")
+                                .font(PerchTheme.Font.captionMono)
+                                .foregroundColor(PerchTheme.textTertiary)
+
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(PerchTheme.textSecondary)
+                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
+                if isExpanded {
+                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+                        ForEach(monthGroups) { group in
+                            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                                HStack {
+                                    Text(monthTitle(for: group.monthStart))
+                                        .font(PerchTheme.Font.caption)
+                                        .foregroundColor(PerchTheme.textTertiary)
+                                        .textCase(.uppercase)
+
+                                    Spacer(minLength: 0)
+
+                                    Text("\(group.orders.count)")
+                                        .font(PerchTheme.Font.micro)
+                                        .foregroundColor(PerchTheme.textTertiary)
+                                }
+
+                                VStack(spacing: PerchTheme.Spacing.medium) {
+                                    ForEach(group.orders) { order in
+                                        OrderCard(
+                                            model: order,
+                                            onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
+                                            onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
+                                        )
+                                        .cardAppear(index: startIndex + displayIndex(for: order), appeared: cardsAppeared)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var collapsedSummary: String {
+        let monthCount = monthGroups.count
+        let monthLabel = monthCount == 1 ? "month" : "months"
+        return "\(orders.count) completed orders across \(monthCount) \(monthLabel)."
+    }
+
+    private var monthGroups: [DeliveredMonthGroup] {
+        let calendar = Calendar.autoupdatingCurrent
+        let grouped = Dictionary(grouping: orders) { order in
+            calendar.date(from: calendar.dateComponents([.year, .month], from: order.displayDate)) ?? order.displayDate
+        }
+
+        return grouped
+            .map { monthStart, monthOrders in
+                DeliveredMonthGroup(
+                    monthStart: monthStart,
+                    orders: monthOrders.sorted { $0.displayDate > $1.displayDate }
+                )
+            }
+            .sorted { $0.monthStart > $1.monthStart }
+    }
+
+    private func displayIndex(for order: OrderWithShipments) -> Int {
+        orders.firstIndex(where: { $0.id == order.id }) ?? 0
+    }
+
+    private func monthTitle(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: date)
+    }
+}
+
+private struct DeliveredMonthGroup: Identifiable {
+    let monthStart: Date
+    let orders: [OrderWithShipments]
+
+    var id: Date { monthStart }
 }

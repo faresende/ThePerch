@@ -38,6 +38,25 @@ struct Shipment: Identifiable, Codable, Sendable, Equatable {
     let carrier: String
     let status: String
     let createdAt: Date
+    let trackingUrl: String?
+
+    init(
+        id: UUID,
+        orderId: UUID,
+        trackingNumber: String,
+        carrier: String,
+        status: String,
+        createdAt: Date,
+        trackingUrl: String? = nil
+    ) {
+        self.id = id
+        self.orderId = orderId
+        self.trackingNumber = trackingNumber
+        self.carrier = carrier
+        self.status = status
+        self.createdAt = createdAt
+        self.trackingUrl = trackingUrl
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -46,6 +65,22 @@ struct Shipment: Identifiable, Codable, Sendable, Equatable {
         case carrier
         case status
         case createdAt = "created_at"
+        case trackingUrl = "tracking_url"
+    }
+
+    var resolvedTrackingURL: URL? {
+        if let trackingUrl,
+           !trackingUrl.isEmpty,
+           let url = URL(string: trackingUrl) {
+            return url
+        }
+
+        guard !trackingNumber.isEmpty,
+              let encodedTracking = trackingNumber.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return nil
+        }
+
+        return URL(string: "https://t.17track.net/en#nums=\(encodedTracking)")
     }
 }
 
@@ -61,6 +96,10 @@ struct OrderWithShipments: Identifiable, Sendable, Equatable {
 
     var displayStatus: String {
         primaryShipment?.status ?? order.status
+    }
+
+    var displayDate: Date {
+        order.manualDeliveredAt ?? primaryShipment?.createdAt ?? order.createdAt
     }
 
     /// Status that respects manual delivery overrides.
