@@ -4,6 +4,10 @@ import Network
 import Supabase
 import Realtime
 
+extension Notification.Name {
+    static let supabaseAuthStateChanged = Notification.Name("SupabaseAuthStateChanged")
+}
+
 // MARK: - Error Types
 
 /// Errors that can occur during Supabase operations.
@@ -108,6 +112,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     // MARK: - Published Properties
 
     @Published var isAuthenticated: Bool = false
+    @Published var isPasswordRecovery: Bool = false
     @Published var isLoading: Bool = false
     @Published var error: SupabaseServiceError?
     @Published var connectionError: String?
@@ -122,6 +127,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 
     /// The Supabase client instance.
     private let client: SupabaseClient
+    private var authStateTask: Task<Void, Never>?
 
     /// Active realtime channels for subscription management.
     private var recordsChannel: RealtimeChannelV2?
@@ -166,13 +172,79 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         let config = AppConfig.shared
         self.client = SupabaseClient(
             supabaseURL: config.supabaseURL,
-            supabaseKey: config.supabaseAnonKey
+            supabaseKey: config.supabaseAnonKey,
+            options: SupabaseClientOptions(
+                auth: .init(redirectToURL: URL(string: "theperch://auth/callback"))
+            )
         )
         startNetworkMonitoring()
+        startAuthStateObserver()
     }
 
     var databaseClient: SupabaseClient {
         client
+    }
+
+    private func startAuthStateObserver() {
+        authStateTask?.cancel()
+        authStateTask = Task { [weak self] in
+            guard let self else { return }
+            for await (event, session) in client.auth.authStateChanges {
+                await self.handleAuthStateChange(event, session: session)
+            }
+        }
+    }
+
+    private func handleAuthStateChange(_ event: AuthChangeEvent, session: Session?) {
+        switch event {
+        case .passwordRecovery:
+            isAuthenticated = session != nil
+            isPasswordRecovery = true
+        case .signedIn:
+            isAuthenticated = session != nil
+            isPasswordRecovery = false
+        case .signedOut, .userDeleted:
+            isAuthenticated = false
+            isPasswordRecovery = false
+        case .initialSession:
+            isAuthenticated = session != nil
+            if session == nil {
+                isPasswordRecovery = false
+            }
+        case .tokenRefreshed, .userUpdated, .mfaChallengeVerified:
+            isAuthenticated = session != nil
+        }
+
+        NotificationCenter.default.post(
+            name: .supabaseAuthStateChanged,
+            object: self,
+            userInfo: ["event": event.rawValue]
+        )
+    }
+
+    private func authParameters(from url: URL) -> [String: String] {
+        var params: [String: String] = [:]
+
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let queryItems = components.queryItems {
+            for item in queryItems {
+                if let value = item.value {
+                    params[item.name] = value
+                }
+            }
+        }
+
+        if let fragment = url.fragment,
+           let components = URLComponents(string: "https://theperch.invalid?\(fragment)"),
+           let queryItems = components.queryItems {
+            for item in queryItems {
+                if let value = item.value {
+                    params[item.name] = value
+                }
+            }
+        }
+
+        return params
     }
 
     // MARK: - Connection Test
@@ -269,6 +341,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         if useMockData {
             try await Task.sleep(nanoseconds: 500_000_000)
             self.isAuthenticated = true
+            self.isPasswordRecovery = false
             self.error = nil
             return
         }
@@ -277,6 +350,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         do {
             try await client.auth.signIn(email: email, password: password)
             self.isAuthenticated = true
+            self.isPasswordRecovery = false
             self.error = nil
         } catch {
             throw SupabaseServiceError.authError(error.localizedDescription)
@@ -292,6 +366,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         if useMockData {
             try await Task.sleep(nanoseconds: 500_000_000)
             self.isAuthenticated = true
+            self.isPasswordRecovery = false
             self.error = nil
             return
         }
@@ -304,10 +379,72 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 data: ["display_name": .string(displayName)]
             )
             self.isAuthenticated = true
+            self.isPasswordRecovery = false
             self.error = nil
         } catch {
             throw SupabaseServiceError.authError(error.localizedDescription)
         }
+    }
+
+    /// Sends a password reset email using the configured deep-link callback.
+    func sendPasswordReset(email: String) async throws {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await client.auth.resetPasswordForEmail(email)
+            self.error = nil
+        } catch {
+            throw SupabaseServiceError.authError(error.localizedDescription)
+        }
+    }
+
+    /// Handles incoming auth callback URLs, including password recovery links.
+    @discardableResult
+    func handleIncomingAuthURL(_ url: URL) async throws -> Bool {
+        let isRecovery = authParameters(from: url)["type"] == "recovery"
+
+        if isRecovery {
+            self.isPasswordRecovery = true
+            NotificationCenter.default.post(
+                name: .supabaseAuthStateChanged,
+                object: self,
+                userInfo: ["event": AuthChangeEvent.passwordRecovery.rawValue]
+            )
+        }
+
+        do {
+            _ = try await client.auth.session(from: url)
+            self.isAuthenticated = true
+            self.error = nil
+            return isRecovery
+        } catch {
+            if isRecovery {
+                self.isPasswordRecovery = false
+            }
+            throw SupabaseServiceError.authError(error.localizedDescription)
+        }
+    }
+
+    /// Updates the current user's password. Used after a password-recovery deep link.
+    func updatePassword(_ newPassword: String) async throws {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            _ = try await client.auth.update(user: UserAttributes(password: newPassword))
+            self.isAuthenticated = true
+            self.isPasswordRecovery = false
+            self.error = nil
+        } catch {
+            throw SupabaseServiceError.authError(error.localizedDescription)
+        }
+    }
+
+    /// Cancels password recovery by clearing the temporary recovery session.
+    func cancelPasswordRecovery() async throws {
+        try await signOut()
+        self.isPasswordRecovery = false
     }
 
     /// Signs out the current user.
@@ -315,6 +452,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         #if DEBUG
         if useMockData {
             self.isAuthenticated = false
+            self.isPasswordRecovery = false
             self.error = nil
             return
         }
@@ -323,6 +461,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         do {
             try await client.auth.signOut()
             self.isAuthenticated = false
+            self.isPasswordRecovery = false
             self.error = nil
             invalidateCache()
         } catch {
@@ -335,6 +474,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         #if DEBUG
         if useMockData {
             self.isAuthenticated = true
+            self.isPasswordRecovery = false
             return
         }
         #endif
@@ -342,11 +482,13 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         do {
             let session = try await client.auth.session
             self.isAuthenticated = true
+            self.isPasswordRecovery = false
 #if DEBUG
             print("[SupabaseService] Session restored for user: \(session.user.id)")
 #endif
         } catch {
             self.isAuthenticated = false
+            self.isPasswordRecovery = false
             print("[SupabaseService] No active session: \(error.localizedDescription)")
         }
     }

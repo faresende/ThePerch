@@ -29,7 +29,7 @@ fileprivate final class AuthObserverTaskBox: @unchecked Sendable {
 
 // MARK: - AuthViewModel
 
-/// Manages authentication state and sign-in/sign-up flows.
+/// Manages authentication state and sign-in, sign-up, and password recovery flows.
 @Observable
 @MainActor
 final class AuthViewModel {
@@ -40,9 +40,12 @@ final class AuthViewModel {
     /// True while we're waiting for the initial session-restoration check on launch.
     /// Starts true so the app shows a splash instead of a premature AuthView flash.
     var isRestoringSession: Bool = true
+    var isPasswordRecovery: Bool = false
     var error: SupabaseServiceError?
+    var statusMessage: String?
     var email: String = ""
     var password: String = ""
+    var confirmPassword: String = ""
     var displayName: String = ""
 
     // MARK: - Private Properties
@@ -55,18 +58,22 @@ final class AuthViewModel {
     init(supabaseService: SupabaseService? = nil) {
         let supabaseService = supabaseService ?? .shared
         self.supabaseService = supabaseService
-        self.isAuthenticated = supabaseService.isAuthenticated
-
+        syncAuthState()
         startObserver()
+    }
+
+    private func syncAuthState() {
+        self.isAuthenticated = supabaseService.isAuthenticated
+        self.isPasswordRecovery = supabaseService.isPasswordRecovery
     }
 
     private func startObserver() {
         cancelObserver()
 
         let observerTask = Task { [weak self] in
-            for await _ in NotificationCenter.default.publisher(for: NSNotification.Name("SupabaseAuthStateChanged")).values {
+            for await _ in NotificationCenter.default.publisher(for: .supabaseAuthStateChanged).values {
                 guard let self else { return }
-                self.isAuthenticated = supabaseService.isAuthenticated
+                self.syncAuthState()
             }
         }
         authObserverTaskBox.replace(with: observerTask)
@@ -75,6 +82,7 @@ final class AuthViewModel {
     func cancelObserver() {
         authObserverTaskBox.cancel()
     }
+
     // MARK: - Authentication Methods
 
     /// Restores an existing Supabase auth session from the keychain on launch.
@@ -82,17 +90,18 @@ final class AuthViewModel {
     func restoreSession() async {
         defer { isRestoringSession = false }
         await supabaseService.restoreSession()
-        self.isAuthenticated = supabaseService.isAuthenticated
+        syncAuthState()
     }
 
     /// Attempts to sign in with the provided email and password.
     func signIn() async {
+        statusMessage = nil
         isLoading = true
         defer { isLoading = false }
 
         do {
-            try await supabaseService.signIn(email: email, password: password)
-            self.isAuthenticated = supabaseService.isAuthenticated
+            try await supabaseService.signIn(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
+            syncAuthState()
             self.error = nil
         } catch let error as SupabaseServiceError {
             self.error = error
@@ -103,16 +112,109 @@ final class AuthViewModel {
 
     /// Attempts to sign up with the provided email, password, and display name.
     func signUp() async {
+        statusMessage = nil
         isLoading = true
         defer { isLoading = false }
 
         do {
             try await supabaseService.signUp(
-                email: email,
+                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                 password: password,
-                displayName: displayName
+                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines)
             )
-            self.isAuthenticated = supabaseService.isAuthenticated
+            syncAuthState()
+            self.error = nil
+        } catch let error as SupabaseServiceError {
+            self.error = error
+        } catch {
+            self.error = .unknownError(error.localizedDescription)
+        }
+    }
+
+    /// Sends a password reset email to the typed email address.
+    func sendPasswordReset() async {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedEmail.isEmpty else {
+            self.error = .authError("Enter your email first")
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await supabaseService.sendPasswordReset(email: trimmedEmail)
+            self.statusMessage = "Password reset email sent to \(trimmedEmail)."
+            self.error = nil
+        } catch let error as SupabaseServiceError {
+            self.error = error
+        } catch {
+            self.error = .unknownError(error.localizedDescription)
+        }
+    }
+
+    /// Handles incoming auth callback URLs, including password recovery links.
+    func handleIncomingURL(_ url: URL) async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let isRecovery = try await supabaseService.handleIncomingAuthURL(url)
+            syncAuthState()
+            self.error = nil
+            if isRecovery {
+                self.password = ""
+                self.confirmPassword = ""
+                self.statusMessage = "Recovery link accepted. Set your new password below."
+            }
+        } catch let error as SupabaseServiceError {
+            self.error = error
+        } catch {
+            self.error = .unknownError(error.localizedDescription)
+        }
+    }
+
+    /// Completes password recovery by setting a new password on the recovery session.
+    func completePasswordRecovery() async {
+        statusMessage = nil
+
+        guard password.count >= 8 else {
+            self.error = .authError("Use at least 8 characters")
+            return
+        }
+
+        guard password == confirmPassword else {
+            self.error = .authError("Passwords do not match")
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await supabaseService.updatePassword(password)
+            syncAuthState()
+            self.confirmPassword = ""
+            self.statusMessage = "Password updated. You can sign in normally now."
+            self.error = nil
+        } catch let error as SupabaseServiceError {
+            self.error = error
+        } catch {
+            self.error = .unknownError(error.localizedDescription)
+        }
+    }
+
+    /// Cancels password recovery and clears the recovery session.
+    func cancelPasswordRecovery() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            try await supabaseService.cancelPasswordRecovery()
+            syncAuthState()
+            self.password = ""
+            self.confirmPassword = ""
+            self.statusMessage = nil
             self.error = nil
         } catch let error as SupabaseServiceError {
             self.error = error
@@ -125,10 +227,12 @@ final class AuthViewModel {
     func signOut() async {
         do {
             try await supabaseService.signOut()
-            self.isAuthenticated = false
+            syncAuthState()
             self.email = ""
             self.password = ""
+            self.confirmPassword = ""
             self.displayName = ""
+            self.statusMessage = nil
             self.error = nil
         } catch let error as SupabaseServiceError {
             self.error = error
@@ -140,5 +244,9 @@ final class AuthViewModel {
     /// Clears all error messages.
     func clearError() {
         self.error = nil
+    }
+
+    func clearStatusMessage() {
+        self.statusMessage = nil
     }
 }
