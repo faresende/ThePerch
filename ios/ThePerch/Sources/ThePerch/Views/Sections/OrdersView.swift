@@ -108,7 +108,7 @@ struct OrdersView: View {
     }
 }
 
-private struct OrdersGroupSection: View {
+struct OrdersGroupSection: View {
     let title: String
     let subtitle: String
     let orders: [OrderWithShipments]
