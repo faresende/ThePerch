@@ -18,6 +18,7 @@ struct HubTab: View {
     @State private var collapsedSections: Set<HubSection> = []
 
     enum HubSection: String, CaseIterable, Identifiable {
+        case orders = "Orders"
         case deliveries = "Deliveries"
         case bookmarks = "Bookmarks"
         case calendar = "Calendar"
@@ -27,6 +28,7 @@ struct HubTab: View {
 
         var icon: String {
             switch self {
+            case .orders: return "cart.fill"
             case .deliveries: return "shippingbox.fill"
             case .bookmarks: return "bookmark.fill"
             case .calendar: return "calendar"
@@ -104,6 +106,8 @@ struct HubTab: View {
     @ViewBuilder
     private func sectionContent(for section: HubSection) -> some View {
         switch section {
+        case .orders:
+            OrdersSectionContent()
         case .deliveries:
             DeliveriesSectionContent()
         case .bookmarks:
@@ -175,6 +179,82 @@ private struct HubSectionView<Content: View>: View {
 }
 
 // MARK: - Deliveries Section Content
+
+private struct OrdersSectionContent: View {
+    @State private var viewModel = OrdersViewModel()
+    @State private var cardsAppeared = false
+
+    var body: some View {
+        LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+            if viewModel.isLoading && viewModel.orders.isEmpty {
+                SkeletonCardsSection(count: 2)
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+            } else if let error = viewModel.error, viewModel.orders.isEmpty {
+                EmptyStateView(
+                    icon: "shippingbox",
+                    title: "Orders backend unavailable",
+                    subtitle: error.contains("public.orders")
+                        ? "This backend does have deliveries, but the new Orders view still cannot read the orders tables here."
+                        : error
+                )
+                .padding(.horizontal, PerchTheme.Spacing.large)
+            } else if viewModel.orders.isEmpty {
+                EmptyStateView(
+                    icon: "cart",
+                    title: "No orders yet",
+                    subtitle: "Purchase confirmations and tracked shipments will show up here once Orders Autopilot has something to merge."
+                )
+                .padding(.horizontal, PerchTheme.Spacing.large)
+            } else {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                    Text("Tip: use the ••• button on a card to mark it delivered manually.")
+                        .font(PerchTheme.Font.caption)
+                        .foregroundColor(PerchTheme.textSecondary)
+
+                    OrdersGroupSection(
+                        title: "Active",
+                        subtitle: "Ordered, processing, and in-flight shipments.",
+                        orders: viewModel.activeOrders,
+                        cardsAppeared: cardsAppeared,
+                        onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
+                        onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
+                    )
+
+                    if !viewModel.issueOrders.isEmpty {
+                        OrdersGroupSection(
+                            title: "Issues",
+                            subtitle: "Exceptions and orders that need a closer look.",
+                            orders: viewModel.issueOrders,
+                            cardsAppeared: cardsAppeared,
+                            startIndex: viewModel.activeOrders.count,
+                            onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
+                            onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
+                        )
+                    }
+
+                    OrdersGroupSection(
+                        title: "Delivered",
+                        subtitle: "Completed orders that have already landed.",
+                        orders: viewModel.deliveredOrders,
+                        cardsAppeared: cardsAppeared,
+                        startIndex: viewModel.activeOrders.count + viewModel.issueOrders.count,
+                        onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
+                        onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
+                    )
+                }
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .onAppear {
+                    PerchMotion.withOptionalAnimation { cardsAppeared = true }
+                }
+            }
+        }
+        .task {
+            guard viewModel.orders.isEmpty else { return }
+            await viewModel.loadOrders()
+        }
+    }
+}
+
 
 private struct DeliveriesSectionContent: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel

@@ -47,21 +47,44 @@ struct OrderCard: View {
         return parts.isEmpty ? nil : parts.joined(separator: " • ")
     }
 
+    private var hasActionMenu: Bool {
+        if model.order.isManuallyDelivered {
+            return onUndoDelivered != nil
+        }
+        return onMarkDelivered != nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
-                Text(model.order.merchant)
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .lineLimit(2)
+            HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
+                    Text(model.order.merchant)
+                        .font(PerchTheme.Font.heading)
+                        .foregroundColor(PerchTheme.textPrimary)
+                        .lineLimit(2)
 
-                Text("Order \(model.order.orderNumber)")
-                    .font(PerchTheme.Font.captionMono)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    Text("Order \(model.order.orderNumber)")
+                        .font(PerchTheme.Font.captionMono)
+                        .foregroundColor(PerchTheme.textSecondary)
 
-                Text(totalText)
-                    .font(PerchTheme.Font.bodyNumeric)
-                    .foregroundColor(PerchTheme.accent)
+                    Text(totalText)
+                        .font(PerchTheme.Font.bodyNumeric)
+                        .foregroundColor(PerchTheme.accent)
+                }
+
+                Spacer(minLength: 0)
+
+                if hasActionMenu {
+                    Menu {
+                        contextMenuItems
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(PerchTheme.textSecondary)
+                            .padding(.top, 2)
+                    }
+                    .accessibilityLabel("Order actions")
+                }
             }
 
             if let shipmentLine {
