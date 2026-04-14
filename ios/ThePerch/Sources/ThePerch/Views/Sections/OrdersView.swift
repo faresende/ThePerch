@@ -332,7 +332,8 @@ struct OrdersSectionHeader: View {
 
                 Text(subtitle)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .fontWeight(.medium)
+                    .foregroundColor(PerchTheme.textPrimary.opacity(0.72))
                     .multilineTextAlignment(.leading)
             }
 

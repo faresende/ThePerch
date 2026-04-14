@@ -27,6 +27,16 @@ final class OrdersService {
     }
 
     func fetchOrders(forceRefresh _: Bool = false) async throws -> [OrderWithShipments] {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-uiDebugMockOrders") {
+            let merged = debugMockOrders()
+            supabaseService.freshnessTracker.recordFetch(for: "deliveries")
+            return merged.sorted { lhs, rhs in
+                sortDate(for: lhs) > sortDate(for: rhs)
+            }
+        }
+        #endif
+
         async let ordersTask: [Order] = fetchOrdersTable()
         async let shipmentsTask: [Shipment] = fetchShipmentsTable()
 
@@ -100,6 +110,84 @@ final class OrdersService {
     private func sortDate(for model: OrderWithShipments) -> Date {
         model.primaryShipment?.createdAt ?? model.order.createdAt
     }
+
+#if DEBUG
+    private func debugMockOrders() -> [OrderWithShipments] {
+        let now = Date.now
+
+        let penworldId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        let bodyFitId = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+        let amazonId = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+
+        return [
+            OrderWithShipments(
+                order: Order(
+                    id: penworldId,
+                    merchant: "Penworld",
+                    orderNumber: "2200082684",
+                    total: Decimal(string: "89.00"),
+                    currency: "EUR",
+                    status: "in_transit",
+                    sourceEmailId: "mock_penworld",
+                    confidence: 0.99,
+                    createdAt: now.addingTimeInterval(-86_400 * 5),
+                    manualDeliveredAt: nil
+                ),
+                shipments: [
+                    Shipment(
+                        id: UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")!,
+                        orderId: penworldId,
+                        trackingNumber: "JVGL06363881001053185034",
+                        carrier: "DHL",
+                        status: "in_transit",
+                        createdAt: now.addingTimeInterval(-86_400),
+                        trackingUrl: "https://www.dhl.com/global-en/home/tracking.html?tracking-id=JVGL06363881001053185034"
+                    )
+                ]
+            ),
+            OrderWithShipments(
+                order: Order(
+                    id: bodyFitId,
+                    merchant: "Body&Fit",
+                    orderNumber: "BF1399824",
+                    total: Decimal(string: "114.97"),
+                    currency: "EUR",
+                    status: "shipped",
+                    sourceEmailId: "mock_bodyfit",
+                    confidence: 0.98,
+                    createdAt: now.addingTimeInterval(-86_400 * 3),
+                    manualDeliveredAt: nil
+                ),
+                shipments: [
+                    Shipment(
+                        id: UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")!,
+                        orderId: bodyFitId,
+                        trackingNumber: "CQ478937250DE",
+                        carrier: "DHL",
+                        status: "shipped",
+                        createdAt: now.addingTimeInterval(-43_200),
+                        trackingUrl: "https://www.dhl.com/global-en/home/tracking.html?tracking-id=CQ478937250DE"
+                    )
+                ]
+            ),
+            OrderWithShipments(
+                order: Order(
+                    id: amazonId,
+                    merchant: "Amazon",
+                    orderNumber: "404-1892456-1182753",
+                    total: Decimal(string: "42.99"),
+                    currency: "EUR",
+                    status: "delivered",
+                    sourceEmailId: "mock_amazon",
+                    confidence: 0.96,
+                    createdAt: now.addingTimeInterval(-86_400 * 16),
+                    manualDeliveredAt: now.addingTimeInterval(-86_400 * 12)
+                ),
+                shipments: []
+            ),
+        ]
+    }
+#endif
 
     // MARK: - Manual Delivery Override
 

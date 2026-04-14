@@ -7,7 +7,21 @@ struct MainTabView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @Environment(NetworkMonitor.self) var networkMonitor
     @ObservedObject private var supabaseService = SupabaseService.shared
-    @State private var selectedTab: String = "today"
+    @State private var selectedTab: String = Self.initialTab()
+
+    private static func initialTab() -> String {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-uiDebugInitialTab"), arguments.indices.contains(index + 1) {
+            let candidate = arguments[index + 1].lowercased()
+            if ["today", "health", "hub", "settings"].contains(candidate) {
+                return candidate
+            }
+        }
+        #endif
+
+        return "today"
+    }
 
     var body: some View {
         ZStack {

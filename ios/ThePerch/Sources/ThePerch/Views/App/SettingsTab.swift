@@ -61,13 +61,13 @@ struct SettingsTab: View {
                             .padding(.horizontal, PerchTheme.Spacing.large)
 
                         Spacer()
-                            .frame(height: PerchTheme.TabBar.height + 34)
+                            .frame(height: PerchTheme.TabBar.contentInsetHeight)
                     }
                 }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: PerchTheme.TabBar.height + 34)
+                Color.clear.frame(height: PerchTheme.TabBar.contentInsetHeight)
             }
             .onAppear {
                 editableSections = dashboardViewModel.sections
