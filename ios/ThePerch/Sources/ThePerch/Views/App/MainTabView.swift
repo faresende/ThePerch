@@ -31,7 +31,7 @@ struct MainTabView: View {
                     SettingsTab()
                 }
             }
-            .tabBarMinimizeBehavior(.onScrollDown)  // Collapses on scroll like Apple Music
+            .tint(PerchTheme.accent)  // Harmonizes selected tab with app's amber accent
         }
         .task {
             await dashboardViewModel.loadDashboard()

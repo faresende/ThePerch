@@ -14,8 +14,6 @@ struct HealthTab: View {
 
     var body: some View {
         ZStack {
-            PerchTheme.background.ignoresSafeArea()
-
             VStack(spacing: 0) {
                 // Segmented picker at top
                 Picker("Section", selection: $selectedSegment) {
