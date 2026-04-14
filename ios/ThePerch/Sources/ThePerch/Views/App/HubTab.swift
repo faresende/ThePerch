@@ -132,10 +132,12 @@ private struct OrdersSectionContent: View {
                 )
                 .padding(.horizontal, PerchTheme.Spacing.large)
             } else {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     OrdersGroupSection(
                         title: "Active",
                         subtitle: "Ordered, processing, and in-flight shipments.",
+                        icon: "shippingbox.fill",
+                        tint: PerchTheme.accent,
                         orders: viewModel.activeOrders,
                         cardsAppeared: cardsAppeared,
                         onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
@@ -146,6 +148,8 @@ private struct OrdersSectionContent: View {
                         OrdersGroupSection(
                             title: "Issues",
                             subtitle: "Exceptions and orders that need a closer look.",
+                            icon: "exclamationmark.triangle.fill",
+                            tint: PerchTheme.error,
                             orders: viewModel.issueOrders,
                             cardsAppeared: cardsAppeared,
                             startIndex: viewModel.activeOrders.count,

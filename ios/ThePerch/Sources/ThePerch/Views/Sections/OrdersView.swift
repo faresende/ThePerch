@@ -75,6 +75,8 @@ struct OrdersView: View {
                 OrdersGroupSection(
                     title: "Active",
                     subtitle: "Ordered, processing, and in-flight shipments.",
+                    icon: "shippingbox.fill",
+                    tint: PerchTheme.accent,
                     orders: viewModel.activeOrders,
                     cardsAppeared: cardsAppeared,
                     onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
@@ -85,6 +87,8 @@ struct OrdersView: View {
                     OrdersGroupSection(
                         title: "Issues",
                         subtitle: "Exceptions and orders that need a closer look.",
+                        icon: "exclamationmark.triangle.fill",
+                        tint: PerchTheme.error,
                         orders: viewModel.issueOrders,
                         cardsAppeared: cardsAppeared,
                         startIndex: viewModel.activeOrders.count,
@@ -109,6 +113,8 @@ struct OrdersView: View {
 struct OrdersGroupSection: View {
     let title: String
     let subtitle: String
+    let icon: String
+    let tint: Color
     let orders: [OrderWithShipments]
     let cardsAppeared: Bool
     var startIndex: Int = 0
@@ -117,15 +123,13 @@ struct OrdersGroupSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
-                Text(title)
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-
-                Text(subtitle)
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
-            }
+            OrdersSectionHeader(
+                title: title,
+                subtitle: subtitle,
+                icon: icon,
+                tint: tint,
+                count: orders.count
+            )
 
             if orders.isEmpty {
                 Text(emptyMessage)
@@ -171,15 +175,13 @@ struct DeliveredOrdersSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
             if orders.isEmpty {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
-                    Text("Delivered")
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
-
-                    Text("Completed orders that have already landed.")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
-                }
+                OrdersSectionHeader(
+                    title: "Delivered",
+                    subtitle: "Completed orders that have already landed.",
+                    icon: "checkmark.circle.fill",
+                    tint: PerchTheme.success,
+                    count: 0
+                )
 
                 Text("No delivered orders yet.")
                     .font(PerchTheme.Font.caption)
@@ -192,31 +194,15 @@ struct DeliveredOrdersSection: View {
                         isExpanded.toggle()
                     }
                 } label: {
-                    HStack(alignment: .center, spacing: PerchTheme.Spacing.medium) {
-                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
-                            Text("Delivered")
-                                .font(PerchTheme.Font.heading)
-                                .foregroundColor(PerchTheme.textPrimary)
-
-                            Text(isExpanded ? "Completed orders that have already landed." : collapsedSummary)
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                                .multilineTextAlignment(.leading)
-                        }
-
-                        Spacer(minLength: 0)
-
-                        HStack(spacing: PerchTheme.Spacing.xSmall) {
-                            Text("\(orders.count)")
-                                .font(PerchTheme.Font.captionMono)
-                                .foregroundColor(PerchTheme.textTertiary)
-
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(PerchTheme.textSecondary)
-                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                        }
-                    }
+                    OrdersSectionHeader(
+                        title: "Delivered",
+                        subtitle: isExpanded ? "Completed orders that have already landed." : collapsedSummary,
+                        icon: "checkmark.circle.fill",
+                        tint: PerchTheme.success,
+                        count: orders.count,
+                        showsDisclosure: true,
+                        isExpanded: isExpanded
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -224,18 +210,7 @@ struct DeliveredOrdersSection: View {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                         ForEach(monthGroups) { group in
                             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                                HStack {
-                                    Text(monthTitle(for: group.monthStart))
-                                        .font(PerchTheme.Font.caption)
-                                        .foregroundColor(PerchTheme.textTertiary)
-                                        .textCase(.uppercase)
-
-                                    Spacer(minLength: 0)
-
-                                    Text("\(group.orders.count)")
-                                        .font(PerchTheme.Font.micro)
-                                        .foregroundColor(PerchTheme.textTertiary)
-                                }
+                                monthHeader(for: group)
 
                                 VStack(spacing: PerchTheme.Spacing.medium) {
                                     ForEach(group.orders) { order in
@@ -286,6 +261,92 @@ struct DeliveredOrdersSection: View {
         formatter.locale = .autoupdatingCurrent
         formatter.dateFormat = "MMMM yyyy"
         return formatter.string(from: date)
+    }
+
+    private func monthHeader(for group: DeliveredMonthGroup) -> some View {
+        HStack(spacing: PerchTheme.Spacing.small) {
+            Text(monthTitle(for: group.monthStart))
+                .font(PerchTheme.Font.cardEyebrow)
+                .foregroundColor(PerchTheme.textSecondary)
+                .textCase(.uppercase)
+
+            Spacer(minLength: 0)
+
+            Text("\(group.orders.count)")
+                .font(PerchTheme.Font.microNumeric)
+                .foregroundColor(PerchTheme.textTertiary)
+                .padding(.horizontal, PerchTheme.Spacing.small)
+                .padding(.vertical, PerchTheme.Spacing.xxxSmall)
+                .background(PerchTheme.background.opacity(0.85))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(PerchTheme.border.opacity(0.65), lineWidth: 1)
+                )
+        }
+        .padding(.horizontal, PerchTheme.Spacing.small)
+        .padding(.vertical, PerchTheme.Spacing.xxSmall)
+        .background(PerchTheme.cardInnerBackground)
+        .cornerRadius(PerchTheme.Card.innerCornerRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
+                .stroke(PerchTheme.border.opacity(0.5), lineWidth: 1)
+        )
+    }
+}
+
+struct OrdersSectionHeader: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let tint: Color
+    let count: Int
+    var showsDisclosure = false
+    var isExpanded = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(tint.opacity(0.14))
+                .frame(width: 34, height: 34)
+                .overlay(
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(tint)
+                )
+
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+                HStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Text(title)
+                        .font(PerchTheme.Font.heading)
+                        .foregroundColor(PerchTheme.textPrimary)
+
+                    Text("\(count)")
+                        .font(PerchTheme.Font.microNumeric)
+                        .foregroundColor(tint)
+                        .padding(.horizontal, PerchTheme.Spacing.small)
+                        .padding(.vertical, PerchTheme.Spacing.xxxSmall)
+                        .background(tint.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+
+                Text(subtitle)
+                    .font(PerchTheme.Font.caption)
+                    .foregroundColor(PerchTheme.textSecondary)
+                    .multilineTextAlignment(.leading)
+            }
+
+            Spacer(minLength: 0)
+
+            if showsDisclosure {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(PerchTheme.textSecondary)
+                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                    .padding(.top, PerchTheme.Spacing.xxxSmall)
+            }
+        }
+        .contentShape(Rectangle())
     }
 }
 
