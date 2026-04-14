@@ -1,11 +1,11 @@
 import SwiftUI
 
 /// First-launch onboarding screen shown when no backend is configured.
-/// Lets the user choose between self-hosted (Supabase) and managed cloud (coming soon).
+/// Lets the user choose between ThePerch Cloud and self-hosted Supabase.
 struct OnboardingView: View {
     let onConfigured: () -> Void
 
-    @State private var selectedMode: SetupMode = .selfHosted
+    @State private var selectedMode: SetupMode = .managedCloud
     @State private var supabaseURL = ""
     @State private var supabaseAnonKey = ""
     @State private var isConnecting = false
@@ -232,10 +232,8 @@ struct OnboardingView: View {
 
     @MainActor
     private func connectManagedCloud() async {
-        // ThePerch Cloud credentials — embedded in the app (anon key, safe)
-        // When you provision the managed Supabase project, update these values
-        let cloudURL = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
-        let cloudAnonKey = "***REDACTED_SB_PUBLISHABLE***"
+        let cloudURL = AppConfig.managedCloudURLString
+        let cloudAnonKey = AppConfig.managedCloudAnonKey
 
         isConnecting = true
         errorMessage = nil
