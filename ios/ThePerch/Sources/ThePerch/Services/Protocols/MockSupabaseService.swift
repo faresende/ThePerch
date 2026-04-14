@@ -6,6 +6,7 @@ final class MockSupabaseService: SupabaseServiceProtocol {
     // MARK: - State
 
     var isAuthenticated: Bool = true
+    var isPasswordRecovery: Bool = false
     var isLoading: Bool = false
     var error: SupabaseServiceError?
     var connectionError: String?
@@ -73,18 +74,39 @@ final class MockSupabaseService: SupabaseServiceProtocol {
 
     func signIn(email: String, password: String) async throws {
         isAuthenticated = true
+        isPasswordRecovery = false
     }
 
     func signUp(email: String, password: String, displayName: String) async throws {
         isAuthenticated = true
+        isPasswordRecovery = false
     }
 
     func signOut() async throws {
         isAuthenticated = false
+        isPasswordRecovery = false
     }
 
     func restoreSession() async {
         isAuthenticated = true
+        isPasswordRecovery = false
+    }
+
+    func sendPasswordReset(email: String) async throws {}
+
+    func handleIncomingAuthURL(_ url: URL) async throws -> Bool {
+        isAuthenticated = true
+        isPasswordRecovery = true
+        return true
+    }
+
+    func updatePassword(_ newPassword: String) async throws {
+        isPasswordRecovery = false
+    }
+
+    func cancelPasswordRecovery() async throws {
+        isPasswordRecovery = false
+        isAuthenticated = false
     }
 
     // MARK: - Realtime

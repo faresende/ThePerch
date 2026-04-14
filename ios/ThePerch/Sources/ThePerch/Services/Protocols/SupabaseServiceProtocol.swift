@@ -7,6 +7,7 @@ protocol SupabaseServiceProtocol: AnyObject {
     // MARK: - State
 
     var isAuthenticated: Bool { get }
+    var isPasswordRecovery: Bool { get }
     var isLoading: Bool { get }
     var error: SupabaseServiceError? { get }
     var connectionError: String? { get }
@@ -47,6 +48,10 @@ protocol SupabaseServiceProtocol: AnyObject {
     func signUp(email: String, password: String, displayName: String) async throws
     func signOut() async throws
     func restoreSession() async
+    func sendPasswordReset(email: String) async throws
+    func handleIncomingAuthURL(_ url: URL) async throws -> Bool
+    func updatePassword(_ newPassword: String) async throws
+    func cancelPasswordRecovery() async throws
 
     // MARK: - Realtime
 

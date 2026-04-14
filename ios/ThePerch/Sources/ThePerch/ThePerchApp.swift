@@ -30,14 +30,13 @@ struct ThePerchApp: App {
                 PerchTheme.background.ignoresSafeArea()
 
                 if !isConfigured {
-                    // Step 1: No backend configured — show setup wizard.
+                    // Step 1: No backend configured, show setup wizard.
                     OnboardingView {
                         isConfigured = true
                     }
 
                 } else if authViewModel.isRestoringSession {
                     // Step 2: Configured but waiting for session restoration to finish.
-                    // Show a minimal splash so there's no AuthView flash for returning users.
                     VStack(spacing: PerchTheme.Spacing.medium) {
                         Image(systemName: "bird.fill")
                             .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
@@ -46,8 +45,8 @@ struct ThePerchApp: App {
                             .tint(PerchTheme.accent)
                     }
 
-                } else if authViewModel.isAuthenticated {
-                    // Step 3: Authenticated — show the main app.
+                } else if authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery {
+                    // Step 3: Authenticated, show the main app.
                     MainTabView()
                         .environment(authViewModel)
                         .environment(dashboardViewModel)
@@ -70,25 +69,27 @@ struct ThePerchApp: App {
                         }
 
                 } else {
-                    // Step 4: Configured but not authenticated — show sign-in screen.
+                    // Step 4: Configured but not authenticated, or in password recovery.
                     AuthView()
                         .environment(authViewModel)
                 }
             }
-            // Re-runs whenever isConfigured changes (handles post-onboarding case).
-            // On first launch with valid config, fires immediately and restores session.
             .task(id: isConfigured) {
                 guard isConfigured else { return }
                 await authViewModel.restoreSession()
             }
-            // Once authenticated (either via restore or sign-in), load data.
-            .task(id: authViewModel.isAuthenticated) {
-                guard authViewModel.isAuthenticated else { return }
+            .task(id: authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery) {
+                guard authViewModel.isAuthenticated, !authViewModel.isPasswordRecovery else { return }
                 await dashboardViewModel.loadDashboard()
                 BackgroundRefreshService.shared.scheduleAppRefresh()
                 await dashboardViewModel.setupRealtimeSubscriptions()
                 if CrashReporter.shared.hasPendingCrashReports {
                     showCrashAlert = true
+                }
+            }
+            .onOpenURL { url in
+                Task {
+                    await authViewModel.handleIncomingURL(url)
                 }
             }
         }
