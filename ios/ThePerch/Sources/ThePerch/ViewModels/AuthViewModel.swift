@@ -37,6 +37,9 @@ final class AuthViewModel {
 
     var isAuthenticated: Bool = false
     var isLoading: Bool = false
+    /// True while we're waiting for the initial session-restoration check on launch.
+    /// Starts true so the app shows a splash instead of a premature AuthView flash.
+    var isRestoringSession: Bool = true
     var error: SupabaseServiceError?
     var email: String = ""
     var password: String = ""
@@ -73,6 +76,14 @@ final class AuthViewModel {
         authObserverTaskBox.cancel()
     }
     // MARK: - Authentication Methods
+
+    /// Restores an existing Supabase auth session from the keychain on launch.
+    /// Sets isAuthenticated and clears isRestoringSession when done.
+    func restoreSession() async {
+        defer { isRestoringSession = false }
+        await supabaseService.restoreSession()
+        self.isAuthenticated = supabaseService.isAuthenticated
+    }
 
     /// Attempts to sign in with the provided email and password.
     func signIn() async {

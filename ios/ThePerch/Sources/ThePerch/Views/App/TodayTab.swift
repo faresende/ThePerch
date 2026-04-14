@@ -14,8 +14,6 @@ struct TodayTab: View {
 
     var body: some View {
         ZStack {
-            PerchTheme.background.ignoresSafeArea()
-
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     // Compact header: greeting + date

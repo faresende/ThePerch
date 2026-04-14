@@ -14,7 +14,7 @@ struct ThePerchApp: App {
     @State private var showCrashAlert = false
 
     /// Whether the app is configured with valid Supabase credentials.
-    /// False triggers OnboardingView instead of MainTabView.
+    /// False triggers OnboardingView instead of the auth/main flow.
     @State private var isConfigured: Bool = !AppConfig.shared.isMisconfigured
 
     init() {
@@ -26,51 +26,70 @@ struct ThePerchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if !isConfigured {
-                OnboardingView {
-                    // Reconfigure the app with new credentials and proceed
-                    isConfigured = true
-                }
-            } else {
-            MainTabView()
-                .environment(authViewModel)
-                .environment(dashboardViewModel)
-                .environment(networkMonitor)
-                .task {
-                    // Eager initial load on app launch (cache first, then network)
-                    await dashboardViewModel.loadDashboard()
-                    // Schedule background refresh once we've loaded at least once
-                    BackgroundRefreshService.shared.scheduleAppRefresh()
+            ZStack {
+                PerchTheme.background.ignoresSafeArea()
 
-                    // Notification permission removed — no push notifications in the system yet
-                    // Set up realtime subscriptions
-                    await dashboardViewModel.setupRealtimeSubscriptions()
-                    // Check for crash reports from previous session
-                    if CrashReporter.shared.hasPendingCrashReports {
-                        showCrashAlert = true
+                if !isConfigured {
+                    // Step 1: No backend configured — show setup wizard.
+                    OnboardingView {
+                        isConfigured = true
                     }
-                }
-                .preferredColorScheme(darkModeEnabled ? .dark : nil)
-                .onChange(of: scenePhase) { oldPhase, newPhase in
-                    if newPhase == .active && oldPhase != .active {
-                        // Refresh data when app comes to foreground
-                        Task {
-                            await dashboardViewModel.loadDashboard()
-                            BackgroundRefreshService.shared.scheduleAppRefresh()
+
+                } else if authViewModel.isRestoringSession {
+                    // Step 2: Configured but waiting for session restoration to finish.
+                    // Show a minimal splash so there's no AuthView flash for returning users.
+                    VStack(spacing: PerchTheme.Spacing.medium) {
+                        Image(systemName: "bird.fill")
+                            .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
+                            .foregroundColor(PerchTheme.accent)
+                        ProgressView()
+                            .tint(PerchTheme.accent)
+                    }
+
+                } else if authViewModel.isAuthenticated {
+                    // Step 3: Authenticated — show the main app.
+                    MainTabView()
+                        .environment(authViewModel)
+                        .environment(dashboardViewModel)
+                        .environment(networkMonitor)
+                        .preferredColorScheme(darkModeEnabled ? .dark : nil)
+                        .onChange(of: scenePhase) { oldPhase, newPhase in
+                            if newPhase == .active && oldPhase != .active {
+                                Task {
+                                    await dashboardViewModel.loadDashboard()
+                                    BackgroundRefreshService.shared.scheduleAppRefresh()
+                                }
+                            }
                         }
-                    }
+                        .alert("Previous Crash Detected", isPresented: $showCrashAlert) {
+                            Button("Dismiss") {
+                                CrashReporter.shared.clearCrashReports()
+                            }
+                        } message: {
+                            Text(CrashReporter.shared.crashSummary() ?? "A crash occurred in a previous session.")
+                        }
+
+                } else {
+                    // Step 4: Configured but not authenticated — show sign-in screen.
+                    AuthView()
+                        .environment(authViewModel)
                 }
-                .alert("Previous Crash Detected", isPresented: $showCrashAlert) {
-                    Button("Dismiss") {
-                        CrashReporter.shared.clearCrashReports()
-                    }
-                } message: {
-                    Text(CrashReporter.shared.crashSummary() ?? "A crash occurred in a previous session.")
+            }
+            // Re-runs whenever isConfigured changes (handles post-onboarding case).
+            // On first launch with valid config, fires immediately and restores session.
+            .task(id: isConfigured) {
+                guard isConfigured else { return }
+                await authViewModel.restoreSession()
+            }
+            // Once authenticated (either via restore or sign-in), load data.
+            .task(id: authViewModel.isAuthenticated) {
+                guard authViewModel.isAuthenticated else { return }
+                await dashboardViewModel.loadDashboard()
+                BackgroundRefreshService.shared.scheduleAppRefresh()
+                await dashboardViewModel.setupRealtimeSubscriptions()
+                if CrashReporter.shared.hasPendingCrashReports {
+                    showCrashAlert = true
                 }
-            // } else {
-            //     AuthView()
-            //         .environment(authViewModel)
-            // }
             }
         }
     }
