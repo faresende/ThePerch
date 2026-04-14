@@ -8,93 +8,79 @@ private struct HubTimelineEntry: Identifiable {
     let sortDate: Date
 }
 
-/// Hub tab — operational tools: Deliveries, Bookmarks, Calendar, Travel.
-/// Container with collapsible DisclosureGroup sections.
+/// Hub tab — operational tools: Orders, Bookmarks, Calendar, Travel.
+/// Uses a top segmented picker + paged content, mirroring HealthTab layout.
 struct HubTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var travelViewModel = TravelViewModel()
+    @State private var selectedSegment: HubSegment = .orders
 
-    /// Sections shown in the Hub, with their collapsed state.
-    @State private var collapsedSections: Set<HubSection> = []
-
-    enum HubSection: String, CaseIterable, Identifiable {
-        case orders = "Orders"
-        case deliveries = "Deliveries"
+    enum HubSegment: String, CaseIterable {
+        case orders    = "Orders"
         case bookmarks = "Bookmarks"
-        case calendar = "Calendar"
-        case travel = "Travel"
-
-        var id: String { rawValue }
-
-        var icon: String {
-            switch self {
-            case .orders: return "cart.fill"
-            case .deliveries: return "shippingbox.fill"
-            case .bookmarks: return "bookmark.fill"
-            case .calendar: return "calendar"
-            case .travel: return "airplane"
-            }
-        }
-
-        var defaultExpanded: Bool { true }
+        case calendar  = "Calendar"
+        case travel    = "Travel"
     }
 
-    /// Sections to display — travel is conditional (only when active trip exists).
-    private var visibleSections: [HubSection] {
-        var sections = HubSection.allCases.filter { $0 != .travel }
+    /// Segments to display — Travel only appears when an active trip exists.
+    private var visibleSegments: [HubSegment] {
+        var segments: [HubSegment] = [.orders, .bookmarks, .calendar]
         if travelViewModel.currentTrip != nil {
-            sections.insert(.travel, at: 0)
+            segments.append(.travel)
         }
-        return sections
+        return segments
     }
 
     var body: some View {
-        ScrollView {
-                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Hub header
-                    HStack {
-                        Text("Hub")
-                            .font(PerchTheme.Font.title)
-                            .foregroundColor(PerchTheme.textPrimary)
-                        Spacer()
-                    }
+        ZStack {
+            VStack(spacing: 0) {
+                // Error banner — sits above picker so it's always reachable
+                if dashboardViewModel.error != nil {
+                    ErrorBanner(
+                        message: "Failed to load hub data",
+                        retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
+                        onDismiss: { dashboardViewModel.clearError() }
+                    )
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, PerchTheme.Spacing.small)
-
-                    if dashboardViewModel.error != nil {
-                        ErrorBanner(
-                            message: "Failed to load hub data",
-                            retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
-                            onDismiss: { dashboardViewModel.clearError() }
-                        )
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                    }
-
-                    // Section content
-                    ForEach(visibleSections) { section in
-                        HubSectionView(
-                            section: section,
-                            isCollapsed: collapsedSections.contains(section),
-                            onToggle: {
-                                toggleSection(section)
-                            },
-                            content: {
-                                sectionContent(for: section)
-                            }
-                        )
-                    }
-
-                    Spacer()
-                        .frame(height: PerchTheme.TabBar.height + 34)
                 }
+
+                // Segmented picker at top
+                Picker("Section", selection: $selectedSegment) {
+                    ForEach(visibleSegments, id: \.self) { segment in
+                        Text(segment.rawValue).tag(segment)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .padding(.vertical, PerchTheme.Spacing.small)
+                .background(PerchTheme.background)
+
+                // Paged segment content
+                TabView(selection: $selectedSegment) {
+                    hubPage { OrdersSectionContent() }
+                        .tag(HubSegment.orders)
+
+                    hubPage { BookmarksSectionContent() }
+                        .tag(HubSegment.bookmarks)
+
+                    hubPage { CalendarSectionContent() }
+                        .tag(HubSegment.calendar)
+
+                    if travelViewModel.currentTrip != nil {
+                        hubPage { TravelSectionContent() }
+                            .tag(HubSegment.travel)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
             }
-            .refreshable {
-                PerchHaptics.medium()
-                await dashboardViewModel.loadDashboard(forceRefresh: true)
-                PerchHaptics.success()
-            }
+        }
         .onChange(of: dashboardViewModel.travelRecords) { _, newRecords in
             travelViewModel.records = newRecords
+            // If the active trip disappears while Travel is selected, fall back to Orders
+            if travelViewModel.currentTrip == nil && selectedSegment == .travel {
+                selectedSegment = .orders
+            }
         }
         .onAppear {
             if !dashboardViewModel.travelRecords.isEmpty {
@@ -103,82 +89,22 @@ struct HubTab: View {
         }
     }
 
+    /// Wraps section content in a refreshable ScrollView, matching HealthTab's per-segment scroll pattern.
     @ViewBuilder
-    private func sectionContent(for section: HubSection) -> some View {
-        switch section {
-        case .orders:
-            OrdersSectionContent()
-        case .deliveries:
-            DeliveriesSectionContent()
-        case .bookmarks:
-            BookmarksSectionContent()
-        case .calendar:
-            CalendarSectionContent()
-        case .travel:
-            TravelSectionContent()
+    private func hubPage<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        ScrollView {
+            content()
+            Color.clear.frame(height: PerchTheme.TabBar.height + 34)
         }
-    }
-
-    private func toggleSection(_ section: HubSection) {
-        PerchHaptics.light()
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            if collapsedSections.contains(section) {
-                collapsedSections.remove(section)
-            } else {
-                collapsedSections.insert(section)
-            }
+        .refreshable {
+            PerchHaptics.medium()
+            await dashboardViewModel.loadDashboard(forceRefresh: true)
+            PerchHaptics.success()
         }
     }
 }
 
-// MARK: - Hub Section View
-
-private struct HubSectionView<Content: View>: View {
-    let section: HubTab.HubSection
-    let isCollapsed: Bool
-    let onToggle: () -> Void
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Section header (always visible, tappable)
-            Button(action: onToggle) {
-                HStack(spacing: PerchTheme.Spacing.medium) {
-                    Image(systemName: section.icon)
-                        .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
-                        .foregroundColor(PerchTheme.accent)
-                        .frame(width: 24)
-
-                    Text(section.rawValue)
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.down")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                        .rotationEffect(.degrees(isCollapsed ? -90 : 0))
-                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCollapsed)
-                }
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.vertical, PerchTheme.Spacing.medium)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            // Section content (shown when expanded)
-            if !isCollapsed {
-                content()
-                    .padding(.top, PerchTheme.Spacing.small)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCollapsed)
-    }
-}
-
-// MARK: - Deliveries Section Content
+// MARK: - Orders Section Content
 
 private struct OrdersSectionContent: View {
     @State private var viewModel = OrdersViewModel()
@@ -255,99 +181,6 @@ private struct OrdersSectionContent: View {
     }
 }
 
-
-private struct DeliveriesSectionContent: View {
-    @Environment(DashboardViewModel.self) var dashboardViewModel
-    @State private var showCompleted = false
-    @State private var cardsAppeared = false
-
-    private var records: [Record] { dashboardViewModel.deliveryRecords }
-
-    private var partitionedDeliveries: (active: [Record], completed: [Record]) {
-        var active: [Record] = []
-        var completed: [Record] = []
-        for record in records {
-            guard let delivery = record.asDelivery() else { continue }
-            let status = delivery.status.lowercased()
-            if status == "delivered" || status == "cancelled" {
-                completed.append(record)
-            } else {
-                active.append(record)
-            }
-        }
-        return (active, completed)
-    }
-
-    var activeDeliveries: [Record] { partitionedDeliveries.active }
-    var completedDeliveries: [Record] { partitionedDeliveries.completed }
-
-    var body: some View {
-        LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-            if dashboardViewModel.isLoading && records.isEmpty {
-                SkeletonCardsSection(count: 2)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-            } else {
-                // Active deliveries
-                if activeDeliveries.isEmpty {
-                    EmptyStateView(
-                        icon: "shippingbox",
-                        title: "No active deliveries",
-                        subtitle: "Tracked packages that are still moving will show up here."
-                    )
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                } else {
-                    VStack(spacing: PerchTheme.Spacing.medium) {
-                        ForEach(Array(activeDeliveries.enumerated()), id: \.element.id) { index, record in
-                            if let delivery = record.asDelivery() {
-                                DeliveryCard(delivery: delivery)
-                                    .cardAppear(index: index, appeared: cardsAppeared)
-                            }
-                        }
-                    }
-                    .onAppear {
-                        PerchMotion.withOptionalAnimation { cardsAppeared = true }
-                    }
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                }
-
-                // Completed deliveries
-                if !completedDeliveries.isEmpty {
-                    Button(action: {
-                        PerchHaptics.light()
-                        showCompleted.toggle()
-                    }) {
-                        HStack {
-                            Text("Completed Deliveries")
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textSecondary)
-
-                            Spacer()
-
-                            Image(systemName: "chevron.down")
-                                .rotationEffect(.degrees(showCompleted ? 180 : 0))
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                    }
-                    .buttonStyle(.plain)
-
-                    if showCompleted {
-                        VStack(spacing: PerchTheme.Spacing.medium) {
-                            ForEach(completedDeliveries) { record in
-                                if let delivery = record.asDelivery() {
-                                    DeliveryCard(delivery: delivery)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-                }
-            }
-        }
-    }
-}
 
 // MARK: - Bookmarks Section Content
 
