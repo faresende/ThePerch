@@ -282,6 +282,21 @@ struct PerchTheme {
         static let iconSize: CGFloat = 24
         static let labelSize: CGFloat = 10
         static let glassOpacity: Double = 0.72
+
+        static var contentInsetHeight: CGFloat {
+            height + bottomSafeAreaInset
+        }
+
+        private static var bottomSafeAreaInset: CGFloat {
+            let scenes = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .filter { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }
+            let windows = scenes.flatMap(\.windows)
+
+            return windows.first(where: \.isKeyWindow)?.safeAreaInsets.bottom
+                ?? windows.map(\.safeAreaInsets.bottom).max()
+                ?? 34
+        }
     }
 
     // MARK: - Glass Card Style

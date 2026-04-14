@@ -122,7 +122,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 
     #if DEBUG
     /// Toggle to fall back to mock data during development only.
-    private var useMockData = false
+    private var useMockData = ProcessInfo.processInfo.arguments.contains("-uiDebugUseMockData")
     #endif
 
     /// The Supabase client instance.
