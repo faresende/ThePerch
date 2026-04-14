@@ -74,9 +74,9 @@ export function extractShipmentCandidate(text: string): ShipmentData | null {
     carrier: carrierMatch?.[1]?.toUpperCase() || 'UNKNOWN',
     provider: 'email',
     status,
-    latest_checkpoint: undefined,
-    shipped_at: undefined,
-    delivered_at: undefined,
+    latest_checkpoint: null,
+    shipped_at: null,
+    delivered_at: null,
     source_email_ids: [],
     confidence_score: 0.88,
   };
