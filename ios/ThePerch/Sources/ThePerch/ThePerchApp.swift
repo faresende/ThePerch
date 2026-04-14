@@ -17,6 +17,14 @@ struct ThePerchApp: App {
     /// False triggers OnboardingView instead of the auth/main flow.
     @State private var isConfigured: Bool = !AppConfig.shared.isMisconfigured
 
+    private var bypassAuthForDebug: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-uiDebugBypassAuth")
+        #else
+        false
+        #endif
+    }
+
     init() {
         // Install crash handler before anything else
         CrashReporter.shared.installHandler()
@@ -45,7 +53,7 @@ struct ThePerchApp: App {
                             .tint(PerchTheme.accent)
                     }
 
-                } else if authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery {
+                } else if bypassAuthForDebug || (authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery) {
                     // Step 3: Authenticated, show the main app.
                     MainTabView()
                         .environment(authViewModel)
@@ -76,10 +84,14 @@ struct ThePerchApp: App {
             }
             .task(id: isConfigured) {
                 guard isConfigured else { return }
+                if bypassAuthForDebug {
+                    authViewModel.isRestoringSession = false
+                    return
+                }
                 await authViewModel.restoreSession()
             }
-            .task(id: authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery) {
-                guard authViewModel.isAuthenticated, !authViewModel.isPasswordRecovery else { return }
+            .task(id: bypassAuthForDebug || (authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery)) {
+                guard bypassAuthForDebug || authViewModel.isAuthenticated, !authViewModel.isPasswordRecovery else { return }
                 await dashboardViewModel.loadDashboard()
                 BackgroundRefreshService.shared.scheduleAppRefresh()
                 await dashboardViewModel.setupRealtimeSubscriptions()

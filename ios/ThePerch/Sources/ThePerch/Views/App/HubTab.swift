@@ -13,13 +13,25 @@ private struct HubTimelineEntry: Identifiable {
 struct HubTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var travelViewModel = TravelViewModel()
-    @State private var selectedSegment: HubSegment = .orders
+    @State private var selectedSegment: HubSegment = Self.initialSegment()
 
     enum HubSegment: String, CaseIterable {
         case orders    = "Orders"
         case bookmarks = "Bookmarks"
         case calendar  = "Calendar"
         case travel    = "Travel"
+    }
+
+    private static func initialSegment() -> HubSegment {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-uiDebugHubSegment"), arguments.indices.contains(index + 1) {
+            let candidate = arguments[index + 1].lowercased()
+            return HubSegment.allCases.first(where: { $0.rawValue.lowercased() == candidate }) ?? .orders
+        }
+        #endif
+
+        return .orders
     }
 
     /// Segments to display — Travel only appears when an active trip exists.
@@ -94,7 +106,7 @@ struct HubTab: View {
     private func hubPage<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         ScrollView {
             content()
-            Color.clear.frame(height: PerchTheme.TabBar.height + 34)
+            Color.clear.frame(height: PerchTheme.TabBar.contentInsetHeight)
         }
         .refreshable {
             PerchHaptics.medium()

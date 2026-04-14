@@ -159,11 +159,50 @@ struct OrderCard: View {
         Text(statusPresentation.label)
             .font(PerchTheme.Font.micro)
             .fontWeight(.semibold)
-            .foregroundColor(statusPresentation.tint)
+            .foregroundColor(statusBadgeForeground)
             .padding(.horizontal, PerchTheme.Spacing.small)
             .padding(.vertical, PerchTheme.Spacing.xxxSmall)
-            .background(statusPresentation.tint.opacity(0.14))
+            .background(statusBadgeBackground)
             .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(statusBadgeBorder, lineWidth: 1)
+            )
+    }
+
+    private var statusBadgeForeground: Color {
+        switch normalizedStatus(model.effectiveStatus) {
+        case "ordered", "shipped", "in_transit":
+            return PerchTheme.accentForeground
+        default:
+            return statusPresentation.tint
+        }
+    }
+
+    private var statusBadgeBackground: Color {
+        switch normalizedStatus(model.effectiveStatus) {
+        case "in_transit":
+            return PerchTheme.warningBackground
+        case "delivered":
+            return PerchTheme.success.opacity(0.12)
+        case "exception", "needs_review", "issue":
+            return PerchTheme.error.opacity(0.12)
+        default:
+            return PerchTheme.accentMuted
+        }
+    }
+
+    private var statusBadgeBorder: Color {
+        switch normalizedStatus(model.effectiveStatus) {
+        case "in_transit":
+            return PerchTheme.warning.opacity(0.3)
+        case "delivered":
+            return PerchTheme.success.opacity(0.24)
+        case "exception", "needs_review", "issue":
+            return PerchTheme.error.opacity(0.22)
+        default:
+            return PerchTheme.accent.opacity(0.18)
+        }
     }
 
     private var statusDateText: String? {
@@ -219,11 +258,13 @@ struct OrderCard: View {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
                 Text(isTrackable ? "Tracking" : "Shipment")
                     .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .fontWeight(.medium)
+                    .foregroundColor(PerchTheme.textSecondary)
 
                 Text(shipmentLine)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .fontWeight(.medium)
+                    .foregroundColor(PerchTheme.textPrimary)
                     .lineLimit(2)
             }
 
@@ -300,47 +341,99 @@ struct OrderCard: View {
     // MARK: - Timeline
 
     private var timeline: some View {
-        HStack(alignment: .top, spacing: PerchTheme.Spacing.xSmall) {
+        HStack(alignment: .top, spacing: PerchTheme.Spacing.xxSmall) {
             ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
-                let isActive = index <= activeStepIndex
-                let isCurrent = index == activeStepIndex
+                let state = timelineState(for: index)
 
                 VStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Circle()
-                        .fill(isActive ? timelineColor(for: step.key) : PerchTheme.border)
-                        .frame(width: isCurrent ? 14 : 10, height: isCurrent ? 14 : 10)
-                        .overlay(
-                            Circle()
-                                .stroke(isCurrent ? timelineColor(for: step.key).opacity(0.35) : .clear, lineWidth: 4)
-                        )
+                    timelineMarker(for: step.key, state: state)
 
                     Text(step.label)
                         .font(PerchTheme.Font.micro)
-                        .foregroundColor(isActive ? PerchTheme.textPrimary : PerchTheme.textTertiary)
+                        .fontWeight(state == .current ? .semibold : .regular)
+                        .foregroundColor(timelineLabelColor(for: state))
                         .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .allowsTightening(true)
+                        .frame(maxWidth: .infinity, minHeight: 28, alignment: .top)
                 }
+                .frame(maxWidth: .infinity)
 
                 if index < steps.count - 1 {
-                    Rectangle()
-                        .fill(index < activeStepIndex ? timelineConnectorColor : PerchTheme.border)
-                        .frame(height: 2)
-                        .frame(maxWidth: .infinity)
+                    Capsule()
+                        .fill(timelineConnectorColor(after: index))
+                        .frame(width: 18, height: 2)
                         .padding(.top, 5)
                 }
             }
         }
     }
 
-    private var timelineConnectorColor: Color {
-        switch normalizedStatus(model.effectiveStatus) {
-        case "delivered":
-            return PerchTheme.success
-        case "in_transit":
-            return PerchTheme.warning
-        default:
-            return PerchTheme.accent
+    private func timelineState(for index: Int) -> TimelineStepState {
+        if index < activeStepIndex {
+            return .completed
         }
+        if index == activeStepIndex {
+            return .current
+        }
+        return .upcoming
+    }
+
+    @ViewBuilder
+    private func timelineMarker(for stepKey: String, state: TimelineStepState) -> some View {
+        let accent = timelineColor(for: stepKey)
+
+        switch state {
+        case .completed:
+            Circle()
+                .fill(accent)
+                .frame(width: 10, height: 10)
+        case .current:
+            Circle()
+                .fill(PerchTheme.cardBackground)
+                .frame(width: 16, height: 16)
+                .overlay(
+                    Circle()
+                        .stroke(accent, lineWidth: 2)
+                )
+                .overlay(
+                    Circle()
+                        .fill(accent)
+                        .frame(width: 8, height: 8)
+                )
+        case .upcoming:
+            Circle()
+                .fill(PerchTheme.cardBackground)
+                .frame(width: 10, height: 10)
+                .overlay(
+                    Circle()
+                        .stroke(PerchTheme.border.opacity(0.95), lineWidth: 1.5)
+                )
+        }
+    }
+
+    private func timelineLabelColor(for state: TimelineStepState) -> Color {
+        switch state {
+        case .current:
+            return PerchTheme.textPrimary
+        case .completed:
+            return PerchTheme.textSecondary
+        case .upcoming:
+            return PerchTheme.textTertiary
+        }
+    }
+
+    private func timelineConnectorColor(after stepIndex: Int) -> Color {
+        guard stepIndex < activeStepIndex else {
+            return PerchTheme.border.opacity(0.9)
+        }
+
+        if stepIndex + 1 == activeStepIndex {
+            return timelineColor(for: steps[activeStepIndex].key)
+        }
+
+        return PerchTheme.accent
     }
 
     private func normalizedStatus(_ status: String) -> String {
@@ -405,6 +498,12 @@ private struct OrderStatusPresentation {
     let label: String
     let symbol: String
     let tint: Color
+}
+
+private enum TimelineStepState {
+    case completed
+    case current
+    case upcoming
 }
 
 #Preview {
