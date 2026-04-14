@@ -195,3 +195,39 @@ struct OrderCodableTests {
         #expect(!order.isManuallyDelivered)
     }
 }
+
+
+// MARK: - Shipment tracking URLs
+
+@Suite("Shipment.resolvedTrackingURL")
+struct ShipmentResolvedTrackingURLTests {
+    @Test("uses explicit tracking_url when present")
+    func usesExplicitTrackingURL() {
+        let shipment = Shipment(
+            id: UUID(),
+            orderId: UUID(),
+            trackingNumber: "TRACK123",
+            carrier: "DHL",
+            status: "in_transit",
+            createdAt: .now,
+            trackingUrl: "https://example.com/track/TRACK123"
+        )
+
+        #expect(shipment.resolvedTrackingURL?.absoluteString == "https://example.com/track/TRACK123")
+    }
+
+    @Test("falls back to 17track when explicit tracking_url is absent")
+    func fallsBackTo17Track() {
+        let shipment = Shipment(
+            id: UUID(),
+            orderId: UUID(),
+            trackingNumber: "1Z999AA10123456784",
+            carrier: "UPS",
+            status: "in_transit",
+            createdAt: .now,
+            trackingUrl: nil
+        )
+
+        #expect(shipment.resolvedTrackingURL?.absoluteString == "https://t.17track.net/en#nums=1Z999AA10123456784")
+    }
+}
