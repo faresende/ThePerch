@@ -61,14 +61,11 @@ struct SettingsTab: View {
                             .padding(.horizontal, PerchTheme.Spacing.large)
 
                         Spacer()
-                            .frame(height: PerchTheme.TabBar.contentInsetHeight)
+                            .frame(height: PerchTheme.Spacing.xLarge)
                     }
                 }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: PerchTheme.TabBar.contentInsetHeight)
-            }
             .onAppear {
                 editableSections = dashboardViewModel.sections
                     .filter { $0.slug != "legal" }

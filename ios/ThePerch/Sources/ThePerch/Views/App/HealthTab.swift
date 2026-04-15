@@ -6,6 +6,12 @@ struct HealthTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var selectedSegment: HealthSegment = .overview
 
+    let onOpenProfile: () -> Void
+
+    init(onOpenProfile: @escaping () -> Void = {}) {
+        self.onOpenProfile = onOpenProfile
+    }
+
     enum HealthSegment: String, CaseIterable {
         case overview = "Overview"
         case workouts = "Workouts"
@@ -15,6 +21,13 @@ struct HealthTab: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    ProfileEntryButton(prominence: .subtle, action: onOpenProfile)
+                }
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .padding(.top, PerchTheme.Spacing.small)
+
                 // Segmented picker at top
                 Picker("Section", selection: $selectedSegment) {
                     ForEach(HealthSegment.allCases, id: \.self) { segment in
@@ -200,8 +213,8 @@ struct HealthOverviewSegment: View {
                         PerchMotion.withOptionalAnimation { cardsAppeared = true }
                     }
 
-                Spacer()
-                    .frame(height: PerchTheme.Spacing.large)
+                Color.clear
+                    .frame(height: PerchTheme.TabBar.shellContentInsetHeight)
             }
         }
         .refreshable {
@@ -310,8 +323,8 @@ struct WorkoutsSegment: View {
                         .padding(.bottom, 40)
                 }
 
-                Spacer()
-                    .frame(height: PerchTheme.Spacing.large)
+                Color.clear
+                    .frame(height: PerchTheme.TabBar.shellContentInsetHeight)
             }
         }
         .refreshable {
@@ -896,5 +909,6 @@ private struct HealthTabPersonalRecordsCard: View {
 
 #Preview {
     HealthTab()
+        .environment(AuthViewModel())
         .environment(DashboardViewModel())
 }
