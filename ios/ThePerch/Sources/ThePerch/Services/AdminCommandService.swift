@@ -10,7 +10,6 @@ final class AdminCommandService {
     static let shared = AdminCommandService()
 
     private let supabaseService = SupabaseService.shared
-    private let userId = AppConfig.defaultUserID
     private let agentId = "theperch_ios"
 
     /// Rate limiting: minimum interval between commands (2 minutes).
@@ -43,6 +42,9 @@ final class AdminCommandService {
     func sendCommand(_ command: AdminCommandData.AdminCommand) async throws -> UUID {
         guard canSendCommand else {
             throw AdminCommandError.rateLimited(remainingSeconds: rateLimitRemainingSeconds)
+        }
+        guard let userId = supabaseService.currentUserId.flatMap(UUID.init(uuidString:)) else {
+            throw AdminCommandError.notAuthenticated
         }
 
         let commandData: [String: JSONValue] = [
@@ -143,6 +145,7 @@ final class AdminCommandService {
 enum AdminCommandError: LocalizedError {
     case rateLimited(remainingSeconds: Int)
     case commandNotFound
+    case notAuthenticated
 
     var errorDescription: String? {
         switch self {
@@ -150,6 +153,8 @@ enum AdminCommandError: LocalizedError {
             return "Rate limited. Please wait \(seconds) seconds before sending another command."
         case .commandNotFound:
             return "Command record not found after insertion."
+        case .notAuthenticated:
+            return "You must be signed in to send admin commands."
         }
     }
 }

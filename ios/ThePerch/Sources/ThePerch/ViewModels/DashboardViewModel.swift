@@ -69,7 +69,7 @@ final class DashboardViewModel {
 
     private let supabaseService: SupabaseService
     private let cacheService = CacheService.shared
-    private let cacheUserId = "default_user"
+    private var cacheUserId: String { supabaseService.currentUserId ?? "unauthenticated" }
     private let recentRecordsLimit = 500
     private let bookmarkBackfillLimit = 500
 
