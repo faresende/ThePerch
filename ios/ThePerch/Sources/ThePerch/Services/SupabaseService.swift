@@ -161,9 +161,14 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     let freshnessTracker = DataFreshnessTracker.shared
     private let cacheService = CacheService.shared
 
-    /// A default user ID for caching when auth is not enabled.
+    /// The currently authenticated user's ID, updated whenever auth state changes.
+    /// Used for user-scoped disk cache and widget shared defaults.
+    private(set) var currentUserId: String?
+
+    /// Cache key scoped to the signed-in user. Falls back to "unauthenticated" so
+    /// signed-out cache reads never collide with any real user's data.
     private var cacheUserId: String {
-        "default_user"
+        currentUserId ?? "unauthenticated"
     }
 
     // MARK: - Initialization
@@ -200,19 +205,24 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         case .passwordRecovery:
             isAuthenticated = session != nil
             isPasswordRecovery = true
+            if let session { currentUserId = session.user.id.uuidString }
         case .signedIn:
             isAuthenticated = session != nil
             isPasswordRecovery = false
+            currentUserId = session?.user.id.uuidString
         case .signedOut, .userDeleted:
             isAuthenticated = false
             isPasswordRecovery = false
+            currentUserId = nil
         case .initialSession:
             isAuthenticated = session != nil
+            currentUserId = session?.user.id.uuidString
             if session == nil {
                 isPasswordRecovery = false
             }
         case .tokenRefreshed, .userUpdated, .mfaChallengeVerified:
             isAuthenticated = session != nil
+            currentUserId = session?.user.id.uuidString
         }
 
         NotificationCenter.default.post(
@@ -328,6 +338,17 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         recordsCache.removeAll()
         agentsCache = nil
         homeWidgetsCache = nil
+    }
+
+    /// Clears widget shared defaults on sign-out so a new user's widgets start blank.
+    private func clearWidgetSharedDefaults() {
+        guard let defaults = UserDefaults(suiteName: "group.com.theperch.shared") else { return }
+        let widgetKeys = [
+            "widget_calories_percent", "widget_calories_consumed", "widget_calories_target",
+            "widget_next_event", "widget_next_event_title", "widget_next_event_time",
+            "widget_active_deliveries", "widget_last_updated"
+        ]
+        for key in widgetKeys { defaults.removeObject(forKey: key) }
     }
 
     // MARK: - Authentication Methods
@@ -462,8 +483,10 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             try await client.auth.signOut()
             self.isAuthenticated = false
             self.isPasswordRecovery = false
+            self.currentUserId = nil
             self.error = nil
             invalidateCache()
+            clearWidgetSharedDefaults()
         } catch {
             throw SupabaseServiceError.authError(error.localizedDescription)
         }
@@ -483,12 +506,14 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             let session = try await client.auth.session
             self.isAuthenticated = true
             self.isPasswordRecovery = false
+            self.currentUserId = session.user.id.uuidString
 #if DEBUG
             print("[SupabaseService] Session restored for user: \(session.user.id)")
 #endif
         } catch {
             self.isAuthenticated = false
             self.isPasswordRecovery = false
+            self.currentUserId = nil
             print("[SupabaseService] No active session: \(error.localizedDescription)")
         }
     }
