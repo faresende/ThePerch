@@ -10,7 +10,13 @@ struct TodayTab: View {
     @State private var cardsAppeared = false
     @State private var ambience = AmbienceManager.shared
 
+    let onOpenProfile: () -> Void
+
     private let freshnessTracker = DataFreshnessTracker.shared
+
+    init(onOpenProfile: @escaping () -> Void = {}) {
+        self.onOpenProfile = onOpenProfile
+    }
 
     var body: some View {
         ZStack {
@@ -29,8 +35,11 @@ struct TodayTab: View {
                         Text(shortDateString)
                             .font(PerchTheme.Font.body)
                             .foregroundColor(PerchTheme.textSecondary)
+                            .lineLimit(1)
 
                         Spacer()
+
+                        todayProfileEntry
                     }
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, PerchTheme.Spacing.small)
@@ -95,8 +104,8 @@ struct TodayTab: View {
                     }
 
                     // Bottom padding for tab bar
-                    Spacer()
-                        .frame(height: PerchTheme.Spacing.large)
+                    Color.clear
+                        .frame(height: PerchTheme.TabBar.shellContentInsetHeight)
                 }
             }
             .refreshable {
@@ -112,6 +121,14 @@ struct TodayTab: View {
             if !dashboardViewModel.allRecords.isEmpty {
                 viewModel.updateRecords(dashboardViewModel.allRecords)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var todayProfileEntry: some View {
+        ViewThatFits(in: .horizontal) {
+            ProfileEntryButton(prominence: .prominent, action: onOpenProfile)
+            ProfileEntryButton(prominence: .subtle, action: onOpenProfile)
         }
     }
 
@@ -322,5 +339,6 @@ struct TodayTab: View {
 
 #Preview {
     TodayTab()
+        .environment(AuthViewModel())
         .environment(DashboardViewModel())
 }
