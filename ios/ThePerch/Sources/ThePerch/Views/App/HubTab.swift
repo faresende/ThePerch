@@ -15,6 +15,12 @@ struct HubTab: View {
     @State private var travelViewModel = TravelViewModel()
     @State private var selectedSegment: HubSegment = Self.initialSegment()
 
+    let onOpenProfile: () -> Void
+
+    init(onOpenProfile: @escaping () -> Void = {}) {
+        self.onOpenProfile = onOpenProfile
+    }
+
     enum HubSegment: String, CaseIterable {
         case orders    = "Orders"
         case bookmarks = "Bookmarks"
@@ -56,6 +62,13 @@ struct HubTab: View {
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, PerchTheme.Spacing.small)
                 }
+
+                HStack {
+                    Spacer()
+                    ProfileEntryButton(prominence: .subtle, action: onOpenProfile)
+                }
+                .padding(.horizontal, PerchTheme.Spacing.large)
+                .padding(.top, PerchTheme.Spacing.small)
 
                 // Segmented picker at top
                 Picker("Section", selection: $selectedSegment) {
@@ -106,7 +119,7 @@ struct HubTab: View {
     private func hubPage<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         ScrollView {
             content()
-            Color.clear.frame(height: PerchTheme.TabBar.contentInsetHeight)
+            Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
         }
         .refreshable {
             PerchHaptics.medium()
@@ -1088,5 +1101,6 @@ private struct TravelSectionContent: View {
 
 #Preview {
     HubTab()
+        .environment(AuthViewModel())
         .environment(DashboardViewModel())
 }

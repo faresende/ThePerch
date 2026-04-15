@@ -278,13 +278,19 @@ struct PerchTheme {
     // MARK: - Tab Bar
 
     enum TabBar {
-        static let height: CGFloat = 83
+        static let height: CGFloat = 56
+        static let visualRailHeight: CGFloat = 83
         static let iconSize: CGFloat = 24
         static let labelSize: CGFloat = 10
         static let glassOpacity: Double = 0.72
+        static let floatingCaptureClearance: CGFloat = 0
 
         static var contentInsetHeight: CGFloat {
             height + bottomSafeAreaInset
+        }
+
+        static var shellContentInsetHeight: CGFloat {
+            max(contentInsetHeight, visualRailHeight) + floatingCaptureClearance
         }
 
         private static var bottomSafeAreaInset: CGFloat {

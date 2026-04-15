@@ -165,3 +165,27 @@ struct BookmarkDataTests {
         #expect(b3.displayTitle == "https://example.com/path")
     }
 }
+
+// MARK: - Capture Launcher Helpers
+
+@Suite("Capture launcher helpers")
+struct CaptureLauncherHelperTests {
+    @Test("primary actions keep meal first and quick note second")
+    func primaryActionsOrder() {
+        #expect(CaptureActionOption.primaryActions == [.logMeal, .quickNote])
+    }
+
+    @Test("quick note title uses first non-empty line")
+    func quickNoteTitleUsesFirstLine() {
+        let draft = QuickNoteDraft(body: "\n  Pick up blazer from tailor\nAnd confirm Friday dinner")
+        #expect(draft.trimmedBody == "Pick up blazer from tailor\nAnd confirm Friday dinner")
+        #expect(draft.derivedTitle == "Pick up blazer from tailor")
+    }
+
+    @Test("quick note falls back to generic title when blank")
+    func quickNoteFallsBackWhenBlank() {
+        let draft = QuickNoteDraft(body: "   \n   ")
+        #expect(draft.trimmedBody == nil)
+        #expect(draft.derivedTitle == "Quick Note")
+    }
+}
