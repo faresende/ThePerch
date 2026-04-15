@@ -391,12 +391,8 @@ struct NutritionSegment: View {
     @State private var showingInputSheet = false
     @State private var showingSuggestionsSheet = false
 
-    private var nutritionRecords: [Record] {
-        dashboardViewModel.recordsBySlug[RecordCategory.nutrition.rawValue] ?? []
-    }
-
-    private var submissionUserId: String {
-        nutritionRecords.first?.userId.uuidString ?? AppConfig.defaultUserID.uuidString
+    private var submissionUserId: String? {
+        SupabaseService.shared.currentUserId
     }
 
     var body: some View {
@@ -442,6 +438,10 @@ struct NutritionSegment: View {
         }
         .sheet(isPresented: $showingInputSheet) {
             MealInputSheet(isSubmitting: vm.isAnalyzing) { text, image in
+                guard let submissionUserId else {
+                    vm.error = "You must be signed in to log a meal."
+                    return false
+                }
                 let didSubmit = await vm.logMeal(text: text, image: image, userId: submissionUserId)
                 if didSubmit {
                     await dashboardViewModel.refreshRecords(forceRefresh: true)
@@ -454,18 +454,28 @@ struct NutritionSegment: View {
         .sheet(isPresented: $showingSuggestionsSheet, onDismiss: {
             vm.clearSuggestions()
         }) {
-            MealSuggestionsSheet(
-                viewModel: vm,
-                userId: submissionUserId,
-                onLogSuggestion: { suggestion in
-                    let didSubmit = await vm.logSuggestedMeal(suggestion, userId: submissionUserId)
-                    if didSubmit {
-                        await dashboardViewModel.refreshRecords(forceRefresh: true)
-                        showingSuggestionsSheet = false
-                    }
-                    return didSubmit
+            Group {
+                if let submissionUserId {
+                    MealSuggestionsSheet(
+                        viewModel: vm,
+                        userId: submissionUserId,
+                        onLogSuggestion: { suggestion in
+                            let didSubmit = await vm.logSuggestedMeal(suggestion, userId: submissionUserId)
+                            if didSubmit {
+                                await dashboardViewModel.refreshRecords(forceRefresh: true)
+                                showingSuggestionsSheet = false
+                            }
+                            return didSubmit
+                        }
+                    )
+                } else {
+                    ContentUnavailableView(
+                        "Sign in required",
+                        systemImage: "person.crop.circle.badge.exclamationmark",
+                        description: Text("You must be signed in to get or log meal suggestions.")
+                    )
                 }
-            )
+            }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }

@@ -138,10 +138,15 @@ final class NutritionViewModel {
     func logSuggestedMeal(_ suggestion: MealSuggestion, userId: String) async -> Bool {
         error = nil
 
+        guard let userUUID = UUID(uuidString: userId) else {
+            error = "You must be signed in to log a suggested meal."
+            return false
+        }
+
         do {
             try await supabaseService.insertRecord(
                 agentId: "nutrition",
-                userId: UUID(uuidString: userId) ?? AppConfig.defaultUserID,
+                userId: userUUID,
                 type: .meal,
                 category: .nutrition,
                 title: suggestion.mealName,

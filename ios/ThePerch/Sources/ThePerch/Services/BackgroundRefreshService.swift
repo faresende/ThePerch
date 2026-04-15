@@ -47,7 +47,15 @@ final class BackgroundRefreshService {
             do {
                 let service = SupabaseService.shared
                 let cacheService = CacheService.shared
-                let userId = "default_user"
+
+                // Refuse to cache under a missing or wrong user — no auth, no write.
+                guard let userId = service.currentUserId else {
+#if DEBUG
+                    print("[BGRefresh] No authenticated user, skipping refresh")
+#endif
+                    task.setTaskCompleted(success: false)
+                    return
+                }
 
                 // Fetch records (the main data)
                 let records = try await service.fetchRecords(limit: 200, forceRefresh: true)

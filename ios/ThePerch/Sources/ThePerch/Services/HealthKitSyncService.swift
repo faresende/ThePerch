@@ -36,11 +36,13 @@ final class HealthKitSyncService {
     private let healthKitService: HealthKitService
     private let supabaseService: SupabaseService
 
-    /// Default user ID in Supabase.
-    private let userId = AppConfig.defaultUserID
-
     /// The agent_id used for HealthKit-sourced records.
     private let agentId = "healthkit"
+
+    private var currentUserUUID: UUID? {
+        guard let id = supabaseService.currentUserId else { return nil }
+        return UUID(uuidString: id)
+    }
 
     // MARK: - State
 
@@ -67,6 +69,13 @@ final class HealthKitSyncService {
         guard !isSyncing else {
 #if DEBUG
             print("[HealthKitSync] Already syncing, skipping")
+#endif
+            return
+        }
+
+        guard currentUserUUID != nil else {
+#if DEBUG
+            print("[HealthKitSync] No authenticated user, skipping sync")
 #endif
             return
         }
@@ -222,6 +231,10 @@ final class HealthKitSyncService {
 
     /// Writes a standard health sample to Supabase as a dashboard_record.
     private func writeSample(_ sample: HealthKitSample, title: String) async throws {
+        guard let userId = currentUserUUID else {
+            throw SupabaseServiceError.authError("No authenticated user session")
+        }
+
         let data: [String: JSONValue] = [
             "metric": .string(sample.metric),
             "value": .double(sample.value),
@@ -244,6 +257,10 @@ final class HealthKitSyncService {
 
     /// Writes a blood pressure sample with systolic/diastolic as a formatted value.
     private func writeBloodPressureSample(_ sample: HealthKitSample, title: String) async throws {
+        guard let userId = currentUserUUID else {
+            throw SupabaseServiceError.authError("No authenticated user session")
+        }
+
         let displayValue: String
         if let diastolic = sample.secondaryValue {
             displayValue = "\(Int(sample.value))/\(Int(diastolic))"
