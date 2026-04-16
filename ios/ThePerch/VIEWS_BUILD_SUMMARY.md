@@ -25,7 +25,7 @@ Sources/ThePerch/Views/
 ├── Sections/
 │   ├── HomeView.swift                   # Dashboard overview
 │   ├── HealthView.swift                 # Weight & measurements
-│   ├── DeliveriesView.swift             # Delivery tracking
+│   ├── OrdersView.swift                 # Tracked deliveries / orders
 │   ├── BookmarksView.swift              # Bookmark management w/ search
 │   ├── CalendarView.swift               # Event timeline
 │   ├── AdminView.swift                  # Agent status & costs
@@ -191,11 +191,10 @@ if authViewModel.isAuthenticated {
 
 ### MainTabView
 - Root navigation after auth
-- Horizontal paged TabView (like SwiftUI's default TabView style)
-- One full-screen section per page
-- Page indicator dots at bottom
-- Smooth swipe transitions
-- Each section loads data via SectionViewModel
+- Native tab shell with Today / Health / Hub
+- Settings and capture are presented as sheets
+- Smooth transitions
+- Shared dashboard loading via `DashboardViewModel`
 
 ### SectionView (in MainTabView)
 - Section title as header
@@ -331,7 +330,7 @@ Every view has a `#Preview` block with mock data
 **Sections:** 7 files
 - HomeView.swift
 - HealthView.swift
-- DeliveriesView.swift
+- OrdersView.swift
 - BookmarksView.swift
 - CalendarView.swift
 - AdminView.swift

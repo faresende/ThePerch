@@ -13,15 +13,15 @@ struct ShimmerModifier: ViewModifier {
                     LinearGradient(
                         colors: [
                             .clear,
-                            PerchTheme.accent.opacity(0.04),
-                            PerchTheme.accent.opacity(0.10),
-                            PerchTheme.accent.opacity(0.04),
+                            PerchTheme.accent.opacity(0.06),
+                            PerchTheme.accent.opacity(0.14),
+                            PerchTheme.accent.opacity(0.06),
                             .clear,
                         ],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
-                    .frame(width: width * 0.6)
+                    .frame(width: width)
                     .offset(x: width * phase)
                     .clipped()
                 }
@@ -29,7 +29,7 @@ struct ShimmerModifier: ViewModifier {
             .onAppear {
                 guard !PerchMotion.prefersReduced else { return }
                 withAnimation(
-                    .linear(duration: 1.5)
+                    .linear(duration: 1.8)
                     .repeatForever(autoreverses: false)
                 ) {
                     phase = 2.0

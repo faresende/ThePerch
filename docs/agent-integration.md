@@ -2,12 +2,20 @@
 
 ThePerch is designed to be populated by agents — automated scripts or AI assistants that write structured data to your Supabase backend. The app reads it and displays it.
 
+Important: The app now has two data planes.
+
+- `dashboard_records` is the generic card feed for measurements, meals, events, notes, bookmarks, status, and similar dashboard content.
+- `orders` + `shipments` is the canonical tracked-delivery model for package tracking shown in the current Hub > Orders surface.
+
+Do not default new tracked packages into `dashboard_records` just because they are “deliveries”. Use `orders` + `shipments` unless you intentionally need a temporary legacy compatibility card.
+
 ## How It Works
 
-Agents write to the `dashboard_records` table using the Supabase `service_role` key. The iOS app reads using the `anon` key (Row Level Security ensures users only see their own data).
+Agents write generic dashboard cards to the `dashboard_records` table using the Supabase `service_role` key. The iOS app reads using the `anon` key (Row Level Security ensures users only see their own data).
 
 ```
-Agent (Python/Node/bash) → Supabase dashboard_records → ThePerch iOS app
+Agent (Python/Node/bash) → Supabase dashboard_records → ThePerch iOS app cards
+Agent (Python/Node/bash) → Supabase orders + shipments → ThePerch Hub > Orders
 ```
 
 ## Required Fields
@@ -65,7 +73,9 @@ A logged gym session.
 ```
 
 ### `delivery` (category: `deliveries`)
-A package in transit.
+A legacy compatibility delivery card.
+
+For new tracked packages, prefer `orders` + `shipments` instead of a `dashboard_records` delivery row.
 
 ```json
 {
@@ -143,7 +153,7 @@ client.table("dashboard_records").insert({
 ```bash
 curl -X POST "$SUPABASE_URL/rest/v1/dashboard_records" \
   -H "apikey: $SUPABASE_SERVICE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+  -H "Authorization: Bearer $SUPAB...KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "'$USER_ID'",
@@ -160,6 +170,45 @@ curl -X POST "$SUPABASE_URL/rest/v1/dashboard_records" \
     }
   }'
 ```
+
+## Tracked deliveries: canonical path
+
+If the task is “add this package/tracking number to ThePerch,” write to:
+
+- `orders`
+- `shipments`
+
+Minimal shape:
+
+### `orders`
+
+```json
+{
+  "user_id": "00000000-0000-0000-0000-000000000000",
+  "merchant_name": "UPS",
+  "normalized_merchant": "ups",
+  "order_number": "1Z123...",
+  "status": "shipped",
+  "source_email_ids": ["manual_tracking_entry"],
+  "confidence_score": 1.0
+}
+```
+
+### `shipments`
+
+```json
+{
+  "order_id": "<uuid from orders>",
+  "tracking_number": "1Z123...",
+  "carrier": "UPS",
+  "status": "in_transit",
+  "latest_checkpoint": "Added manually from tracking link",
+  "source_email_ids": ["manual_tracking_entry"],
+  "confidence_score": 1.0
+}
+```
+
+Use `dashboard_records` delivery rows only when you explicitly need a legacy compatibility mirror for older home/search/widget surfaces.
 
 ## Updating Records
 

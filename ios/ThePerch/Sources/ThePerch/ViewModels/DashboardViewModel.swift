@@ -27,11 +27,14 @@ final class DashboardViewModel {
     /// Records grouped by section slug. Driven by the sections array, not hardcoded enum cases.
     /// This means any new section added to Supabase is automatically handled.
     private(set) var healthRecords: [Record] = []
-    private(set) var deliveryRecords: [Record] = []
     private(set) var calendarRecords: [Record] = []
     private(set) var adminRecords: [Record] = []
     private(set) var bookmarkRecords: [Record] = []
     private(set) var travelRecords: [Record] = []
+
+    /// Canonical tracked-package models from the orders + shipments tables.
+    private(set) var trackedOrders: [OrderWithShipments] = []
+    private(set) var trackedDeliveries: [DeliveryData] = []
 
     /// Dynamic per-slug record lookup. Use this for any section slug not covered above.
     /// e.g. `recordsBySlug["finance"]` returns all records with category == "finance"
@@ -40,7 +43,6 @@ final class DashboardViewModel {
     private func rebuildFilteredArrays() {
         // Known slugs → typed arrays (fast path for existing views)
         healthRecords   = allRecords.filter { $0.category == .health || $0.category == .workouts }
-        deliveryRecords = allRecords.filter { $0.category == .deliveries }
         calendarRecords = allRecords.filter { $0.category == .calendar }
         adminRecords    = allRecords.filter { $0.category == .admin }
         bookmarkRecords = allRecords.filter { $0.category == .bookmarks }
@@ -68,6 +70,7 @@ final class DashboardViewModel {
     // MARK: - Private Properties
 
     private let supabaseService: SupabaseService
+    private let ordersService: OrdersService
     private let cacheService = CacheService.shared
     private var cacheUserId: String { supabaseService.currentUserId ?? "unauthenticated" }
     private let recentRecordsLimit = 500
@@ -77,6 +80,7 @@ final class DashboardViewModel {
 
     init(supabaseService: SupabaseService? = nil) {
         self.supabaseService = supabaseService ?? .shared
+        self.ordersService = OrdersService(supabaseService: self.supabaseService)
     }
 
     // MARK: - Loading Data
@@ -112,8 +116,18 @@ final class DashboardViewModel {
             do { return .success(try await supabaseService.fetchRecords(category: .bookmarks, limit: bookmarkBackfillLimit, forceRefresh: forceRefresh)) }
             catch { return .failure(error) }
         }()
+        async let trackedOrdersResult: Result<[OrderWithShipments], Error> = {
+            do { return .success(try await ordersService.fetchOrders(forceRefresh: forceRefresh)) }
+            catch { return .failure(error) }
+        }()
 
-        let (sections, widgets, records, bookmarkRecords) = await (sectionsResult, widgetsResult, recordsResult, bookmarkRecordsResult)
+        let (sections, widgets, records, bookmarkRecords, trackedOrders) = await (
+            sectionsResult,
+            widgetsResult,
+            recordsResult,
+            bookmarkRecordsResult,
+            trackedOrdersResult
+        )
 
         switch sections {
         case .success(let loaded):
@@ -152,6 +166,17 @@ final class DashboardViewModel {
             if self.allRecords.isEmpty, self.error == nil {
                 self.error = .unknownError(err.localizedDescription)
             }
+        }
+
+        switch trackedOrders {
+        case .success(let loaded):
+            self.trackedOrders = loaded
+            self.trackedDeliveries = loaded.map(\.trackedDeliveryData)
+            syncDeliveryLiveActivities()
+        case .failure(let err):
+#if DEBUG
+            print("[DashboardVM] fetchOrders threw: \(err)")
+#endif
         }
     }
 
@@ -258,9 +283,13 @@ final class DashboardViewModel {
         do {
             async let recentRecords = supabaseService.fetchRecords(limit: recentRecordsLimit, forceRefresh: forceRefresh)
             async let bookmarkRecords = supabaseService.fetchRecords(category: .bookmarks, limit: bookmarkBackfillLimit, forceRefresh: forceRefresh)
+            async let latestOrders = ordersService.fetchOrders(forceRefresh: forceRefresh)
 
             let merged = Self.mergeRecords(try await recentRecords, with: try await bookmarkRecords)
             allRecords = merged
+            trackedOrders = try await latestOrders
+            trackedDeliveries = trackedOrders.map(\.trackedDeliveryData)
+            syncDeliveryLiveActivities()
             error = nil
             Self.preDecodeRecords(merged)
         } catch let error as SupabaseServiceError {
@@ -440,9 +469,6 @@ final class DashboardViewModel {
                 Self.preDecodeRecords([record])
                 allRecords.insert(record, at: 0)
                 NotificationService.shared.handleRecordChange(record: record, action: .insert)
-                if record.category == .deliveries {
-                    syncDeliveryLiveActivities()
-                }
             } else {
                 scheduleDebouncedRefresh()
             }
@@ -454,9 +480,6 @@ final class DashboardViewModel {
                 Self.preDecodeRecords([record])
                 allRecords[index] = record
                 NotificationService.shared.handleRecordChange(record: record, action: .update)
-                if record.category == .deliveries {
-                    syncDeliveryLiveActivities()
-                }
             } else {
                 scheduleDebouncedRefresh()
             }
@@ -489,13 +512,15 @@ final class DashboardViewModel {
 
     // MARK: - Live Activity Sync
 
-    /// Syncs Live Activities using already-loaded delivery records.
+    /// Syncs Live Activities using the canonical orders + shipments delivery projection.
     private func syncDeliveryLiveActivities() {
-        let activeDeliveries = deliveryRecords.compactMap { record -> DeliveryData? in
-            guard let d = record.asDelivery() else { return nil }
-            let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
-            guard s == "in_transit" || s == "shipped" || s == "out_for_delivery" || s == "processing" || s == "ordered" else { return nil }
-            return d
+        let activeDeliveries = trackedDeliveries.filter { delivery in
+            let normalized = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            return normalized == "in_transit"
+                || normalized == "shipped"
+                || normalized == "out_for_delivery"
+                || normalized == "processing"
+                || normalized == "ordered"
         }
         Task {
             await DeliveryLiveActivityManager.shared.sync(activeDeliveries: activeDeliveries)

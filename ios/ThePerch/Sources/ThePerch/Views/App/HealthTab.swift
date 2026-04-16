@@ -12,10 +12,11 @@ struct HealthTab: View {
         self.onOpenProfile = onOpenProfile
     }
 
-    enum HealthSegment: String, CaseIterable {
+    enum HealthSegment: String, CaseIterable, Hashable, Identifiable {
         case overview = "Overview"
         case workouts = "Workouts"
         case nutrition = "Nutrition"
+        var id: HealthSegment { self }
     }
 
     var body: some View {
@@ -29,15 +30,9 @@ struct HealthTab: View {
                 .padding(.top, PerchTheme.Spacing.small)
 
                 // Segmented picker at top
-                Picker("Section", selection: $selectedSegment) {
-                    ForEach(HealthSegment.allCases, id: \.self) { segment in
-                        Text(segment.rawValue).tag(segment)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.vertical, PerchTheme.Spacing.small)
-                .background(PerchTheme.background)
+                PerchSegmentedPicker(enumSelection: $selectedSegment)
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+                    .padding(.vertical, PerchTheme.Spacing.small)
 
                 // Segment content
                 TabView(selection: $selectedSegment) {

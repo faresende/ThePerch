@@ -199,6 +199,56 @@ struct OrderCodableTests {
 
 // MARK: - Shipment tracking URLs
 
+@Suite("OrderWithShipments.trackedDeliveryData")
+struct OrderWithShipmentsTrackedDeliveryDataTests {
+    @Test("uses shipment fields when a primary shipment exists")
+    func usesShipmentFields() {
+        let order = makeOrder(status: "shipped", manualDeliveredAt: nil)
+        let shipment = Shipment(
+            id: UUID(),
+            orderId: order.id,
+            trackingNumber: "1Z999AA10123456784",
+            carrier: "UPS",
+            status: "in_transit",
+            createdAt: .now,
+            trackingUrl: "https://example.com/track/1Z999AA10123456784"
+        )
+
+        let model = OrderWithShipments(order: order, shipments: [shipment])
+        let delivery = model.trackedDeliveryData
+
+        #expect(delivery.orderId == order.id.uuidString)
+        #expect(delivery.carrier == "UPS")
+        #expect(delivery.trackingNumber == "1Z999AA10123456784")
+        #expect(delivery.status == "in_transit")
+        #expect(delivery.trackingUrl == "https://example.com/track/1Z999AA10123456784")
+        #expect(delivery.items.first?.name == "Test Merchant")
+    }
+
+    @Test("falls back to order fields when shipment data is missing")
+    func fallsBackToOrderFields() {
+        let order = makeOrder(status: "ordered", manualDeliveredAt: nil)
+        let model = OrderWithShipments(order: order, shipments: [])
+
+        let delivery = model.trackedDeliveryData
+
+        #expect(delivery.orderId == order.id.uuidString)
+        #expect(delivery.carrier == "Test Merchant")
+        #expect(delivery.trackingNumber == "ORD-001")
+        #expect(delivery.status == "ordered")
+        #expect(delivery.trackingUrl == nil)
+    }
+
+    @Test("manual delivered override wins in tracked delivery projection")
+    func manualDeliveredOverrideWins() {
+        let order = makeOrder(status: "shipped", manualDeliveredAt: .now)
+        let shipment = makeShipment(status: "in_transit", orderId: order.id)
+        let model = OrderWithShipments(order: order, shipments: [shipment])
+
+        #expect(model.trackedDeliveryData.status == "delivered")
+    }
+}
+
 @Suite("Shipment.resolvedTrackingURL")
 struct ShipmentResolvedTrackingURLTests {
     @Test("uses explicit tracking_url when present")

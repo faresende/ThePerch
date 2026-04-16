@@ -104,7 +104,7 @@ struct ActiveModel: Codable, Sendable {
 // MARK: - Delivery Data
 
 /// Structured data for a delivery record.
-struct DeliveryData: Codable, Sendable {
+struct DeliveryData: Codable, Equatable, Sendable {
     let orderId: String
     let carrier: String
     let trackingNumber: String
@@ -125,7 +125,7 @@ struct DeliveryData: Codable, Sendable {
 }
 
 /// A single item in a delivery.
-struct DeliveryItem: Codable, Sendable {
+struct DeliveryItem: Codable, Equatable, Sendable {
     let name: String
     let quantity: Int
     let description: String?
