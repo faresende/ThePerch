@@ -56,11 +56,14 @@ struct TodayTab: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
 
                     // Error banner
-                    if let loadError = viewModel.loadError {
+                    if let loadError = viewModel.loadError ?? dashboardViewModel.error?.errorDescription {
                         ErrorBanner(
                             message: loadError,
                             retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
-                            onDismiss: { viewModel.loadError = nil }
+                            onDismiss: {
+                                viewModel.loadError = nil
+                                dashboardViewModel.clearError()
+                            }
                         )
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
@@ -76,7 +79,7 @@ struct TodayTab: View {
                                 guard dashboardViewModel.isLoading && viewModel.records.isEmpty else { return }
                                 withAnimation { skeletonExpired = true }
                             }
-                    } else if viewModel.records.isEmpty {
+                    } else if dashboardViewModel.allRecords.isEmpty && viewModel.records.isEmpty && viewModel.trackedDeliveries.isEmpty {
                         EmptyStateView(
                             icon: "tray",
                             title: "No data yet",
