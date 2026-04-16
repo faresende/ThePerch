@@ -3,16 +3,12 @@ import SwiftUI
 /// Shows active deliveries as mini sub-cards within a single card.
 /// Hides entirely when no active deliveries (no empty state).
 struct DeliveryHomeCard: View {
-    let records: [Record]
+    let deliveries: [DeliveryData]
 
-    private var activeDeliveries: [(record: Record, delivery: DeliveryData)] {
-        records.compactMap { record -> (Record, DeliveryData)? in
-            guard record.category == .deliveries,
-                  record.type == .delivery,
-                  let delivery = record.asDelivery() else { return nil }
+    private var activeDeliveries: [DeliveryData] {
+        deliveries.filter { delivery in
             let status = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
-            guard status != "delivered" && status != "cancelled" else { return nil }
-            return (record, delivery)
+            return status != "delivered" && status != "cancelled"
         }
     }
 
@@ -29,8 +25,8 @@ struct DeliveryHomeCard: View {
                 )
 
                 // Delivery sub-cards
-                ForEach(activeDeliveries, id: \.record.id) { item in
-                    deliverySubCard(delivery: item.delivery)
+                ForEach(activeDeliveries, id: \.orderId) { delivery in
+                    deliverySubCard(delivery: delivery)
                 }
             }
             .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
@@ -159,7 +155,7 @@ struct DeliveryHomeCard: View {
 
 #Preview {
     ScrollView {
-        DeliveryHomeCard(records: [])
+        DeliveryHomeCard(deliveries: [])
             .padding(PerchTheme.Spacing.large)
     }
     .background(PerchTheme.background)

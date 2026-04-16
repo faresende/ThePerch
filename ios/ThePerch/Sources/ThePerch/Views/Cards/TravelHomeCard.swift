@@ -5,6 +5,7 @@ import SwiftUI
 /// Three visual tiers: upcoming (muted), travel day (elevated), disruption (warning).
 struct TravelHomeCard: View {
     let records: [Record]
+    let deliveries: [DeliveryData]
 
     @State private var travelVM = TravelViewModel()
 
@@ -282,17 +283,16 @@ struct TravelHomeCard: View {
 
     // MARK: - Styling
 
-    /// Finds deliveries with ETAs during the trip window.
-    private func crossDomainDeliveries(tripStart: Date?, tripEnd: Date?) -> [(Record, DeliveryData)] {
+    /// Finds canonical deliveries with ETAs during the trip window.
+    private func crossDomainDeliveries(tripStart: Date?, tripEnd: Date?) -> [DeliveryData] {
         guard let start = tripStart, let end = tripEnd else { return [] }
-        return records.compactMap { record -> (Record, DeliveryData)? in
-            guard let d = record.asDelivery() else { return nil }
-            let status = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
-            guard status != "delivered" && status != "cancelled" else { return nil }
-            if let eta = d.eta, eta >= start && eta <= end {
-                return (record, d)
+        return deliveries.filter { delivery in
+            let status = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            guard status != "delivered" && status != "cancelled" else { return false }
+            if let eta = delivery.eta, eta >= start && eta <= end {
+                return true
             }
-            return nil
+            return false
         }
     }
 

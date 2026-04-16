@@ -33,7 +33,10 @@ Launch ThePerch on first install. You'll see the onboarding screen. Enter your *
 
 | Table | Purpose |
 |-------|---------|
-| `sections` | Tab configuration (which tabs appear, their order and visibility) |
-| `dashboard_records` | All data displayed in the app (health metrics, deliveries, events, workouts, etc.) |
+| `dashboard_records` | Generic dashboard/app card feed for measurements, meals, events, bookmarks, status, and similar content |
+| `orders` | Canonical order-level model for tracked deliveries |
+| `shipments` | Canonical shipment/tracking model for tracked deliveries |
+| `records` | Legacy pre-`dashboard_records` table; do not use for new features |
+| `sections` | Tab / section configuration |
 
-Agents write to `dashboard_records` using the **service_role key** (bypasses RLS). The iOS app reads using the **anon key** (respects RLS — users only see their own data).
+Agents write generic dashboard content to `dashboard_records` using the **service_role key** (bypasses RLS). For tracked packages shown in the current Hub > Orders surface, agents should write to `orders` + `shipments`.

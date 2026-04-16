@@ -80,7 +80,7 @@ Replaced all `ProgressView()` spinners with shimmer skeleton placeholders that m
 | `Views/App/HomeHighlightsView.swift` | Skeleton loading |
 | `Views/Sections/HomeView.swift` | Skeleton loading, staggered card appear, haptics |
 | `Views/Sections/HealthView.swift` | Skeleton loading, staggered card appear, haptics |
-| `Views/Sections/DeliveriesView.swift` | Skeleton loading, card appear animation, haptics |
+| `Views/Sections/OrdersView.swift` | Skeleton loading / grouped orders UI |
 | `Views/Sections/CalendarView.swift` | Skeleton loading, card appear animation, haptics, CardPressStyle on rows |
 | `Views/Sections/BookmarksView.swift` | Skeleton loading, haptics |
 | `Views/Sections/AdminView.swift` | Skeleton loading, haptics |

@@ -69,7 +69,7 @@ struct HomeView: View {
 
                     if !searchText.isEmpty {
                         // Search results
-                        SearchView(searchText: $searchText, records: viewModel.records)
+                        SearchView(searchText: $searchText, records: viewModel.records, deliveries: viewModel.trackedDeliveries)
                     } else if dashboardViewModel.isLoading && viewModel.records.isEmpty {
                         SkeletonCardsSection(count: 3)
                             .padding(.horizontal, PerchTheme.Spacing.large)
@@ -91,7 +91,7 @@ struct HomeView: View {
 
 
                         // Travel card (contextual — only appears when trip is upcoming/active)
-                        TravelHomeCard(records: viewModel.records)
+                        TravelHomeCard(records: viewModel.records, deliveries: viewModel.trackedDeliveries)
 
                         // Modular cards in time-of-day order
                         VStack(spacing: PerchTheme.Spacing.medium) {
@@ -123,13 +123,16 @@ struct HomeView: View {
                 SettingsView()
             }
         }
-        .onChange(of: dashboardViewModel.allRecords) { _, newRecords in
-            viewModel.updateRecords(newRecords)
+        .onChange(of: dashboardViewModel.allRecords) { _, _ in
+            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
+        }
+        .onChange(of: dashboardViewModel.trackedDeliveries) { _, _ in
+            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onAppear {
             // Feed initial records if dashboard already loaded
-            if !dashboardViewModel.allRecords.isEmpty {
-                viewModel.updateRecords(dashboardViewModel.allRecords)
+            if !dashboardViewModel.allRecords.isEmpty || !dashboardViewModel.trackedDeliveries.isEmpty {
+                viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
             }
         }
     }
@@ -263,7 +266,7 @@ struct HomeView: View {
         case .nutrition:
             NutritionHomeCard(records: viewModel.records)
         case .deliveries:
-            DeliveryHomeCard(records: viewModel.records)
+            DeliveryHomeCard(deliveries: viewModel.trackedDeliveries)
         case .medications:
             MedicationsCard(records: viewModel.records)
         case .weather:

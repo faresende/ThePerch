@@ -109,4 +109,31 @@ struct OrderWithShipments: Identifiable, Sendable, Equatable {
         if order.isManuallyDelivered { return "delivered" }
         return primaryShipment?.status ?? order.status
     }
+
+    /// Projects the canonical orders + shipments model into the lightweight delivery payload
+    /// shape still used by some app surfaces (home/search/live activity).
+    /// This is an in-memory adapter only — the source of truth remains the orders tables.
+    var trackedDeliveryData: DeliveryData {
+        let shipment = primaryShipment
+        let trackingNumber = shipment?.trackingNumber ?? order.orderNumber
+        let carrier = shipment?.carrier ?? order.merchant
+        let trackingUrl = shipment?.resolvedTrackingURL?.absoluteString
+        let description = order.orderNumber.isEmpty ? nil : "Order \(order.orderNumber)"
+
+        return DeliveryData(
+            orderId: order.id.uuidString,
+            carrier: carrier,
+            trackingNumber: trackingNumber,
+            status: effectiveStatus,
+            eta: nil,
+            items: [
+                DeliveryItem(
+                    name: order.merchant,
+                    quantity: 1,
+                    description: description
+                )
+            ],
+            trackingUrl: trackingUrl
+        )
+    }
 }

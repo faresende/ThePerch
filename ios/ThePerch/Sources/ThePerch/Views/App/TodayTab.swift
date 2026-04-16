@@ -9,6 +9,7 @@ struct TodayTab: View {
     @State private var searchText = ""
     @State private var cardsAppeared = false
     @State private var ambience = AmbienceManager.shared
+    @State private var skeletonExpired = false
 
     let onOpenProfile: () -> Void
 
@@ -66,10 +67,15 @@ struct TodayTab: View {
 
                     if !searchText.isEmpty {
                         // Search results
-                        SearchView(searchText: $searchText, records: viewModel.records)
-                    } else if dashboardViewModel.isLoading && viewModel.records.isEmpty {
+                        SearchView(searchText: $searchText, records: viewModel.records, deliveries: viewModel.trackedDeliveries)
+                    } else if dashboardViewModel.isLoading && viewModel.records.isEmpty && !skeletonExpired {
                         SkeletonCardsSection(count: 3)
                             .padding(.horizontal, PerchTheme.Spacing.large)
+                            .task {
+                                try? await Task.sleep(for: .seconds(15))
+                                guard dashboardViewModel.isLoading && viewModel.records.isEmpty else { return }
+                                withAnimation { skeletonExpired = true }
+                            }
                     } else if viewModel.records.isEmpty {
                         EmptyStateView(
                             icon: "tray",
@@ -86,7 +92,7 @@ struct TodayTab: View {
                             .padding(.horizontal, PerchTheme.Spacing.large)
 
                         // Travel card (contextual — only appears when trip is upcoming/active)
-                        TravelHomeCard(records: viewModel.records)
+                        TravelHomeCard(records: viewModel.records, deliveries: viewModel.trackedDeliveries)
 
                         // Modular cards in time-of-day order
                         VStack(spacing: PerchTheme.Spacing.medium) {
@@ -114,13 +120,19 @@ struct TodayTab: View {
                 PerchHaptics.success()
             }
         }
-        .onChange(of: dashboardViewModel.allRecords) { _, newRecords in
-            viewModel.updateRecords(newRecords)
+        .onChange(of: dashboardViewModel.allRecords) { _, _ in
+            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
+        }
+        .onChange(of: dashboardViewModel.trackedDeliveries) { _, _ in
+            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onAppear {
-            if !dashboardViewModel.allRecords.isEmpty {
-                viewModel.updateRecords(dashboardViewModel.allRecords)
+            if !dashboardViewModel.allRecords.isEmpty || !dashboardViewModel.trackedDeliveries.isEmpty {
+                viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
             }
+        }
+        .onChange(of: dashboardViewModel.isLoading) { _, loading in
+            if !loading { skeletonExpired = false }
         }
     }
 
@@ -258,7 +270,7 @@ struct TodayTab: View {
         case .nutrition:
             NutritionHomeCard(records: viewModel.records)
         case .deliveries:
-            DeliveryHomeCard(records: viewModel.records)
+            DeliveryHomeCard(deliveries: viewModel.trackedDeliveries)
         case .medications:
             MedicationsCard(records: viewModel.records)
         case .weather:

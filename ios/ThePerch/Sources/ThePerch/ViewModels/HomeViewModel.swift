@@ -13,15 +13,16 @@ final class HomeViewModel {
     // MARK: - Properties
 
     var records: [Record] = []
+    var trackedDeliveries: [DeliveryData] = []
     var loadError: String?
 
     // MARK: - Updating Data (fed from DashboardViewModel)
 
-    /// Called when DashboardViewModel.allRecords changes.
-    /// Updates widget data and syncs live activities.
-    func updateRecords(_ newRecords: [Record]) {
-        guard newRecords != records else { return }
+    /// Called when DashboardViewModel provides new records and canonical tracked deliveries.
+    func updateRecords(_ newRecords: [Record], trackedDeliveries newDeliveries: [DeliveryData]) {
+        guard newRecords != records || newDeliveries != trackedDeliveries else { return }
         records = newRecords
+        trackedDeliveries = newDeliveries
         updateWidgetData()
         Task { [weak self] in await self?.syncLiveActivities() }
     }
@@ -92,10 +93,9 @@ final class HomeViewModel {
     }
 
     var activeDeliveryCount: Int {
-        records.filter {
-            guard let d = $0.asDelivery() else { return false }
-            let s = d.status.lowercased()
-            return s != "delivered" && s != "cancelled"
+        trackedDeliveries.filter {
+            let status = $0.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            return status != "delivered" && status != "cancelled"
         }.count
     }
 
@@ -155,11 +155,9 @@ final class HomeViewModel {
     // MARK: - Live Activity Sync
 
     private func syncLiveActivities() async {
-        let activeDeliveries = records.compactMap { record -> DeliveryData? in
-            guard let d = record.asDelivery() else { return nil }
-            let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
-            guard s == "in_transit" || s == "shipped" || s == "out_for_delivery" || s == "processing" || s == "ordered" else { return nil }
-            return d
+        let activeDeliveries = trackedDeliveries.filter { delivery in
+            let s = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            return s == "in_transit" || s == "shipped" || s == "out_for_delivery" || s == "processing" || s == "ordered"
         }
         await DeliveryLiveActivityManager.shared.sync(activeDeliveries: activeDeliveries)
     }
@@ -249,21 +247,20 @@ final class HomeViewModel {
 
     // MARK: - Cross-Domain Travel Alerts
 
-    /// Deliveries that will arrive during an active trip (when no one's home).
-    var deliveriesWhileAway: [(Record, DeliveryData)] {
+    /// Canonical deliveries that will arrive during an active trip (when no one's home).
+    /// Uses trackedDeliveries from the orders + shipments pipeline.
+    var deliveriesWhileAway: [DeliveryData] {
         guard let trip = records.compactMap({ $0.asTrip() }).first(where: { $0.effectiveStatus == "active" || $0.effectiveStatus == "upcoming" }),
               let start = trip.startDateParsed,
               let end = trip.endDateParsed else { return [] }
 
-        return records.compactMap { record -> (Record, DeliveryData)? in
-            guard let d = record.asDelivery() else { return nil }
-            let status = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
-            guard status != "delivered" && status != "cancelled" else { return nil }
-            // Check if ETA falls during trip
-            if let eta = d.eta, eta >= start && eta <= end {
-                return (record, d)
+        return trackedDeliveries.filter { delivery in
+            let status = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
+            guard status != "delivered" && status != "cancelled" else { return false }
+            if let eta = delivery.eta, eta >= start && eta <= end {
+                return true
             }
-            return nil
+            return false
         }
     }
 }

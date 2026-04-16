@@ -178,6 +178,13 @@ All records: agent_id "claudinho", category "health", type "measurement".
 
 ## 5. Delivery Tracking
 
+IMPORTANT CONTRACT UPDATE:
+
+- `dashboard_records` is still the generic card/event/measurement feed.
+- New tracked packages should NOT be created in `dashboard_records` by default.
+- The canonical tracked-delivery model is now `orders` + `shipments`.
+- Only write legacy `dashboard_records` delivery rows if a specific compatibility surface still requires them.
+
 **Agent:** Entregas
 **Trigger:** When Fabio shares a tracking number or asks for delivery updates
 **Source:** Tracking numbers from conversation
@@ -186,26 +193,31 @@ All records: agent_id "claudinho", category "health", type "measurement".
 ### Prompt:
 
 ```
-When I share a tracking number or delivery update, insert or update records in `dashboard_records` via the Supabase REST API.
+When I share a tracking number or delivery update, write tracked deliveries to the dedicated `orders` and `shipments` tables, not `dashboard_records`.
 
-- agent_id: "entregas"
+Create or upsert one `orders` row:
+
 - user_id: (my user UUID)
-- category: "deliveries"
-- type: "delivery"
-- display_hint: "status_list"
-- title: "<item name or package description>"
-- data: {
-    "order_id": "<order_id or tracking_number>",
-    "carrier": "<carrier name>",
-    "tracking_number": "<full tracking number>",
-    "status": "<one of: ordered, shipped, in_transit, out_for_delivery, delivered>",
-    "eta": "<ISO8601 estimated delivery date or null>",
-    "items": [{"name": "<item name>", "quantity": 1, "description": null}],
-    "tracking_url": "<carrier tracking URL or null>"
-  }
+- merchant_name: "<merchant or carrier name>"
+- normalized_merchant: lowercase normalized merchant/carrier name
+- order_number: "<order number or tracking number if no order number exists>"
+- status: "<ordered | processing | shipped_partial | shipped | delivered | cancelled | issue>"
+- source_email_ids: array; use a synthetic source like ["manual_tracking_entry"] if there is no email
+- confidence_score: 1.0 for explicit manual tracking entries
 
-Update the status field as the package progresses. Use lowercase status values.
-When a delivery is marked "delivered", keep the record for 7 days then let it expire.
+Then create or upsert one `shipments` row linked to that order:
+
+- tracking_number: "<full tracking number>"
+- carrier: "<carrier name>"
+- status: "<unknown | label_created | in_transit | out_for_delivery | delivered | exception>"
+- latest_checkpoint: "<latest human-readable checkpoint or null>"
+- shipped_at: "<ISO8601 or null>"
+- delivered_at: "<ISO8601 or null>"
+- source_email_ids: array; use ["manual_tracking_entry"] if needed
+- confidence_score: 1.0 for explicit manual tracking entries
+
+Use lowercase snake_case status values.
+If you also need a legacy delivery card for temporary compatibility, say so explicitly and treat it as a secondary mirror, not the source of truth.
 ```
 
 ---
