@@ -68,19 +68,24 @@ struct TodayTab: View {
                         .padding(.horizontal, PerchTheme.Spacing.large)
                     }
 
+                    // ── Data source: always read from dashboardViewModel directly ──
+                    // Use dashboardViewModel.allRecords everywhere for rendering
+                    // to avoid the .onChange → viewModel.records timing gap.
+                    let records = dashboardViewModel.allRecords
+                    let deliveries = dashboardViewModel.trackedDeliveries
+
                     if !searchText.isEmpty {
                         // Search results
-                        SearchView(searchText: $searchText, records: viewModel.records, deliveries: viewModel.trackedDeliveries)
-                    } else if dashboardViewModel.isLoading && viewModel.records.isEmpty && !skeletonExpired {
+                        SearchView(searchText: $searchText, records: records, deliveries: deliveries)
+                    } else if dashboardViewModel.isLoading && records.isEmpty && !skeletonExpired {
                         SkeletonCardsSection(count: 3)
                             .padding(.horizontal, PerchTheme.Spacing.large)
                             .task {
                                 try? await Task.sleep(for: .seconds(15))
-                                guard dashboardViewModel.isLoading && viewModel.records.isEmpty else { return }
+                                guard dashboardViewModel.isLoading && dashboardViewModel.allRecords.isEmpty else { return }
                                 withAnimation { skeletonExpired = true }
                             }
-                    } else if dashboardViewModel.allRecords.isEmpty && viewModel.records.isEmpty && viewModel.trackedDeliveries.isEmpty {
-                        let _ = debugLogTodayTab("empty", allRecords: dashboardViewModel.allRecords.count, vmRecords: viewModel.records.count, deliveries: viewModel.trackedDeliveries.count, isLoading: dashboardViewModel.isLoading)
+                    } else if records.isEmpty && deliveries.isEmpty {
                         EmptyStateView(
                             icon: "tray",
                             title: "No data yet",
@@ -91,19 +96,18 @@ struct TodayTab: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {
-                        let _ = debugLogTodayTab("content", allRecords: dashboardViewModel.allRecords.count, vmRecords: viewModel.records.count, deliveries: viewModel.trackedDeliveries.count, isLoading: dashboardViewModel.isLoading)
                         quickGlanceBar
                             .padding(.horizontal, PerchTheme.Spacing.large)
 
                         // Travel card (contextual — only appears when trip is upcoming/active)
-                        TravelHomeCard(records: viewModel.records, deliveries: viewModel.trackedDeliveries)
+                        TravelHomeCard(records: records, deliveries: deliveries)
 
                         // Modular cards in time-of-day order
                         VStack(spacing: PerchTheme.Spacing.medium) {
                             let orderedCards = HomeCardOrdering.orderedCards()
                             let isCompactHealth = HomeCardOrdering.isHealthCompact()
                             ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
-                                homeCard(for: cardType, compactHealth: isCompactHealth)
+                                homeCard(for: cardType, compactHealth: isCompactHealth, records: records, deliveries: deliveries)
                                     .cardAppear(index: index, appeared: cardsAppeared)
                             }
                         }
@@ -124,27 +128,17 @@ struct TodayTab: View {
                 PerchHaptics.success()
             }
         }
-        .onChange(of: dashboardViewModel.allRecords) { old, new in
-            #if DEBUG
-            print("[TodayTab] onChange(allRecords): \(old.count) → \(new.count)")
-            #endif
+        .onChange(of: dashboardViewModel.allRecords) { _, _ in
+            // Sync to HomeViewModel for Quick Glance computed properties
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onChange(of: dashboardViewModel.trackedDeliveries) { _, _ in
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onAppear {
-            #if DEBUG
-            print("[TodayTab] onAppear: allRecords=\(dashboardViewModel.allRecords.count), isLoading=\(dashboardViewModel.isLoading), error=\(dashboardViewModel.error?.localizedDescription ?? "nil")")
-            #endif
-            if !dashboardViewModel.allRecords.isEmpty || !dashboardViewModel.trackedDeliveries.isEmpty {
-                viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
-            }
+            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onChange(of: dashboardViewModel.isLoading) { _, loading in
-            #if DEBUG
-            print("[TodayTab] onChange(isLoading): \(loading), allRecords=\(dashboardViewModel.allRecords.count), vm.records=\(viewModel.records.count)")
-            #endif
             if !loading { skeletonExpired = false }
         }
     }
@@ -272,24 +266,24 @@ struct TodayTab: View {
     // MARK: - Modular Card Builder
 
     @ViewBuilder
-    private func homeCard(for cardType: HomeCardType, compactHealth: Bool) -> some View {
+    private func homeCard(for cardType: HomeCardType, compactHealth: Bool, records: [Record], deliveries: [DeliveryData]) -> some View {
         switch cardType {
         case .healthSummary:
-            HealthSummaryHomeCard(records: viewModel.records, compact: compactHealth)
+            HealthSummaryHomeCard(records: records, compact: compactHealth)
         case .calendarToday:
-            CalendarTodayCard(records: viewModel.records)
+            CalendarTodayCard(records: records)
         case .calendarTomorrow:
-            CalendarTomorrowCard(records: viewModel.records)
+            CalendarTomorrowCard(records: records)
         case .nutrition:
-            NutritionHomeCard(records: viewModel.records)
+            NutritionHomeCard(records: records)
         case .deliveries:
-            DeliveryHomeCard(deliveries: viewModel.trackedDeliveries)
+            DeliveryHomeCard(deliveries: deliveries)
         case .medications:
-            MedicationsCard(records: viewModel.records)
+            MedicationsCard(records: records)
         case .weather:
-            WeatherCompactCard(records: viewModel.records)
+            WeatherCompactCard(records: records)
         case .emailSummary:
-            EmailSummaryCard(records: viewModel.records)
+            EmailSummaryCard(records: records)
         }
     }
 
@@ -366,13 +360,4 @@ struct TodayTab: View {
     TodayTab()
         .environment(AuthViewModel())
         .environment(DashboardViewModel())
-}
-
-// MARK: - Debug Logging
-
-@discardableResult
-func debugLogTodayTab(_ branch: String, allRecords: Int, vmRecords: Int, deliveries: Int, isLoading: Bool) -> Void {
-    #if DEBUG
-    print("[TodayTab] branch=\(branch) allRecords=\(allRecords) vmRecords=\(vmRecords) deliveries=\(deliveries) isLoading=\(isLoading)")
-    #endif
 }
