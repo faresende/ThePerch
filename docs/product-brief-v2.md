@@ -225,7 +225,7 @@ Contents:
 - `NutritionView.swift` → becomes HealthTab > Nutrition
 - `AdminView.swift` → absorbed into SettingsTab
 - `BookmarksView.swift` → moved into HubTab
-- `OrdersView.swift` / `DeliveriesView.swift` → moved into HubTab
+- `OrdersView.swift` → moved into HubTab
 - `CalendarView.swift` → moved into HubTab
 - `TravelView.swift` → conditional in Today + HubTab
 

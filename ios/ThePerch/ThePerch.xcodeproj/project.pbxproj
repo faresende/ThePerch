@@ -46,13 +46,13 @@
 		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
 		35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436D2F52411F00204F77 /* BookmarksView.swift */; };
 		35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436A2F52411F00204F77 /* WidgetRouter.swift */; };
-		35F543902F52411F00204F77 /* DeliveriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436F2F52411F00204F77 /* DeliveriesView.swift */; };
+
 		35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543602F52411F00204F77 /* BookmarkCard.swift */; };
 		35F543922F52411F00204F77 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543712F52411F00204F77 /* HomeView.swift */; };
 		35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543632F52411F00204F77 /* ChecklistCard.swift */; };
 		35F543942F52411F00204F77 /* TokenUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543512F52411F00204F77 /* TokenUsage.swift */; };
 		35F543962F52411F00204F77 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543552F52411F00204F77 /* SupabaseService.swift */; };
-		35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435B2F52411F00204F77 /* SectionViewModel.swift */; };
+
 		35F543982F52411F00204F77 /* EventKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543542F52411F00204F77 /* EventKitService.swift */; };
 		35F543992F52411F00204F77 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543522F52411F00204F77 /* UserProfile.swift */; };
 		35F5439A2F52411F00204F77 /* SingleValueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543652F52411F00204F77 /* SingleValueCard.swift */; };
@@ -80,6 +80,7 @@
 		5CC4FE16D0724E1B90BD8BDA /* UniversalCardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */; };
 		5E2203331EBA92BB378B6097 /* LiquidGlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */; };
 		6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */; };
+		A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */; };
 		734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */; };
 		7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */; };
 		822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */; };
@@ -228,7 +229,7 @@
 		35F543552F52411F00204F77 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		35F543592F52411F00204F77 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		35F5435A2F52411F00204F77 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
-		35F5435B2F52411F00204F77 /* SectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionViewModel.swift; sourceTree = "<group>"; };
+
 		35F5435D2F52411F00204F77 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		35F5435E2F52411F00204F77 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		35F543602F52411F00204F77 /* BookmarkCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCard.swift; sourceTree = "<group>"; };
@@ -242,7 +243,7 @@
 		35F5436C2F52411F00204F77 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
 		35F5436D2F52411F00204F77 /* BookmarksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarksView.swift; sourceTree = "<group>"; };
 		35F5436E2F52411F00204F77 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
-		35F5436F2F52411F00204F77 /* DeliveriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveriesView.swift; sourceTree = "<group>"; };
+
 		35F543702F52411F00204F77 /* HealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthView.swift; sourceTree = "<group>"; };
 		35F543712F52411F00204F77 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -261,6 +262,7 @@
 		63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardContainer.swift; sourceTree = "<group>"; };
 		66A2E9B18B340651B6C624B3 /* HealthTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthTab.swift; sourceTree = "<group>"; };
 		66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
+		7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerchSegmentedPicker.swift; sourceTree = "<group>"; };
 		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
 		7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookmarksViewModel.swift; sourceTree = "<group>"; };
 		7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
@@ -496,7 +498,7 @@
 				5C887520E395213A3CA8757C /* TravelViewModel.swift */,
 				35F543592F52411F00204F77 /* AuthViewModel.swift */,
 				35F5435A2F52411F00204F77 /* DashboardViewModel.swift */,
-				35F5435B2F52411F00204F77 /* SectionViewModel.swift */,
+
 				ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */,
 				HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */,
 			);
@@ -570,7 +572,7 @@
 				35F5436C2F52411F00204F77 /* AdminView.swift */,
 				35F5436D2F52411F00204F77 /* BookmarksView.swift */,
 				35F5436E2F52411F00204F77 /* CalendarView.swift */,
-				35F5436F2F52411F00204F77 /* DeliveriesView.swift */,
+
 				ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */,
 				35F543702F52411F00204F77 /* HealthView.swift */,
 				5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */,
@@ -830,6 +832,7 @@
 			isa = PBXGroup;
 			children = (
 				66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */,
+				7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */,
 				3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */,
 				67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */,
 				44E4BAE3418A661ACF7991AE /* SectionHeader.swift */,
@@ -1082,7 +1085,7 @@
 				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
 				35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */,
 				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,
-				35F543902F52411F00204F77 /* DeliveriesView.swift in Sources */,
+
 				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
 				NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */,
 				ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */,
@@ -1096,7 +1099,7 @@
 				ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */,
 				35F543962F52411F00204F77 /* SupabaseService.swift in Sources */,
 				8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */,
-				35F543972F52411F00204F77 /* SectionViewModel.swift in Sources */,
+
 				35F543982F52411F00204F77 /* EventKitService.swift in Sources */,
 				35F543992F52411F00204F77 /* UserProfile.swift in Sources */,
 				35E8ADA82F5B19CB00BAC8FE /* HealthKitSyncService.swift in Sources */,
@@ -1110,6 +1113,7 @@
 				35F5439F2F52411F00204F77 /* AuthView.swift in Sources */,
 				35F543A02F52411F00204F77 /* MockData.swift in Sources */,
 				6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */,
+				A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */,
 				3D7E9154E605502C7EB865B0 /* TimeOfDayAtmosphere.swift in Sources */,
 				E84531AD71195AC9C765C1C9 /* SparklineView.swift in Sources */,
 				5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */,
@@ -1217,7 +1221,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 47;
@@ -1251,7 +1255,7 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 47;
@@ -1408,7 +1412,7 @@
 				CODE_SIGN_ENTITLEMENTS = ThePerch.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEVELOPMENT_TEAM = RA9YY36MWN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1445,7 +1449,7 @@
 				CODE_SIGN_ENTITLEMENTS = ThePerch.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEVELOPMENT_TEAM = RA9YY36MWN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1480,7 +1484,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEVELOPMENT_TEAM = RA9YY36MWN;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ThePerchWidgets/Info.plist;
@@ -1503,7 +1507,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEVELOPMENT_TEAM = RA9YY36MWN;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ThePerchWidgets/Info.plist;
@@ -1526,7 +1530,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEVELOPMENT_TEAM = RA9YY36MWN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -1547,7 +1551,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 62;
+				CURRENT_PROJECT_VERSION = 64;
 				DEVELOPMENT_TEAM = RA9YY36MWN;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;

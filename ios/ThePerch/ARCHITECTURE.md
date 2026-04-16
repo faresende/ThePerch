@@ -12,14 +12,12 @@
                │  └─→ AuthView (Sign In/Up)
                │
                └─ isAuthenticated = true
-                  └─→ MainTabView (Horizontal Paging)
-                     ├─ HomeView (Dashboard)
-                     ├─ HealthView (Measurements)
-                     ├─ DeliveriesView (Orders)
-                     ├─ BookmarksView (Articles)
-                     ├─ CalendarView (Events)
-                     ├─ AdminView (Agent Status)
-                     └─ LegalView (Documents)
+                  └─→ MainTabView (native tab shell)
+                     ├─ TodayTab (home / daily dashboard)
+                     ├─ HealthTab (health, nutrition, workouts)
+                     ├─ HubTab (orders, bookmarks, calendar, travel)
+                     ├─ SettingsTab (sheet)
+                     └─ CaptureSheet (sheet)
 ```
 
 ## Data Flow Architecture
@@ -44,12 +42,11 @@
          ┌───────────┴───────────┬──────────────────┐
          │                       │                  │
          ↓                       ↓                  ↓
-    AuthViewModel      DashboardViewModel     SectionViewModel
-    • signIn()         • sections             • records
-    • signUp()         • homeWidgets          • loadRecords()
-    • signOut()        • loadDashboard()      • search()
-                       • reorderSections()    • togglePin()
-                                              • setSortOrder()
+    AuthViewModel      DashboardViewModel      Focused view models
+    • signIn()         • sections              • HomeViewModel
+    • signUp()         • homeWidgets           • HealthViewModel
+    • signOut()        • loadDashboard()       • OrdersViewModel
+                       • reorderSections()     • TravelViewModel
          │                       │                  │
          └───────────┬───────────┴──────────────────┘
                      │
@@ -85,15 +82,15 @@ Views/
 │   ├── MockData.swift (for previews)
 │   └── WidgetRouter.swift (Record → Card dispatcher)
 │
-├── Sections/ (Full-Screen Views)
+├── Sections/ (Legacy / supporting full-screen views)
 │   ├── HomeView (dashboard overview)
-│   ├── HealthView (measurements + chart)
-│   ├── DeliveriesView (tracking)
+│   ├── HealthView (measurements)
+│   ├── OrdersView (tracked deliveries / orders)
 │   ├── BookmarksView (search + filter)
 │   ├── CalendarView (events)
 │   ├── AdminView (agent status)
 │   └── LegalView (documents)
-│
+
 ├── Settings/
 │   └── SettingsView (profile, prefs, sign out)
 │

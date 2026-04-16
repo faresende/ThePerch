@@ -85,10 +85,10 @@
   - Latest measurements
   - Clean health-focused layout
   
-- **DeliveriesView.swift** (140 lines)
-  - Active deliveries (status list)
-  - Completed deliveries (collapsible)
-  - Status color by carrier
+- **OrdersView.swift** (orders + tracked deliveries)
+  - Active orders with shipment status
+  - Delivered orders (collapsible)
+  - Carrier/tracking driven from `orders` + `shipments`
   - Empty state
   
 - **BookmarksView.swift** (200 lines)
@@ -130,10 +130,10 @@
   
 - **MainTabView.swift** (100 lines)
   - Root navigation after auth
-  - Horizontal paged TabView
-  - Page indicator dots
-  - Smooth swipe transitions
-  - SectionViewModel initialization
+  - Native tab shell + capture/search-role lane
+  - Settings + capture sheets
+  - Smooth transitions
+  - Shared dashboard loading
   
 - **SettingsView.swift** (200 lines)
   - User profile section
@@ -168,7 +168,7 @@ Helpers/
 Sections/
 ├── HomeView.swift
 ├── HealthView.swift
-├── DeliveriesView.swift
+├── OrdersView.swift
 ├── BookmarksView.swift
 ├── CalendarView.swift
 ├── AdminView.swift

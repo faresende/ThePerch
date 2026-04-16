@@ -2,6 +2,23 @@
 
 Persists structured data to a Supabase cloud database for the native iOS Perch dashboard. Agents use this skill to save measurements, deliveries, events, statuses, and other records that the app displays in real-time. Also tracks agent health and token usage across the team.
 
+## Important caveats
+
+### Nutrition and custom display hints
+
+The generic `dashboard_push` helper is behind the live ThePerch nutrition schema in one important way:
+
+- it validates only a narrow allowlist of `type`, `category`, and `display_hint` values
+- newer ThePerch nutrition rows like `type=meal`, `category=nutrition`, and hints such as `meal_log`, `progress_gauge`, and `macros_bar` may fail through the generic helper unless the underlying code has been updated
+
+### Tracked deliveries
+
+Tracked packages now have a separate canonical model:
+
+- use `orders` + `shipments` for tracked deliveries shown in the current app Orders surface
+- do NOT default new tracked packages into `dashboard_records`
+- treat `dashboard_records` delivery rows as legacy compatibility cards only
+
 ## Tools
 
 ### dashboard_push

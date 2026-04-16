@@ -42,14 +42,12 @@ xcode-select -p  # Verify Xcode is installed
 ```
 ThePerchApp
 ├─ if authenticated
-│  └─ MainTabView (horizontal paged navigation)
-│     ├─ HomeView (dashboard overview)
-│     ├─ HealthView (weight tracking)
-│     ├─ DeliveriesView (order tracking)
-│     ├─ BookmarksView (with search)
-│     ├─ CalendarView (events)
-│     ├─ AdminView (agent status)
-│     └─ LegalView (documents)
+│  └─ MainTabView (native tab shell)
+│     ├─ TodayTab (dashboard overview)
+│     ├─ HealthTab (health / nutrition / workouts)
+│     ├─ HubTab (orders, bookmarks, calendar, travel)
+│     ├─ SettingsTab (presented as a sheet)
+│     └─ CaptureSheet (presented as a sheet)
 │
 └─ else
    └─ AuthView (sign in / sign up)
@@ -105,24 +103,27 @@ let agents = MockData.agents
 
 ## Connecting to Real Data
 
-### Step 1: Update SectionViewModel
-The data loading is already set up in `SectionViewModel.swift`:
+### Step 1: Use the shared dashboard models
+The app now loads generic records through `DashboardViewModel`, then derives focused surfaces like Today, Health, and Hub from that shared state.
+
 ```swift
-func loadRecords() async {
-    let records = try await supabaseService.fetchRecords(category: category)
-    self.records = records
+@Environment(DashboardViewModel.self) var dashboardViewModel
+
+Task {
+    await dashboardViewModel.loadDashboard()
 }
 ```
 
-### Step 2: Update Section Views
-Replace MockData with real data:
+### Step 2: Feed focused views from the shared model
+Replace direct mock-data wiring with the relevant shared view model or derived records:
+
 ```swift
 // Before
 let measurements = MockData.measurementRecords
 
 // After
-@Environment(SectionViewModel.self) var viewModel
-// Then use: viewModel.records
+@Environment(DashboardViewModel.self) var dashboardViewModel
+let measurements = dashboardViewModel.healthRecords
 ```
 
 ### Step 3: Test with Real API

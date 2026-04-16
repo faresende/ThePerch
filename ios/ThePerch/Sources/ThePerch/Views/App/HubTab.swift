@@ -21,7 +21,7 @@ struct HubTab: View {
         self.onOpenProfile = onOpenProfile
     }
 
-    enum HubSegment: String, CaseIterable {
+    enum HubSegment: String, CaseIterable, Hashable {
         case orders    = "Orders"
         case bookmarks = "Bookmarks"
         case calendar  = "Calendar"
@@ -71,15 +71,12 @@ struct HubTab: View {
                 .padding(.top, PerchTheme.Spacing.small)
 
                 // Segmented picker at top
-                Picker("Section", selection: $selectedSegment) {
-                    ForEach(visibleSegments, id: \.self) { segment in
-                        Text(segment.rawValue).tag(segment)
-                    }
-                }
-                .pickerStyle(.segmented)
+                PerchSegmentedPicker(
+                    options: visibleSegments.map { .init(title: $0.rawValue, value: $0) },
+                    selection: $selectedSegment
+                )
                 .padding(.horizontal, PerchTheme.Spacing.large)
                 .padding(.vertical, PerchTheme.Spacing.small)
-                .background(PerchTheme.background)
 
                 // Paged segment content
                 TabView(selection: $selectedSegment) {
