@@ -80,6 +80,7 @@ struct TodayTab: View {
                                 withAnimation { skeletonExpired = true }
                             }
                     } else if dashboardViewModel.allRecords.isEmpty && viewModel.records.isEmpty && viewModel.trackedDeliveries.isEmpty {
+                        let _ = debugLogTodayTab("empty", allRecords: dashboardViewModel.allRecords.count, vmRecords: viewModel.records.count, deliveries: viewModel.trackedDeliveries.count, isLoading: dashboardViewModel.isLoading)
                         EmptyStateView(
                             icon: "tray",
                             title: "No data yet",
@@ -90,7 +91,7 @@ struct TodayTab: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {
-                        // Quick Glance chip strip
+                        let _ = debugLogTodayTab("content", allRecords: dashboardViewModel.allRecords.count, vmRecords: viewModel.records.count, deliveries: viewModel.trackedDeliveries.count, isLoading: dashboardViewModel.isLoading)
                         quickGlanceBar
                             .padding(.horizontal, PerchTheme.Spacing.large)
 
@@ -123,18 +124,27 @@ struct TodayTab: View {
                 PerchHaptics.success()
             }
         }
-        .onChange(of: dashboardViewModel.allRecords) { _, _ in
+        .onChange(of: dashboardViewModel.allRecords) { old, new in
+            #if DEBUG
+            print("[TodayTab] onChange(allRecords): \(old.count) → \(new.count)")
+            #endif
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onChange(of: dashboardViewModel.trackedDeliveries) { _, _ in
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onAppear {
+            #if DEBUG
+            print("[TodayTab] onAppear: allRecords=\(dashboardViewModel.allRecords.count), isLoading=\(dashboardViewModel.isLoading), error=\(dashboardViewModel.error?.localizedDescription ?? "nil")")
+            #endif
             if !dashboardViewModel.allRecords.isEmpty || !dashboardViewModel.trackedDeliveries.isEmpty {
                 viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
             }
         }
         .onChange(of: dashboardViewModel.isLoading) { _, loading in
+            #if DEBUG
+            print("[TodayTab] onChange(isLoading): \(loading), allRecords=\(dashboardViewModel.allRecords.count), vm.records=\(viewModel.records.count)")
+            #endif
             if !loading { skeletonExpired = false }
         }
     }
@@ -356,4 +366,13 @@ struct TodayTab: View {
     TodayTab()
         .environment(AuthViewModel())
         .environment(DashboardViewModel())
+}
+
+// MARK: - Debug Logging
+
+@discardableResult
+func debugLogTodayTab(_ branch: String, allRecords: Int, vmRecords: Int, deliveries: Int, isLoading: Bool) -> Void {
+    #if DEBUG
+    print("[TodayTab] branch=\(branch) allRecords=\(allRecords) vmRecords=\(vmRecords) deliveries=\(deliveries) isLoading=\(isLoading)")
+    #endif
 }
