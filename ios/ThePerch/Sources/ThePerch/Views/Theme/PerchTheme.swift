@@ -247,12 +247,14 @@ struct PerchTheme {
 
     enum Font {
         // --- Editorial serif (phrase + greeting) ---------------------
-        /// 32pt italic serif — the full-bleed header greeting.
-        static let greeting = SwiftUI.Font.system(size: 32, weight: .regular, design: .serif).italic()
-        /// 30pt italic serif — fallback header (non-morning times of day).
+        // Fraunces is the intended family; `.serif` design falls back to
+        // iOS's New York until Fraunces is bundled as a TTF resource.
+        /// 34pt italic serif — full-bleed header greeting.
+        static let greeting = SwiftUI.Font.system(size: 34, weight: .regular, design: .serif).italic()
+        /// 30pt italic serif — alt fallback for inline greetings.
         static let greetingInline = SwiftUI.Font.system(size: 30, weight: .regular, design: .serif).italic()
-        /// 20pt italic serif — the interpretive "read" phrase on every card.
-        static let phrase = SwiftUI.Font.system(size: 20, weight: .regular, design: .serif).italic()
+        /// 22pt italic serif — the interpretive "read" phrase on every card.
+        static let phrase = SwiftUI.Font.system(size: 22, weight: .regular, design: .serif).italic()
         /// 12pt italic serif — "— end of today —" signoff at bottom of feed.
         static let signoff = SwiftUI.Font.system(size: 12, weight: .regular, design: .serif).italic()
 
@@ -283,19 +285,27 @@ struct PerchTheme {
         // alignment (calorie count, times, temps, tracking numbers). The serif
         // family keeps the warm literary feel; monospacedDigit() keeps the
         // columns true without the over-wide glyphs of a full mono font.
-        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .semibold, design: .serif).monospacedDigit()
-        static let displayNumeric    = SwiftUI.Font.system(size: 30, weight: .semibold, design: .serif).monospacedDigit()
-        /// 34pt serif — weather hero temperature.
-        static let tempNumeric       = SwiftUI.Font.system(size: 34, weight: .semibold, design: .serif).monospacedDigit()
-        /// 22pt serif — health metric values (SLEEP / RECOVERY / READINESS).
-        static let metricNumeric     = SwiftUI.Font.system(size: 22, weight: .semibold, design: .serif).monospacedDigit()
+        // Numeric variants — serif (Fraunces-style) with monospacedDigit()
+        // for tabular editorial alignment. Sizes match the Claude Design
+        // palette-change handoff.
+        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .medium,   design: .serif).monospacedDigit()
+        /// 28pt — Nutrition ring centre number.
+        static let displayNumeric    = SwiftUI.Font.system(size: 28, weight: .medium,   design: .serif).monospacedDigit()
+        /// 38pt — Weather card hero temperature.
+        static let tempNumeric       = SwiftUI.Font.system(size: 38, weight: .medium,   design: .serif).monospacedDigit()
+        /// 24pt — Health metric values (SLEEP / RECOVERY / READINESS).
+        static let metricNumeric     = SwiftUI.Font.system(size: 24, weight: .medium,   design: .serif).monospacedDigit()
         /// 18pt serif — travel TimePair times.
-        static let timePairNumeric   = SwiftUI.Font.system(size: 18, weight: .semibold, design: .serif).monospacedDigit()
+        static let timePairNumeric   = SwiftUI.Font.system(size: 18, weight: .medium,   design: .serif).monospacedDigit()
         static let headingNumeric    = SwiftUI.Font.system(size: 17, weight: .semibold, design: .serif).monospacedDigit()
-        static let titleNumeric      = SwiftUI.Font.system(size: 28, weight: .semibold, design: .serif).monospacedDigit()
-        /// 15pt — inline tabular numbers (target/remaining, macro values).
+        static let titleNumeric      = SwiftUI.Font.system(size: 28, weight: .medium,   design: .serif).monospacedDigit()
+        /// 16pt — target / remaining numerics on Nutrition.
+        static let targetNumeric     = SwiftUI.Font.system(size: 16, weight: .regular,  design: .serif).monospacedDigit()
+        /// 13pt — row numerics (time columns, macro values).
+        static let rowNumeric        = SwiftUI.Font.system(size: 13, weight: .regular,  design: .serif).monospacedDigit()
+        /// 15pt — inline tabular numbers (legacy reference).
         static let bodyNumeric       = SwiftUI.Font.system(size: 15, weight: .medium,   design: .default).monospacedDigit()
-        /// 13pt — secondary tabular numbers.
+        /// 13pt — secondary tabular numbers (legacy reference).
         static let captionNumeric    = SwiftUI.Font.system(size: 13, weight: .medium,   design: .default).monospacedDigit()
         /// 11pt SF Mono — tracking numbers, age stamps ("14m", "1h"), freshness indicators.
         static let microNumeric      = SwiftUI.Font.system(size: 11, weight: .medium,   design: .monospaced)
@@ -327,11 +337,11 @@ struct PerchTheme {
         static let xxxLarge: CGFloat = 80
 
         /// Vertical rhythm between stacked cards in the Today feed.
-        /// 22pt is Variant A's "Editorial" spec — generous but still grouped.
-        static let cardStack: CGFloat = 22
+        /// 18pt per the palette-change handoff (tighter than the earlier
+        /// 22pt spec to let the feed read as a continuous column).
+        static let cardStack: CGFloat = 18
 
-        /// Horizontal screen padding for Variant A (18pt — tighter than the
-        /// old 28pt `.large`, because the design-system spec calls for it).
+        /// Horizontal screen padding — 18pt per spec.
         static let screenHorizontal: CGFloat = 18
     }
 
@@ -976,5 +986,212 @@ private extension String {
         var hash: UInt64 = 5381
         for byte in utf8 { hash = ((hash << 5) &+ hash) &+ UInt64(byte) }
         return Int(truncatingIfNeeded: hash)
+    }
+}
+
+// MARK: - PerchPalette (time-of-day token sets)
+
+/// Full palette per time of day — the complete token set for every
+/// visual decision on the Today feed. Matches the Claude Design
+/// palette-change handoff verbatim.
+///
+/// Used in place of `PerchTheme.*` everywhere inside the Today tab so
+/// the whole feed re-tints atomically with the hour. Other tabs still
+/// read from PerchTheme for consistency.
+///
+/// Switch an entire palette at once — never mix-and-match tokens across
+/// variants. Each palette is a complete coherent read.
+struct PerchPalette: Equatable, Sendable {
+    /// Page background (behind everything below the hero).
+    let bg: Color
+    /// Card body surface — one step lighter than bg.
+    let card: Color
+    /// Chip / retailer badge / search-bar / subtle-fill background.
+    let chipBg: Color
+    /// Divider, hairline, progress-bar track.
+    let line: Color
+    /// Primary ink colour.
+    let ink: Color
+    /// Secondary text — eyebrow labels, muted metadata.
+    let muted: Color
+    /// Tertiary text — freshness labels, inactive states.
+    let faint: Color
+    /// Kinetic accent — actions, time-sensitive signals, deliveries dot,
+    /// high-priority email rail, travel eyebrow. Used as colour, NEVER
+    /// as a large background (only 6pt dots, chips, bar fills).
+    let kinetic: Color
+    /// Wellness accent — nutrition ring, health eyebrows, "Now" chip,
+    /// meds check, success. Same rules as kinetic.
+    let wellness: Color
+    /// Hero scrim base — used in the V1 seam gradient at 0.15 alpha.
+    /// Derived from the hero's dark tones for each time of day.
+    /// NEVER use pure black — that kills the warm palette.
+    let scrimDark: Color
+    /// Error colour, in the same register as the palette.
+    let error: Color
+    /// Cream overlay colour for hero greeting text — a warm off-white
+    /// that reads on every scrimDark.
+    let heroText: Color = Color(red: 0.969, green: 0.941, blue: 0.867) // #F7F0DD
+
+    // MARK: Palette library
+
+    /// Sunrise — warm peach linen, copper kinetic, dusty lavender wellness.
+    /// 05:00–11:59.
+    static let sunrise = PerchPalette(
+        bg:        Color(red: 0.945, green: 0.863, blue: 0.792),  // #F1DCCA
+        card:      Color(red: 0.984, green: 0.918, blue: 0.859),  // #FBEADB
+        chipBg:    Color(red: 0.925, green: 0.820, blue: 0.745),  // #EDD1BE (derived)
+        line:      Color(red: 0.894, green: 0.776, blue: 0.690),  // #E4C6B0 (derived)
+        ink:       Color(red: 0.141, green: 0.114, blue: 0.188),  // #241D30
+        muted:     Color(red: 0.455, green: 0.388, blue: 0.329),  // #746354 (derived)
+        faint:     Color(red: 0.678, green: 0.584, blue: 0.506),  // #AD9581 (derived)
+        kinetic:   Color(red: 0.898, green: 0.420, blue: 0.243),  // #E56B3E
+        wellness:  Color(red: 0.541, green: 0.490, blue: 0.710),  // #8A7DB5
+        scrimDark: Color(red: 0.227, green: 0.141, blue: 0.086),  // #3A2416
+        error:     Color(red: 0.733, green: 0.271, blue: 0.153)   // #BB4527 (derived warm)
+    )
+
+    /// Midday — blush-pink base, red-orange kinetic, plum wellness.
+    /// 12:00–16:59. THE DESIGN DIRECTION'S FINAL PICK.
+    static let midday = PerchPalette(
+        bg:        Color(red: 0.953, green: 0.780, blue: 0.788),  // #F3C7C9
+        card:      Color(red: 0.988, green: 0.871, blue: 0.867),  // #FCDEDD
+        chipBg:    Color(red: 0.925, green: 0.722, blue: 0.729),  // #ECB8BA
+        line:      Color(red: 0.890, green: 0.675, blue: 0.682),  // #E3ACAE
+        ink:       Color(red: 0.149, green: 0.078, blue: 0.200),  // #261433
+        muted:     Color(red: 0.431, green: 0.310, blue: 0.369),  // #6E4F5E
+        faint:     Color(red: 0.694, green: 0.541, blue: 0.573),  // #B18A92
+        kinetic:   Color(red: 0.882, green: 0.290, blue: 0.208),  // #E14A35
+        wellness:  Color(red: 0.427, green: 0.290, blue: 0.557),  // #6D4A8E
+        scrimDark: Color(red: 0.220, green: 0.098, blue: 0.153),  // #381927
+        error:     Color(red: 0.733, green: 0.239, blue: 0.169)   // #BB3D2B (derived warm)
+    )
+
+    /// Dusk — dusty mauve base, magenta kinetic, teal wellness.
+    /// 17:00–21:59.
+    static let dusk = PerchPalette(
+        bg:        Color(red: 0.918, green: 0.776, blue: 0.831),  // #EAC6D4
+        card:      Color(red: 0.957, green: 0.863, blue: 0.898),  // #F4DCE5
+        chipBg:    Color(red: 0.878, green: 0.702, blue: 0.776),  // #E0B3C6 (derived)
+        line:      Color(red: 0.839, green: 0.655, blue: 0.745),  // #D6A7BE (derived)
+        ink:       Color(red: 0.102, green: 0.200, blue: 0.188),  // #1A3330
+        muted:     Color(red: 0.376, green: 0.278, blue: 0.345),  // #604758 (derived)
+        faint:     Color(red: 0.612, green: 0.502, blue: 0.576),  // #9C8093 (derived)
+        kinetic:   Color(red: 0.757, green: 0.180, blue: 0.604),  // #C12E9A
+        wellness:  Color(red: 0.184, green: 0.486, blue: 0.475),  // #2F7C79
+        scrimDark: Color(red: 0.176, green: 0.090, blue: 0.145),  // #2D1725
+        error:     Color(red: 0.702, green: 0.196, blue: 0.388)   // #B33263 (derived warm)
+    )
+
+    /// Night — cool lavender base, indigo kinetic, soft green wellness.
+    /// 22:00–04:59. Note: ink stays dark (this is a LIGHT palette,
+    /// not a dark-mode flip).
+    static let night = PerchPalette(
+        bg:        Color(red: 0.788, green: 0.804, blue: 0.941),  // #C9CDF0
+        card:      Color(red: 0.863, green: 0.875, blue: 0.965),  // #DCDFF6
+        chipBg:    Color(red: 0.729, green: 0.745, blue: 0.902),  // #BABFE6 (derived)
+        line:      Color(red: 0.694, green: 0.710, blue: 0.878),  // #B1B5E0 (derived)
+        ink:       Color(red: 0.110, green: 0.145, blue: 0.078),  // #1C2514
+        muted:     Color(red: 0.325, green: 0.353, blue: 0.290),  // #535A4A (derived)
+        faint:     Color(red: 0.529, green: 0.557, blue: 0.494),  // #878E7E (derived)
+        kinetic:   Color(red: 0.180, green: 0.227, blue: 0.839),  // #2E3AD6
+        wellness:  Color(red: 0.329, green: 0.482, blue: 0.306),  // #547B4E
+        scrimDark: Color(red: 0.106, green: 0.122, blue: 0.208),  // #1B1F35
+        error:     Color(red: 0.635, green: 0.173, blue: 0.220)   // #A22C38 (derived warm)
+    )
+
+    /// Pick the palette for the given time-of-day.
+    static func forTimeOfDay(_ t: PerchTimeOfDay) -> PerchPalette {
+        switch t {
+        case .sunrise: return .sunrise
+        case .midday:  return .midday
+        case .dusk:    return .dusk
+        case .night:   return .night
+        }
+    }
+}
+
+// MARK: - PerchTimeOfDay
+
+/// Time-of-day bracket used to select the active palette.
+/// Kept here (not in TodayTab) so other views can participate.
+enum PerchTimeOfDay: Sendable {
+    case sunrise, midday, dusk, night
+
+    /// Resolve from the current hour.
+    static var current: PerchTimeOfDay {
+        let hour = Foundation.Calendar.current.component(.hour, from: Date.now)
+        switch hour {
+        case 5..<12:  return .sunrise
+        case 12..<17: return .midday
+        case 17..<22: return .dusk
+        default:      return .night
+        }
+    }
+
+    var heroImageName: String {
+        switch self {
+        case .sunrise: return "hero-morning"
+        case .midday:  return "hero-afternoon"
+        case .dusk:    return "hero-evening"
+        case .night:   return "hero-night"
+        }
+    }
+
+    var heroVideoName: String? {
+        switch self {
+        case .sunrise: return "hero-morning-video"
+        case .midday:  return "hero-afternoon-video"
+        case .dusk:    return "hero-evening-video"
+        case .night:   return "hero-night-video"
+        }
+    }
+
+    /// Greeting copy per the Claude Design handoff. The night variant
+    /// is deliberately question-tagged.
+    var greeting: String {
+        switch self {
+        case .sunrise: return "Good morning,\nFabio."
+        case .midday:  return "Afternoon,\nFabio."
+        case .dusk:    return "Evening,\nFabio."
+        case .night:   return "Still up,\nFabio?"
+        }
+    }
+
+    var accessibilityLabel: String {
+        switch self {
+        case .sunrise: return "Sunrise scene"
+        case .midday:  return "Midday scene"
+        case .dusk:    return "Dusk scene"
+        case .night:   return "Night scene"
+        }
+    }
+}
+
+// MARK: - Environment plumbing
+
+private struct PerchPaletteKey: EnvironmentKey {
+    static let defaultValue: PerchPalette = .midday
+}
+
+private struct PerchTimeOfDayKey: EnvironmentKey {
+    static let defaultValue: PerchTimeOfDay = .midday
+}
+
+extension EnvironmentValues {
+    /// The active palette for the current view hierarchy. Today-feed
+    /// primitives (TodayCard / TodayEyebrow / TodayPhrase / TodaySearchBar /
+    /// TodayChip) read this for every colour they render.
+    var perchPalette: PerchPalette {
+        get { self[PerchPaletteKey.self] }
+        set { self[PerchPaletteKey.self] = newValue }
+    }
+
+    /// Time-of-day bracket corresponding to `perchPalette`. Rarely read
+    /// directly — most code wants `perchPalette` — but useful for
+    /// hero-image / greeting / scrim selection.
+    var perchTimeOfDay: PerchTimeOfDay {
+        get { self[PerchTimeOfDayKey.self] }
+        set { self[PerchTimeOfDayKey.self] = newValue }
     }
 }

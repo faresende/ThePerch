@@ -49,23 +49,25 @@ struct CalendarTodayCard: View {
         PerchPhrase.calendarPhrase(eventCount: todayEvents.count)
     }
 
+    @Environment(\.perchPalette) private var palette
+
     var body: some View {
         TodayCard {
             VStack(alignment: .leading, spacing: 0) {
-                TodayEyebrow(label: "TODAY · \(todayDateString)", accent: PerchTheme.wellness, freshness: "LIVE")
+                TodayEyebrow(label: "TODAY · \(todayDateString)", accent: palette.wellness, freshness: "LIVE")
                 TodayPhrase(text: calendarPhrase)
 
                 if todayEvents.isEmpty {
                     emptyStateIllustration
                 } else {
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         ForEach(Array(upcomingEvents.prefix(5).enumerated()), id: \.element.record.id) { index, item in
                             eventRow(event: item.event, isNext: index == 0)
                         }
 
                         if !pastEvents.isEmpty && !upcomingEvents.isEmpty {
                             Rectangle()
-                                .fill(PerchTheme.border)
+                                .fill(palette.line)
                                 .frame(height: 1)
                                 .padding(.vertical, 2)
                         }
@@ -77,7 +79,7 @@ struct CalendarTodayCard: View {
                         if upcomingEvents.count > 5 {
                             Text("View all \(todayEvents.count) events")
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.accent)
+                                .foregroundColor(palette.kinetic)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 2)
                         }
@@ -125,60 +127,51 @@ struct CalendarTodayCard: View {
         let isFuture = event.start > now
 
         return HStack(alignment: .top, spacing: 10) {
-            // Time column — 56pt fixed, tabular serif numerics.
             Text(PerchFormatters.time24h.string(from: event.start))
-                .font(PerchTheme.Font.captionNumeric)
+                .font(PerchTheme.Font.rowNumeric)
                 .tracking(0.2)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .frame(width: 56, alignment: .leading)
                 .padding(.top, 1)
 
-            // Title + where
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.title)
                     .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .lineLimit(1)
-                // If we ever have a `where` string on EventData, show it
-                // muted beneath. EventData doesn't currently expose one,
-                // so skip.
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Chip
             if isHappening {
-                TodayChip(text: "Now", color: .white, background: PerchTheme.wellness)
+                TodayChip(text: "Now", color: .white, background: palette.wellness)
             } else if isFuture {
                 TodayChip(
                     text: relativeTimeLabel(for: event),
-                    color: PerchTheme.accent,
-                    background: PerchTheme.cardInnerBackground
+                    color: palette.kinetic,
+                    background: palette.chipBg
                 )
-            } else {
-                TodayChip(text: "done", color: PerchTheme.textTertiary, background: .clear)
             }
+            // done → no chip at all per spec; row is already opacity'd
         }
     }
 
     private func pastEventRow(event: EventData) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text(PerchFormatters.time24h.string(from: event.start))
-                .font(PerchTheme.Font.captionNumeric)
+                .font(PerchTheme.Font.rowNumeric)
                 .tracking(0.2)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .frame(width: 56, alignment: .leading)
                 .padding(.top, 1)
 
             Text(event.title)
                 .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textPrimary)
-                .strikethrough(color: PerchTheme.textTertiary)
+                .foregroundColor(palette.ink)
+                .strikethrough(color: palette.faint)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            TodayChip(text: "done", color: PerchTheme.textTertiary, background: .clear)
         }
-        .opacity(0.5)
+        .opacity(0.48)
     }
 
     // MARK: - Helpers

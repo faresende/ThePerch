@@ -30,13 +30,15 @@ struct TodayTab: View {
     var body: some View {
         let records = dashboardViewModel.allRecords
         let deliveries = dashboardViewModel.trackedDeliveries
+        let timeOfDay = PerchTimeOfDay.current
+        let palette = PerchPalette.forTimeOfDay(timeOfDay)
 
         ScrollView {
             VStack(spacing: 0) {
                 // 1. FULL-BLEED hero — lives outside the padded column.
                 TodayHero(
                     timeOfDay: timeOfDay,
-                    greeting: greetingText,
+                    greeting: timeOfDay.greeting,
                     dateString: fullDateString,
                     onProfileTap: onOpenProfile,
                     isShowingCached: dashboardViewModel.isShowingCachedData
@@ -90,7 +92,7 @@ struct TodayTab: View {
                         // 4. Signoff — "— end of today —"
                         Text("— end of today —")
                             .font(PerchTheme.Font.signoff)
-                            .foregroundColor(timeOfDay.pageForeground)
+                            .foregroundColor(palette.faint)
                             .tracking(0.4)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, 8)
@@ -102,11 +104,13 @@ struct TodayTab: View {
                 Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
             }
         }
-        // Page background flows from the hero's palette — dusky rose at dusk,
-        // peach at sunrise, plum at night, etc. Creates a continuous atmosphere
-        // instead of the old hard edge between hero image and neutral linen.
-        .background(timeOfDay.pageBackground.ignoresSafeArea())
+        // Page background = active palette's `bg` token. Because the V1
+        // seam gradient in TodayHero fades into this same value at its
+        // bottom edge, the whole page reads as a single continuous surface.
+        .background(palette.bg.ignoresSafeArea())
         .ignoresSafeArea(edges: .top)
+        .environment(\.perchPalette, palette)
+        .environment(\.perchTimeOfDay, timeOfDay)
         .refreshable {
             PerchHaptics.medium()
             await dashboardViewModel.loadDashboard(forceRefresh: true)
@@ -148,27 +152,6 @@ struct TodayTab: View {
         }
     }
 
-    private var timeOfDay: TimeOfDay {
-        let hour = Calendar.current.component(.hour, from: Date.now)
-        switch hour {
-        case 5..<12:  return .sunrise
-        case 12..<17: return .midday
-        case 17..<22: return .dusk
-        default:      return .night
-        }
-    }
-
-    /// Time-of-day-specific greeting for the full-bleed header.
-    /// Per Claude Design handoff: warm, British, never exclamatory.
-    private var greetingText: String {
-        switch timeOfDay {
-        case .sunrise: return "Good morning,\nFabio."
-        case .midday:  return "Afternoon,\nFabio."
-        case .dusk:    return "Evening,\nFabio."
-        case .night:   return "Still up,\nFabio?"
-        }
-    }
-
     /// "TUESDAY, 7 APRIL" — uppercase long-form date for the header date line.
     private var fullDateString: String {
         let f = DateFormatter()
@@ -179,144 +162,74 @@ struct TodayTab: View {
 
 }
 
-// MARK: - Time-of-day
-
-enum TimeOfDay {
-    case sunrise, midday, dusk, night
-
-    var heroImage: String {
-        switch self {
-        case .sunrise: return "hero-morning"
-        case .midday:  return "hero-afternoon"
-        case .dusk:    return "hero-evening"
-        case .night:   return "hero-night"
-        }
-    }
-
-    /// Asset-catalog dataset name for the looping hero video. Only the
-    /// morning video is currently treated as canonical per the handoff,
-    /// but all four datasets are available in the bundle.
-    var heroVideo: String? {
-        switch self {
-        case .sunrise: return "hero-morning-video"
-        case .midday:  return "hero-afternoon-video"
-        case .dusk:    return "hero-evening-video"
-        case .night:   return "hero-night-video"
-        }
-    }
-
-    var accessibilityLabel: String {
-        switch self {
-        case .sunrise: return "Sunrise scene"
-        case .midday:  return "Midday scene"
-        case .dusk:    return "Dusk scene"
-        case .night:   return "Night scene"
-        }
-    }
-
-    /// Page background tint — picks up the dominant warm tone of the hero
-    /// image for each time of day so the hero flows seamlessly into the
-    /// feed instead of hitting a hard edge against the neutral linen.
-    /// Kept light enough that cream cards still read as elevated surfaces
-    /// during day hours; goes to a dusky plum at night so cards glow.
-    var pageBackground: Color {
-        switch self {
-        case .sunrise: return Color(red: 0.961, green: 0.878, blue: 0.780) // #F5E0C7 peach linen
-        case .midday:  return Color(red: 0.929, green: 0.890, blue: 0.800) // #EDE3CC sage linen
-        case .dusk:    return Color(red: 0.910, green: 0.820, blue: 0.816) // #E8D1D0 dusty rose
-        case .night:   return Color(red: 0.176, green: 0.149, blue: 0.196) // #2D2632 deep plum
-        }
-    }
-
-    /// Ink color that sits directly on pageBackground (signoff line,
-    /// any page-level metadata). Auto-switches to cream at night so
-    /// it's legible on the dark plum.
-    var pageForeground: Color {
-        switch self {
-        case .night: return Color(red: 0.945, green: 0.918, blue: 0.867) // warm cream
-        default:     return Color(red: 0.651, green: 0.608, blue: 0.545) // stone muted (textTertiary)
-        }
-    }
-
-    /// When true, cards should lean into a slightly darker warm surface
-    /// so text stays high-contrast against the dusky page.
-    var prefersDarkSurfaces: Bool {
-        switch self {
-        case .night: return true
-        default:     return false
-        }
-    }
-}
-
 // MARK: - Full-bleed Today hero (video or still + overlaid greeting)
 
-/// Linen-variant header. Lives outside the padded feed column so it can
-/// extend edge-to-edge. Loops a muted video when available (falls back to
-/// the matching still), overlays two gradient scrims for legibility, and
-/// floats greeting + date + profile avatar on top.
+/// Full-bleed hero. 320pt tall, fixed height. V1 seam gradient fades the
+/// illustration into the page bg so the hero dissolves into the feed with
+/// no hard edge — palette-driven scrimDark (NOT pure black) + the active
+/// palette's bg at the bottom of the stack. Greeting overlaid bottom-left,
+/// avatar floats top-right.
 struct TodayHero: View {
-    let timeOfDay: TimeOfDay
+    let timeOfDay: PerchTimeOfDay
     let greeting: String
     let dateString: String
     let onProfileTap: () -> Void
     let isShowingCached: Bool
 
+    @Environment(\.perchPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            // Layer 1 — moving or still art. Clipped to header aspect.
+            // Layer 1 — looping video (morning) or static illustration.
             heroBackground
-                .aspectRatio(1.0 / 0.82, contentMode: .fill)
+                .frame(height: 320)
+                .frame(maxWidth: .infinity)
                 .clipped()
 
-            // Layer 2 — bottom scrim (for greeting legibility)
+            // Layer 2 — V1 seam gradient. Fades top→bottom from transparent
+            // (untouched image) through scrimDark at 0.15 (for greeting
+            // legibility) into the page bg (so the illustration dissolves
+            // into the feed seamlessly). Per handoff, stops are fixed;
+            // only scrimDark + bg change per palette.
             LinearGradient(
                 stops: [
-                    .init(color: .black.opacity(0), location: 0.0),
-                    .init(color: .black.opacity(0), location: 0.40),
-                    .init(color: Color(red: 0.078, green: 0.047, blue: 0.024).opacity(0.35), location: 0.70),
-                    .init(color: Color(red: 0.078, green: 0.047, blue: 0.024).opacity(0.68), location: 1.0),
+                    .init(color: .clear, location: 0.00),
+                    .init(color: .clear, location: 0.35),
+                    .init(color: palette.scrimDark.opacity(0.15), location: 0.55),
+                    .init(color: palette.bg.opacity(0.35),        location: 0.72),
+                    .init(color: palette.bg.opacity(0.75),        location: 0.88),
+                    .init(color: palette.bg,                       location: 1.00),
                 ],
                 startPoint: .top, endPoint: .bottom
             )
             .allowsHitTesting(false)
 
-            // Layer 3 — left-side vignette (puts greeting on calm ink)
-            LinearGradient(
-                stops: [
-                    .init(color: Color(red: 0.078, green: 0.047, blue: 0.024).opacity(0.45), location: 0.0),
-                    .init(color: Color(red: 0.078, green: 0.047, blue: 0.024).opacity(0.15), location: 0.40),
-                    .init(color: .clear, location: 0.70),
-                ],
-                startPoint: .leading, endPoint: .trailing
-            )
-            .allowsHitTesting(false)
-
-            // Layer 4 — greeting block, bottom-left
+            // Layer 3 — greeting block, bottom-left (22pt insets).
             HStack(alignment: .bottom, spacing: 10) {
-                PerchBird(size: 22, color: Color(red: 0.969, green: 0.941, blue: 0.867), accent: PerchTheme.accent)
+                PerchBird(size: 22, color: palette.heroText, accent: palette.kinetic)
                     .padding(.bottom, 10)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text(greeting)
                         .font(PerchTheme.Font.greeting)
-                        .foregroundColor(Color(red: 0.969, green: 0.941, blue: 0.867)) // #F7F0DD
-                        .lineSpacing(-8) // match the 1.02 line-height of the spec
-                        .shadow(color: .black.opacity(0.55), radius: 10, x: 0, y: 2)
-                        .shadow(color: .black.opacity(0.35), radius: 1, x: 0, y: 1)
+                        .foregroundColor(palette.heroText)
+                        .tracking(-0.5)
+                        .lineSpacing(-8) // → effective 1.02 line-height at 34pt
+                        .shadow(color: palette.scrimDark.opacity(0.6), radius: 10, x: 0, y: 2)
+                        .shadow(color: palette.scrimDark.opacity(0.4), radius: 1, x: 0, y: 1)
 
                     HStack(spacing: 8) {
                         Text(dateString)
-                            .font(.system(size: 11, weight: .regular, design: .default))
+                            .font(.system(size: 11))
                             .tracking(1.4)
-                            .foregroundColor(Color(red: 0.969, green: 0.941, blue: 0.867).opacity(0.78))
-                            .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                            .foregroundColor(palette.heroText.opacity(0.78))
+                            .shadow(color: palette.scrimDark.opacity(0.5), radius: 3, x: 0, y: 1)
 
                         if isShowingCached {
                             ProgressView()
                                 .controlSize(.mini)
-                                .tint(Color(red: 0.969, green: 0.941, blue: 0.867).opacity(0.85))
+                                .tint(palette.heroText.opacity(0.85))
                                 .transition(.opacity)
                         }
                     }
@@ -325,27 +238,26 @@ struct TodayHero: View {
             }
             .padding(.leading, 22)
             .padding(.trailing, 22)
-            .padding(.bottom, 22)
+            .padding(.bottom, 34)
 
-            // Layer 5 — avatar, top-right (inside safe area)
+            // Layer 4 — avatar, top-right.
             avatar
-                .padding(.trailing, 18)
-                .padding(.top, 54) // leaves room for status bar
+                .padding(.trailing, 20)
+                .padding(.top, 54) // clears the status bar
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
+        .frame(height: 320)
         .frame(maxWidth: .infinity)
+        .clipped()
         .accessibilityLabel(timeOfDay.accessibilityLabel)
     }
 
     @ViewBuilder
     private var heroBackground: some View {
-        if !reduceMotion, let videoName = timeOfDay.heroVideo {
-            // Looping muted video. Falls back to the still inside the
-            // player view if the asset can't be loaded.
-            PerchLoopingVideo(assetName: videoName, posterName: timeOfDay.heroImage)
+        if !reduceMotion, let videoName = timeOfDay.heroVideoName {
+            PerchLoopingVideo(assetName: videoName, posterName: timeOfDay.heroImageName)
         } else {
-            // Reduced motion or missing video → still illustration.
-            Image(timeOfDay.heroImage)
+            Image(timeOfDay.heroImageName)
                 .resizable()
                 .scaledToFill()
         }
@@ -356,53 +268,54 @@ struct TodayHero: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [PerchTheme.accent, PerchTheme.wellness],
+                        colors: [palette.kinetic, palette.wellness],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     )
                 )
                 .overlay(
                     Text("F")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(red: 1.0, green: 0.973, blue: 0.925))
+                        .foregroundColor(palette.heroText)
                 )
                 .overlay(
                     Circle()
-                        .strokeBorder(Color(red: 1.0, green: 0.973, blue: 0.925).opacity(0.85), lineWidth: 2)
+                        .strokeBorder(palette.heroText.opacity(0.85), lineWidth: 2)
                 )
                 .frame(width: 36, height: 36)
-                .shadow(color: .black.opacity(0.35), radius: 3, x: 0, y: 2)
+                .shadow(color: palette.scrimDark.opacity(0.45), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Open profile")
     }
 }
 
-// MARK: - Linen search bar
+// MARK: - Search bar
 
 struct TodaySearchBar: View {
     @Binding var text: String
+    @Environment(\.perchPalette) private var palette
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
             TextField("Search", text: $text)
                 .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
                 .autocorrectionDisabled()
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 15))
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 12)
         .frame(height: 38)
-        .background(PerchTheme.cardInnerBackground)
+        .background(palette.chipBg)
         .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
     }
 }
@@ -518,31 +431,36 @@ final class PerchLoopingVideoView: UIView {
 }
 
 // MARK: - Today card primitives (shared eyebrow + phrase + card wrapper)
+//
+// All primitives read their colours from `@Environment(\.perchPalette)`
+// so swapping the palette on TodayTab re-tints the entire feed atomically.
 
-/// Linen-variant card wrapper. Chrome-free: card surface color against the
-/// page, 20pt radius, 20pt padding, no border, no shadow.
+/// Card wrapper. Chrome-free: palette card surface, 20pt radius, 20pt
+/// padding, no border, no shadow.
 struct TodayCard<Content: View>: View {
     var padding: CGFloat = 20
     @ViewBuilder var content: () -> Content
+    @Environment(\.perchPalette) private var palette
 
     var body: some View {
         content()
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
-                    .fill(PerchTheme.cardBackground)
+                    .fill(palette.card)
             )
     }
 }
 
 /// Eyebrow row: [dot] LABEL · UPPERCASE · TRACKED      [freshness]
-/// Dot is 6×6, colored by accent (wellness/kinetic). Label is 10.5pt
-/// semibold, uppercase, 1.2 tracking, textSecondary. Freshness is mono,
-/// 10.5pt, same color at 0.55 opacity.
+/// Dot = 6pt accent colour (caller chooses kinetic/wellness from palette).
+/// Label = palette.muted. Freshness = palette.faint.
 struct TodayEyebrow: View {
     let label: String
+    /// Pass `palette.kinetic` or `palette.wellness` from the parent card.
     let accent: Color
     var freshness: String? = nil
+    @Environment(\.perchPalette) private var palette
 
     var body: some View {
         HStack(spacing: 8) {
@@ -553,7 +471,7 @@ struct TodayEyebrow: View {
                 .font(PerchTheme.Font.cardEyebrow)
                 .tracking(1.2)
                 .textCase(.uppercase)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .lineLimit(1)
 
             Spacer(minLength: 8)
@@ -562,33 +480,32 @@ struct TodayEyebrow: View {
                 Text(freshness)
                     .font(PerchTheme.Font.freshness)
                     .tracking(0.3)
-                    .foregroundColor(PerchTheme.textSecondary.opacity(0.55))
+                    .foregroundColor(palette.muted.opacity(0.55))
             }
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, 10)
     }
 }
 
-/// Interpretive phrase row — the Gentler voice.
-/// Fraunces-style italic serif (via .serif design fallback) at 20pt,
-/// primary ink color, 1.3 line-height, small negative tracking.
-/// Every phrase ends with a period (".") per the voice spec.
+/// Interpretive phrase row — Fraunces-style italic serif, 22pt
+/// per the palette-change handoff. Colour = palette.ink.
 struct TodayPhrase: View {
     let text: String
+    @Environment(\.perchPalette) private var palette
 
     var body: some View {
         Text(text.hasSuffix(".") ? text : "\(text).")
             .font(PerchTheme.Font.phrase)
-            .foregroundColor(PerchTheme.textPrimary)
+            .foregroundColor(palette.ink)
             .lineSpacing(4)
-            .tracking(-0.2)
+            .tracking(-0.3)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.bottom, 16)
     }
 }
 
-/// Status chip used across cards (Now / in 2h / done / ETA).
-/// Half-pill at 22pt tall with 11pt radius.
+/// Status chip. Palette-aware but accepts overrides for the special
+/// "Now" (white on wellness) / out-for-delivery (white on kinetic) cases.
 struct TodayChip: View {
     let text: String
     let color: Color
@@ -599,7 +516,7 @@ struct TodayChip: View {
             .font(.system(size: 11, weight: .medium))
             .tracking(0.1)
             .foregroundColor(color)
-            .padding(.horizontal, 9)
+            .padding(.horizontal, 10)
             .frame(height: 22)
             .background(
                 Capsule(style: .continuous).fill(background)
