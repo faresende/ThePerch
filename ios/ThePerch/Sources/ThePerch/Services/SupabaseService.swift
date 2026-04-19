@@ -214,29 +214,30 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     }
 
     private func handleAuthStateChange(_ event: AuthChangeEvent, session: Session?) {
-        // A session is only "valid" if it exists AND hasn't expired.
-        // Supabase's .initialSession event emits locally-stored sessions
-        // regardless of expiry, which was causing isAuthenticated to flip
-        // true for stale tokens — the dashboard would then fetch with an
-        // expired JWT and get silent empty results instead of a 401.
-        let isValidSession = session != nil && !(session?.isExpired ?? true)
-
         switch event {
         case .passwordRecovery:
-            isAuthenticated = isValidSession
+            isAuthenticated = session != nil
             isPasswordRecovery = true
-            if let session, !session.isExpired { currentUserId = session.user.id.uuidString }
+            if let session { currentUserId = session.user.id.uuidString }
         case .signedIn:
-            isAuthenticated = isValidSession
+            // Fresh sign-in always carries a just-minted session from the server.
+            // Don't second-guess expiry here — any perceived "expiry" is clock
+            // skew, not stale credentials.
+            isAuthenticated = session != nil
             isPasswordRecovery = false
-            currentUserId = isValidSession ? session?.user.id.uuidString : nil
+            currentUserId = session?.user.id.uuidString
         case .signedOut, .userDeleted:
             isAuthenticated = false
             isPasswordRecovery = false
             currentUserId = nil
         case .initialSession:
-            isAuthenticated = isValidSession
-            currentUserId = isValidSession ? session?.user.id.uuidString : nil
+            // This is the ONLY event where the expiry check matters.
+            // Supabase emits locally-stored sessions via .initialSession
+            // regardless of expiry — using an expired token here causes
+            // silent-empty dashboard fetches instead of a clean 401.
+            let isValid = session != nil && !(session?.isExpired ?? true)
+            isAuthenticated = isValid
+            currentUserId = isValid ? session?.user.id.uuidString : nil
             if session == nil {
                 isPasswordRecovery = false
             }
@@ -246,8 +247,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             }
 #endif
         case .tokenRefreshed, .userUpdated, .mfaChallengeVerified:
-            isAuthenticated = isValidSession
-            currentUserId = isValidSession ? session?.user.id.uuidString : nil
+            // SDK-driven events — if the SDK is handing us a session, trust it.
+            isAuthenticated = session != nil
+            currentUserId = session?.user.id.uuidString
         }
 
         NotificationCenter.default.post(
