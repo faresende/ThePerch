@@ -53,6 +53,7 @@ export interface ShipmentRecord {
   order_id: string;
   tracking_number: string;
   carrier: string | null;
+  tracking_url: string | null;
   seventeen_track_id: string | null;
   status: ShipmentStatus;
   latest_checkpoint: string | null;
@@ -62,6 +63,36 @@ export interface ShipmentRecord {
   confidence_score: number;
   created_at?: string;
   updated_at?: string;
+}
+
+/**
+ * Generate a carrier-specific tracking URL for known carriers.
+ * Returns null for unknown/unsupported carriers (client falls back to 17track).
+ */
+export function carrierTrackingURL(carrier: string | null, trackingNumber: string): string | null {
+  if (!carrier || !trackingNumber) return null;
+  const c = carrier.toUpperCase();
+
+  if (c.includes('FEDEX') || c.includes('FEDERAL EXPRESS'))
+    return `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`;
+  if (c.includes('DHL'))
+    return `https://www.dhl.com/de-en/home/tracking/tracking-parcel.html?submit=1&trackingID=${trackingNumber}`;
+  if (c.includes('UPS'))
+    return `https://www.ups.com/track?trackNums=${trackingNumber}`;
+  if (c.includes('CTT') || c.includes('CORREIOS'))
+    return `https://www.ctt.pt/track-and-trace?trackingId=${trackingNumber}`;
+  if (c.includes('USPS'))
+    return `https://www.usps.com/tracking/${trackingNumber}`;
+  if (c.includes('DPD'))
+    return `https://tracking.dpd.de/status/en_US/parcel/${trackingNumber}`;
+  if (c.includes('GLS'))
+    return `https://gls-group.eu/EN/track-and-trace?match=${trackingNumber}`;
+  if (c.includes('POST.NL') || c.includes('POSTNL'))
+    return `https://postnl.nl/tracktrace/${trackingNumber}/NL`;
+  if (c.includes('SENDCLOUD'))
+    return `https://tracking.sendcloud.sc/forward/${trackingNumber}`;
+
+  return null;
 }
 
 export interface ReviewItemRecord {

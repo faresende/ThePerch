@@ -23,6 +23,7 @@ import {
   updateOrderStatus,
   updateShipmentFromTracker,
   deriveOrderStatusFromShipments,
+  carrierTrackingURL,
   OrderRecord,
   ShipmentRecord,
 } from './orders-store';
@@ -250,6 +251,7 @@ async function handleShippingNotification(
     order_id: orderId,
     tracking_number: fields.trackingNumber,
     carrier: fields.carrier,
+    tracking_url: carrierTrackingURL(fields.carrier, fields.trackingNumber),
     seventeen_track_id: null,
     status: fields.status as any,
     latest_checkpoint: fields.status === 'in_transit' ? `Status: ${fields.status}` : null,
