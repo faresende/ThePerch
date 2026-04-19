@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ShimmerModifier: ViewModifier {
     @State private var phase: CGFloat = -1.0
+    @State private var hasStarted = false
 
     func body(content: Content) -> some View {
         content
@@ -27,12 +28,23 @@ struct ShimmerModifier: ViewModifier {
                 }
             )
             .onAppear {
+                guard !hasStarted else { return }
+                hasStarted = true
                 guard !PerchMotion.prefersReduced else { return }
-                withAnimation(
-                    .linear(duration: 1.8)
-                    .repeatForever(autoreverses: false)
-                ) {
-                    phase = 2.0
+
+                // Random 0–700ms kickoff delay so a stack of skeleton cards
+                // doesn't shimmer in lockstep (all highlights sweeping across
+                // at the same moment reads as a synchronised wall, not
+                // independent loading cards).
+                let startDelay = Double.random(in: 0...0.7)
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(startDelay))
+                    withAnimation(
+                        .linear(duration: 1.8)
+                        .repeatForever(autoreverses: false)
+                    ) {
+                        phase = 2.0
+                    }
                 }
             }
     }

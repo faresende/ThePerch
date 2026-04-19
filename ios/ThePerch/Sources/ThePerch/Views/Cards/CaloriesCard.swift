@@ -145,35 +145,24 @@ struct CaloriesCard: View {
         }
     }
     private func triggerGoalFeedback() {
-        // Haptic
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        // Haptic fires regardless of Reduce Motion — it's confirmation, not motion.
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
 
         guard !PerchMotion.prefersReduced else { return }
 
-        // Glow pulse: 0 → 0.30 → 0 over ~400ms
-        withAnimation(.easeIn(duration: 0.2)) {
+        // Single "pulse out / pulse back" beat that drives both the glow and the
+        // percentage scale together. Unified cadence (200ms peak + 250ms return)
+        // keeps the two animated properties visually in sync — they were subtly
+        // off before because each had its own delay/duration pair.
+        withAnimation(.easeOut(duration: 0.20)) {
             glowPulse = true
-        }
-        Task {
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    glowPulse = false
-                }
-            }
-        }
-
-        // Percentage scale pop: 1.0 → 1.1 → 1.0
-        withAnimation(.easeOut(duration: 0.15)) {
             percentageScale = 1.1
         }
-        Task {
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    percentageScale = 1.0
-                }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(200))
+            withAnimation(.easeInOut(duration: 0.25)) {
+                glowPulse = false
+                percentageScale = 1.0
             }
         }
     }

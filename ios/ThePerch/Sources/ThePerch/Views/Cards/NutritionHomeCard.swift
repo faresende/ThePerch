@@ -185,7 +185,14 @@ struct NutritionHomeCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
-        .animation(.easeInOut(duration: 0.3), value: isCompact)
+        .animation(
+            PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.3),
+            value: isCompact
+        )
+        .animation(
+            PerchMotion.prefersReduced ? .none : .easeOut(duration: 0.25),
+            value: hasData
+        )
         .onAppear {
             animateRingTo(progress, color: progressColor)
             PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {

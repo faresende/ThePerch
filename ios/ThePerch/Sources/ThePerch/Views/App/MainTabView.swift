@@ -77,9 +77,6 @@ struct MainTabView: View {
         .sheet(isPresented: $isShowingCapture) {
             CaptureSheet()
         }
-        .task {
-            await dashboardViewModel.loadDashboard()
-        }
         .onChange(of: selectedTab) { oldTab, newTab in
             if newTab == .capture {
                 selectedTab = previousContentTab
@@ -88,7 +85,9 @@ struct MainTabView: View {
                 previousContentTab = newTab
             }
         }
-        .task {
+        .task(id: "main-tab-debug-routing") {
+            // Initial dashboard load is owned by ThePerchApp (auth-gated).
+            // Only handle debug-launch routing here so we don't double-fetch on launch.
             guard !didHandleDebugLaunchRouting else { return }
             didHandleDebugLaunchRouting = true
             if Self.debugLaunchesSettings {

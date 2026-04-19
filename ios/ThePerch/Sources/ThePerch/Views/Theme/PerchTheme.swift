@@ -1,8 +1,11 @@
 import SwiftUI
 
 /// Centralized theme configuration for The Perch app.
-/// Adaptive dark/light theme with warm amber accent.
-/// Dark mode: near-black with ambient glow. Light mode: warm white with neutral shadows.
+/// Tangerine — cool gray surfaces with a vivid citrus-orange accent.
+/// Light mode: clean #E8EBED page, white cards, tangerine primary.
+/// Dark mode: iOS-system charcoal (#1C1C1E) with a vivid tangerine pop.
+/// Colors derived from the Tangerine shadcn theme (shadcn.io/theme/tangerine),
+/// OKLCH → sRGB converted and mapped to SwiftUI adaptive UIColor pairs.
 struct PerchTheme {
     // MARK: - Adaptive Color Helper
 
@@ -13,125 +16,131 @@ struct PerchTheme {
         })
     }
 
-    // MARK: - Colors
+    // MARK: - Colors (Tangerine palette — OKLCH → sRGB)
 
-    /// Main background — near black (dark) / warm white (light)
+    /// Page background — cool gray (light) / iOS charcoal (dark)
+    /// Light: oklch(0.9383 0.0042 236.5) → #E8EBED
     static var background: Color {
         adaptive(
-            light: UIColor(red: 0.973, green: 0.969, blue: 0.961, alpha: 1),  // #F8F7F5
-            dark: UIColor(red: 0.071, green: 0.071, blue: 0.075, alpha: 1)    // #121213
+            light: UIColor(red: 0.910, green: 0.922, blue: 0.929, alpha: 1),  // #E8EBED
+            dark:  UIColor(red: 0.110, green: 0.110, blue: 0.118, alpha: 1)   // #1C1C1E
         )
     }
 
-    /// Elevated surface for cards (semi-transparent for glass effect)
+    /// Elevated surface for cards — white (light) / elevated charcoal (dark)
     static var cardBackground: Color {
         adaptive(
-            light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.80),     // #FFFFFF 80%
-            dark: UIColor(red: 0.098, green: 0.102, blue: 0.106, alpha: 0.70) // #191A1B 70%
+            light: UIColor(red: 1.000, green: 1.000, blue: 1.000, alpha: 1),  // #FFFFFF
+            dark:  UIColor(red: 0.173, green: 0.173, blue: 0.180, alpha: 1)   // #2C2C2E
         )
     }
 
     /// Inner surface for items within cards (checklist rows, selectors)
     static var cardInnerBackground: Color {
         adaptive(
-            light: UIColor(red: 0.949, green: 0.945, blue: 0.937, alpha: 1),  // #F2F1EF
-            dark: UIColor(red: 0.129, green: 0.133, blue: 0.145, alpha: 1)    // #212225
+            light: UIColor(red: 0.949, green: 0.957, blue: 0.965, alpha: 1),  // #F2F4F6
+            dark:  UIColor(red: 0.227, green: 0.227, blue: 0.235, alpha: 1)   // #3A3A3C
         )
     }
 
-    /// Card hover/pressed state
+    /// Card hover/pressed state — one step deeper than cardInner
     static var cardHover: Color {
         adaptive(
-            light: UIColor(red: 0.929, green: 0.925, blue: 0.918, alpha: 1),  // #EDECEB
-            dark: UIColor(red: 0.149, green: 0.153, blue: 0.169, alpha: 1)    // #26272B
+            light: UIColor(red: 0.867, green: 0.875, blue: 0.898, alpha: 1),  // #DDDFE5
+            dark:  UIColor(red: 0.282, green: 0.282, blue: 0.290, alpha: 1)   // #48484A
         )
     }
 
-    /// Primary text — near white (dark) / near black (light)
+    /// Primary text — near-black (light) / near-white (dark)
+    /// Light: oklch(0.3211 0 0) → #333333
     static var textPrimary: Color {
         adaptive(
-            light: UIColor(red: 0.102, green: 0.102, blue: 0.102, alpha: 1),  // #1A1A1A
-            dark: UIColor(red: 0.949, green: 0.941, blue: 0.922, alpha: 1)    // #F2F0EB
+            light: UIColor(red: 0.200, green: 0.200, blue: 0.200, alpha: 1),  // #333333
+            dark:  UIColor(red: 0.949, green: 0.949, blue: 0.969, alpha: 1)   // #F2F2F7
         )
     }
 
-    /// Secondary text — neutral gray (WCAG AA compliant, ≥4.5:1 on cards)
+    /// Secondary text — muted gray (WCAG AA on card surfaces)
+    /// Light: oklch(0.5510 0.0234 264.4) → #6B7280
     static var textSecondary: Color {
         adaptive(
-            light: UIColor(red: 0.420, green: 0.420, blue: 0.440, alpha: 1),  // #6B6B70
-            dark: UIColor(red: 0.635, green: 0.616, blue: 0.584, alpha: 1)    // #A29D95
+            light: UIColor(red: 0.420, green: 0.447, blue: 0.502, alpha: 1),  // #6B7280
+            dark:  UIColor(red: 0.682, green: 0.682, blue: 0.698, alpha: 1)   // #AEAEB2
         )
     }
 
-    /// Tertiary text — dim (WCAG AA compliant, ≥4.5:1 on background)
+    /// Tertiary text — dimmer, for timestamps and footnotes
     static var textTertiary: Color {
         adaptive(
-            light: UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 1),  // #8E8E93
-            dark: UIColor(red: 0.490, green: 0.471, blue: 0.443, alpha: 1)    // #7D7871
+            light: UIColor(red: 0.612, green: 0.639, blue: 0.686, alpha: 1),  // #9CA3AF
+            dark:  UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 1)   // #8E8E93
         )
     }
 
-    /// Accent — warm amber/gold, slightly deeper in light mode for contrast
+    /// Accent — tangerine orange (the theme's `primary`)
+    /// Light: oklch(0.6397 0.1720 36.44) → #E05D38
+    /// Dark: slightly brighter for contrast on charcoal → #FF7040
     static var accent: Color {
         adaptive(
-            light: UIColor(red: 0.784, green: 0.518, blue: 0.039, alpha: 1),  // #C8840A
-            dark: UIColor(red: 0.949, green: 0.690, blue: 0.290, alpha: 1)    // #F2B04A
+            light: UIColor(red: 0.878, green: 0.365, blue: 0.220, alpha: 1),  // #E05D38
+            dark:  UIColor(red: 1.000, green: 0.439, blue: 0.251, alpha: 1)   // #FF7040
         )
     }
 
-    /// Text color for use on accent-colored backgrounds (WCAG AA ≥4.5:1)
+    /// Text color for use on accent-colored backgrounds
     static var accentForeground: Color {
         adaptive(
-            light: UIColor(red: 0.15, green: 0.10, blue: 0.0, alpha: 1),     // #261A00 — dark brown
-            dark: UIColor(red: 0.102, green: 0.071, blue: 0.024, alpha: 1)   // #1A1206 — near-black warm
+            light: UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1),        // #FFFFFF
+            dark:  UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1)         // #FFFFFF
         )
     }
 
     /// Muted accent for tinted backgrounds
     static var accentMuted: Color {
         adaptive(
-            light: UIColor(red: 0.831, green: 0.580, blue: 0.051, alpha: 0.10),
-            dark: UIColor(red: 0.96, green: 0.68, blue: 0.15, alpha: 0.15)
+            light: UIColor(red: 0.878, green: 0.365, blue: 0.220, alpha: 0.12),
+            dark:  UIColor(red: 1.000, green: 0.439, blue: 0.251, alpha: 0.18)
         )
     }
 
-    /// Accent glow — amber glow in dark mode, transparent in light mode
+    /// Accent glow — subtle citrus halo in dark mode
     static var accentGlow: Color {
         adaptive(
-            light: UIColor(red: 0, green: 0, blue: 0, alpha: 0),              // transparent
-            dark: UIColor(red: 0.949, green: 0.690, blue: 0.290, alpha: 0.14) // amber glow
+            light: UIColor(red: 0, green: 0, blue: 0, alpha: 0),
+            dark:  UIColor(red: 1.000, green: 0.439, blue: 0.251, alpha: 0.12)
         )
     }
 
-    /// Success — slightly deeper in light mode
+    /// Success — clean green
     static var success: Color {
         adaptive(
-            light: UIColor(red: 0.114, green: 0.541, blue: 0.235, alpha: 1),  // #1D8A3C
-            dark: UIColor(red: 0.220, green: 0.788, blue: 0.478, alpha: 1)    // #38C97A
+            light: UIColor(red: 0.086, green: 0.639, blue: 0.290, alpha: 1),  // #16A34A
+            dark:  UIColor(red: 0.204, green: 0.780, blue: 0.349, alpha: 1)   // #34C759
         )
     }
 
-    /// Warning — warm orange, visually distinct from accent amber
+    /// Warning — amber, distinct from tangerine accent
     static var warning: Color {
         adaptive(
-            light: UIColor(red: 0.769, green: 0.498, blue: 0.039, alpha: 1),  // #C47F0A
-            dark: UIColor(red: 0.941, green: 0.635, blue: 0.290, alpha: 1)    // #F0A24A
+            light: UIColor(red: 0.851, green: 0.467, blue: 0.024, alpha: 1),  // #D97706
+            dark:  UIColor(red: 1.000, green: 0.624, blue: 0.039, alpha: 1)   // #FF9F0A
         )
     }
 
     /// Subtle warning background tint
     static var warningBackground: Color {
         adaptive(
-            light: UIColor(red: 0.922, green: 0.600, blue: 0.149, alpha: 0.10),
-            dark: UIColor(red: 0.922, green: 0.600, blue: 0.149, alpha: 0.15)
+            light: UIColor(red: 0.851, green: 0.467, blue: 0.024, alpha: 0.12),
+            dark:  UIColor(red: 1.000, green: 0.624, blue: 0.039, alpha: 0.15)
         )
     }
 
-    /// Error — slightly deeper in light mode
+    /// Error — red (the theme's `destructive`)
+    /// Light: oklch(0.6368 0.2078 25.33) → #DC2626
     static var error: Color {
         adaptive(
-            light: UIColor(red: 0.769, green: 0.169, blue: 0.169, alpha: 1),  // #C42B2B
-            dark: UIColor(red: 0.910, green: 0.353, blue: 0.353, alpha: 1)    // #E85A5A
+            light: UIColor(red: 0.863, green: 0.149, blue: 0.149, alpha: 1),  // #DC2626
+            dark:  UIColor(red: 1.000, green: 0.271, blue: 0.227, alpha: 1)   // #FF453A
         )
     }
 
@@ -140,8 +149,8 @@ struct PerchTheme {
     static var macroCarbs: Color { accent }
     static var macroFat: Color {
         adaptive(
-            light: UIColor(red: 0.900, green: 0.400, blue: 0.350, alpha: 1),
-            dark: UIColor(red: 0.900, green: 0.400, blue: 0.350, alpha: 1)
+            light: UIColor(red: 0.706, green: 0.325, blue: 0.035, alpha: 1),  // #B45309 — deep amber
+            dark:  UIColor(red: 0.910, green: 0.588, blue: 0.047, alpha: 1)   // #E8960C
         )
     }
 
@@ -157,74 +166,75 @@ struct PerchTheme {
         [macroFat.opacity(0.72), macroFat]
     }
 
-    /// Border — subtle, neutral
+    /// Border — light cool gray hairline
+    /// Light: oklch(0.9022 0.0052 247.9) → #DDE2EC
     static var border: Color {
         adaptive(
-            light: UIColor(red: 0.847, green: 0.839, blue: 0.827, alpha: 1),  // #D8D6D3
-            dark: UIColor(red: 0.173, green: 0.180, blue: 0.200, alpha: 1)    // #2C2E33
+            light: UIColor(red: 0.867, green: 0.886, blue: 0.925, alpha: 1),  // #DDE2EC
+            dark:  UIColor(red: 0.227, green: 0.227, blue: 0.235, alpha: 1)   // #3A3A3C
         )
     }
 
-    /// Secondary accent — cool steel gray from icon tips
+    /// Secondary accent — cool slate blue-gray
     static var steel: Color {
         adaptive(
-            light: UIColor(red: 0.357, green: 0.380, blue: 0.420, alpha: 1),  // #5B616B
-            dark: UIColor(red: 0.655, green: 0.678, blue: 0.714, alpha: 1)    // #A7ADB6
+            light: UIColor(red: 0.392, green: 0.455, blue: 0.545, alpha: 1),  // #64748B
+            dark:  UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 1)   // #8E8E93
         )
     }
 
     /// Low-contrast steel tint for dividers and subtle iconography
     static var steelMuted: Color {
         adaptive(
-            light: UIColor(red: 0.357, green: 0.380, blue: 0.420, alpha: 0.10),
-            dark: UIColor(red: 0.655, green: 0.678, blue: 0.714, alpha: 0.16)
+            light: UIColor(red: 0.392, green: 0.455, blue: 0.545, alpha: 0.10),
+            dark:  UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 0.16)
         )
     }
 
     /// Hairline dividers (especially inside cards)
     static var divider: Color {
         adaptive(
-            light: UIColor(red: 0.898, green: 0.882, blue: 0.859, alpha: 1),  // #E5E1DB
-            dark: UIColor(red: 0.165, green: 0.169, blue: 0.184, alpha: 1)    // #2A2B2F
+            light: UIColor(red: 0.867, green: 0.886, blue: 0.925, alpha: 0.70),
+            dark:  UIColor(red: 0.227, green: 0.227, blue: 0.235, alpha: 0.85)
         )
     }
 
-    /// Focus ring for selected controls (dark mode only)
+    /// Focus ring for selected controls
     static var focusRing: Color {
         adaptive(
-            light: UIColor(red: 0, green: 0, blue: 0, alpha: 0),
-            dark: UIColor(red: 0.949, green: 0.690, blue: 0.290, alpha: 0.28)
+            light: UIColor(red: 0.878, green: 0.365, blue: 0.220, alpha: 0.30),
+            dark:  UIColor(red: 1.000, green: 0.439, blue: 0.251, alpha: 0.30)
         )
     }
 
-    // MARK: - Typography
+    // MARK: - Typography (SF Pro — clean modern sans-serif matching Tangerine aesthetic)
 
     enum Font {
         /// 40pt — tab page headers
-        static let largeTitle = SwiftUI.Font.system(size: 40, weight: .bold)
+        static let largeTitle = SwiftUI.Font.system(size: 40, weight: .bold, design: .default)
         /// 34pt — large hero numbers, page titles
-        static let display = SwiftUI.Font.system(size: 34, weight: .bold)
+        static let display = SwiftUI.Font.system(size: 34, weight: .bold, design: .default)
         /// 24pt — section titles
-        static let title = SwiftUI.Font.system(size: 24, weight: .semibold)
+        static let title = SwiftUI.Font.system(size: 24, weight: .semibold, design: .default)
         /// 18pt — card titles, emphasis
-        static let heading = SwiftUI.Font.system(size: 18, weight: .semibold)
+        static let heading = SwiftUI.Font.system(size: 18, weight: .semibold, design: .default)
         /// 15pt — regular text
-        static let body = SwiftUI.Font.system(size: 15, weight: .regular)
+        static let body = SwiftUI.Font.system(size: 15, weight: .regular, design: .default)
         /// 13pt — metadata, labels
-        static let caption = SwiftUI.Font.system(size: 13, weight: .regular)
+        static let caption = SwiftUI.Font.system(size: 13, weight: .regular, design: .default)
         /// 11pt — footnotes, timestamps
-        static let micro = SwiftUI.Font.system(size: 11, weight: .regular)
+        static let micro = SwiftUI.Font.system(size: 11, weight: .regular, design: .default)
         /// 12pt — uppercase card section labels
-        static let cardEyebrow = SwiftUI.Font.system(size: 12, weight: .semibold)
+        static let cardEyebrow = SwiftUI.Font.system(size: 12, weight: .semibold, design: .default)
 
-        // Numeric variants — .rounded design for data displays
-        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .bold, design: .rounded)
-        static let displayNumeric = SwiftUI.Font.system(size: 34, weight: .bold, design: .rounded)
-        static let titleNumeric = SwiftUI.Font.system(size: 24, weight: .bold, design: .rounded)
-        static let headingNumeric = SwiftUI.Font.system(size: 18, weight: .bold, design: .rounded)
-        static let bodyNumeric = SwiftUI.Font.system(size: 15, weight: .semibold, design: .rounded)
-        static let captionNumeric = SwiftUI.Font.system(size: 13, weight: .semibold, design: .rounded)
-        static let microNumeric = SwiftUI.Font.system(size: 11, weight: .semibold, design: .rounded)
+        // Numeric variants — .monospaced for clean data display
+        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .bold,     design: .monospaced)
+        static let displayNumeric    = SwiftUI.Font.system(size: 34, weight: .bold,     design: .monospaced)
+        static let titleNumeric      = SwiftUI.Font.system(size: 24, weight: .bold,     design: .monospaced)
+        static let headingNumeric    = SwiftUI.Font.system(size: 18, weight: .bold,     design: .monospaced)
+        static let bodyNumeric       = SwiftUI.Font.system(size: 15, weight: .semibold, design: .monospaced)
+        static let captionNumeric    = SwiftUI.Font.system(size: 13, weight: .semibold, design: .monospaced)
+        static let microNumeric      = SwiftUI.Font.system(size: 11, weight: .semibold, design: .monospaced)
 
         // Icon variant — use for SF Symbol sizing (passes through PerchTheme.Icon constants)
         static func icon(_ size: CGFloat) -> SwiftUI.Font {
@@ -251,15 +261,15 @@ struct PerchTheme {
         static let xxxLarge: CGFloat = 80
     }
 
-    // MARK: - Card Styling
+    // MARK: - Card Styling (friendly rounded corners — Tangerine `radius: ~0.6rem`)
 
     enum Card {
-        static let cornerRadius: CGFloat = 16
-        static let innerCornerRadius: CGFloat = 10
+        static let cornerRadius: CGFloat = 10
+        static let innerCornerRadius: CGFloat = 7
         static let padding: CGFloat = 20
-        static let shadowRadius: CGFloat = 6
-        static let shadowOpacity: Double = 0.2
-        static let borderWidth: CGFloat = 0.5
+        static let shadowRadius: CGFloat = 5
+        static let shadowOpacity: Double = 0.12
+        static let borderWidth: CGFloat = 1
     }
 
     enum HomeCard {
@@ -272,7 +282,7 @@ struct PerchTheme {
         static let trailingColumnMinWidth: CGFloat = 96
         static let badgeMaxWidth: CGFloat = 96
         static let itemPadding: CGFloat = 10
-        static let itemCornerRadius: CGFloat = 10
+        static let itemCornerRadius: CGFloat = 4
     }
 
     // MARK: - Tab Bar
@@ -282,7 +292,7 @@ struct PerchTheme {
         static let visualRailHeight: CGFloat = 83
         static let iconSize: CGFloat = 24
         static let labelSize: CGFloat = 10
-        static let glassOpacity: Double = 0.72
+        static let glassOpacity: Double = 0.92
         static let floatingCaptureClearance: CGFloat = 0
 
         static var contentInsetHeight: CGFloat {
@@ -307,8 +317,8 @@ struct PerchTheme {
 
     // MARK: - Glass Card Style
 
-    /// Glass material card — ultraThinMaterial with subtle accent tint on top border.
-    /// Use for navigation chrome only (e.g. tab bar). Content cards use standard cardStyle().
+    /// Glass material card — retained for navigation chrome (tab bar).
+    /// Content cards use standard cardStyle().
     static func glassCard() -> some View {
         EmptyView() // Placeholder; actual implementation in GlassTabBar.swift
     }
@@ -346,17 +356,17 @@ private struct PerchGlowModifier: ViewModifier {
             let alpha: Double = {
                 switch level {
                 case .none: return 0.0
-                case .ambient: return 0.14
-                case .attention: return 0.22
-                case .urgent: return 0.34
+                case .ambient: return 0.10
+                case .attention: return 0.16
+                case .urgent: return 0.24
                 }
             }()
             let r1: CGFloat = {
                 switch level {
                 case .none: return 0
-                case .ambient: return 18
-                case .attention: return 16
-                case .urgent: return 14
+                case .ambient: return 16
+                case .attention: return 14
+                case .urgent: return 12
                 }
             }()
             let r2: CGFloat = {
@@ -369,7 +379,7 @@ private struct PerchGlowModifier: ViewModifier {
             }()
             content
                 .shadow(color: PerchTheme.accent.opacity(alpha), radius: r1, x: 0, y: 0)
-                .shadow(color: Color.black.opacity(0.35), radius: r2, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.30), radius: r2, x: 0, y: 2)
         }
     }
 }
@@ -415,7 +425,7 @@ enum CardProminence {
 
 extension View {
     /// Apply card styling with adaptive shadows.
-    /// Default cards use neutral depth; glow is applied selectively.
+    /// Tangerine cards: white surface on cool gray page + hairline border + soft neutral shadow.
     func cardStyle() -> some View {
         modifier(CardStyleModifier())
     }
@@ -483,29 +493,15 @@ private struct CardStyleModifier: ViewModifier {
         let cardShape = RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
 
         content
-            .background(
-                cardShape
-                    .fill(.ultraThinMaterial)
-                    .opacity(colorScheme == .dark ? 0.85 : 0.95)
-            )
-            .glassEffect(.regular, in: cardShape)
+            .background(cardShape.fill(PerchTheme.cardBackground))
             .overlay(
-                cardShape
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                PerchTheme.accent.opacity(colorScheme == .dark ? 0.22 : 0.10),
-                                PerchTheme.border.opacity(colorScheme == .dark ? 0.85 : 0.60)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: PerchTheme.Card.borderWidth
-                    )
+                cardShape.stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
             )
+            // Cool neutral shadow — Tangerine theme uses a soft gray drop shadow.
             .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08),
-                radius: 8,
+                color: Color.black
+                    .opacity(colorScheme == .dark ? 0.36 : 0.08),
+                radius: PerchTheme.Card.shadowRadius,
                 x: 0,
                 y: 2
             )
@@ -632,7 +628,7 @@ private struct CardProminenceModifier: ViewModifier {
             content
                 .overlay(
                     RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                        .stroke(PerchTheme.accent.opacity(0.3), lineWidth: 1.5)
+                        .stroke(PerchTheme.accent.opacity(0.35), lineWidth: 1.5)
                 )
         case .standard:
             content
@@ -653,7 +649,7 @@ private struct HeroCardModifier: ViewModifier {
             .padding(.vertical, PerchTheme.Spacing.xSmall)
             .overlay(alignment: .top) {
                 LinearGradient(
-                    colors: [PerchTheme.steel.opacity(0.35), PerchTheme.accent.opacity(0.50)],
+                    colors: [PerchTheme.steel.opacity(0.30), PerchTheme.accent.opacity(0.55)],
                     startPoint: .leading,
                     endPoint: .trailing
                 )

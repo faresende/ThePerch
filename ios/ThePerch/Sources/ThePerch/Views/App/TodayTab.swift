@@ -9,7 +9,6 @@ struct TodayTab: View {
     @State private var searchText = ""
     @State private var cardsAppeared = false
     @State private var ambience = AmbienceManager.shared
-    @State private var skeletonExpired = false
 
     let onOpenProfile: () -> Void
 
@@ -19,11 +18,28 @@ struct TodayTab: View {
         self.onOpenProfile = onOpenProfile
     }
 
+    /// The four visible states the content area can be in.
+    /// Driving transitions off a single enum value gives SwiftUI a stable key
+    /// for `.animation(value:)` so skeleton → content swaps fade cleanly.
+    private enum ContentState: Hashable {
+        case searching
+        case loading
+        case empty
+        case content
+    }
+
+    private func contentState(records: [Record], deliveries: [DeliveryData]) -> ContentState {
+        if !searchText.isEmpty { return .searching }
+        if dashboardViewModel.isLoading && records.isEmpty { return .loading }
+        if records.isEmpty && deliveries.isEmpty { return .empty }
+        return .content
+    }
+
     var body: some View {
         ZStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Compact header: greeting + date
+                    // Compact header: greeting + date + (optional) refresh indicator
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text(greetingText)
                             .font(PerchTheme.Font.heading)
@@ -38,12 +54,27 @@ struct TodayTab: View {
                             .foregroundColor(PerchTheme.textSecondary)
                             .lineLimit(1)
 
+                        // Tiny inline spinner while cached data is being refreshed in the
+                        // background. Shows only for the brief window between cache-hit
+                        // render and network response, so users aren't staring at data
+                        // that's silently being replaced.
+                        if dashboardViewModel.isShowingCachedData {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .tint(PerchTheme.textTertiary)
+                                .transition(.opacity)
+                        }
+
                         Spacer()
 
                         todayProfileEntry
                     }
                     .padding(.horizontal, PerchTheme.Spacing.large)
                     .padding(.top, PerchTheme.Spacing.small)
+                    .animation(
+                        PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.2),
+                        value: dashboardViewModel.isShowingCachedData
+                    )
 
                     // Dual clock (shows when traveling to a different timezone)
                     if let clock = viewModel.dualClockInfo {
@@ -73,49 +104,40 @@ struct TodayTab: View {
                     // to avoid the .onChange → viewModel.records timing gap.
                     let records = dashboardViewModel.allRecords
                     let deliveries = dashboardViewModel.trackedDeliveries
+                    let state = contentState(records: records, deliveries: deliveries)
 
-                    if !searchText.isEmpty {
-                        // Search results
-                        SearchView(searchText: $searchText, records: records, deliveries: deliveries)
-                    } else if dashboardViewModel.isLoading && records.isEmpty && !skeletonExpired {
-                        SkeletonCardsSection(count: 3)
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-                            .task {
-                                try? await Task.sleep(for: .seconds(15))
-                                guard dashboardViewModel.isLoading && dashboardViewModel.allRecords.isEmpty else { return }
-                                withAnimation { skeletonExpired = true }
+                    Group {
+                        switch state {
+                        case .searching:
+                            SearchView(searchText: $searchText, records: records, deliveries: deliveries)
+                                .transition(.opacity)
+
+                        case .loading:
+                            SkeletonCardsSection(count: 3)
+                                .padding(.horizontal, PerchTheme.Spacing.large)
+                                .transition(.opacity)
+
+                        case .empty:
+                            EmptyStateView(
+                                icon: "tray",
+                                title: "No data yet",
+                                subtitle: "Pull to refresh or tap below to try syncing again.",
+                                actionTitle: "Refresh"
+                            ) {
+                                Task { await dashboardViewModel.loadDashboard(forceRefresh: true) }
                             }
-                    } else if records.isEmpty && deliveries.isEmpty {
-                        EmptyStateView(
-                            icon: "tray",
-                            title: "No data yet",
-                            subtitle: "Pull to refresh or tap below to try syncing again.",
-                            actionTitle: "Refresh"
-                        ) {
-                            Task { await dashboardViewModel.loadDashboard(forceRefresh: true) }
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                    } else {
-                        quickGlanceBar
-                            .padding(.horizontal, PerchTheme.Spacing.large)
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
 
-                        // Travel card (contextual — only appears when trip is upcoming/active)
-                        TravelHomeCard(records: records, deliveries: deliveries)
-
-                        // Modular cards in time-of-day order
-                        VStack(spacing: PerchTheme.Spacing.medium) {
-                            let orderedCards = HomeCardOrdering.orderedCards()
-                            let isCompactHealth = HomeCardOrdering.isHealthCompact()
-                            ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
-                                homeCard(for: cardType, compactHealth: isCompactHealth, records: records, deliveries: deliveries)
-                                    .cardAppear(index: index, appeared: cardsAppeared)
-                            }
-                        }
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                        .onAppear {
-                            PerchMotion.withOptionalAnimation { cardsAppeared = true }
+                        case .content:
+                            contentStack(records: records, deliveries: deliveries)
+                                .transition(.opacity)
                         }
                     }
+                    .animation(
+                        PerchMotion.prefersReduced ? .none : .easeOut(duration: 0.22),
+                        value: state
+                    )
 
                     // Bottom padding for tab bar
                     Color.clear
@@ -138,8 +160,33 @@ struct TodayTab: View {
         .onAppear {
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
-        .onChange(of: dashboardViewModel.isLoading) { _, loading in
-            if !loading { skeletonExpired = false }
+    }
+
+    /// The hydrated Today feed: quick-glance chips, contextual travel card, and the
+    /// time-of-day-ordered modular card stack. Kept as a dedicated builder so the
+    /// `.content` branch in the state switch stays a single typed view.
+    @ViewBuilder
+    private func contentStack(records: [Record], deliveries: [DeliveryData]) -> some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+            quickGlanceBar
+                .padding(.horizontal, PerchTheme.Spacing.large)
+
+            // Travel card (contextual — only appears when trip is upcoming/active)
+            TravelHomeCard(records: records, deliveries: deliveries)
+
+            // Modular cards in time-of-day order
+            VStack(spacing: PerchTheme.Spacing.medium) {
+                let orderedCards = HomeCardOrdering.orderedCards()
+                let isCompactHealth = HomeCardOrdering.isHealthCompact()
+                ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
+                    homeCard(for: cardType, compactHealth: isCompactHealth, records: records, deliveries: deliveries)
+                        .cardAppear(index: index, appeared: cardsAppeared)
+                }
+            }
+            .padding(.horizontal, PerchTheme.Spacing.large)
+            .onAppear {
+                PerchMotion.withOptionalAnimation { cardsAppeared = true }
+            }
         }
     }
 
