@@ -37,7 +37,7 @@ struct ThePerchApp: App {
             ZStack {
                 PerchTheme.background.ignoresSafeArea()
 
-                if !isConfigured {
+if !isConfigured {
                     // Step 1: No backend configured, show setup wizard.
                     OnboardingView {
                         isConfigured = true
