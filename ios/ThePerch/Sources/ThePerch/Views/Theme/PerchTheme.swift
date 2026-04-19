@@ -1,14 +1,16 @@
 import SwiftUI
 
 /// Centralized theme configuration for The Perch app.
-/// "Gentler Perch" — warm editorial aesthetic inspired by Gentler Streak's
-/// soft, encouraging tone. Cream (#F7F3EC) page behind soft-warm cards,
-/// stone-palette text (warm neutrals, not cold zinc), 20pt radii so cards
-/// feel plush, dual-accent vocabulary: tangerine (#E05D38) for kinetic
-/// signal (actions, alerts, travel, deliveries) and sage (#7A9E7C) for
-/// wellness signal (nutrition, health, sleep, workouts). Data paired with
-/// rotating interpretive phrases — "Light day" instead of just "489 kcal".
-/// Dark mode on stone-950 / stone-900 preserving the warmth.
+/// "Linen / Editorial" — Variant A of the Claude-Design-driven redesign.
+/// Warm paper palette with a literary editorial voice: linen #F5F0E6 page,
+/// barely-lifted cream #FCF8EF cards, burnt-sienna kinetic accent #C7512E,
+/// dusky sage wellness #6E8D6F. Cards are chrome-free (no borders, no
+/// shadows in light mode) — depth comes from tonal contrast alone.
+/// Typography uses a system serif (.serif / New York) for the greeting and
+/// interpretive phrases, bringing an editorial italic voice; SF Pro (default)
+/// handles UI / labels / body; all numerics use .monospacedDigit() for
+/// aligned columns without the glyph inflation of full monospaced fonts.
+/// Dark mode mirrors on #17130F background / #1F1A15 cards preserving warmth.
 struct PerchTheme {
     // MARK: - Adaptive Color Helper
 
@@ -21,97 +23,95 @@ struct PerchTheme {
 
     // MARK: - Colors (Tangerine palette — OKLCH → sRGB)
 
-    /// Page background — cream/linen (light) / stone-950 (dark).
-    /// Warm neutrals that read as "paper" instead of "screen". The #F7F3EC
-    /// cream gives a softer canvas than cool off-whites, and preserves
-    /// depth against the soft-warm card surfaces without any border chrome.
+    /// Page background — linen (light) / warm near-black (dark).
+    /// Linen at #F5F0E6 is more saturated than the previous cream —
+    /// it reads as real paper, not just "off-white".
     static var background: Color {
         adaptive(
-            light: UIColor(red: 0.969, green: 0.953, blue: 0.925, alpha: 1),  // #F7F3EC (linen)
-            dark:  UIColor(red: 0.043, green: 0.039, blue: 0.035, alpha: 1)   // #0B0A09 (stone-950)
+            light: UIColor(red: 0.961, green: 0.941, blue: 0.902, alpha: 1),  // #F5F0E6 (linen)
+            dark:  UIColor(red: 0.090, green: 0.075, blue: 0.059, alpha: 1)   // #17130F
         )
     }
 
-    /// Elevated surface for cards — soft warm white (light) / stone-900 (dark).
-    /// Not quite pure white — #FEFCF8 has the barest cream undertone so cards
-    /// feel part of the same warm world as the background, not sterile islands.
+    /// Card surface — softer cream, barely lifted off linen.
+    /// Depth comes from this tonal contrast, not shadows or borders.
     static var cardBackground: Color {
         adaptive(
-            light: UIColor(red: 0.996, green: 0.988, blue: 0.973, alpha: 1),  // #FEFCF8 (soft warm white)
-            dark:  UIColor(red: 0.110, green: 0.098, blue: 0.094, alpha: 1)   // #1C1918 (stone-900)
+            light: UIColor(red: 0.988, green: 0.973, blue: 0.937, alpha: 1),  // #FCF8EF (soft cream)
+            dark:  UIColor(red: 0.122, green: 0.102, blue: 0.082, alpha: 1)   // #1F1A15
         )
     }
 
-    /// Inner surface for items within cards — barely-lifted warm neutral
-    /// in light, one notch up in dark.
+    /// Inner surface / chip background — #EDE6D6 light / #2A231B dark.
+    /// Used for pill chips, retailer badges, search bar, out-for-delivery
+    /// row highlights.
     static var cardInnerBackground: Color {
         adaptive(
-            light: UIColor(red: 0.953, green: 0.941, blue: 0.922, alpha: 1),  // #F3F0EB (warm stone-100)
-            dark:  UIColor(red: 0.161, green: 0.145, blue: 0.137, alpha: 1)   // #292523 (stone-800)
+            light: UIColor(red: 0.929, green: 0.902, blue: 0.839, alpha: 1),  // #EDE6D6 (chipBg)
+            dark:  UIColor(red: 0.165, green: 0.137, blue: 0.106, alpha: 1)   // #2A231B
         )
     }
 
     /// Card hover/pressed state — one step deeper than cardInner.
     static var cardHover: Color {
         adaptive(
-            light: UIColor(red: 0.906, green: 0.890, blue: 0.867, alpha: 1),  // #E7E3DD
-            dark:  UIColor(red: 0.235, green: 0.216, blue: 0.208, alpha: 1)   // #3C3735
+            light: UIColor(red: 0.890, green: 0.859, blue: 0.784, alpha: 1),  // #E3DBC8
+            dark:  UIColor(red: 0.208, green: 0.176, blue: 0.137, alpha: 1)   // #352D23
         )
     }
 
-    /// Primary text — warm near-black (light) / cream-white (dark).
-    /// Stone-900 instead of pure black gives a softer, "ink-on-paper" feel.
+    /// Primary text — warm ink (light) / warm cream (dark).
+    /// #1B1714 has enough warmth to read as ink, not cold black.
     static var textPrimary: Color {
         adaptive(
-            light: UIColor(red: 0.110, green: 0.098, blue: 0.090, alpha: 1),  // #1C1917 (stone-900)
-            dark:  UIColor(red: 0.969, green: 0.961, blue: 0.949, alpha: 1)   // #F7F5F2 (warm white)
+            light: UIColor(red: 0.106, green: 0.090, blue: 0.078, alpha: 1),  // #1B1714 (warm ink)
+            dark:  UIColor(red: 0.945, green: 0.918, blue: 0.867, alpha: 1)   // #F1EADD (warm cream)
         )
     }
 
-    /// Secondary text — warm stone-500 light / stone-400 dark.
-    /// Meets WCAG AA on card surfaces in both modes.
+    /// Secondary text — stone (light) / warm tan (dark).
+    /// Used for eyebrows, muted metadata.
     static var textSecondary: Color {
         adaptive(
-            light: UIColor(red: 0.471, green: 0.443, blue: 0.420, alpha: 1),  // #78716C (stone-500)
-            dark:  UIColor(red: 0.659, green: 0.635, blue: 0.608, alpha: 1)   // #A8A29E (stone-400)
+            light: UIColor(red: 0.431, green: 0.396, blue: 0.353, alpha: 1),  // #6E655A (stone)
+            dark:  UIColor(red: 0.651, green: 0.608, blue: 0.545, alpha: 1)   // #A69B8B
         )
     }
 
-    /// Tertiary text — stone-400 light / stone-500 dark. Timestamps, helpers.
+    /// Tertiary text — #A69B8B light / #6E655A dark.
+    /// Freshness labels, dividers, placeholder captions.
     static var textTertiary: Color {
         adaptive(
-            light: UIColor(red: 0.659, green: 0.635, blue: 0.608, alpha: 1),  // #A8A29E (stone-400)
-            dark:  UIColor(red: 0.471, green: 0.443, blue: 0.420, alpha: 1)   // #78716C (stone-500)
+            light: UIColor(red: 0.651, green: 0.608, blue: 0.545, alpha: 1),  // #A69B8B
+            dark:  UIColor(red: 0.431, green: 0.396, blue: 0.353, alpha: 1)   // #6E655A
         )
     }
 
-    /// Accent — tangerine orange. Gentler Perch reserves tangerine for
-    /// KINETIC signal: actions, alerts, travel, deliveries, the "something
-    /// is happening" energy. Wellness cards (nutrition, health, sleep) use
-    /// `wellness` (sage green) instead so the feed doesn't shout in one color.
+    /// Accent — burnt sienna. Kinetic signal: Now chips, time-sensitive
+    /// states, high-priority, deliveries dot, travel accent. More restrained
+    /// than the old tangerine — reads as editorial ink, not alert.
     static var accent: Color {
         adaptive(
-            light: UIColor(red: 0.878, green: 0.365, blue: 0.220, alpha: 1),  // #E05D38
-            dark:  UIColor(red: 1.000, green: 0.439, blue: 0.251, alpha: 1)   // #FF7040
+            light: UIColor(red: 0.780, green: 0.318, blue: 0.180, alpha: 1),  // #C7512E (burnt sienna)
+            dark:  UIColor(red: 0.886, green: 0.478, blue: 0.337, alpha: 1)   // #E27A56 (lifted for dark bg)
         )
     }
 
-    /// Wellness accent — soft sage green. Used for nutrition, health summary,
-    /// sleep/recovery, workouts — anything body-related. Calmer than the
-    /// tangerine so the dashboard has two distinct emotional registers:
-    /// "do/go" (tangerine) and "notice/restore" (sage).
+    /// Wellness accent — dusky sage. Slightly desaturated from the prior
+    /// sage: reads as foliage, not neon. Used for Calendar eyebrow,
+    /// Nutrition ring, Health metrics, Meds check, Email priority-low.
     static var wellness: Color {
         adaptive(
-            light: UIColor(red: 0.478, green: 0.620, blue: 0.486, alpha: 1),  // #7A9E7C (soft sage)
-            dark:  UIColor(red: 0.588, green: 0.737, blue: 0.592, alpha: 1)   // #96BC97 (brighter sage for dark bg)
+            light: UIColor(red: 0.431, green: 0.553, blue: 0.435, alpha: 1),  // #6E8D6F (dusky sage)
+            dark:  UIColor(red: 0.612, green: 0.745, blue: 0.616, alpha: 1)   // #9CBE9D
         )
     }
 
     /// Soft wellness tint for backgrounds of "at target / success" states.
     static var wellnessMuted: Color {
         adaptive(
-            light: UIColor(red: 0.478, green: 0.620, blue: 0.486, alpha: 0.12),
-            dark:  UIColor(red: 0.588, green: 0.737, blue: 0.592, alpha: 0.18)
+            light: UIColor(red: 0.431, green: 0.553, blue: 0.435, alpha: 0.12),
+            dark:  UIColor(red: 0.612, green: 0.745, blue: 0.616, alpha: 0.18)
         )
     }
 
@@ -160,13 +160,13 @@ struct PerchTheme {
         )
     }
 
-    /// Error — warm terracotta instead of alarm red. Still clearly signals
-    /// "something's off" but in the same warm register as the rest of the
-    /// palette, so it doesn't break the calm when it appears.
+    /// Error — deep warm red, reserved for genuine errors only. Sits in the
+    /// same warm register as the rest of the palette so it feels like the
+    /// book rather than a dialog box.
     static var error: Color {
         adaptive(
-            light: UIColor(red: 0.722, green: 0.290, blue: 0.231, alpha: 1),  // #B84A3B (terracotta)
-            dark:  UIColor(red: 0.847, green: 0.478, blue: 0.412, alpha: 1)   // #D87A69 (lighter terracotta)
+            light: UIColor(red: 0.620, green: 0.247, blue: 0.188, alpha: 1),  // #9E3F30
+            dark:  UIColor(red: 0.784, green: 0.463, blue: 0.408, alpha: 1)   // #C87668
         )
     }
 
@@ -192,12 +192,13 @@ struct PerchTheme {
         [macroFat.opacity(0.72), macroFat]
     }
 
-    /// Border — warm stone hairline, only used for inner dividers now.
-    /// The main card style no longer uses borders (depth from tonal contrast).
+    /// Line — warm hairline, used for progress-bar tracks, dividers between
+    /// rows inside cards, and the TimePair top/bottom rules in TravelCard.
+    /// Not a border around cards — cards remain chrome-free in Variant A.
     static var border: Color {
         adaptive(
-            light: UIColor(red: 0.906, green: 0.890, blue: 0.867, alpha: 1),  // #E7E3DD (warm stone-200)
-            dark:  UIColor(red: 0.161, green: 0.145, blue: 0.137, alpha: 1)   // #292523 (stone-800)
+            light: UIColor(red: 0.902, green: 0.875, blue: 0.820, alpha: 1),  // #E6DFD1
+            dark:  UIColor(red: 0.169, green: 0.141, blue: 0.118, alpha: 1)   // #2B241E
         )
     }
 
@@ -233,35 +234,73 @@ struct PerchTheme {
         )
     }
 
-    // MARK: - Typography (SF Pro — editorial scale with strong hierarchy)
+    // MARK: - Typography — Linen / Editorial (Variant A)
+    //
+    // Two type registers coexist:
+    //   1. SERIF ITALIC (design: .serif, italicised) — greeting + phrase.
+    //      The editorial voice. Would ideally be Fraunces; iOS's system
+    //      .serif (New York) is a clean fallback until Fraunces is bundled.
+    //   2. SF PRO DEFAULT (design: .default) — UI labels, body, eyebrows.
+    //      Handles the utility weight of the interface.
+    // Numerics use .monospacedDigit() on either family to get column alignment
+    // without the wide glyphs of full .monospaced design.
 
     enum Font {
-        /// 40pt — hero numbers (calorie counts, event counts)
-        static let largeTitle = SwiftUI.Font.system(size: 40, weight: .bold, design: .default)
-        /// 40pt — alias for largeTitle; use .displayNumeric for monospaced hero numbers
-        static let display = SwiftUI.Font.system(size: 40, weight: .bold, design: .default)
-        /// 28pt — page / tab titles (Good afternoon, section headers)
-        static let title = SwiftUI.Font.system(size: 28, weight: .semibold, design: .default)
-        /// 17pt — card titles, emphasised data
-        static let heading = SwiftUI.Font.system(size: 17, weight: .semibold, design: .default)
-        /// 15pt — regular text, event titles, row values
-        static let body = SwiftUI.Font.system(size: 15, weight: .regular, design: .default)
-        /// 13pt — metadata, labels, freshness timestamps
-        static let caption = SwiftUI.Font.system(size: 13, weight: .regular, design: .default)
-        /// 11pt — footnotes, inline timestamps
-        static let micro = SwiftUI.Font.system(size: 11, weight: .regular, design: .default)
-        /// 11pt — uppercase section eyebrows (apply `.tracking(1.0).textCase(.uppercase)`)
-        static let cardEyebrow = SwiftUI.Font.system(size: 11, weight: .semibold, design: .default)
+        // --- Editorial serif (phrase + greeting) ---------------------
+        /// 32pt italic serif — the full-bleed header greeting.
+        static let greeting = SwiftUI.Font.system(size: 32, weight: .regular, design: .serif).italic()
+        /// 30pt italic serif — fallback header (non-morning times of day).
+        static let greetingInline = SwiftUI.Font.system(size: 30, weight: .regular, design: .serif).italic()
+        /// 20pt italic serif — the interpretive "read" phrase on every card.
+        static let phrase = SwiftUI.Font.system(size: 20, weight: .regular, design: .serif).italic()
+        /// 12pt italic serif — "— end of today —" signoff at bottom of feed.
+        static let signoff = SwiftUI.Font.system(size: 12, weight: .regular, design: .serif).italic()
 
-        // Numeric variants — monospaced for aligned columns (times, macros, metrics).
-        // Use .displayNumeric for hero stats (big calorie count, day totals).
-        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .bold,     design: .monospaced)
-        static let displayNumeric    = SwiftUI.Font.system(size: 40, weight: .bold,     design: .monospaced)
-        static let titleNumeric      = SwiftUI.Font.system(size: 28, weight: .semibold, design: .monospaced)
-        static let headingNumeric    = SwiftUI.Font.system(size: 17, weight: .semibold, design: .monospaced)
-        static let bodyNumeric       = SwiftUI.Font.system(size: 15, weight: .medium,   design: .monospaced)
-        static let captionNumeric    = SwiftUI.Font.system(size: 13, weight: .medium,   design: .monospaced)
+        // --- Sans UI scale ------------------------------------------
+        /// 40pt bold — retained for hero numbers; unused in Variant A but
+        /// kept so card implementations that still reference it compile.
+        static let largeTitle = SwiftUI.Font.system(size: 40, weight: .bold, design: .default)
+        /// 40pt bold alias for largeTitle.
+        static let display = SwiftUI.Font.system(size: 40, weight: .bold, design: .default)
+        /// 22pt semibold — dense-variant (C) greeting size; legacy.
+        static let title = SwiftUI.Font.system(size: 22, weight: .semibold, design: .default)
+        /// 17pt semibold — card titles, emphasised inline values.
+        static let heading = SwiftUI.Font.system(size: 17, weight: .semibold, design: .default)
+        /// 15pt regular — event titles, row values, body copy.
+        static let body = SwiftUI.Font.system(size: 15, weight: .regular, design: .default)
+        /// 14pt regular — package item names, row bodies.
+        static let bodyRow = SwiftUI.Font.system(size: 14, weight: .regular, design: .default)
+        /// 13pt regular — metadata, secondary body.
+        static let caption = SwiftUI.Font.system(size: 13, weight: .regular, design: .default)
+        /// 12pt regular — muted secondary row copy.
+        static let rowSecondary = SwiftUI.Font.system(size: 12, weight: .regular, design: .default)
+        /// 11pt regular — micro metadata, age stamps.
+        static let micro = SwiftUI.Font.system(size: 11, weight: .regular, design: .default)
+        /// 10.5pt semibold — the uppercase tracked card eyebrow label.
+        static let cardEyebrow = SwiftUI.Font.system(size: 10.5, weight: .semibold, design: .default)
+
+        // Numeric variants — serif + .monospacedDigit() for editorial tabular
+        // alignment (calorie count, times, temps, tracking numbers). The serif
+        // family keeps the warm literary feel; monospacedDigit() keeps the
+        // columns true without the over-wide glyphs of a full mono font.
+        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .semibold, design: .serif).monospacedDigit()
+        static let displayNumeric    = SwiftUI.Font.system(size: 30, weight: .semibold, design: .serif).monospacedDigit()
+        /// 34pt serif — weather hero temperature.
+        static let tempNumeric       = SwiftUI.Font.system(size: 34, weight: .semibold, design: .serif).monospacedDigit()
+        /// 22pt serif — health metric values (SLEEP / RECOVERY / READINESS).
+        static let metricNumeric     = SwiftUI.Font.system(size: 22, weight: .semibold, design: .serif).monospacedDigit()
+        /// 18pt serif — travel TimePair times.
+        static let timePairNumeric   = SwiftUI.Font.system(size: 18, weight: .semibold, design: .serif).monospacedDigit()
+        static let headingNumeric    = SwiftUI.Font.system(size: 17, weight: .semibold, design: .serif).monospacedDigit()
+        static let titleNumeric      = SwiftUI.Font.system(size: 28, weight: .semibold, design: .serif).monospacedDigit()
+        /// 15pt — inline tabular numbers (target/remaining, macro values).
+        static let bodyNumeric       = SwiftUI.Font.system(size: 15, weight: .medium,   design: .default).monospacedDigit()
+        /// 13pt — secondary tabular numbers.
+        static let captionNumeric    = SwiftUI.Font.system(size: 13, weight: .medium,   design: .default).monospacedDigit()
+        /// 11pt SF Mono — tracking numbers, age stamps ("14m", "1h"), freshness indicators.
         static let microNumeric      = SwiftUI.Font.system(size: 11, weight: .medium,   design: .monospaced)
+        /// 10.5pt SF Mono — freshness label in card eyebrows ("LIVE", "2 min").
+        static let freshness         = SwiftUI.Font.system(size: 10.5, weight: .regular, design: .monospaced)
 
         // Icon variant — use for SF Symbol sizing (passes through PerchTheme.Icon constants)
         static func icon(_ size: CGFloat) -> SwiftUI.Font {
@@ -287,12 +326,13 @@ struct PerchTheme {
         static let xxLarge: CGFloat = 56
         static let xxxLarge: CGFloat = 80
 
-        /// Vertical rhythm between stacked cards in the Today/Health feeds.
-        /// Editorial spacing replaces the old border-separated rhythm — tune
-        /// whitespace, not chrome, to create hierarchy. 20pt sits in the
-        /// sweet spot where cards still feel grouped as a feed, not floating
-        /// islands.
-        static let cardStack: CGFloat = 20
+        /// Vertical rhythm between stacked cards in the Today feed.
+        /// 22pt is Variant A's "Editorial" spec — generous but still grouped.
+        static let cardStack: CGFloat = 22
+
+        /// Horizontal screen padding for Variant A (18pt — tighter than the
+        /// old 28pt `.large`, because the design-system spec calls for it).
+        static let screenHorizontal: CGFloat = 18
     }
 
     // MARK: - Card Styling (Gentler — plush 20pt corners, no chrome)
@@ -711,127 +751,220 @@ private struct HeroCardModifier: ViewModifier {
 /// Kept in this file (not a separate .swift) so it's picked up automatically
 /// by the existing Xcode target membership for PerchTheme.
 enum PerchPhrase {
-    /// Returns a phrase from `library` keyed to today's date combined with
-    /// `key`. Same calendar day + same key → same phrase. New day, same
-    /// key → next phrase in the rotation. Different key → different hash
-    /// offset so two cards on the same day don't land on the same phrase
-    /// by accident.
-    static func today(_ library: [String], for key: String) -> String {
+    /// Returns a phrase from `library` keyed to today's date + a salt value.
+    /// Matches Claude Design's `pickPhrase(arr, salt)`: `(doy + salt) % count`.
+    /// Same day + same salt → same phrase; new day, same salt → next phrase
+    /// in the rotation. `key` is kept as an additional spread factor so cards
+    /// that share a bucket name but different semantics don't collide.
+    static func today(_ library: [String], for key: String, salt: Int = 0) -> String {
         guard !library.isEmpty else { return "" }
         // Qualify as Foundation.Calendar — our nested `Calendar` enum
         // (holding calendar-card phrase libraries) shadows the type.
         let dayOfYear = Foundation.Calendar.current
             .ordinality(of: .day, in: .year, for: Date.now) ?? 0
         let keyHash = abs(key.perchStableHash)
-        let index = (dayOfYear &+ keyHash) % library.count
+        let index = abs(dayOfYear &+ salt &+ keyHash) % library.count
         return library[index]
     }
 
-    // MARK: Nutrition libraries
+    // Card salts — keep these stable. Changing a salt rotates all that
+    // card's phrases on day boundaries by one, so avoid unless intentional.
+    // These match the Claude Design prototype salts.
+    private enum Salt {
+        static let calendar   = 1
+        static let nutrition  = 2
+        static let deliveries = 3
+        static let health     = 4
+        static let travel     = 5
+        static let weather    = 6
+        static let email      = 7
+    }
+
+    // MARK: Calendar
+
+    enum Calendar {
+        static let none = [
+            "A breezy one", "Wide open", "Yours to shape",
+            "Nothing scheduled", "All yours today", "Unwritten",
+        ]
+        static let light = [
+            "Light calendar", "Room to breathe", "A gentle day ahead",
+            "Two on the books", "An easy rhythm",
+        ]
+        static let medium = [
+            "A few things on", "Steady schedule", "A handful of blocks",
+            "A reasonable day", "Measured pace",
+        ]
+        static let heavy = [
+            "Full plate", "Packed", "Back to back",
+            "A lot on today", "Shoulder to the wheel",
+        ]
+    }
+
+    static func calendarPhrase(eventCount: Int) -> String {
+        let library: [String] = {
+            if eventCount == 0 { return Calendar.none }
+            if eventCount <= 2 { return Calendar.light }
+            if eventCount <= 5 { return Calendar.medium }
+            return Calendar.heavy
+        }()
+        return PerchPhrase.today(library, for: "cal", salt: Salt.calendar)
+    }
+
+    // MARK: Nutrition
 
     enum Nutrition {
-        /// < 30% of target — plenty of runway left.
-        static let low = [
-            "Just getting started", "Plenty of room", "Early innings",
-            "Quiet start", "Fresh canvas", "Barely begun",
+        static let starting = [
+            "Just getting started", "Plenty of room", "Early innings", "The day is young",
         ]
-        /// 30–70% of target — a light day so far.
         static let light = [
-            "Light day", "Easy pace", "Steady mode",
-            "Half-full", "Moderate fuel", "Gentle rhythm",
+            "Light day", "Easy pace", "Gentle fuel", "A modest one",
         ]
-        /// 70–100% of target — cruising toward it.
-        static let onTrack = [
-            "On track", "Cruising", "Nicely paced",
-            "Good rhythm", "Right on", "Within reach",
+        static let on = [
+            "On track", "Cruising", "Right in the pocket", "Settled in",
         ]
-        /// 100–110% of target — landed right around the mark.
-        static let onTarget = [
-            "Right there", "Spot on", "Basically at target",
-            "Bullseye", "Met it", "Landed it",
+        static let spot = [
+            "Right there", "Spot on", "Nailed it", "Dialed",
         ]
-        /// > 110% of target — gone past for the day.
-        static let over = [
-            "A bigger day", "Past the line", "Hearty one",
-            "Over for today", "Generous", "Abundant",
+        static let more = [
+            "A bigger day", "Hearty one", "Well-fed", "Generous portions",
         ]
     }
 
     static func nutritionPhrase(consumed: Double, target: Double) -> String {
         guard target > 0 else {
-            return PerchPhrase.today(Nutrition.low, for: "nutrition-low")
+            return PerchPhrase.today(Nutrition.starting, for: "nut", salt: Salt.nutrition)
         }
         let ratio = consumed / target
-        let (library, bucket): ([String], String) = {
-            if ratio < 0.3  { return (Nutrition.low,      "nutrition-low") }
-            if ratio < 0.7  { return (Nutrition.light,    "nutrition-light") }
-            if ratio < 1.0  { return (Nutrition.onTrack,  "nutrition-ontrack") }
-            if ratio <= 1.1 { return (Nutrition.onTarget, "nutrition-ontarget") }
-            return (Nutrition.over, "nutrition-over")
+        let library: [String] = {
+            if ratio < 0.3 { return Nutrition.starting }
+            if ratio < 0.7 { return Nutrition.light }
+            if ratio < 1.0 { return Nutrition.on }
+            if ratio < 1.1 { return Nutrition.spot }
+            return Nutrition.more
         }()
-        return PerchPhrase.today(library, for: bucket)
+        return PerchPhrase.today(library, for: "nut", salt: Salt.nutrition)
     }
 
-    // MARK: Calendar libraries
-
-    enum Calendar {
-        static let empty = [
-            "A breezy one", "Wide open", "Nothing scheduled",
-            "Empty canvas", "Free range", "Open skies", "Yours to shape",
-        ]
-        static let light = [
-            "Light calendar", "Easy day", "A touch to do",
-            "Manageable", "Room to breathe", "Quiet-ish",
-        ]
-        static let steady = [
-            "A few things on", "Steady schedule", "Solid plate",
-            "Active day", "Nicely filled", "Busy-ish",
-        ]
-        static let full = [
-            "Full plate", "Packed", "Back to back",
-            "Busy one", "Juggling act", "A lot going on",
-        ]
-    }
-
-    static func calendarPhrase(eventCount: Int) -> String {
-        let (library, bucket): ([String], String) = {
-            if eventCount == 0 { return (Calendar.empty,  "cal-empty") }
-            if eventCount <= 2 { return (Calendar.light,  "cal-light") }
-            if eventCount <= 5 { return (Calendar.steady, "cal-steady") }
-            return (Calendar.full, "cal-full")
-        }()
-        return PerchPhrase.today(library, for: bucket)
-    }
-
-    // MARK: Delivery libraries
+    // MARK: Deliveries
 
     enum Delivery {
-        static let empty = [
-            "Nothing in transit", "Doorstep quiet", "All clear",
-            "No packages today", "Mailbox empty",
+        static let none = [
+            "Doorstep quiet", "Mailbox empty", "All clear",
+            "Nothing inbound", "Quiet porch",
         ]
         static let one = [
             "One on the way", "A single delivery",
-            "One in flight", "One inbound",
+            "One parcel inbound", "Just the one",
         ]
         static let few = [
-            "A couple on the way", "Few incoming",
-            "Handful in transit", "Trickle of boxes",
+            "A couple on the way", "Handful in transit",
+            "A few inbound", "Small cluster heading over",
         ]
         static let many = [
-            "Busy doorstep", "Lots incoming",
-            "Package parade", "Mailbox working overtime",
+            "Busy doorstep", "Package parade",
+            "Plenty inbound", "A flock of parcels",
         ]
     }
 
     static func deliveryPhrase(count: Int) -> String {
-        let (library, bucket): ([String], String) = {
-            if count == 0 { return (Delivery.empty, "del-empty") }
-            if count == 1 { return (Delivery.one,   "del-one") }
-            if count <= 3 { return (Delivery.few,   "del-few") }
-            return (Delivery.many, "del-many")
+        let library: [String] = {
+            if count == 0 { return Delivery.none }
+            if count == 1 { return Delivery.one }
+            if count <= 3 { return Delivery.few }
+            return Delivery.many
         }()
-        return PerchPhrase.today(library, for: bucket)
+        return PerchPhrase.today(library, for: "del", salt: Salt.deliveries)
+    }
+
+    // MARK: Health
+
+    enum Health {
+        static let low  = ["Running low", "A bit tired", "Take it easy", "Rest is the work"]
+        static let mid  = ["Finding your feet", "Settling in", "Coming back around"]
+        static let high = ["Well-rested", "Solid recovery", "Ready when you are", "Full tank"]
+    }
+
+    static func healthPhrase(recovery: Int) -> String {
+        let library: [String] = {
+            if recovery < 40 { return Health.low }
+            if recovery < 70 { return Health.mid }
+            return Health.high
+        }()
+        return PerchPhrase.today(library, for: "hlt", salt: Salt.health)
+    }
+
+    // MARK: Weather
+
+    enum Weather {
+        static let warm = ["A warm one, sunscreen if you\u{2019}re out", "Shoulders out weather", "Soft sun today"]
+        static let mild = ["A light layer should do", "Pleasant all day", "Nothing to argue with"]
+        static let cold = ["Bundle up", "A proper jumper day", "Cold hands, warm heart"]
+        static let rain = ["Brollies out", "Wet feet likely", "A stay-inside kind of day"]
+    }
+
+    enum WeatherBucket { case warm, mild, cold, rain }
+
+    static func weatherPhrase(bucket: WeatherBucket) -> String {
+        let library: [String] = {
+            switch bucket {
+            case .warm: return Weather.warm
+            case .mild: return Weather.mild
+            case .cold: return Weather.cold
+            case .rain: return Weather.rain
+            }
+        }()
+        return PerchPhrase.today(library, for: "wx", salt: Salt.weather)
+    }
+
+    // MARK: Travel
+
+    enum Travel {
+        static let upcoming = ["Departure on the horizon", "The bags can wait, but only just", "Three sleeps away"]
+        static let today    = ["Wheels up today", "Today\u{2019}s the day"]
+        static let active   = ["On the road", "Away from the perch"]
+    }
+
+    enum TravelPhase { case upcoming, today, active }
+
+    static func travelPhrase(phase: TravelPhase) -> String {
+        let library: [String] = {
+            switch phase {
+            case .upcoming: return Travel.upcoming
+            case .today:    return Travel.today
+            case .active:   return Travel.active
+            }
+        }()
+        return PerchPhrase.today(library, for: "trv", salt: Salt.travel)
+    }
+
+    // MARK: Email
+
+    enum Email {
+        static let none = ["Inbox at ease", "Quiet morning"]
+        static let few  = ["A few worth a look", "A small pile", "Three threads worth a look"]
+        static let many = ["Your inbox is awake", "A busy morning in there"]
+    }
+
+    static func emailPhrase(threadCount: Int) -> String {
+        if threadCount > 0 {
+            // The spec uses a literal count-driven phrase when there are
+            // threads; library only applies to the empty state.
+            return "\(threadCount) thread\(threadCount == 1 ? "" : "s") worth a look"
+        }
+        return PerchPhrase.today(Email.none, for: "em", salt: Salt.email)
+    }
+
+    // MARK: Meds
+
+    /// Meds phrase is derived directly from taken/total (not library-rotated)
+    /// because there are only three legible variants and the count is the
+    /// meaningful signal.
+    static func medsPhrase(taken: Int, total: Int) -> String {
+        if total == 0      { return "A gentle reminder" }
+        if taken == total  { return "All squared away" }
+        if taken == 0      { return "A gentle reminder" }
+        return "Steady as she goes"
     }
 }
 
