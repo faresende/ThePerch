@@ -271,8 +271,10 @@ struct PerchTheme {
 
         /// Vertical rhythm between stacked cards in the Today/Health feeds.
         /// Editorial spacing replaces the old border-separated rhythm — tune
-        /// whitespace, not chrome, to create hierarchy.
-        static let cardStack: CGFloat = 32
+        /// whitespace, not chrome, to create hierarchy. 20pt sits in the
+        /// sweet spot where cards still feel grouped as a feed, not floating
+        /// islands.
+        static let cardStack: CGFloat = 20
     }
 
     // MARK: - Card Styling (editorial — no border, no light-mode shadow)
