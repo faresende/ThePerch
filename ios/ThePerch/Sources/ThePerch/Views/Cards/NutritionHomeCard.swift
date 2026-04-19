@@ -62,10 +62,20 @@ struct NutritionHomeCard: View {
         return min(consumed / target, 1.5)
     }
 
+    /// Ring colour: sage by default (wellness register), terracotta only
+    /// when meaningfully over target. Previous logic shifted through three
+    /// colours (tangerine → green → red) which read as "alert level rising".
+    /// Gentler Perch keeps the ring calm until it's genuinely over.
     private var progressColor: Color {
         if consumed > target * 1.1 { return PerchTheme.error }
-        if consumed > target * 0.9 { return PerchTheme.success }
-        return PerchTheme.accent
+        return PerchTheme.wellness
+    }
+
+    /// Gentle interpretive phrase for the current nutrition state —
+    /// "Light day", "On track", "A bigger day", etc. Rotates daily
+    /// through a library of variants so the dashboard doesn't feel robotic.
+    private var nutritionPhrase: String {
+        PerchPhrase.nutritionPhrase(consumed: consumed, target: target)
     }
 
     private var latestUpdate: Date? {
@@ -103,20 +113,32 @@ struct NutritionHomeCard: View {
                     isCompact.toggle()
                 }
             } label: {
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image(systemName: "fork.knife")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.accent)
-                    Text(isMorning ? "YESTERDAY'S NUTRITION" : "NUTRITION")
-                        .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                    Spacer()
-                    CardFreshnessLabel(date: latestUpdate)
-                    Image(systemName: isCompact ? "chevron.down" : "chevron.up")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: PerchTheme.Spacing.xSmall) {
+                        Image(systemName: "fork.knife")
+                            .font(PerchTheme.Font.caption)
+                            .foregroundColor(PerchTheme.wellness)
+                        Text(isMorning ? "YESTERDAY'S NUTRITION" : "NUTRITION")
+                            .font(PerchTheme.Font.cardEyebrow)
+                            .foregroundColor(PerchTheme.textSecondary)
+                            .textCase(.uppercase)
+                            .tracking(0.8)
+                        Spacer()
+                        CardFreshnessLabel(date: latestUpdate)
+                        Image(systemName: isCompact ? "chevron.down" : "chevron.up")
+                            .font(PerchTheme.Font.micro)
+                            .foregroundColor(PerchTheme.textTertiary)
+                    }
+
+                    // Gentle one-word read on the day, sits right under the
+                    // eyebrow — rotates through a library daily so it stays
+                    // fresh across re-visits. Skipped when hasData is false
+                    // because the empty state already carries its own copy.
+                    if hasData {
+                        Text(nutritionPhrase)
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(PerchTheme.textPrimary)
+                    }
                 }
                 .contentShape(Rectangle())
             }

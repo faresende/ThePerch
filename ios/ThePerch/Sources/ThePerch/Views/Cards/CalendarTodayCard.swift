@@ -42,6 +42,13 @@ struct CalendarTodayCard: View {
         return "\(upcoming.count) upcoming · Next: \(next.title) \(relativeTimeLabel(for: next))"
     }
 
+    /// Rotating interpretive phrase for the day — "A breezy one", "Full plate",
+    /// etc. Keyed to today's date + event count so it stays stable for the
+    /// whole day but rotates across the library day-over-day.
+    private var calendarPhrase: String {
+        PerchPhrase.calendarPhrase(eventCount: todayEvents.count)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
             // Tappable header
@@ -51,26 +58,30 @@ struct CalendarTodayCard: View {
                     isCompact.toggle()
                 }
             } label: {
-                HomeCardHeader(
-                    systemImage: "calendar",
-                    title: "TODAY",
-                    trailingText: todayEvents.isEmpty ? nil : "\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")",
-                    showsChevron: true,
-                    isExpanded: !isCompact
-                )
+                VStack(alignment: .leading, spacing: 4) {
+                    HomeCardHeader(
+                        systemImage: "calendar",
+                        title: "TODAY",
+                        trailingText: todayEvents.isEmpty ? nil : "\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")",
+                        showsChevron: true,
+                        isExpanded: !isCompact
+                    )
+
+                    // Gentle one-line read on the day's calendar shape.
+                    // Rotates daily through a library of variants so the
+                    // dashboard doesn't feel robotic across re-visits.
+                    Text(calendarPhrase)
+                        .font(PerchTheme.Font.body)
+                        .foregroundColor(PerchTheme.textPrimary)
+                }
                 .contentShape(Rectangle())
             }
             .buttonStyle(CardPressStyle())
 
             if todayEvents.isEmpty {
-                // Empty state
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    Text("No events today — enjoy your free time 🎉")
-                        .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, PerchTheme.Spacing.small)
+                // Empty-day state — phrase already shown above the list, so
+                // we keep this minimal and quiet.
+                EmptyView()
             } else if isCompact {
                 // Compact: single-line summary
                 Text(compactSummary)
