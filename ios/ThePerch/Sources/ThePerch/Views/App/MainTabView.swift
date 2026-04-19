@@ -51,6 +51,12 @@ struct MainTabView: View {
     }
 
     var body: some View {
+        // Resolve the active palette once at the tab root so every tab
+        // (Today, Health, Hub) inherits it via @Environment and the whole
+        // app re-tints atomically with the hour.
+        let timeOfDay = PerchTimeOfDay.current
+        let palette = PerchPalette.forTimeOfDay(timeOfDay)
+
         TabView(selection: $selectedTab) {
             Tab(RootTab.today.title, systemImage: RootTab.today.systemImage, value: RootTab.today) {
                 TodayTab(onOpenProfile: presentSettings)
@@ -69,8 +75,10 @@ struct MainTabView: View {
                     .ignoresSafeArea()
             }
         }
-        .tint(PerchTheme.accent)
+        .tint(palette.kinetic)
         .tabBarMinimizeBehavior(.onScrollDown)
+        .environment(\.perchPalette, palette)
+        .environment(\.perchTimeOfDay, timeOfDay)
         .sheet(isPresented: $isShowingSettings) {
             SettingsTab()
         }

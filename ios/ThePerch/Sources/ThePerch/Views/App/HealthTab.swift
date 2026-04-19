@@ -19,6 +19,8 @@ struct HealthTab: View {
         var id: HealthSegment { self }
     }
 
+    @Environment(\.perchPalette) private var palette
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
@@ -48,6 +50,7 @@ struct HealthTab: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
             }
         }
+        .background(palette.bg.ignoresSafeArea())
     }
 }
 

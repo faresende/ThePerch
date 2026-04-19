@@ -10,6 +10,7 @@ struct HealthSummaryHomeCard: View {
     var compact: Bool = false
 
     @AppStorage("card_compact_health") private var userCompact = false
+    @Environment(\.perchPalette) private var palette
 
     /// Effective compact state: forced by time-of-day OR user toggle
     private var isCompact: Bool { compact || userCompact }
@@ -51,108 +52,101 @@ struct HealthSummaryHomeCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            // Tappable header
+        TodayCard {
             Button {
                 PerchHaptics.selection()
                 PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.3)) {
                     userCompact.toggle()
                 }
             } label: {
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image(systemName: "bed.double.fill")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.accent)
-                    Text("SLEEP & RECOVERY")
-                        .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                    Spacer()
-                    CardFreshnessLabel(date: latestUpdate)
-                    Image(systemName: isCompact ? "chevron.down" : "chevron.up")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                VStack(alignment: .leading, spacing: 0) {
+                    TodayEyebrow(
+                        label: "HEALTH · OVERNIGHT",
+                        accent: palette.wellness,
+                        freshness: freshnessText
+                    )
+
+                    if !hasData {
+                        Text("Waiting for sleep data…")
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(palette.faint)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 4)
+                    } else if isCompact {
+                        Text(compactSummary)
+                            .font(PerchTheme.Font.body)
+                            .foregroundColor(palette.muted)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        healthPhrase
+                            .padding(.bottom, 16)
+                        metricsRow
+                        if let score = sleepScore {
+                            Text(scoreLabel(score.value))
+                                .font(.system(size: 12))
+                                .foregroundColor(palette.muted)
+                                .padding(.top, 12)
+                                .lineLimit(2)
+                        }
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(CardPressStyle())
+        }
+        .animation(.easeInOut(duration: 0.3), value: isCompact)
+    }
 
-            if !hasData {
-                // Empty state
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    Image(systemName: "bed.double.fill")
-                        .font(PerchTheme.Font.icon(PerchTheme.Icon.large))
-                        .foregroundColor(PerchTheme.textTertiary)
-                    Text("Waiting for sleep data...")
-                        .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, PerchTheme.Spacing.medium)
-            } else if isCompact {
-                // Compact: single-line summary
-                Text(compactSummary)
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-            } else {
-                // Hero row: score + qualifier + duration
-                if let score = sleepScore {
-                    HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
-                        Text("\(Int(score.value))")
-                            .font(.system(size: 48, weight: .bold, design: .rounded))
-                            .foregroundColor(PerchTheme.textPrimary)
+    /// "5:42 am" freshness stamp derived from most recent measurement.
+    private var freshnessText: String {
+        guard let date = latestUpdate else { return "—" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "h:mm a"
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
+        return f.string(from: date)
+    }
 
-                        Text(scoreLabel(score.value))
-                            .font(PerchTheme.Font.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(scoreColor(score.value))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(scoreColor(score.value).opacity(0.15))
-                            .cornerRadius(6)
+    @ViewBuilder
+    private var healthPhrase: some View {
+        let recoveryPct = Int(readiness?.value ?? sleepScore?.value ?? 0)
+        TodayPhrase(text: PerchPhrase.healthPhrase(recovery: recoveryPct))
+    }
 
-                        Spacer()
+    /// Three metrics in a horizontal row: SLEEP / RECOVERY / READINESS.
+    @ViewBuilder
+    private var metricsRow: some View {
+        HStack(spacing: 20) {
+            metric(label: "SLEEP", value: sleepDuration.map { formatDuration($0.value) } ?? "—", unit: "")
+            metric(label: "RECOVERY", value: readiness.map { "\(Int($0.value))" } ?? sleepScore.map { "\(Int($0.value))" } ?? "—", unit: "%")
+            metric(label: "READINESS", value: readiness.map { "\(Int($0.value))" } ?? "—", unit: "%")
+        }
+    }
 
-                        if let sleep = sleepDuration {
-                            Text("\(formatDuration(sleep.value)) sleep")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                        }
-                    }
-
-                    // Progress bar
-                    let barFraction = CGFloat(min(max(score.value / 100.0, 0), 1))
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(PerchTheme.border)
-                                .frame(height: 4)
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(scoreColor(score.value))
-                                .frame(width: geo.size.width * barFraction, height: 4)
-                        }
-                    }
-                    .frame(height: 4)
-                } else if let sleep = sleepDuration {
-                    // No score available, show duration as hero
-                    Text(formatDuration(sleep.value))
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundColor(PerchTheme.textPrimary)
-                }
-
-                // Secondary metrics: inline text row
-                let secondaryParts = secondaryMetricsText
-                if !secondaryParts.isEmpty {
-                    Text(secondaryParts)
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
+    @ViewBuilder
+    private func metric(label: String, value: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.system(size: 9.5))
+                .tracking(0.8)
+                .foregroundColor(palette.faint)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(PerchTheme.Font.metricNumeric)
+                    .tracking(-0.5)
+                    .foregroundColor(palette.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.system(size: 11))
+                        .foregroundColor(palette.ink.opacity(0.55))
                 }
             }
         }
-        .padding(PerchTheme.Card.padding)
-        .cardStyle()
-        .animation(.easeInOut(duration: 0.3), value: isCompact)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Helpers

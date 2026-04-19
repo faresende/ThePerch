@@ -4,6 +4,7 @@ import SwiftUI
 /// Filters EventData where start date is tomorrow.
 struct CalendarTomorrowCard: View {
     let records: [Record]
+    @Environment(\.perchPalette) private var palette
 
     private var tomorrowEvents: [(record: Record, event: EventData)] {
         records.compactMap { record -> (Record, EventData)? in
@@ -16,61 +17,54 @@ struct CalendarTomorrowCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
-            // Header
-            HomeCardHeader(
-                systemImage: "calendar.badge.clock",
-                title: "TOMORROW",
-                trailingText: tomorrowEvents.isEmpty ? nil : "\(tomorrowEvents.count) event\(tomorrowEvents.count == 1 ? "" : "s")"
-            )
+        TodayCard {
+            VStack(alignment: .leading, spacing: 0) {
+                TodayEyebrow(
+                    label: "TOMORROW",
+                    accent: palette.wellness,
+                    freshness: tomorrowEvents.isEmpty ? nil : "\(tomorrowEvents.count) event\(tomorrowEvents.count == 1 ? "" : "s")"
+                )
 
-            if tomorrowEvents.isEmpty {
-                Text("Tomorrow is clear")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, PerchTheme.Spacing.small)
-            } else {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
-                    ForEach(Array(tomorrowEvents.prefix(3).enumerated()), id: \.element.record.id) { _, item in
-                        compactEventRow(event: item.event)
-                    }
+                if tomorrowEvents.isEmpty {
+                    Text("Tomorrow is clear")
+                        .font(PerchTheme.Font.body)
+                        .foregroundColor(palette.faint)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 4)
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(Array(tomorrowEvents.prefix(3).enumerated()), id: \.element.record.id) { _, item in
+                            compactEventRow(event: item.event)
+                        }
 
-                    if tomorrowEvents.count > 3 {
-                        Text("+ \(tomorrowEvents.count - 3) more")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
-                            .padding(.top, PerchTheme.Spacing.xxSmall)
+                        if tomorrowEvents.count > 3 {
+                            Text("+ \(tomorrowEvents.count - 3) more")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(palette.kinetic)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 2)
+                        }
                     }
                 }
             }
         }
-        .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
-        .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
-        .cardStyle()
     }
 
-    // MARK: - Components
-
     private func compactEventRow(event: EventData) -> some View {
-        HStack(spacing: PerchTheme.HomeCard.rowSpacing) {
-            Circle()
-                .fill(PerchTheme.textTertiary)
-                .frame(width: 6, height: 6)
-
+        HStack(alignment: .top, spacing: 10) {
             Text(PerchFormatters.time24h.string(from: event.start))
-                .font(PerchTheme.Font.captionNumeric)
-                .foregroundColor(PerchTheme.textSecondary)
-                .frame(width: 50, alignment: .leading)
+                .font(PerchTheme.Font.rowNumeric)
+                .tracking(0.2)
+                .foregroundColor(palette.muted)
+                .frame(width: 56, alignment: .leading)
+                .padding(.top, 1)
 
             Text(event.title)
                 .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
                 .lineLimit(1)
-
-            Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .homeCardRowStyle()
     }
 }
 
