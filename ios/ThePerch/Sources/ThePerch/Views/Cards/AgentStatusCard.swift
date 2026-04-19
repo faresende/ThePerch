@@ -42,11 +42,13 @@ struct AgentStatusCard: View {
         case idle
         case error
 
-        var color: Color {
+        /// Takes palette as a param — nested enums can't access the
+        /// enclosing struct's `@Environment` instance members.
+        func color(in palette: PerchPalette) -> Color {
             switch self {
             case .active: return palette.wellness
-            case .idle: return palette.kinetic
-            case .error: return palette.error
+            case .idle:   return palette.kinetic
+            case .error:  return palette.error
             }
         }
 
@@ -81,18 +83,19 @@ struct AgentStatusCard: View {
                     Spacer(minLength: 0)
 
                     HStack(spacing: 4) {
+                        let stateColor = agentState.color(in: palette)
                         Circle()
-                            .fill(agentState.color)
+                            .fill(stateColor)
                             .frame(width: 8, height: 8)
                             .shadow(
-                                color: agentState == .active ? agentState.color.opacity(0.5) : .clear,
+                                color: agentState == .active ? stateColor.opacity(0.5) : .clear,
                                 radius: 3
                             )
 
                         Text(agentState.label)
                             .font(PerchTheme.Font.micro)
                             .fontWeight(.semibold)
-                            .foregroundColor(agentState.color)
+                            .foregroundColor(stateColor)
                     }
 
                     if showsDisclosure {

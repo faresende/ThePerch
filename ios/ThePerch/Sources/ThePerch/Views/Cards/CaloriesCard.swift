@@ -4,6 +4,8 @@ import UIKit
 /// Displays daily calorie intake as a circular progress gauge toward a target.
 /// Features animated fill ring and count-up number animation.
 struct CaloriesCard: View {
+    @Environment(\.perchPalette) private var palette
+
     let consumed: Double
     let target: Double
     let unit: String

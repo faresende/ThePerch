@@ -353,6 +353,8 @@ struct MealCard: View {
 }
 
 private struct MacroPill: View {
+    @Environment(\.perchPalette) private var palette
+
     let label: String
     let value: String
     let tint: Color
