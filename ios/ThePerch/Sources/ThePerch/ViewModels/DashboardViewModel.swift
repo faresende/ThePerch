@@ -155,8 +155,22 @@ final class DashboardViewModel {
         switch records {
         case .success(let loaded):
             let merged = Self.mergeRecords(loaded, with: resultValue(bookmarkRecords))
-            self.allRecords = merged
-            Self.preDecodeRecords(merged)
+            // Defensive: if the network returned zero records while our cache
+            // had real data, and this wasn't an explicit force-refresh, treat
+            // the empty response as suspect (most likely an expired-auth
+            // silent-empty — the exact failure mode that blanked the Today
+            // tab). Keep the cache so the user sees something, and log it so
+            // we notice if the session-expiry fix upstream doesn't catch it.
+            let cacheWasPopulated = !self.allRecords.isEmpty
+            if merged.isEmpty, cacheWasPopulated, !forceRefresh {
+#if DEBUG
+                print("[DashboardVM] WARNING: network returned 0 records while cache had \(self.allRecords.count). Keeping cache. If auth is valid this means the server truly has no records — pull-to-refresh will clear the cache.")
+#endif
+                // Preserve allRecords; don't mutate.
+            } else {
+                self.allRecords = merged
+                Self.preDecodeRecords(merged)
+            }
             self.error = nil
         case .failure(let err):
 #if DEBUG
