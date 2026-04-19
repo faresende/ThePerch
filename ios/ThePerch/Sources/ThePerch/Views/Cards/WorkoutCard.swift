@@ -4,6 +4,8 @@ import SwiftUI
 /// Expanded: all exercises in performance order + stats + overload indicators.
 /// Collapsed: top 1RM lift teaser + sets + cals.
 struct WorkoutSessionFeedCard: View {
+    @Environment(\.perchPalette) private var palette
+
     struct SummaryStat: Equatable {
         let icon: String
         let value: String
@@ -41,17 +43,17 @@ struct WorkoutSessionFeedCard: View {
                     if let num = session.sessionNumber {
                         Text("Session \(num) — \(muscleLabel)")
                             .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                     } else {
                         Text(muscleLabel)
                             .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                     }
 
                     if let date = session.dateParsed {
                         Text(date.relativeTime)
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(palette.faint)
                     }
                 }
 
@@ -62,17 +64,17 @@ struct WorkoutSessionFeedCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "clock")
                                 .font(.caption2)
-                                .foregroundColor(PerchTheme.textTertiary)
+                                .foregroundColor(palette.faint)
                             Text("\(dur)m")
                                 .font(PerchTheme.Font.captionNumeric)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
                         }
                     }
 
                     // Chevron — the expand/collapse affordance
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                         .animation(.easeInOut(duration: 0.2), value: isExpanded)
                 }
             }
@@ -96,23 +98,23 @@ struct WorkoutSessionFeedCard: View {
                             HStack {
                                 Text(exercise.name)
                                     .font(PerchTheme.Font.body)
-                                    .foregroundColor(PerchTheme.textPrimary)
+                                    .foregroundColor(palette.ink)
                                     .lineLimit(1)
                                 Spacer()
                                 if let best = heaviestSet {
                                     Text("\(Int(best.weightKg ?? 0))kg × \(best.reps ?? 0)")
                                         .font(PerchTheme.Font.captionNumeric)
-                                        .foregroundColor(PerchTheme.textSecondary)
+                                        .foregroundColor(palette.muted)
                                 } else {
                                     Text("\(exercise.sets.count) sets")
                                         .font(PerchTheme.Font.captionNumeric)
-                                        .foregroundColor(PerchTheme.textTertiary)
+                                        .foregroundColor(palette.faint)
                                 }
                             }
                         }
                     }
                     .padding(PerchTheme.Spacing.small)
-                    .background(PerchTheme.cardInnerBackground)
+                    .background(palette.chipBg)
                     .cornerRadius(8)
                 }
 
@@ -126,7 +128,7 @@ struct WorkoutSessionFeedCard: View {
                                     .foregroundColor(overloadColor(ol.status))
                                 Text(ol.exercise)
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textSecondary)
+                                    .foregroundColor(palette.muted)
                                     .lineLimit(1)
                             }
                         }
@@ -150,10 +152,10 @@ struct WorkoutSessionFeedCard: View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.caption2)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
             Text(value)
                 .font(PerchTheme.Font.captionNumeric)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
         }
     }
 
@@ -168,10 +170,10 @@ struct WorkoutSessionFeedCard: View {
 
     private func overloadColor(_ status: String) -> Color {
         switch status.lowercased() {
-        case "progressing": return PerchTheme.success
-        case "stalled": return PerchTheme.warning
-        case "regressed": return PerchTheme.error
-        default: return PerchTheme.textTertiary
+        case "progressing": return palette.wellness
+        case "stalled": return palette.kinetic
+        case "regressed": return palette.error
+        default: return palette.faint
         }
     }
 }

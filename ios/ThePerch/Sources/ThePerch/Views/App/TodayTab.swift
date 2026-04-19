@@ -641,8 +641,11 @@ struct PerchPillNav<Option: Hashable & Identifiable>: View {
                 }
             }
             .foregroundColor(isActive ? palette.heroText : palette.muted)
-            .padding(.horizontal, isActive ? 14 : 0)
+            // Handoff spec: `padding: 0 14px 0 10px` → 10pt leading (icon
+            // slot), 14pt trailing (after the label). Inactive pills have
+            // no extra padding — the 36pt minWidth gives them a circle.
             .padding(.leading, isActive ? 10 : 0)
+            .padding(.trailing, isActive ? 14 : 0)
             .frame(height: 36)
             .frame(minWidth: 36)
             .background(

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct OrderCard: View {
+    @Environment(\.perchPalette) private var palette
+
     @Environment(\.openURL) private var openURL
 
     let model: OrderWithShipments
@@ -99,7 +101,7 @@ struct OrderCard: View {
             manualOverrideBadge
 
             Rectangle()
-                .fill(PerchTheme.divider.opacity(0.7))
+                .fill(palette.line.opacity(0.7))
                 .frame(height: 1)
 
             timeline
@@ -129,16 +131,16 @@ struct OrderCard: View {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
                 Text(model.order.merchant)
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .lineLimit(2)
 
                 Text("Order \(model.order.orderNumber)")
                     .font(PerchTheme.Font.captionMono)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
 
                 Text(totalText)
                     .font(PerchTheme.Font.bodyNumeric)
-                    .foregroundColor(PerchTheme.accent)
+                    .foregroundColor(palette.kinetic)
             }
 
             Spacer(minLength: 0)
@@ -149,7 +151,7 @@ struct OrderCard: View {
                 if let statusDateText {
                     Text(statusDateText)
                         .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                 }
             }
         }
@@ -173,7 +175,7 @@ struct OrderCard: View {
     private var statusBadgeForeground: Color {
         switch normalizedStatus(model.effectiveStatus) {
         case "ordered", "shipped", "in_transit":
-            return PerchTheme.accentForeground
+            return palette.heroText
         default:
             return statusPresentation.tint
         }
@@ -182,26 +184,26 @@ struct OrderCard: View {
     private var statusBadgeBackground: Color {
         switch normalizedStatus(model.effectiveStatus) {
         case "in_transit":
-            return PerchTheme.warningBackground
+            return palette.kinetic.opacity(0.12)
         case "delivered":
-            return PerchTheme.success.opacity(0.12)
+            return palette.wellness.opacity(0.12)
         case "exception", "needs_review", "issue":
-            return PerchTheme.error.opacity(0.12)
+            return palette.error.opacity(0.12)
         default:
-            return PerchTheme.accentMuted
+            return palette.kinetic.opacity(0.12)
         }
     }
 
     private var statusBadgeBorder: Color {
         switch normalizedStatus(model.effectiveStatus) {
         case "in_transit":
-            return PerchTheme.warning.opacity(0.3)
+            return palette.kinetic.opacity(0.3)
         case "delivered":
-            return PerchTheme.success.opacity(0.24)
+            return palette.wellness.opacity(0.24)
         case "exception", "needs_review", "issue":
-            return PerchTheme.error.opacity(0.22)
+            return palette.error.opacity(0.22)
         default:
-            return PerchTheme.accent.opacity(0.18)
+            return palette.kinetic.opacity(0.18)
         }
     }
 
@@ -247,24 +249,24 @@ struct OrderCard: View {
     private func shipmentSummaryContent(shipmentLine: String, isTrackable: Bool) -> some View {
         HStack(alignment: .center, spacing: PerchTheme.Spacing.small) {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(PerchTheme.accentMuted)
+                .fill(palette.kinetic.opacity(0.12))
                 .frame(width: 34, height: 34)
                 .overlay(
                     Image(systemName: isTrackable ? "arrow.triangle.branch" : "shippingbox")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(PerchTheme.accent)
+                        .foregroundColor(palette.kinetic)
                 )
 
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
                 Text(isTrackable ? "Tracking" : "Shipment")
                     .font(PerchTheme.Font.micro)
                     .fontWeight(.medium)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
 
                 Text(shipmentLine)
                     .font(PerchTheme.Font.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .lineLimit(2)
             }
 
@@ -279,15 +281,15 @@ struct OrderCard: View {
                         .font(PerchTheme.Font.micro)
                         .fontWeight(.bold)
                 }
-                .foregroundColor(PerchTheme.accent)
+                .foregroundColor(palette.kinetic)
             }
         }
         .padding(PerchTheme.Spacing.small)
-        .background(PerchTheme.cardInnerBackground)
+        .background(palette.chipBg)
         .cornerRadius(PerchTheme.Card.innerCornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                .stroke(isTrackable ? PerchTheme.accent.opacity(0.18) : PerchTheme.border.opacity(0.45), lineWidth: 1)
+                .stroke(isTrackable ? palette.kinetic.opacity(0.18) : palette.line.opacity(0.45), lineWidth: 1)
         )
     }
 
@@ -326,14 +328,14 @@ struct OrderCard: View {
                     .font(PerchTheme.Font.micro)
                     .fontWeight(.semibold)
             }
-            .foregroundColor(PerchTheme.steel)
+            .foregroundColor(palette.muted)
             .padding(.horizontal, PerchTheme.Spacing.small)
             .padding(.vertical, PerchTheme.Spacing.xxxSmall)
-            .background(PerchTheme.steelMuted)
+            .background(palette.muted.opacity(0.10))
             .clipShape(Capsule())
             .overlay(
                 Capsule()
-                    .stroke(PerchTheme.border.opacity(0.55), lineWidth: 1)
+                    .stroke(palette.line.opacity(0.55), lineWidth: 1)
             )
         }
     }
@@ -391,7 +393,7 @@ struct OrderCard: View {
                 .frame(width: 10, height: 10)
         case .current:
             Circle()
-                .fill(PerchTheme.cardBackground)
+                .fill(palette.card)
                 .frame(width: 16, height: 16)
                 .overlay(
                     Circle()
@@ -404,11 +406,11 @@ struct OrderCard: View {
                 )
         case .upcoming:
             Circle()
-                .fill(PerchTheme.cardBackground)
+                .fill(palette.card)
                 .frame(width: 10, height: 10)
                 .overlay(
                     Circle()
-                        .stroke(PerchTheme.border.opacity(0.95), lineWidth: 1.5)
+                        .stroke(palette.line.opacity(0.95), lineWidth: 1.5)
                 )
         }
     }
@@ -416,24 +418,24 @@ struct OrderCard: View {
     private func timelineLabelColor(for state: TimelineStepState) -> Color {
         switch state {
         case .current:
-            return PerchTheme.textPrimary
+            return palette.ink
         case .completed:
-            return PerchTheme.textSecondary
+            return palette.muted
         case .upcoming:
-            return PerchTheme.textTertiary
+            return palette.faint
         }
     }
 
     private func timelineConnectorColor(after stepIndex: Int) -> Color {
         guard stepIndex < activeStepIndex else {
-            return PerchTheme.border.opacity(0.9)
+            return palette.line.opacity(0.9)
         }
 
         if stepIndex + 1 == activeStepIndex {
             return timelineColor(for: steps[activeStepIndex].key)
         }
 
-        return PerchTheme.accent
+        return palette.kinetic
     }
 
     private func normalizedStatus(_ status: String) -> String {
@@ -454,26 +456,26 @@ struct OrderCard: View {
     private func statusPresentation(for status: String) -> OrderStatusPresentation {
         switch status.lowercased() {
         case "delivered":
-            return OrderStatusPresentation(label: "Delivered", symbol: "checkmark.circle.fill", tint: PerchTheme.success)
+            return OrderStatusPresentation(label: "Delivered", symbol: "checkmark.circle.fill", tint: palette.wellness)
         case "in_transit", "out_for_delivery":
-            return OrderStatusPresentation(label: "In Transit", symbol: "truck.box.fill", tint: PerchTheme.warning)
+            return OrderStatusPresentation(label: "In Transit", symbol: "truck.box.fill", tint: palette.kinetic)
         case "shipped", "label_created":
-            return OrderStatusPresentation(label: "Shipped", symbol: "shippingbox.fill", tint: PerchTheme.accent)
+            return OrderStatusPresentation(label: "Shipped", symbol: "shippingbox.fill", tint: palette.kinetic)
         case "exception", "needs_review", "issue":
-            return OrderStatusPresentation(label: "Needs Review", symbol: "exclamationmark.triangle.fill", tint: PerchTheme.error)
+            return OrderStatusPresentation(label: "Needs Review", symbol: "exclamationmark.triangle.fill", tint: palette.error)
         default:
-            return OrderStatusPresentation(label: "Ordered", symbol: "cart.fill", tint: PerchTheme.accent)
+            return OrderStatusPresentation(label: "Ordered", symbol: "cart.fill", tint: palette.kinetic)
         }
     }
 
     private func timelineColor(for status: String) -> Color {
         switch normalizedStatus(status) {
         case "delivered":
-            return PerchTheme.success
+            return palette.wellness
         case "in_transit":
-            return PerchTheme.warning
+            return palette.kinetic
         default:
-            return PerchTheme.accent
+            return palette.kinetic
         }
     }
 

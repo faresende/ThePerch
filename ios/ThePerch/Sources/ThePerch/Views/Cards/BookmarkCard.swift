@@ -3,6 +3,8 @@ import SwiftUI
 /// Displays an individual bookmark with favicon, title, domain, reading time, and tags.
 /// Matches the React BookmarkCard design.
 struct BookmarkCard: View {
+    @Environment(\.perchPalette) private var palette
+
     let bookmark: BookmarkData
     let onTap: (() -> Void)?
 
@@ -15,12 +17,12 @@ struct BookmarkCard: View {
             HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
                 // Favicon / initial
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(PerchTheme.accentMuted)
+                    .fill(palette.kinetic.opacity(0.12))
                     .frame(width: 36, height: 36)
                     .overlay(
                         Text(domainInitial)
                             .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.accent)
+                            .foregroundColor(palette.kinetic)
                     )
 
                 // Content
@@ -28,7 +30,7 @@ struct BookmarkCard: View {
                     // Title (2 lines max)
                     Text(bookmark.displayTitle)
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
@@ -36,7 +38,7 @@ struct BookmarkCard: View {
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text(bookmark.domain ?? "Unknown")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
 
                         if let readingTime = bookmark.readingTimeMinutes {
                             HStack(spacing: 3) {
@@ -45,10 +47,10 @@ struct BookmarkCard: View {
                                 Text("\(readingTime) min")
                                     .font(PerchTheme.Font.micro)
                             }
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
-                            .background(PerchTheme.textSecondary.opacity(0.12))
+                            .background(palette.muted.opacity(0.12))
                             .cornerRadius(6)
                         }
                     }
@@ -59,17 +61,17 @@ struct BookmarkCard: View {
                             ForEach(bookmark.tags.prefix(3), id: \.self) { tag in
                                 Text(tag)
                                     .font(PerchTheme.Font.micro)
-                                    .foregroundColor(PerchTheme.accent)
+                                    .foregroundColor(palette.kinetic)
                                     .padding(.horizontal, PerchTheme.Spacing.xSmall)
                                     .padding(.vertical, PerchTheme.Spacing.xxxSmall)
-                                    .background(PerchTheme.accentMuted)
+                                    .background(palette.kinetic.opacity(0.12))
                                     .cornerRadius(6)
                             }
 
                             if bookmark.tags.count > 3 {
                                 Text("+\(bookmark.tags.count - 3)")
                                     .font(PerchTheme.Font.micro)
-                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .foregroundColor(palette.faint)
                             }
                         }
                         .padding(.top, PerchTheme.Spacing.xxSmall)
@@ -80,7 +82,7 @@ struct BookmarkCard: View {
 
                 Image(systemName: "chevron.right")
                     .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
                     .padding(.top, PerchTheme.Spacing.xxxSmall)
             }
             .padding(PerchTheme.Spacing.large)

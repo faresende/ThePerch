@@ -3,6 +3,8 @@ import SwiftUI
 /// Calendar section showing upcoming events with the new EventCard design.
 /// Reads records from DashboardViewModel (single-fetch architecture).
 struct CalendarView: View {
+    @Environment(\.perchPalette) private var palette
+
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var cardsAppeared = false
     @State private var selectedDate = CalendarView.dayCalendar.startOfDay(for: .now)
@@ -128,11 +130,11 @@ struct CalendarView: View {
                                     icon: "calendar",
                                     title: "No events"
                                 )
-                                .background(PerchTheme.cardBackground)
+                                .background(palette.card)
                                 .cornerRadius(PerchTheme.Card.cornerRadius)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                                        .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
+                                        .stroke(palette.line, lineWidth: PerchTheme.Card.borderWidth)
                                 )
                             } else {
                                 VStack(spacing: PerchTheme.Spacing.medium) {
@@ -152,7 +154,7 @@ struct CalendarView: View {
                             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                                 Text("UPCOMING")
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textSecondary)
+                                    .foregroundColor(palette.muted)
                                     .tracking(1)
 
                                 VStack(spacing: PerchTheme.Spacing.small) {
@@ -183,24 +185,24 @@ struct CalendarView: View {
             Button(action: { shiftSelectedDate(by: -1) }) {
                 Image(systemName: "chevron.left")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .frame(width: 36, height: 36)
-                    .background(PerchTheme.cardInnerBackground)
+                    .background(palette.chipBg)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
 
             Text(selectedDayTitle)
                 .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
                 .frame(maxWidth: .infinity)
 
             Button(action: { shiftSelectedDate(by: 1) }) {
                 Image(systemName: "chevron.right")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .frame(width: 36, height: 36)
-                    .background(PerchTheme.cardInnerBackground)
+                    .background(palette.chipBg)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
@@ -218,14 +220,14 @@ struct CalendarView: View {
                     VStack(spacing: 6) {
                         Text(Self.weekdayFormatter.string(from: date).uppercased())
                             .font(PerchTheme.Font.micro)
-                            .foregroundColor(isToday ? PerchTheme.accentForeground : PerchTheme.textTertiary)
+                            .foregroundColor(isToday ? palette.heroText : palette.faint)
 
                         Text("\(Self.dayCalendar.component(.day, from: date))")
                             .font(PerchTheme.Font.bodyNumeric)
-                            .foregroundColor(isToday ? PerchTheme.accentForeground : PerchTheme.textPrimary)
+                            .foregroundColor(isToday ? palette.heroText : palette.ink)
 
                         Circle()
-                            .fill(hasEvents ? (isToday ? PerchTheme.accentForeground : PerchTheme.accent) : Color.clear)
+                            .fill(hasEvents ? (isToday ? palette.heroText : palette.kinetic) : Color.clear)
                             .frame(width: 6, height: 6)
                     }
                     .frame(maxWidth: .infinity)
@@ -261,22 +263,22 @@ struct CalendarView: View {
 
     private func pillBackground(isToday: Bool, isSelected: Bool) -> Color {
         if isToday {
-            return PerchTheme.accent
+            return palette.kinetic
         }
         if isSelected {
-            return PerchTheme.cardBackground
+            return palette.card
         }
-        return PerchTheme.cardInnerBackground
+        return palette.chipBg
     }
 
     private func pillBorder(isToday: Bool, isSelected: Bool) -> Color {
         if isToday {
-            return PerchTheme.accent
+            return palette.kinetic
         }
         if isSelected {
-            return PerchTheme.accent.opacity(0.35)
+            return palette.kinetic.opacity(0.35)
         }
-        return PerchTheme.border
+        return palette.line
     }
 
     private func timezoneText(for event: EventData) -> String? {
@@ -363,6 +365,8 @@ struct CalendarView: View {
 
 /// Compact row for upcoming (non-today) events with date, time, title, and location.
 struct UpcomingEventRow: View {
+    @Environment(\.perchPalette) private var palette
+
     let event: EventData
     let timezoneText: String?
 
@@ -385,36 +389,36 @@ struct UpcomingEventRow: View {
                     Text(dayLabel)
                         .font(PerchTheme.Font.micro)
                         .fontWeight(.semibold)
-                        .foregroundColor(PerchTheme.accent)
+                        .foregroundColor(palette.kinetic)
 
                     Text(event.start.formatted(date: .omitted, time: .shortened))
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                 }
                 .frame(width: 76)
 
                 RoundedRectangle(cornerRadius: 1)
-                    .fill(PerchTheme.border)
+                    .fill(palette.line)
                     .frame(width: 2, height: 44)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(event.title)
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let location = event.location, !location.isEmpty {
                         Text(location)
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(palette.faint)
                             .lineLimit(1)
                     }
 
                     if let timezoneText, !timezoneText.isEmpty {
                         Label(timezoneText, systemImage: "globe")
                             .font(PerchTheme.Font.micro)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                             .lineLimit(1)
                     }
                 }
@@ -422,11 +426,11 @@ struct UpcomingEventRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
             }
             .padding(.horizontal, PerchTheme.Spacing.medium)
             .padding(.vertical, PerchTheme.Spacing.small)
-            .background(PerchTheme.cardBackground)
+            .background(palette.card)
             .cornerRadius(PerchTheme.Card.cornerRadius)
         }
         .buttonStyle(CardPressStyle())
