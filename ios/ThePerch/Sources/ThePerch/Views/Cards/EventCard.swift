@@ -9,7 +9,11 @@ struct EventCard: View {
     let borderColor: Color
     let timezoneText: String?
 
-    init(event: EventData, borderColor: Color = palette.kinetic, timezoneText: String? = nil) {
+    init(event: EventData, borderColor: Color = PerchTheme.accent, timezoneText: String? = nil) {
+        // NOTE: Default uses static PerchTheme.accent because Swift forbids
+        // instance members (like the @Environment `palette`) as default
+        // param values. Callers that want the palette-driven kinetic colour
+        // should pass it explicitly, e.g. `EventCard(event: e, borderColor: palette.kinetic)`.
         self.event = event
         self.borderColor = borderColor
         self.timezoneText = timezoneText
@@ -137,7 +141,10 @@ struct EventCard: View {
                 location: "123 Smile Ave",
                 agentNotes: nil
             ),
-            borderColor: palette.wellness
+            // Preview is a top-level expression, so we can't read the
+            // @Environment palette here. PerchTheme.wellness is the static
+            // fallback that still exists in the theme.
+            borderColor: PerchTheme.wellness
         )
 
         EventCard(
