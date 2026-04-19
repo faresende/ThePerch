@@ -225,13 +225,23 @@ struct NutritionHomeCard: View {
                 .rotationEffect(.degrees(-90))
 
             VStack(spacing: 0) {
+                // .monospacedDigit() on a proportional SF Pro keeps digit
+                // columns aligned (useful when the number counts up) without
+                // the overly-wide glyphs of full `.monospaced` design — which
+                // was spreading "1489" across the ring interior with large
+                // gaps between characters. minimumScaleFactor handles edge
+                // cases like 4-digit or 5-digit calorie targets.
                 Text("\(Int(consumed))")
-                    .font(PerchTheme.Font.titleNumeric)
+                    .font(.system(size: 28, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .foregroundColor(PerchTheme.textPrimary)
                 Text("kcal")
                     .font(PerchTheme.Font.micro)
                     .foregroundColor(PerchTheme.textTertiary)
             }
+            .padding(.horizontal, 10)
         }
         .frame(width: 104, height: 104)
         .scaleEffect(pulseScale)
