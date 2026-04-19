@@ -79,9 +79,19 @@ struct CalendarTodayCard: View {
             .buttonStyle(CardPressStyle())
 
             if todayEvents.isEmpty {
-                // Empty-day state — phrase already shown above the list, so
-                // we keep this minimal and quiet.
-                EmptyView()
+                // Empty-day state — illustration carries the warmth, phrase
+                // above (e.g. "A breezy one") carries the message. No text
+                // duplication.
+                HStack {
+                    Spacer()
+                    Image("empty-calendar")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 120)
+                        .accessibilityLabel("No events today")
+                    Spacer()
+                }
+                .padding(.vertical, PerchTheme.Spacing.xSmall)
             } else if isCompact {
                 // Compact: single-line summary
                 Text(compactSummary)

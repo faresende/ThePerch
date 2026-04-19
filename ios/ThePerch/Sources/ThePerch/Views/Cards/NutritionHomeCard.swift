@@ -11,6 +11,10 @@ struct NutritionHomeCard: View {
     @State private var animateMacros = false
     @State private var pulseScale: CGFloat = 1.0
     @State private var didReachFull = false
+    /// True for a few seconds after the calorie target is first hit, so a
+    /// celebratory illustration overlays the card. Resets if consumption
+    /// dips back below target (e.g. data correction).
+    @State private var showGoalCelebration = false
     @AppStorage("card_compact_nutrition") private var isCompact = false
 
     private var isMorning: Bool {
@@ -145,13 +149,16 @@ struct NutritionHomeCard: View {
             .buttonStyle(CardPressStyle())
 
             if !hasData {
-                // Empty state
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    Image(systemName: "fork.knife")
-                        .font(PerchTheme.Font.icon(PerchTheme.Icon.large))
-                        .foregroundColor(PerchTheme.textTertiary)
+                // Empty state — illustration carries the warmth. "No meals
+                // logged yet" copy sits underneath as quieter caption so
+                // the intent is still clear to screen readers and glance.
+                VStack(spacing: PerchTheme.Spacing.xSmall) {
+                    Image("empty-nutrition")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 120)
                     Text("No meals logged yet")
-                        .font(PerchTheme.Font.body)
+                        .font(PerchTheme.Font.caption)
                         .foregroundColor(PerchTheme.textTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -210,6 +217,23 @@ struct NutritionHomeCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+        .overlay(alignment: .center) {
+            // Goal-reached celebration: a brief illustrated moment when
+            // today's calorie target is first hit. Fades in, holds for ~2s,
+            // fades out. Skipped in Reduce Motion (didReachFull still flips,
+            // so we don't re-trigger).
+            if showGoalCelebration {
+                Image("goal-reached")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 140, height: 140)
+                    .transition(
+                        .scale(scale: 0.7).combined(with: .opacity)
+                    )
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
         .animation(
             PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.3),
             value: isCompact
@@ -292,14 +316,31 @@ struct NutritionHomeCard: View {
             animatedProgress = newProgress
             animatedColor = color
         }
-        // Pulse when reaching 100%
-        if newProgress >= 1.0 && !didReachFull && !PerchMotion.prefersReduced {
+        // Goal-reached moment: first time we cross 100% this session,
+        // briefly celebrate. Scale pulse on the ring + a warmer overlay
+        // illustration that fades in and out. Reduce Motion just skips
+        // the animation but still triggers haptic via success color.
+        if newProgress >= 1.0 && !didReachFull {
             didReachFull = true
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                pulseScale = 1.05
-            }
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.3)) {
-                pulseScale = 1.0
+
+            if !PerchMotion.prefersReduced {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                    pulseScale = 1.05
+                }
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.3)) {
+                    pulseScale = 1.0
+                }
+
+                // Illustration overlay — show for ~2s then gently fade out.
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.75)) {
+                    showGoalCelebration = true
+                }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        showGoalCelebration = false
+                    }
+                }
             }
         } else if newProgress < 1.0 {
             didReachFull = false

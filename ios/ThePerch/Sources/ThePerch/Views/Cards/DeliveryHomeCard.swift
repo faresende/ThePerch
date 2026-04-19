@@ -1,7 +1,10 @@
 import SwiftUI
 
 /// Shows active deliveries as mini sub-cards within a single card.
-/// Hides entirely when no active deliveries (no empty state).
+/// When nothing is in transit, shows a gentle empty-state illustration
+/// plus a rotating phrase — the card stays part of the feed so the
+/// dashboard reads consistently regardless of whether you have packages
+/// on the way.
 struct DeliveryHomeCard: View {
     let deliveries: [DeliveryData]
 
@@ -12,27 +15,50 @@ struct DeliveryHomeCard: View {
         }
     }
 
+    /// Rotating interpretive phrase — "Doorstep quiet", "A couple on the
+    /// way", "Busy doorstep", etc. Keyed to today + count so it's stable
+    /// within a day but varies day-over-day.
+    private var deliveryPhrase: String {
+        PerchPhrase.deliveryPhrase(count: activeDeliveries.count)
+    }
+
     var body: some View {
-        if activeDeliveries.isEmpty {
-            EmptyView()
-        } else {
-            VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
-                // Header
+        VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
+            // Header — always present so the card is recognisable even when
+            // empty. Trailing text omitted in the empty state (phrase carries it).
+            VStack(alignment: .leading, spacing: 4) {
                 HomeCardHeader(
                     systemImage: "shippingbox.fill",
                     title: "DELIVERIES",
-                    trailingText: "\(activeDeliveries.count) active"
+                    trailingText: activeDeliveries.isEmpty ? nil : "\(activeDeliveries.count) active"
                 )
 
+                Text(deliveryPhrase)
+                    .font(PerchTheme.Font.body)
+                    .foregroundColor(PerchTheme.textPrimary)
+            }
+
+            if activeDeliveries.isEmpty {
+                HStack {
+                    Spacer()
+                    Image("empty-deliveries")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 120)
+                        .accessibilityLabel("Nothing in transit")
+                    Spacer()
+                }
+                .padding(.vertical, PerchTheme.Spacing.xSmall)
+            } else {
                 // Delivery sub-cards
                 ForEach(activeDeliveries, id: \.orderId) { delivery in
                     deliverySubCard(delivery: delivery)
                 }
             }
-            .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
-            .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
-            .cardStyle()
         }
+        .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
+        .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
+        .cardStyle()
     }
 
     // MARK: - Sub-card
