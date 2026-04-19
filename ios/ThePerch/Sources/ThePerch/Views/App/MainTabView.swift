@@ -94,6 +94,19 @@ struct MainTabView: View {
                 isShowingSettings = true
             }
         }
+        .task(id: "main-tab-load-safety-net") {
+            // Defensive fallback: if MainTabView appears and the dashboard is
+            // still empty AND not currently loading, the auth-gated task in
+            // ThePerchApp didn't fire for some reason (timing race, debug
+            // bypass edge case, etc.). Trigger the load here.
+            //
+            // This is a no-op in the happy path because loadDashboard's
+            // completion leaves allRecords populated, so the guard returns
+            // immediately on re-entry. No duplicate fetch.
+            guard dashboardViewModel.allRecords.isEmpty,
+                  !dashboardViewModel.isLoading else { return }
+            await dashboardViewModel.loadDashboard()
+        }
     }
 
     private static var debugLaunchesSettings: Bool {

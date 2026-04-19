@@ -8,6 +8,19 @@ extension Notification.Name {
     static let supabaseAuthStateChanged = Notification.Name("SupabaseAuthStateChanged")
 }
 
+// MARK: - Session Expiry
+
+extension Session {
+    /// Whether this session's access token has already expired.
+    /// Used to gate `isAuthenticated` so we don't treat an expired
+    /// locally-cached session as a valid login (Supabase SDK emits
+    /// expired sessions as `.initialSession` during app launch; see
+    /// https://github.com/supabase/supabase-swift/pull/822).
+    var isExpired: Bool {
+        Date().timeIntervalSince1970 >= expiresAt
+    }
+}
+
 // MARK: - Error Types
 
 /// Errors that can occur during Supabase operations.
@@ -201,28 +214,40 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     }
 
     private func handleAuthStateChange(_ event: AuthChangeEvent, session: Session?) {
+        // A session is only "valid" if it exists AND hasn't expired.
+        // Supabase's .initialSession event emits locally-stored sessions
+        // regardless of expiry, which was causing isAuthenticated to flip
+        // true for stale tokens — the dashboard would then fetch with an
+        // expired JWT and get silent empty results instead of a 401.
+        let isValidSession = session != nil && !(session?.isExpired ?? true)
+
         switch event {
         case .passwordRecovery:
-            isAuthenticated = session != nil
+            isAuthenticated = isValidSession
             isPasswordRecovery = true
-            if let session { currentUserId = session.user.id.uuidString }
+            if let session, !session.isExpired { currentUserId = session.user.id.uuidString }
         case .signedIn:
-            isAuthenticated = session != nil
+            isAuthenticated = isValidSession
             isPasswordRecovery = false
-            currentUserId = session?.user.id.uuidString
+            currentUserId = isValidSession ? session?.user.id.uuidString : nil
         case .signedOut, .userDeleted:
             isAuthenticated = false
             isPasswordRecovery = false
             currentUserId = nil
         case .initialSession:
-            isAuthenticated = session != nil
-            currentUserId = session?.user.id.uuidString
+            isAuthenticated = isValidSession
+            currentUserId = isValidSession ? session?.user.id.uuidString : nil
             if session == nil {
                 isPasswordRecovery = false
             }
+#if DEBUG
+            if let session, session.isExpired {
+                print("[SupabaseService] initialSession emitted an EXPIRED session; treating as unauthenticated (expires at \(Date(timeIntervalSince1970: session.expiresAt))).")
+            }
+#endif
         case .tokenRefreshed, .userUpdated, .mfaChallengeVerified:
-            isAuthenticated = session != nil
-            currentUserId = session?.user.id.uuidString
+            isAuthenticated = isValidSession
+            currentUserId = isValidSession ? session?.user.id.uuidString : nil
         }
 
         NotificationCenter.default.post(
@@ -504,6 +529,19 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 
         do {
             let session = try await client.auth.session
+            // Reject expired sessions explicitly. The SDK may hand back a
+            // cached session whose access token already lapsed — using it
+            // would make dashboard fetches silently return empty instead of
+            // throwing a 401, which is exactly the Today-tab-blank bug.
+            guard !session.isExpired else {
+#if DEBUG
+                print("[SupabaseService] Restored session is EXPIRED (expires at \(Date(timeIntervalSince1970: session.expiresAt))); forcing unauthenticated state so AuthView can re-prompt.")
+#endif
+                self.isAuthenticated = false
+                self.isPasswordRecovery = false
+                self.currentUserId = nil
+                return
+            }
             self.isAuthenticated = true
             self.isPasswordRecovery = false
             self.currentUserId = session.user.id.uuidString
