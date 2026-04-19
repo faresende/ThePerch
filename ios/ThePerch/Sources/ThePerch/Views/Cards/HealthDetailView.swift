@@ -4,6 +4,7 @@ import Charts
 /// Full-screen detail view for a health metric chart.
 /// Shows an expanded chart with trend analysis, goal line, time range selector, and streak.
 struct HealthDetailView: View {
+    @Environment(\.perchPalette) private var palette
     let title: String
     let records: [Record]
     let unit: String
@@ -165,7 +166,7 @@ struct HealthDetailView: View {
                         if let latest = chartData.last {
                             VStack(alignment: .leading, spacing: 4) {
                                 if formatAsTime {
-                                    ChartCard.timeValueView(latest.value)
+                                    ChartCard.timeValueView(latest.value, palette: palette)
                                 } else {
                                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                                         Text(String(format: "%.1f", latest.value))

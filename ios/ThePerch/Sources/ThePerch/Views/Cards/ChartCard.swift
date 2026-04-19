@@ -152,8 +152,11 @@ struct ChartCard: View {
         }
     }
 
+    /// Static because callers (ChartCard body + HealthDetailView) don't
+    /// all share an instance. Takes the active palette explicitly so it
+    /// can read the right ink/muted tokens.
     @ViewBuilder
-    static func timeValueView(_ value: Double) -> some View {
+    static func timeValueView(_ value: Double, palette: PerchPalette) -> some View {
         let totalMinutes = Int(value * 60)
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
@@ -215,7 +218,7 @@ struct ChartCard: View {
                 }
                 
                 if formatAsTime, let latest = allChartData.last?.value {
-                    Self.timeValueView(latest)
+                    Self.timeValueView(latest, palette: palette)
                 } else {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text(latestValue)
@@ -272,7 +275,7 @@ struct ChartCard: View {
                     
                     if let point = selectedDataPoint {
                         if formatAsTime {
-                            Self.timeValueView(point.value)
+                            Self.timeValueView(point.value, palette: palette)
                         } else {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
                                 Text(PerchFormatters.decimal.string(from: NSNumber(value: point.value)) ?? "--")
@@ -285,7 +288,7 @@ struct ChartCard: View {
                         }
                     } else {
                         if formatAsTime, let latest = allChartData.last?.value {
-                            Self.timeValueView(latest)
+                            Self.timeValueView(latest, palette: palette)
                         } else {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
                                 Text(latestValue)
