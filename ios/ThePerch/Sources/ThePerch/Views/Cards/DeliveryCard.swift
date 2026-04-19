@@ -3,6 +3,8 @@ import SwiftUI
 /// Displays delivery tracking with a horizontal step progress indicator.
 /// Matches the React DeliveryCard design with dots and connector lines.
 struct DeliveryCard: View {
+    @Environment(\.perchPalette) private var palette
+
     let delivery: DeliveryData
     let emoji: String
 
@@ -61,7 +63,7 @@ struct DeliveryCard: View {
                 HStack(spacing: PerchTheme.Spacing.small) {
                     // Emoji icon
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(PerchTheme.accentMuted)
+                        .fill(palette.kinetic.opacity(0.12))
                         .frame(width: 40, height: 40)
                         .overlay(
                             Text(emoji)
@@ -72,18 +74,18 @@ struct DeliveryCard: View {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
                         Text(delivery.items.first?.name ?? "Package")
                             .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                             .lineLimit(2)
 
                         HStack(spacing: PerchTheme.Spacing.xSmall) {
                             Text(delivery.carrier)
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
 
                             if let suffix = trackingSuffix {
                                 Text(suffix)
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .foregroundColor(palette.faint)
                             }
                         }
                     }
@@ -95,7 +97,7 @@ struct DeliveryCard: View {
                         if let eta = etaFormatted {
                             Text("ETA \(eta)")
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.accent)
+                                .foregroundColor(palette.kinetic)
                         }
                         if hasTrackingUrl {
                             HStack(spacing: PerchTheme.Spacing.xxxSmall) {
@@ -105,7 +107,7 @@ struct DeliveryCard: View {
                                     .font(PerchTheme.Font.micro)
                                     .fontWeight(.bold)
                             }
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(palette.faint)
                         }
                     }
                 }
@@ -149,7 +151,7 @@ struct DeliveryCard: View {
                     path.move(to: CGPoint(x: maxDot / 2, y: lineY))
                     path.addLine(to: CGPoint(x: totalWidth + maxDot / 2, y: lineY))
                 }
-                .stroke(PerchTheme.border, lineWidth: 3)
+                .stroke(palette.line, lineWidth: 3)
 
                 // Connector line (active portion) — animated
                 if activeIndex > 0 {
@@ -160,7 +162,7 @@ struct DeliveryCard: View {
                     }
                     .stroke(
                         LinearGradient(
-                            colors: [PerchTheme.accent.opacity(0.7), PerchTheme.accent],
+                            colors: [palette.kinetic.opacity(0.7), palette.kinetic],
                             startPoint: .leading,
                             endPoint: .trailing
                         ),
@@ -179,10 +181,10 @@ struct DeliveryCard: View {
                     // Dot with icon — vertically centered on the connector line
                     ZStack {
                         Circle()
-                            .fill(isComplete ? PerchTheme.accent : PerchTheme.border)
+                            .fill(isComplete ? palette.kinetic : palette.line)
                             .frame(width: size, height: size)
                             .shadow(
-                                color: isCurrent ? PerchTheme.accent.opacity(0.5) : .clear,
+                                color: isCurrent ? palette.kinetic.opacity(0.5) : .clear,
                                 radius: isCurrent ? 8 : 0
                             )
 
@@ -200,7 +202,7 @@ struct DeliveryCard: View {
                     Text(step.label)
                         .font(PerchTheme.Font.micro)
                         .fontWeight(isCurrent ? .bold : .regular)
-                        .foregroundColor(isComplete ? PerchTheme.textPrimary : PerchTheme.textTertiary)
+                        .foregroundColor(isComplete ? palette.ink : palette.faint)
                         .frame(width: 60)
                         .multilineTextAlignment(.center)
                         .position(x: x, y: lineY + maxDot / 2 + 14)

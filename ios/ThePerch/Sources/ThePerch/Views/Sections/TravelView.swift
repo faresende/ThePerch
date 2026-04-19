@@ -3,6 +3,8 @@ import SwiftUI
 /// Travel section showing trip itinerary timeline, alerts, and weather.
 /// Data is fed from DashboardViewModel (single-fetch architecture).
 struct TravelView: View {
+    @Environment(\.perchPalette) private var palette
+
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = TravelViewModel()
     @State private var selectedTripId: String?
@@ -128,10 +130,10 @@ struct TravelView: View {
                             Text(trip.destination)
                                 .font(PerchTheme.Font.caption)
                         }
-                        .foregroundColor(isSelected ? PerchTheme.background : PerchTheme.textSecondary)
+                        .foregroundColor(isSelected ? PerchTheme.background : palette.muted)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(isSelected ? PerchTheme.accent : PerchTheme.cardInnerBackground)
+                        .background(isSelected ? palette.kinetic : palette.chipBg)
                         .cornerRadius(10)
                     }
                 }
@@ -148,20 +150,20 @@ struct TravelView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(trip.destination)
                         .font(PerchTheme.Font.title)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
 
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
                         if let origin = trip.origin {
                             Text(origin)
                                 .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textTertiary)
+                                .foregroundColor(palette.faint)
                             Image(systemName: "arrow.right")
                                 .font(.caption2)
-                                .foregroundColor(PerchTheme.textTertiary)
+                                .foregroundColor(palette.faint)
                         }
                         Text(trip.destination)
                             .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                 }
 
@@ -176,15 +178,15 @@ struct TravelView: View {
                 HStack(spacing: PerchTheme.Spacing.small) {
                     Image(systemName: "calendar")
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                     Text("\(PerchFormatters.shortWeekdayDate.string(from: start)) – \(PerchFormatters.shortWeekdayDate.string(from: end))")
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
 
                     if let total = trip.totalDays {
                         Text("· \(total) nights")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(palette.faint)
                     }
                 }
             }
@@ -194,10 +196,10 @@ struct TravelView: View {
                 HStack(spacing: PerchTheme.Spacing.xSmall) {
                     Image(systemName: "clock")
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                     Text(formatTimezoneOffset(origin: originTz, destination: destTz))
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                 }
             }
 
@@ -207,10 +209,10 @@ struct TravelView: View {
                     Text(weather.emoji)
                     Text("\(Int(weather.avgTemp))°C avg")
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
                     Text("· \(weather.condition.replacingOccurrences(of: "_", with: " ").localizedCapitalized)")
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                 }
             }
         }
@@ -226,17 +228,17 @@ struct TravelView: View {
                 HStack(spacing: PerchTheme.Spacing.small) {
                     Image(systemName: alert.isCritical ? "exclamationmark.triangle.fill" : "info.circle.fill")
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(alert.isCritical ? PerchTheme.error : PerchTheme.warning)
+                        .foregroundColor(alert.isCritical ? palette.error : palette.kinetic)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(alert.message)
                             .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
 
                         if let flight = alert.flightNumber {
                             Text(flight)
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textTertiary)
+                                .foregroundColor(palette.faint)
                         }
                     }
 
@@ -244,7 +246,7 @@ struct TravelView: View {
                 }
                 .padding(PerchTheme.Spacing.medium)
                 .background(
-                    (alert.isCritical ? PerchTheme.error : PerchTheme.warning).opacity(0.1)
+                    (alert.isCritical ? palette.error : palette.kinetic).opacity(0.1)
                 )
                 .cornerRadius(10)
             }
@@ -332,7 +334,7 @@ struct TravelView: View {
                 HStack(spacing: PerchTheme.Spacing.small) {
                     Text(dayLabel)
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                     Spacer()
                 }
                 .padding(.vertical, PerchTheme.Spacing.small)
@@ -349,10 +351,10 @@ struct TravelView: View {
                                 VStack(spacing: 0) {
                                     Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
                                         .font(.system(size: 10))
-                                        .foregroundColor(task.done ? PerchTheme.success : PerchTheme.textTertiary)
+                                        .foregroundColor(task.done ? palette.wellness : palette.faint)
 
                                     Rectangle()
-                                        .fill(PerchTheme.border)
+                                        .fill(palette.line)
                                         .frame(width: 1)
                                         .frame(maxHeight: .infinity)
                                 }
@@ -378,7 +380,7 @@ struct TravelView: View {
 
                             if dayEntries.last?.id != entry.id || dayIndex < sortedDays.count - 1 {
                                 Rectangle()
-                                    .fill(PerchTheme.border)
+                                    .fill(palette.line)
                                     .frame(width: 1)
                                     .frame(maxHeight: .infinity)
                             }
@@ -404,10 +406,10 @@ struct TravelView: View {
         let (emoji, label) = segmentTagInfo(segment)
         return Text("\(emoji) \(label)")
             .font(PerchTheme.Font.micro)
-            .foregroundColor(PerchTheme.textTertiary)
+            .foregroundColor(palette.faint)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(PerchTheme.cardInnerBackground)
+            .background(palette.chipBg)
             .cornerRadius(4)
     }
 
@@ -457,7 +459,7 @@ struct TravelView: View {
             // Leading icon (fixed width, text wraps past it)
             Image(systemName: segmentIcon(segment))
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.accent)
+                .foregroundColor(palette.kinetic)
                 .frame(width: 18, alignment: .center)
                 .padding(.top, 2)
 
@@ -468,12 +470,12 @@ struct TravelView: View {
                     Text(segment.flightLabel ?? "Flight")
                         .font(PerchTheme.Font.body)
                         .fontWeight(.semibold)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
 
                     if let origin = segment.origin, let dest = segment.destination {
                         Text("\(origin) → \(dest)")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                 }
             } else if segment.isHotel {
@@ -481,24 +483,24 @@ struct TravelView: View {
                     Text(segment.name ?? cleanTitle(record.title))
                         .font(PerchTheme.Font.body)
                         .fontWeight(.semibold)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                         .lineLimit(2)
 
                     if hotelMode == .checkIn {
                         Text("Check-in")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
+                            .foregroundColor(palette.kinetic)
                     } else if hotelMode == .checkOut {
                         Text("Check-out")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                 }
             } else {
                 Text(segment.name ?? cleanTitle(record.title))
                     .font(PerchTheme.Font.body)
                     .fontWeight(.semibold)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .lineLimit(2)
             }
 
@@ -510,31 +512,31 @@ struct TravelView: View {
                         if let dep = segment.departure {
                             Text(PerchFormatters.time24h.string(from: dep))
                                 .font(PerchTheme.Font.captionNumeric)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
                         }
                     case .checkOut:
                         if let arr = segment.arrival {
                             Text(PerchFormatters.time24h.string(from: arr))
                                 .font(PerchTheme.Font.captionNumeric)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
                         }
                     case .notHotel:
                         if let dep = segment.departure {
                             Text(PerchFormatters.time24h.string(from: dep))
                                 .font(PerchTheme.Font.captionNumeric)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
                         }
                     }
                 } else {
                     if let dep = segment.departure {
                         Label(PerchFormatters.time24h.string(from: dep), systemImage: "arrow.up.right")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                     if let arr = segment.arrival {
                         Label(PerchFormatters.time24h.string(from: arr), systemImage: "arrow.down.right")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                 }
 
@@ -565,17 +567,17 @@ struct TravelView: View {
                     if let gate = segment.gate {
                         Text("Gate \(gate)")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
+                            .foregroundColor(palette.kinetic)
                     }
                     if let seat = segment.seat {
                         Text("Seat \(seat)")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(palette.faint)
                     }
                     if hotelMode != .checkOut, let conf = segment.confirmation {
                         Text("Ref \(formatConfirmation(conf))")
                             .font(PerchTheme.Font.captionNumeric)
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(palette.faint)
                             .onTapGesture {
                                 UIPasteboard.general.string = conf
                                 PerchHaptics.light()
@@ -588,13 +590,13 @@ struct TravelView: View {
             if hotelMode != .checkOut, let address = segment.address {
                 Text(address)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
                     .lineLimit(1)
             }
             } // end inner VStack
         } // end HStack (icon + content)
         .padding(PerchTheme.Spacing.medium)
-        .background(PerchTheme.cardInnerBackground)
+        .background(palette.chipBg)
         .cornerRadius(10)
         .padding(.bottom, PerchTheme.Spacing.small)
     }
@@ -608,7 +610,7 @@ struct TravelView: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
             Text("WEATHER")
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .tracking(1)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -621,20 +623,20 @@ struct TravelView: View {
                             if let high = forecast.tempHigh, let low = forecast.tempLow {
                                 Text("\(Int(high))°/\(Int(low))°")
                                     .font(PerchTheme.Font.captionNumeric)
-                                    .foregroundColor(PerchTheme.textPrimary)
+                                    .foregroundColor(palette.ink)
                             } else if let avg = forecast.tempAvg {
                                 Text("\(Int(avg))°C")
                                     .font(PerchTheme.Font.captionNumeric)
-                                    .foregroundColor(PerchTheme.textPrimary)
+                                    .foregroundColor(palette.ink)
                             }
 
                             Text(String(forecast.date.suffix(5)))
                                 .font(PerchTheme.Font.micro)
-                                .foregroundColor(PerchTheme.textTertiary)
+                                .foregroundColor(palette.faint)
                         }
                         .frame(width: 60)
                         .padding(.vertical, PerchTheme.Spacing.small)
-                        .background(PerchTheme.cardInnerBackground)
+                        .background(palette.chipBg)
                         .cornerRadius(10)
                     }
                 }
@@ -643,7 +645,7 @@ struct TravelView: View {
             if !packingHints.isEmpty {
                 Text("🎒 Pack: \(packingHints.joined(separator: ", "))")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
                     .padding(.top, 2)
             }
         }
@@ -676,11 +678,11 @@ struct TravelView: View {
 
     private func segmentStatusColor(_ seg: ItineraryData) -> Color {
         switch seg.status?.lowercased() {
-        case "confirmed", "on_time": return PerchTheme.success
-        case "delayed": return PerchTheme.warning
-        case "cancelled": return PerchTheme.error
-        case "pending": return PerchTheme.textTertiary
-        default: return PerchTheme.success
+        case "confirmed", "on_time": return palette.wellness
+        case "delayed": return palette.kinetic
+        case "cancelled": return palette.error
+        case "pending": return palette.faint
+        default: return palette.wellness
         }
     }
 
@@ -701,20 +703,20 @@ struct TravelView: View {
             if status == "active", let day = trip.currentTripDay, let total = trip.totalDays {
                 Text("Day \(day)/\(total)")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.accent)
+                    .foregroundColor(palette.kinetic)
             } else if let days = trip.daysUntilStart, days > 0 {
                 Text("in \(days)d")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
             } else {
                 Text(status.capitalized)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(PerchTheme.cardInnerBackground)
+        .background(palette.chipBg)
         .cornerRadius(8)
     }
 
@@ -763,7 +765,7 @@ struct TravelView: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
             Text("CALENDAR")
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .tracking(1)
 
             VStack(spacing: PerchTheme.Spacing.small) {
@@ -772,26 +774,26 @@ struct TravelView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("\(calendarEventTimeText(for: event, trip: trip)) — \(event.title)")
                                 .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textPrimary)
+                                .foregroundColor(palette.ink)
                                 .lineLimit(2)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             if let location = event.location, !location.isEmpty {
                                 Text(location)
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .foregroundColor(palette.faint)
                                     .lineLimit(1)
                             }
                         }
                         .padding(PerchTheme.Spacing.medium)
-                        .background(PerchTheme.cardInnerBackground)
+                        .background(palette.chipBg)
                         .cornerRadius(10)
                     }
                     .buttonStyle(CardPressStyle())
 
                     if index < events.count - 1 {
                         Rectangle()
-                            .fill(PerchTheme.border)
+                            .fill(palette.line)
                             .frame(height: 0.5)
                     }
                 }

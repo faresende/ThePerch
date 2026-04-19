@@ -4,6 +4,8 @@ import SwiftUI
 /// Karakeep tab uses BookmarksViewModel + KarakeepService for reliable direct API access.
 /// Paperless tab reads records from DashboardViewModel (single-fetch architecture).
 struct BookmarksView: View {
+    @Environment(\.perchPalette) private var palette
+
     @Environment(DashboardViewModel.self) var dashboardViewModel
 
     @State private var viewModel = BookmarksViewModel()
@@ -142,7 +144,7 @@ struct BookmarksView: View {
                     HStack(spacing: PerchTheme.Spacing.small) {
                         Image(systemName: "magnifyingglass")
                             .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
 
                         TextField(
                             selectedTab == .karakeep ? "Search bookmarks" : "Search documents",
@@ -154,16 +156,16 @@ struct BookmarksView: View {
                             Button(action: { viewModel.clearSearch() }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
-                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .foregroundColor(palette.faint)
                             }
                         }
                     }
                     .padding(PerchTheme.Spacing.small)
-                    .background(PerchTheme.cardBackground)
+                    .background(palette.card)
                     .cornerRadius(PerchTheme.Card.cornerRadius)
                     .overlay(
                         RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                            .stroke(PerchTheme.border, lineWidth: 1)
+                            .stroke(palette.line, lineWidth: 1)
                     )
 
                     // Tag filters
@@ -177,14 +179,14 @@ struct BookmarksView: View {
                                             .foregroundColor(
                                                 viewModel.selectedTags.contains(tag)
                                                     ? .white
-                                                    : PerchTheme.accent
+                                                    : palette.kinetic
                                             )
                                             .padding(.horizontal, PerchTheme.Spacing.small)
                                             .padding(.vertical, PerchTheme.Spacing.xxSmall)
                                             .background(
                                                 viewModel.selectedTags.contains(tag)
-                                                    ? PerchTheme.accent
-                                                    : PerchTheme.accent.opacity(0.1)
+                                                    ? palette.kinetic
+                                                    : palette.kinetic.opacity(0.1)
                                             )
                                             .cornerRadius(4)
                                     }
@@ -282,7 +284,7 @@ struct BookmarksView: View {
         if !viewModel.filteredKarakeepBookmarks.isEmpty {
             Text("\(karakeepData.count) bookmark\(karakeepData.count == 1 ? "" : "s")")
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
                 .padding(.horizontal, PerchTheme.Spacing.large)
         }
 
@@ -291,7 +293,7 @@ struct BookmarksView: View {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                 Text("Processing")
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     ForEach(karakeepData.pending) { bookmark in
@@ -307,7 +309,7 @@ struct BookmarksView: View {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                 Text("Bookmarks")
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     ForEach(karakeepData.processed) { bookmark in
@@ -339,7 +341,7 @@ struct BookmarksView: View {
         if !bookmarkData.filtered.isEmpty {
             Text("\(tabCount) document\(tabCount == 1 ? "" : "s")")
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
                 .padding(.horizontal, PerchTheme.Spacing.large)
         }
 
@@ -348,7 +350,7 @@ struct BookmarksView: View {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                 Text("Processing")
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     ForEach(pendingBookmarks) { record in
@@ -366,7 +368,7 @@ struct BookmarksView: View {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                 Text("Documents")
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     ForEach(processedBookmarks) { record in
@@ -452,16 +454,16 @@ struct BookmarksView: View {
         VStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "magnifyingglass")
                 .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
 
             VStack(spacing: PerchTheme.Spacing.xSmall) {
                 Text("No results")
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 Text("Try different keywords or filters")
                     .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                     .multilineTextAlignment(.center)
             }
         }

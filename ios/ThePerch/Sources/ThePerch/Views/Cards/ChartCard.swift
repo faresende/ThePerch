@@ -2,6 +2,8 @@ import SwiftUI
 import Charts
 
 struct ChartCard: View {
+    @Environment(\.perchPalette) private var palette
+
     let title: String
     let records: [Record]
     let unit: String
@@ -116,15 +118,15 @@ struct ChartCard: View {
                let latest = allChartData.last {
                 let isStable = abs(trend) < 0.05
                 let trendColor: Color = {
-                    if isStable { return PerchTheme.textTertiary }
+                    if isStable { return palette.faint }
                     if title.caseInsensitiveCompare("Weight") == .orderedSame {
-                        return PerchTheme.warning
+                        return palette.kinetic
                     }
                     let isPositive = trend > 0
                     if higherIsBetter {
-                        return isPositive ? PerchTheme.success : PerchTheme.error
+                        return isPositive ? palette.wellness : palette.error
                     } else {
-                        return isPositive ? PerchTheme.error : PerchTheme.success
+                        return isPositive ? palette.error : palette.wellness
                     }
                 }()
                 let icon: String = {
@@ -158,17 +160,17 @@ struct ChartCard: View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
             Text("\(hours)")
                 .font(PerchTheme.Font.displayNumeric)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
             Text("h")
                 .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .padding(.trailing, 2)
             Text("\(minutes)")
                 .font(PerchTheme.Font.displayNumeric)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
             Text("m")
                 .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
         }
     }
 
@@ -187,7 +189,7 @@ struct ChartCard: View {
                 expandedView
             }
         }
-        .background(PerchTheme.cardBackground)
+        .background(palette.card)
         .cornerRadius(PerchTheme.Card.cornerRadius)
         .onTapGesture {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -208,7 +210,7 @@ struct ChartCard: View {
                 HStack(spacing: PerchTheme.Spacing.small) {
                     Text(title)
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
                     trendView
                 }
                 
@@ -218,10 +220,10 @@ struct ChartCard: View {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text(latestValue)
                             .font(PerchTheme.Font.titleNumeric)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                         Text(unit)
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                 }
             }
@@ -241,7 +243,7 @@ struct ChartCard: View {
                             y: .value("Value", dp.value)
                         )
                         .interpolationMethod(.monotone)
-                        .foregroundStyle(PerchTheme.accent)
+                        .foregroundStyle(palette.kinetic)
                         .lineStyle(StrokeStyle(lineWidth: 1.5))
                     }
                 }
@@ -264,7 +266,7 @@ struct ChartCard: View {
                     HStack(spacing: PerchTheme.Spacing.small) {
                         Text(title)
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                         trendView
                     }
                     
@@ -275,10 +277,10 @@ struct ChartCard: View {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
                                 Text(PerchFormatters.decimal.string(from: NSNumber(value: point.value)) ?? "--")
                                     .font(PerchTheme.Font.titleNumeric)
-                                    .foregroundColor(PerchTheme.textPrimary)
+                                    .foregroundColor(palette.ink)
                                 Text(unit)
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textSecondary)
+                                    .foregroundColor(palette.muted)
                             }
                         }
                     } else {
@@ -288,10 +290,10 @@ struct ChartCard: View {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
                                 Text(latestValue)
                                     .font(PerchTheme.Font.titleNumeric)
-                                    .foregroundColor(PerchTheme.textPrimary)
+                                    .foregroundColor(palette.ink)
                                 Text(unit)
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textSecondary)
+                                    .foregroundColor(palette.muted)
                             }
                         }
                     }
@@ -304,10 +306,10 @@ struct ChartCard: View {
                     ForEach(TimeRange.allCases, id: \.self) { range in
                         Text(range.rawValue)
                             .font(PerchTheme.Font.micro)
-                            .foregroundColor(resolvedRange == range ? PerchTheme.accentForeground : PerchTheme.textTertiary)
+                            .foregroundColor(resolvedRange == range ? palette.heroText : palette.faint)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(resolvedRange == range ? PerchTheme.accent : Color.clear)
+                            .background(resolvedRange == range ? palette.kinetic : Color.clear)
                             .cornerRadius(12)
                             .onTapGesture {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -317,7 +319,7 @@ struct ChartCard: View {
                     }
                 }
                 .padding(4)
-                .background(PerchTheme.cardInnerBackground)
+                .background(palette.chipBg)
                 .cornerRadius(16)
             }
             
@@ -326,7 +328,7 @@ struct ChartCard: View {
             if data.isEmpty {
                 Text("Not enough data for this period")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
                     .frame(height: 140)
                     .frame(maxWidth: .infinity)
             } else {
@@ -343,36 +345,36 @@ struct ChartCard: View {
                                 y: .value("Value", dp.value)
                             )
                             .interpolationMethod(.monotone)
-                            .foregroundStyle(PerchTheme.accent)
+                            .foregroundStyle(palette.kinetic)
                             .lineStyle(StrokeStyle(lineWidth: 1.5))
                             
                             PointMark(
                                 x: .value("Date", dp.date),
                                 y: .value("Value", dp.value)
                             )
-                            .foregroundStyle(PerchTheme.accent)
+                            .foregroundStyle(palette.kinetic)
                             .symbolSize(12)
                         } else {
                             PointMark(
                                 x: .value("Date", dp.date),
                                 y: .value("Value", dp.value)
                             )
-                            .foregroundStyle(PerchTheme.accent)
+                            .foregroundStyle(palette.kinetic)
                             .symbolSize(30)
                         }
                     }
                     
                     if let point = selectedDataPoint {
                         RuleMark(x: .value("Date", point.date))
-                            .foregroundStyle(PerchTheme.textTertiary.opacity(0.5))
+                            .foregroundStyle(palette.faint.opacity(0.5))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
                             .annotation(position: .top) {
                                 Text(PerchFormatters.shortDate.string(from: point.date))
                                     .font(PerchTheme.Font.micro)
-                                    .foregroundColor(PerchTheme.textSecondary)
+                                    .foregroundColor(palette.muted)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
-                                    .background(PerchTheme.cardInnerBackground)
+                                    .background(palette.chipBg)
                                     .cornerRadius(4)
                             }
                     }
@@ -381,11 +383,11 @@ struct ChartCard: View {
                     AxisMarks(preset: .aligned, values: .stride(by: .day, count: resolvedRange == .sevenDays ? 1 : (resolvedRange == .thirtyDays ? 7 : 14))) { value in
                         if let date = value.as(Date.self) {
                             AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
-                                .foregroundStyle(PerchTheme.border)
+                                .foregroundStyle(palette.line)
                             AxisValueLabel {
                                 Text(PerchFormatters.shortDate.string(from: date))
                                     .font(PerchTheme.Font.micro)
-                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .foregroundColor(palette.faint)
                             }
                         }
                     }
@@ -393,12 +395,12 @@ struct ChartCard: View {
                 .chartYAxis {
                     AxisMarks(position: .trailing, values: .automatic(desiredCount: 4)) { value in
                         AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
-                            .foregroundStyle(PerchTheme.border)
+                            .foregroundStyle(palette.line)
                         AxisValueLabel {
                             if let intVal = value.as(Double.self) {
                                 Text(formatAsTime ? "\(Int(intVal))h" : "\(Int(intVal))")
                                     .font(PerchTheme.Font.microNumeric)
-                                    .foregroundColor(PerchTheme.textTertiary)
+                                    .foregroundColor(palette.faint)
                             }
                         }
                     }

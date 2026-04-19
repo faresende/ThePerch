@@ -576,21 +576,16 @@ extension View {
 private struct CardStyleModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
+    @Environment(\.perchPalette) private var palette
+
     func body(content: Content) -> some View {
         let cardShape = RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
 
-        // Editorial card: no border, no light-mode drop shadow.
-        // Depth in light mode comes purely from the tonal contrast of pure
-        // white on the warm-off-white page background. Dark mode keeps a
-        // whisper of shadow because zinc-900 on zinc-950 alone is too flat.
+        // Palette-aware card fill — reads the active palette from the
+        // environment so legacy `.cardStyle()` usages automatically tint
+        // with the rest of the Today-feed system. No border, no shadow.
         content
-            .background(cardShape.fill(PerchTheme.cardBackground))
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.32 : 0.0),
-                radius: colorScheme == .dark ? 10 : 0,
-                x: 0,
-                y: colorScheme == .dark ? 4 : 0
-            )
+            .background(cardShape.fill(palette.card))
     }
 }
 

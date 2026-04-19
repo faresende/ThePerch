@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Nutrition meal card showing meal timing, macro totals, and inline correction tools.
 struct MealCard: View {
+    @Environment(\.perchPalette) private var palette
+
     private let meal: MealRecord?
     private let viewModel: NutritionViewModel?
     private let isShimmer: Bool
@@ -47,12 +49,12 @@ struct MealCard: View {
                     } else if let meal {
                         Text(meal.mealName)
                             .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                             .lineLimit(isExpanded ? nil : 2)
 
                         Text(meal.mealTime.formatted(date: .omitted, time: .shortened))
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                 }
 
@@ -75,7 +77,7 @@ struct MealCard: View {
             } else if let meal, !meal.analysis.isEmpty {
                 Text(meal.analysis)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                     .lineLimit(isExpanded ? nil : 2)
             }
 
@@ -84,14 +86,14 @@ struct MealCard: View {
             } else if !isShimmer {
                 Text("Tap to expand.")
                     .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
             }
         }
         .padding(PerchTheme.Card.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
-                .fill(isExpanded ? PerchTheme.cardHover.opacity(0.35) : .clear)
+                .fill(isExpanded ? palette.chipBg.opacity(0.35) : .clear)
         )
         .cardStyle()
         .contentShape(Rectangle())
@@ -114,7 +116,7 @@ struct MealCard: View {
     private var photoPlaceholder: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16)
-                .fill(PerchTheme.cardInnerBackground)
+                .fill(palette.chipBg)
                 .frame(width: 64, height: 64)
 
             if isShimmer {
@@ -122,7 +124,7 @@ struct MealCard: View {
             } else {
                 Image(systemName: "fork.knife")
                     .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
-                    .foregroundColor(PerchTheme.accent)
+                    .foregroundColor(palette.kinetic)
             }
         }
         .shimmer(if: isShimmer)
@@ -136,7 +138,7 @@ struct MealCard: View {
                     SkeletonRect(width: 62, height: 28, cornerRadius: 14)
                 }
             } else if let meal {
-                MacroPill(label: "Cal", value: "\(Int(meal.calories))", tint: PerchTheme.accent)
+                MacroPill(label: "Cal", value: "\(Int(meal.calories))", tint: palette.kinetic)
                 MacroPill(label: "P", value: "\(Int(meal.protein))g", tint: PerchTheme.macroProtein)
                 MacroPill(label: "C", value: "\(Int(meal.carbs))g", tint: PerchTheme.macroCarbs)
                 MacroPill(label: "F", value: "\(Int(meal.fat))g", tint: PerchTheme.macroFat)
@@ -151,8 +153,8 @@ struct MealCard: View {
                 actionButton(
                     title: showingCorrectionField ? "Hide Correction" : "Correct",
                     systemImage: "wand.and.stars",
-                    tint: PerchTheme.accentMuted,
-                    foreground: PerchTheme.accent
+                    tint: palette.kinetic.opacity(0.12),
+                    foreground: palette.kinetic
                 ) {
                     PerchMotion.withOptionalAnimation {
                         showingCorrectionField.toggle()
@@ -163,8 +165,8 @@ struct MealCard: View {
                 actionButton(
                     title: showingManualEditor ? "Close Editor" : "Edit manually",
                     systemImage: "slider.horizontal.3",
-                    tint: PerchTheme.cardInnerBackground,
-                    foreground: PerchTheme.textPrimary
+                    tint: palette.chipBg,
+                    foreground: palette.ink
                 ) {
                     PerchMotion.withOptionalAnimation {
                         showingManualEditor.toggle()
@@ -178,11 +180,11 @@ struct MealCard: View {
                     TextField("What was different?", text: $correctionText, axis: .vertical)
                         .textFieldStyle(.plain)
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                         .padding(PerchTheme.Spacing.medium)
                         .background(
                             RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                                .fill(PerchTheme.cardInnerBackground)
+                                .fill(palette.chipBg)
                         )
                         .onSubmit {
                             submitCorrection()
@@ -195,7 +197,7 @@ struct MealCard: View {
                         }
                         .font(PerchTheme.Font.caption)
                         .fontWeight(.semibold)
-                        .foregroundColor(PerchTheme.accent)
+                        .foregroundColor(palette.kinetic)
                         .disabled(correctionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel?.isAnalyzing == true)
                     }
                 }
@@ -205,7 +207,7 @@ struct MealCard: View {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
                     Text("Edit macros")
                         .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
 
                     HStack(spacing: PerchTheme.Spacing.small) {
                         manualField(title: "Cal", value: $caloriesText)
@@ -221,31 +223,31 @@ struct MealCard: View {
                         }
                         .font(PerchTheme.Font.caption)
                         .fontWeight(.semibold)
-                        .foregroundColor(PerchTheme.accent)
+                        .foregroundColor(palette.kinetic)
                         .disabled(viewModel?.isAnalyzing == true || parsedManualValues == nil)
                     }
                 }
                 .padding(PerchTheme.Spacing.medium)
                 .background(
                     RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                        .fill(PerchTheme.cardInnerBackground.opacity(0.85))
+                        .fill(palette.chipBg.opacity(0.85))
                 )
             }
             Text("Tap anywhere on the card to collapse.")
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
         }
     }
 
     private var correctedBadge: some View {
         Text("Corrected")
             .font(PerchTheme.Font.micro)
-            .foregroundColor(PerchTheme.success)
+            .foregroundColor(palette.wellness)
             .padding(.horizontal, PerchTheme.Spacing.small)
             .padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(PerchTheme.success.opacity(0.12))
+                    .fill(palette.wellness.opacity(0.12))
             )
     }
 
@@ -259,12 +261,12 @@ struct MealCard: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
             Text(title)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
 
             TextField(title, text: value)
                 .keyboardType(.decimalPad)
                 .font(PerchTheme.Font.bodyNumeric)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
                 .padding(.horizontal, PerchTheme.Spacing.small)
                 .padding(.vertical, 10)
                 .background(
@@ -359,11 +361,11 @@ private struct MacroPill: View {
         HStack(spacing: 6) {
             Text(label)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
 
             Text(value)
                 .font(PerchTheme.Font.captionNumeric)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
         }
         .padding(.horizontal, PerchTheme.Spacing.small)
         .padding(.vertical, 7)

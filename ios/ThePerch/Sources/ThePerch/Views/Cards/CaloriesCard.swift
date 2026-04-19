@@ -26,11 +26,11 @@ struct CaloriesCard: View {
 
     private var progressColor: Color {
         if consumed > target * 1.1 {
-            return PerchTheme.error
+            return palette.error
         } else if consumed > target * 0.9 {
-            return PerchTheme.success
+            return palette.wellness
         }
-        return PerchTheme.accent
+        return palette.kinetic
     }
 
     var body: some View {
@@ -39,7 +39,7 @@ struct CaloriesCard: View {
             ZStack {
                 // Background ring
                 Circle()
-                    .stroke(PerchTheme.border, lineWidth: 8)
+                    .stroke(palette.line, lineWidth: 8)
 
                 // Progress ring with gradient
                 Circle()
@@ -61,10 +61,10 @@ struct CaloriesCard: View {
                     Text("\(Int(animatedConsumed))")
                         .contentTransition(.numericText())
                         .font(PerchTheme.Font.titleNumeric)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                     Text(unit)
                         .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                 }
             }
             .frame(width: 90, height: 90)
@@ -74,7 +74,7 @@ struct CaloriesCard: View {
                 HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
                     Text("CALORIES")
                         .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
                         .tracking(0.8)
 
                     Spacer()
@@ -88,21 +88,21 @@ struct CaloriesCard: View {
                     HStack {
                         Text("Target")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                         Spacer()
                         Text("\(Int(target)) \(unit)")
                             .font(PerchTheme.Font.captionNumeric)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                     }
 
                     HStack {
                         Text("Remaining")
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                         Spacer()
                         Text("\(Int(remaining)) \(unit)")
                             .font(PerchTheme.Font.captionNumeric)
-                            .foregroundColor(remaining > 0 ? PerchTheme.accent : PerchTheme.error)
+                            .foregroundColor(remaining > 0 ? palette.kinetic : palette.error)
                     }
 
                     // Percentage
@@ -121,7 +121,7 @@ struct CaloriesCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Calories: \(Int(consumed)) of \(Int(target)) consumed, \(Int(remaining)) remaining")
         .shadow(
-            color: PerchTheme.accent.opacity(glowPulse ? 0.30 : 0.0),
+            color: palette.kinetic.opacity(glowPulse ? 0.30 : 0.0),
             radius: glowPulse ? 12 : 0
         )
         .onAppear {

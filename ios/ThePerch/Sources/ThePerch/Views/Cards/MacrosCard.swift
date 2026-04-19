@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Displays daily macronutrient intake with gradient-filled progress bars toward targets.
 struct MacrosCard: View {
+    @Environment(\.perchPalette) private var palette
+
     let protein: Double
     let proteinTarget: Double?
     let carbs: Double
@@ -21,7 +23,7 @@ struct MacrosCard: View {
             HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.small) {
                 Text("DAILY MACROS")
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 Spacer()
 
@@ -61,7 +63,7 @@ struct MacrosCard: View {
                 Spacer()
                 Text("\(Int(total))g total")
                     .font(PerchTheme.Font.captionNumeric)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
             }
         }
         .padding(PerchTheme.Spacing.large)
@@ -99,7 +101,7 @@ struct MacrosCard: View {
                         .frame(width: 8, height: 8)
                     Text(label)
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                 }
 
                 Spacer()
@@ -110,16 +112,16 @@ struct MacrosCard: View {
                         if isOver {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(PerchTheme.Font.micro)
-                                .foregroundColor(PerchTheme.error)
+                                .foregroundColor(palette.error)
                         }
                         Text("\(Int(value)) / \(Int(target))g")
                             .font(PerchTheme.Font.bodyNumeric)
-                            .foregroundStyle(isOver ? PerchTheme.error : PerchTheme.textPrimary)
+                            .foregroundStyle(isOver ? palette.error : palette.ink)
                     }
                 } else {
                     Text("\(Int(value))g")
                         .font(PerchTheme.Font.bodyNumeric)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                 }
             }
 
@@ -134,13 +136,13 @@ struct MacrosCard: View {
 
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(PerchTheme.cardInnerBackground)
+                        .fill(palette.chipBg)
                         .frame(height: 8)
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
                             isOver
-                                ? AnyShapeStyle(PerchTheme.error)
+                                ? AnyShapeStyle(palette.error)
                                 : AnyShapeStyle(
                                     LinearGradient(
                                         colors: gradient.isEmpty ? [color, color] : gradient,
@@ -150,7 +152,7 @@ struct MacrosCard: View {
                                 )
                         )
                         .frame(width: animatedWidth, height: 8)
-                        .shadow(color: (isOver ? PerchTheme.error : color).opacity(0.4), radius: 4)
+                        .shadow(color: (isOver ? palette.error : color).opacity(0.4), radius: 4)
                 }
             }
             .frame(height: 8)

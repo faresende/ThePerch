@@ -3,6 +3,8 @@ import SwiftUI
 /// Displays an agent's status with emoji avatar, name, status dot, uptime, and current task.
 /// Matches the React AgentStatusCard design.
 struct AgentStatusCard: View {
+    @Environment(\.perchPalette) private var palette
+
     let agent: Agent
     let statusData: StatusData?
     var displayName: String? = nil
@@ -42,9 +44,9 @@ struct AgentStatusCard: View {
 
         var color: Color {
             switch self {
-            case .active: return PerchTheme.success
-            case .idle: return PerchTheme.accent
-            case .error: return PerchTheme.error
+            case .active: return palette.wellness
+            case .idle: return palette.kinetic
+            case .error: return palette.error
             }
         }
 
@@ -61,7 +63,7 @@ struct AgentStatusCard: View {
         HStack(spacing: PerchTheme.Spacing.small) {
             // Emoji avatar
             RoundedRectangle(cornerRadius: 14)
-                .fill(PerchTheme.accentMuted)
+                .fill(palette.kinetic.opacity(0.12))
                 .frame(width: 44, height: 44)
                 .overlay(
                     Text(agent.emoji ?? "🤖")
@@ -73,7 +75,7 @@ struct AgentStatusCard: View {
                 HStack(spacing: 8) {
                     Text(resolvedDisplayName)
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                         .lineLimit(1)
 
                     Spacer(minLength: 0)
@@ -96,27 +98,27 @@ struct AgentStatusCard: View {
                     if showsDisclosure {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(palette.faint)
                     }
                 }
 
                 Text(resolvedSubtitle)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                     .lineLimit(1)
 
                 Text("Uptime: \(uptimeText)")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
 
                 if let task = statusData?.currentTask, !task.isEmpty {
                     Text(task)
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
                         .lineLimit(1)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(PerchTheme.textSecondary.opacity(0.08))
+                        .background(palette.muted.opacity(0.08))
                         .cornerRadius(8)
                         .padding(.top, PerchTheme.Spacing.xxSmall)
                 }

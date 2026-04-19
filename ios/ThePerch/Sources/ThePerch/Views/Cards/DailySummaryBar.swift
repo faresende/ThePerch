@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Compact nutrition summary with calorie target and macro progress bars.
 struct DailySummaryBar: View {
+    @Environment(\.perchPalette) private var palette
+
     private let summary: DailyNutritionSummary?
     private let isShimmer: Bool
     private let title: String
@@ -32,14 +34,14 @@ struct DailySummaryBar: View {
                 } else if let summary {
                     Text(title)
                         .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
                         .tracking(0.8)
 
                     Spacer()
 
                     Text("\(Int(summary.consumed.calories)) / \(Int(summary.targets.calories)) kcal")
                         .font(PerchTheme.Font.headingNumeric)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                 }
             }
 
@@ -91,12 +93,12 @@ struct DailySummaryBar: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(PerchTheme.cardInnerBackground)
+                            .fill(palette.chipBg)
 
                         Capsule()
                             .fill(
                                 LinearGradient(
-                                    colors: [PerchTheme.accent.opacity(0.65), PerchTheme.accent],
+                                    colors: [palette.kinetic.opacity(0.65), palette.kinetic],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -108,7 +110,7 @@ struct DailySummaryBar: View {
 
                 Text("\(Int(progress * 100))% of target")
                     .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
             }
         }
     }
@@ -140,13 +142,13 @@ private struct MacroProgressMetric: View {
                 Spacer()
                 Text("\(Int(consumed))/\(Int(target))g")
                     .font(PerchTheme.Font.microNumeric)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
             }
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(PerchTheme.cardInnerBackground)
+                        .fill(palette.chipBg)
                     Capsule()
                         .fill(tint)
                         .frame(width: geometry.size.width * progress)
@@ -156,14 +158,14 @@ private struct MacroProgressMetric: View {
 
             Text(label)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
         }
         .padding(.horizontal, PerchTheme.Spacing.small)
         .padding(.vertical, PerchTheme.Spacing.small)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(PerchTheme.cardInnerBackground.opacity(0.65))
+                .fill(palette.chipBg.opacity(0.65))
         )
     }
 }

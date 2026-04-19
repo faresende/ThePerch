@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct OrdersView: View {
+    @Environment(\.perchPalette) private var palette
+
     @State private var viewModel = OrdersViewModel()
     @State private var cardsAppeared = false
 
@@ -76,7 +78,7 @@ struct OrdersView: View {
                     title: "Active",
                     subtitle: "Ordered, processing, and in-flight shipments.",
                     icon: "shippingbox.fill",
-                    tint: PerchTheme.accent,
+                    tint: palette.kinetic,
                     orders: viewModel.activeOrders,
                     cardsAppeared: cardsAppeared,
                     onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
@@ -88,7 +90,7 @@ struct OrdersView: View {
                         title: "Issues",
                         subtitle: "Exceptions and orders that need a closer look.",
                         icon: "exclamationmark.triangle.fill",
-                        tint: PerchTheme.error,
+                        tint: palette.error,
                         orders: viewModel.issueOrders,
                         cardsAppeared: cardsAppeared,
                         startIndex: viewModel.activeOrders.count,
@@ -111,6 +113,8 @@ struct OrdersView: View {
 }
 
 struct OrdersGroupSection: View {
+    @Environment(\.perchPalette) private var palette
+
     let title: String
     let subtitle: String
     let icon: String
@@ -134,7 +138,7 @@ struct OrdersGroupSection: View {
             if orders.isEmpty {
                 Text(emptyMessage)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
                     .padding(.top, PerchTheme.Spacing.xxxSmall)
             } else {
                 VStack(spacing: PerchTheme.Spacing.medium) {
@@ -164,6 +168,8 @@ struct OrdersGroupSection: View {
 }
 
 struct DeliveredOrdersSection: View {
+    @Environment(\.perchPalette) private var palette
+
     let orders: [OrderWithShipments]
     let cardsAppeared: Bool
     var startIndex: Int = 0
@@ -179,13 +185,13 @@ struct DeliveredOrdersSection: View {
                     title: "Delivered",
                     subtitle: "Completed orders that have already landed.",
                     icon: "checkmark.circle.fill",
-                    tint: PerchTheme.success,
+                    tint: palette.wellness,
                     count: 0
                 )
 
                 Text("No delivered orders yet.")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
                     .padding(.top, PerchTheme.Spacing.xxxSmall)
             } else {
                 Button {
@@ -198,7 +204,7 @@ struct DeliveredOrdersSection: View {
                         title: "Delivered",
                         subtitle: isExpanded ? "Completed orders that have already landed." : collapsedSummary,
                         icon: "checkmark.circle.fill",
-                        tint: PerchTheme.success,
+                        tint: palette.wellness,
                         count: orders.count,
                         showsDisclosure: true,
                         isExpanded: isExpanded
@@ -267,35 +273,37 @@ struct DeliveredOrdersSection: View {
         HStack(spacing: PerchTheme.Spacing.small) {
             Text(monthTitle(for: group.monthStart))
                 .font(PerchTheme.Font.cardEyebrow)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .textCase(.uppercase)
 
             Spacer(minLength: 0)
 
             Text("\(group.orders.count)")
                 .font(PerchTheme.Font.microNumeric)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
                 .padding(.horizontal, PerchTheme.Spacing.small)
                 .padding(.vertical, PerchTheme.Spacing.xxxSmall)
                 .background(PerchTheme.background.opacity(0.85))
                 .clipShape(Capsule())
                 .overlay(
                     Capsule()
-                        .stroke(PerchTheme.border.opacity(0.65), lineWidth: 1)
+                        .stroke(palette.line.opacity(0.65), lineWidth: 1)
                 )
         }
         .padding(.horizontal, PerchTheme.Spacing.small)
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
-        .background(PerchTheme.cardInnerBackground)
+        .background(palette.chipBg)
         .cornerRadius(PerchTheme.Card.innerCornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                .stroke(PerchTheme.border.opacity(0.5), lineWidth: 1)
+                .stroke(palette.line.opacity(0.5), lineWidth: 1)
         )
     }
 }
 
 struct OrdersSectionHeader: View {
+    @Environment(\.perchPalette) private var palette
+
     let title: String
     let subtitle: String
     let icon: String
@@ -319,7 +327,7 @@ struct OrdersSectionHeader: View {
                 HStack(spacing: PerchTheme.Spacing.xSmall) {
                     Text(title)
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
 
                     Text("\(count)")
                         .font(PerchTheme.Font.microNumeric)
@@ -333,7 +341,7 @@ struct OrdersSectionHeader: View {
                 Text(subtitle)
                     .font(PerchTheme.Font.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(PerchTheme.textPrimary.opacity(0.72))
+                    .foregroundColor(palette.ink.opacity(0.72))
                     .multilineTextAlignment(.leading)
             }
 
@@ -342,7 +350,7 @@ struct OrdersSectionHeader: View {
             if showsDisclosure {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                     .rotationEffect(.degrees(isExpanded ? 180 : 0))
                     .padding(.top, PerchTheme.Spacing.xxxSmall)
             }
