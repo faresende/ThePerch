@@ -22,12 +22,14 @@ struct DeliveryHomeCard: View {
         PerchPhrase.deliveryPhrase(count: activeDeliveries.count)
     }
 
+    @Environment(\.perchPalette) private var palette
+
     var body: some View {
         TodayCard {
             VStack(alignment: .leading, spacing: 0) {
                 TodayEyebrow(
                     label: "DELIVERIES · EN ROUTE",
-                    accent: PerchTheme.accent,
+                    accent: palette.kinetic,
                     freshness: activeDeliveries.isEmpty ? "—" : "\(activeDeliveries.count) active"
                 )
                 TodayPhrase(text: deliveryPhrase)
@@ -68,23 +70,21 @@ struct DeliveryHomeCard: View {
         let itemNames = delivery.items.map(\.name).joined(separator: ", ")
 
         return HStack(alignment: .center, spacing: 12) {
-            // Retailer badge — 34×34 chipBg, 3-letter code
             Text(retailerCode)
                 .font(.system(size: 10, weight: .semibold))
                 .tracking(0.4)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .frame(width: 34, height: 34)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(PerchTheme.cardInnerBackground)
+                        .fill(palette.chipBg)
                 )
 
-            // Item + tracking · status
             VStack(alignment: .leading, spacing: 2) {
                 if !itemNames.isEmpty {
                     Text(itemNames)
                         .font(PerchTheme.Font.bodyRow)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
@@ -99,28 +99,27 @@ struct DeliveryHomeCard: View {
                     Text(delivery.status)
                 }
                 .font(.system(size: 11).monospacedDigit())
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .lineLimit(1)
             }
 
             Spacer(minLength: 6)
 
-            // ETA chip
             TodayChip(
                 text: etaText(delivery.eta),
-                color: isOutForDelivery ? .white : PerchTheme.accent,
-                background: isOutForDelivery ? PerchTheme.accent : PerchTheme.cardInnerBackground
+                color: isOutForDelivery ? palette.heroText : palette.kinetic,
+                background: isOutForDelivery ? palette.kinetic : palette.chipBg
             )
         }
         .padding(.horizontal, isOutForDelivery ? 12 : 0)
         .padding(.vertical, isOutForDelivery ? 10 : 0)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isOutForDelivery ? PerchTheme.cardInnerBackground : .clear)
+                .fill(isOutForDelivery ? palette.chipBg : .clear)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isOutForDelivery ? PerchTheme.accent.opacity(0.13) : .clear, lineWidth: 1)
+                .stroke(isOutForDelivery ? palette.kinetic.opacity(0.18) : .clear, lineWidth: 1)
         )
     }
 

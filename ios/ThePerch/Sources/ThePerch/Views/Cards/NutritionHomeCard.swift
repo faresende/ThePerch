@@ -108,12 +108,14 @@ struct NutritionHomeCard: View {
         return parts.joined(separator: " · ")
     }
 
+    @Environment(\.perchPalette) private var palette
+
     var body: some View {
         TodayCard {
             VStack(alignment: .leading, spacing: 0) {
                 TodayEyebrow(
                     label: isMorning ? "NUTRITION · YESTERDAY" : "NUTRITION · TRACKED",
-                    accent: PerchTheme.wellness,
+                    accent: palette.wellness,
                     freshness: freshnessText
                 )
                 TodayPhrase(text: nutritionPhrase)
@@ -123,7 +125,7 @@ struct NutritionHomeCard: View {
                 } else {
                     hero
                     if let macros = macrosData {
-                        VStack(spacing: 10) {
+                        VStack(spacing: 11) {
                             macroBar(label: "Protein", value: macros.protein, target: macros.proteinTarget)
                             macroBar(label: "Carbs",   value: macros.carbs,   target: macros.carbsTarget)
                             macroBar(label: "Fat",     value: macros.fat,     target: macros.fatTarget)
@@ -175,13 +177,12 @@ struct NutritionHomeCard: View {
                 .frame(height: 130)
             Text("No meals logged yet")
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// Hero section: 108pt sage progress ring on the left, Target + Remaining
-    /// stats in a right-side column. Match the Linen spec.
+    /// Hero section: 108pt wellness-colored ring + Target/Remaining right column.
     @ViewBuilder
     private var hero: some View {
         HStack(alignment: .center, spacing: 26) {
@@ -190,12 +191,12 @@ struct NutritionHomeCard: View {
 
             if target > 0 {
                 VStack(alignment: .leading, spacing: 10) {
-                    statsLine(label: "TARGET", value: "\(Int(target)) kcal")
+                    statsLine(label: "TARGET", value: "\(Int(target).formatted(.number)) kcal")
                     let remaining = max(target - consumed, 0)
                     statsLine(
                         label: remaining > 0 ? "REMAINING" : "OVER",
-                        value: "\(Int(abs(target - consumed))) kcal",
-                        color: remaining > 0 ? PerchTheme.textPrimary : PerchTheme.error
+                        value: "\(Int(abs(target - consumed)).formatted(.number)) kcal",
+                        color: remaining > 0 ? palette.ink : palette.error
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,45 +214,47 @@ struct NutritionHomeCard: View {
     // Ring color flips to kinetic only when goal reached.
 
     private var calorieRing: some View {
+        // Track = palette.line, progress = palette.wellness (→ palette.kinetic
+        // on over-goal). Centre: Fraunces-style 28pt tabular num + faint "kcal".
         ZStack {
             Circle()
-                .stroke(PerchTheme.border, lineWidth: 6)
+                .stroke(palette.line, lineWidth: 6)
             Circle()
                 .trim(from: 0, to: min(animatedProgress, 1.0))
                 .stroke(
-                    animatedColor,
+                    didReachFull ? palette.kinetic : palette.wellness,
                     style: StrokeStyle(lineWidth: 6, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
 
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text(Int(consumed).formatted(.number))
                     .font(PerchTheme.Font.displayNumeric)
                     .tracking(-0.8)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 Text("kcal")
                     .font(.system(size: 10))
                     .tracking(0.4)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.ink.opacity(0.55))
             }
             .padding(.horizontal, 10)
         }
         .scaleEffect(pulseScale)
     }
 
-    /// Uppercase faint label over tabular-num ink value.
+    /// Uppercase faint label over serif 16pt ink value.
     @ViewBuilder
     private func statsLine(label: String, value: String, color: Color? = nil) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.system(size: 10))
                 .tracking(0.8)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
             Text(value)
-                .font(PerchTheme.Font.bodyNumeric)
-                .foregroundColor(color ?? PerchTheme.textPrimary)
+                .font(PerchTheme.Font.targetNumeric)
+                .foregroundColor(color ?? palette.ink)
         }
     }
 
@@ -306,21 +309,21 @@ struct NutritionHomeCard: View {
                 Text(label)
                     .font(.system(size: 12))
                     .tracking(0.3)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
 
                 Spacer()
 
                 if let target {
                     Text("\(Int(value))")
-                        .font(.system(size: 13, weight: .medium).monospacedDigit())
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .font(PerchTheme.Font.rowNumeric)
+                        .foregroundColor(palette.ink)
                     + Text(" / \(Int(target))g")
-                        .font(.system(size: 13).monospacedDigit())
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .font(PerchTheme.Font.rowNumeric)
+                        .foregroundColor(palette.muted)
                 } else {
                     Text("\(Int(value))g")
-                        .font(.system(size: 13, weight: .medium).monospacedDigit())
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .font(PerchTheme.Font.rowNumeric)
+                        .foregroundColor(palette.ink)
                 }
             }
 
@@ -333,10 +336,10 @@ struct NutritionHomeCard: View {
 
                 ZStack(alignment: .leading) {
                     Capsule(style: .continuous)
-                        .fill(PerchTheme.border)
+                        .fill(palette.line)
                         .frame(height: 4)
                     Capsule(style: .continuous)
-                        .fill(PerchTheme.wellness)
+                        .fill(palette.wellness)
                         .frame(width: animatedWidth, height: 4)
                 }
             }
