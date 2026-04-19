@@ -22,11 +22,12 @@ struct HubTab: View {
         self.onOpenProfile = onOpenProfile
     }
 
-    enum HubSegment: String, CaseIterable, Hashable {
+    enum HubSegment: String, CaseIterable, Hashable, Identifiable {
         case orders    = "Orders"
         case bookmarks = "Bookmarks"
         case calendar  = "Calendar"
         case travel    = "Travel"
+        var id: HubSegment { self }
     }
 
     private static func initialSegment() -> HubSegment {
@@ -50,34 +51,47 @@ struct HubTab: View {
         return segments
     }
 
+    /// Icon for each Hub segment — minimal line icons (SF Symbol names
+    /// chosen to match the handoff's glyph intent: box / bookmark /
+    /// calendar grid / paper plane).
+    private func icon(for segment: HubSegment) -> String {
+        switch segment {
+        case .orders:    return "shippingbox"
+        case .bookmarks: return "bookmark"
+        case .calendar:  return "calendar"
+        case .travel:    return "paperplane"
+        }
+    }
+
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
+            palette.bg.ignoresSafeArea()
+
             VStack(spacing: 0) {
-                // Error banner — sits above picker so it's always reachable
+                // Sticky header block: ChromeRow + PillNav
+                VStack(spacing: 0) {
+                    PerchChromeRow(onBack: nil, onAvatar: onOpenProfile)
+
+                    PerchPillNav(
+                        items: visibleSegments.map {
+                            .init(option: $0, label: $0.rawValue, systemImage: icon(for: $0))
+                        },
+                        selection: $selectedSegment
+                    )
+                }
+                .background(palette.bg)
+                .padding(.top, 54)
+
+                // Error banner — below pill nav so it doesn't break the sticky unit
                 if dashboardViewModel.error != nil {
                     ErrorBanner(
                         message: "Failed to load hub data",
                         retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
                         onDismiss: { dashboardViewModel.clearError() }
                     )
-                    .padding(.horizontal, PerchTheme.Spacing.large)
+                    .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
                     .padding(.top, PerchTheme.Spacing.small)
                 }
-
-                HStack {
-                    Spacer()
-                    ProfileEntryButton(prominence: .subtle, action: onOpenProfile)
-                }
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.top, PerchTheme.Spacing.small)
-
-                // Segmented picker at top
-                PerchSegmentedPicker(
-                    options: visibleSegments.map { .init(title: $0.rawValue, value: $0) },
-                    selection: $selectedSegment
-                )
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.vertical, PerchTheme.Spacing.small)
 
                 // Paged segment content
                 TabView(selection: $selectedSegment) {
@@ -98,7 +112,7 @@ struct HubTab: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
             }
         }
-        .background(palette.bg.ignoresSafeArea())
+        .ignoresSafeArea(edges: .top)
         .onChange(of: dashboardViewModel.travelRecords) { _, newRecords in
             travelViewModel.records = newRecords
             // If the active trip disappears while Travel is selected, fall back to Orders
@@ -113,13 +127,16 @@ struct HubTab: View {
         }
     }
 
-    /// Wraps section content in a refreshable ScrollView, matching HealthTab's per-segment scroll pattern.
+    /// Wraps section content in a refreshable ScrollView with the active
+    /// palette's page background so sections inherit the time-of-day tint.
     @ViewBuilder
     private func hubPage<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         ScrollView {
             content()
             Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
         }
+        .scrollContentBackground(.hidden)
+        .background(palette.bg)
         .refreshable {
             PerchHaptics.medium()
             await dashboardViewModel.loadDashboard(forceRefresh: true)

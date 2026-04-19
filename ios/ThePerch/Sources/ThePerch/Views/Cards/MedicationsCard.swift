@@ -7,6 +7,7 @@ struct MedicationsCard: View {
     let records: [Record]
 
     @State private var isMutating = false
+    @Environment(\.perchPalette) private var palette
 
     private var medicationRecord: Record? {
         records.first { record in
@@ -22,103 +23,76 @@ struct MedicationsCard: View {
 
     var body: some View {
         if let meds = medications {
-            let allChecked = meds.items.allSatisfy(\.isChecked)
+            let takenCount = meds.items.filter(\.isChecked).count
+            let totalCount = meds.items.count
 
-            VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-                // Header
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image(systemName: "pill.fill")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.accent)
-                    Text("MEDICATIONS")
-                        .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                    Spacer()
-                    CardFreshnessLabel(date: medicationRecord?.updatedAt)
-                    if allChecked {
-                        Text("All taken")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.success)
-                    }
-                }
+            TodayCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    TodayEyebrow(
+                        label: "MEDS · TODAY",
+                        accent: palette.wellness,
+                        freshness: "\(takenCount)/\(totalCount)"
+                    )
+                    TodayPhrase(text: PerchPhrase.medsPhrase(taken: takenCount, total: totalCount))
 
-                if allChecked {
-                    // Compact: all done
-                    HStack(spacing: PerchTheme.Spacing.xSmall) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(PerchTheme.success)
-                        Text("All medications taken")
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
-                    }
-                } else {
-                    // Checklist items
-                    ForEach(meds.items) { item in
-                        medicationRow(item: item)
+                    VStack(spacing: 0) {
+                        ForEach(Array(meds.items.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 {
+                                Rectangle()
+                                    .fill(palette.line)
+                                    .frame(height: 1)
+                            }
+                            medicationRow(item: item)
+                        }
                     }
                 }
             }
-            .padding(PerchTheme.Card.padding)
-            .cardStyle()
         }
     }
 
-    // MARK: - Medication Row
+    // MARK: - Medication Row (Linen spec — checkbox, name · dose, when)
 
     private func medicationRow(item: MedicationChecklistData.MedicationItem) -> some View {
         Button {
             guard !isMutating else { return }
             toggleMedication(item)
         } label: {
-            HStack(spacing: PerchTheme.Spacing.small) {
-                // Checkbox
+            HStack(spacing: 10) {
+                // Checkbox — 18×18, 9pt radius, wellness when taken
                 ZStack {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(item.isChecked ? palette.wellness : .clear)
+                        .frame(width: 18, height: 18)
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(item.isChecked ? .clear : palette.line, lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
                     if item.isChecked {
-                        Circle()
-                            .fill(PerchTheme.accent)
-                            .frame(width: 24, height: 24)
                         Image(systemName: "checkmark")
-                            .font(PerchTheme.Font.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(PerchTheme.accentForeground)
-                    } else {
-                        Circle()
-                            .strokeBorder(PerchTheme.textTertiary, lineWidth: 2)
-                            .frame(width: 24, height: 24)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(palette.heroText)
                     }
                 }
 
-                // Name
-                Text(item.name)
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(item.isChecked ? PerchTheme.textTertiary : PerchTheme.textPrimary)
-                    .strikethrough(item.isChecked, color: PerchTheme.textTertiary)
+                // Name · dose
+                HStack(spacing: 6) {
+                    Text(item.name)
+                        .font(PerchTheme.Font.bodyRow)
+                        .foregroundColor(item.isChecked ? palette.muted : palette.ink)
+                        .strikethrough(item.isChecked, color: palette.faint)
+                    if let schedule = item.schedule {
+                        Text("· \(schedule)")
+                            .font(.system(size: 12))
+                            .foregroundColor(palette.faint)
+                    }
+                }
 
                 Spacer()
 
-                // Schedule note
-                if let schedule = item.schedule {
-                    Text(schedule)
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-
-                if item.isChecked {
-                    Text("done")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.success)
-                }
+                // When (right-side, serif)
+                // The schedule text in data already covers this in some cases;
+                // leave blank for now to avoid duplication.
             }
-            .padding(.horizontal, PerchTheme.Spacing.medium)
-            .padding(.vertical, PerchTheme.Spacing.small)
-            .background(PerchTheme.cardInnerBackground)
-            .cornerRadius(PerchTheme.Card.innerCornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                    .stroke(PerchTheme.border, lineWidth: 1)
-            )
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

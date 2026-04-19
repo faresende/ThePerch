@@ -22,19 +22,27 @@ struct HealthTab: View {
     @Environment(\.perchPalette) private var palette
 
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                HStack {
-                    Spacer()
-                    ProfileEntryButton(prominence: .subtle, action: onOpenProfile)
-                }
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .padding(.top, PerchTheme.Spacing.small)
+        ZStack(alignment: .top) {
+            palette.bg.ignoresSafeArea()
 
-                // Segmented picker at top
-                PerchSegmentedPicker(enumSelection: $selectedSegment)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                    .padding(.vertical, PerchTheme.Spacing.small)
+            VStack(spacing: 0) {
+                // Sticky header block: ChromeRow + PillNav, both pinned to
+                // the top. Status-bar area reserved by the ignoresSafeArea
+                // below so content scrolls behind the status bar.
+                VStack(spacing: 0) {
+                    PerchChromeRow(onBack: nil, onAvatar: onOpenProfile)
+
+                    PerchPillNav(
+                        items: [
+                            .init(option: .overview,  label: "Overview",  systemImage: "circle.dotted"),
+                            .init(option: .workouts,  label: "Workouts",  systemImage: "dumbbell"),
+                            .init(option: .nutrition, label: "Nutrition", systemImage: "leaf"),
+                        ],
+                        selection: $selectedSegment
+                    )
+                }
+                .background(palette.bg)
+                .padding(.top, 54) // reserve for Dynamic Island / status bar
 
                 // Segment content
                 TabView(selection: $selectedSegment) {
@@ -50,7 +58,7 @@ struct HealthTab: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
             }
         }
-        .background(palette.bg.ignoresSafeArea())
+        .ignoresSafeArea(edges: .top)
     }
 }
 

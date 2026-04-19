@@ -4,6 +4,7 @@ import SwiftUI
 /// Hides entirely when no weather data exists. Tapping opens wttr.in in Safari.
 struct WeatherCompactCard: View {
     let records: [Record]
+    @Environment(\.perchPalette) private var palette
 
     private var weather: WeatherData? {
         records.compactMap { record -> WeatherData? in
@@ -14,84 +15,59 @@ struct WeatherCompactCard: View {
         }.first
     }
 
+    private var bucket: PerchPhrase.WeatherBucket {
+        guard let w = weather else { return .mild }
+        let icon = w.icon
+        if icon.contains("rain") || icon.contains("drizzle") { return .rain }
+        if w.temperature >= 20 { return .warm }
+        if w.temperature < 10 { return .cold }
+        return .mild
+    }
+
     var body: some View {
         if let w = weather {
-            Button {
-                if let url = URL(string: "https://wttr.in") {
-                    UIApplication.shared.open(url)
-                }
-            } label: {
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    // Weather icon + temperature
-                    HStack(spacing: PerchTheme.Spacing.xSmall) {
-                        Image(systemName: w.icon)
-                            .font(PerchTheme.Font.heading)
-                            .foregroundColor(iconColor(for: w.icon))
-                            .symbolRenderingMode(.multicolor)
-                        Text("\(Int(w.temperature))°C")
-                            .font(PerchTheme.Font.titleNumeric)
-                            .foregroundColor(PerchTheme.textPrimary)
-                    }
+            TodayCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    TodayEyebrow(
+                        label: "WEATHER · LONDON",
+                        accent: palette.wellness,
+                        freshness: "now"
+                    )
 
-                    Text(w.conditions)
-                        .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .lineLimit(1)
+                    HStack(alignment: .center, spacing: 16) {
+                        Text("\(Int(w.temperature))°")
+                            .font(PerchTheme.Font.tempNumeric)
+                            .tracking(-1.2)
+                            .foregroundColor(palette.ink)
+                            .lineLimit(1)
+                            .fixedSize()
 
-                    Spacer()
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(w.conditions)
+                                .font(PerchTheme.Font.bodyRow)
+                                .foregroundColor(palette.ink)
+                                .lineLimit(1)
 
-                    // Rain probability
-                    if let rain = w.rainProbability, rain > 0 {
-                        HStack(spacing: 3) {
-                            Image(systemName: "cloud.rain.fill")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(.blue)
-                            Text("\(Int(rain))%")
-                                .font(PerchTheme.Font.captionMono)
-                                .foregroundColor(PerchTheme.textSecondary)
+                            if let high = w.high, let low = w.low {
+                                Text("H \(Int(high))° · L \(Int(low))°")
+                                    .font(PerchTheme.Font.rowNumeric)
+                                    .tracking(0.2)
+                                    .foregroundColor(palette.muted)
+                            }
                         }
 
-                        divider
+                        Spacer(minLength: 0)
                     }
 
-                    // High / Low
-                    if let high = w.high, let low = w.low {
-                        HStack(spacing: 4) {
-                            Text("H:\(Int(high))°")
-                                .font(PerchTheme.Font.captionMono)
-                                .foregroundColor(PerchTheme.textSecondary)
-                            Text("L:\(Int(low))°")
-                                .font(PerchTheme.Font.captionMono)
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                    }
-
-                    Image(systemName: "chevron.right")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.textTertiary)
+                    // Phrase (italic serif, below the temp row)
+                    Text(PerchPhrase.weatherPhrase(bucket: bucket) + ".")
+                        .font(.system(size: 14, design: .serif).italic())
+                        .foregroundColor(palette.muted)
+                        .lineSpacing(3)
+                        .padding(.top, 12)
                 }
-                .padding(.horizontal, PerchTheme.Card.padding)
-                .padding(.vertical, PerchTheme.Spacing.medium)
-                .cardStyle()
-                .contentShape(Rectangle())
             }
-            .buttonStyle(CardPressStyle())
         }
-    }
-
-    private var divider: some View {
-        Rectangle()
-            .fill(PerchTheme.border)
-            .frame(width: 1, height: 20)
-    }
-
-    private func iconColor(for icon: String) -> Color {
-        if icon.contains("sun") { return .yellow }
-        if icon.contains("cloud.rain") || icon.contains("cloud.drizzle") { return .blue }
-        if icon.contains("cloud") { return .gray }
-        if icon.contains("snow") { return .white }
-        if icon.contains("wind") { return .teal }
-        return PerchTheme.textSecondary
     }
 }
 

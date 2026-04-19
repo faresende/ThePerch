@@ -206,8 +206,14 @@ struct TodayHero: View {
 
             // Layer 3 — greeting block, bottom-left (22pt insets).
             HStack(alignment: .bottom, spacing: 10) {
-                PerchBird(size: 22, color: palette.heroText, accent: palette.kinetic)
-                    .padding(.bottom, 10)
+                // Perch-bird mascot illustration (Perch01) — replaces the
+                // earlier Canvas/Path composition with the commissioned art.
+                Image("perch-bird-small")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 28, height: 28)
+                    .padding(.bottom, 8)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text(greeting)
@@ -520,6 +526,135 @@ struct TodayChip: View {
             .background(
                 Capsule(style: .continuous).fill(background)
             )
+    }
+}
+
+// MARK: - Section screens — ChromeRow + PillNav
+//
+// Used by HealthTab / HubTab (and any future second-level screen).
+// Spec from the Claude Design runoff-handoff "Perch - Sections.html".
+
+/// Top chrome row: back button (left) + avatar (right). 44pt high.
+/// Sits inside a sticky block together with the PillNav below.
+struct PerchChromeRow: View {
+    let onBack: (() -> Void)?
+    let onAvatar: () -> Void
+    @Environment(\.perchPalette) private var palette
+
+    var body: some View {
+        HStack {
+            if let onBack {
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(palette.ink)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle().stroke(palette.muted.opacity(0.22), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+            } else {
+                // Reserve the slot so the avatar stays right-aligned.
+                Color.clear.frame(width: 36, height: 36)
+            }
+
+            Spacer()
+
+            Button(action: onAvatar) {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [palette.kinetic, palette.wellness],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        Text("F")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(palette.heroText)
+                    )
+                    .overlay(
+                        Circle().strokeBorder(palette.heroText.opacity(0.7), lineWidth: 1.5)
+                    )
+                    .frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open profile")
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 44)
+    }
+}
+
+/// Apple-Mail-style segmented nav. Active pill shows icon + label and
+/// uses wellness bg; inactive pills are hairline-outline icon-only circles.
+/// Transition: 280ms cubic-bezier(.2,.8,.2,1).
+struct PerchPillNav<Option: Hashable & Identifiable>: View {
+    struct Item {
+        let option: Option
+        let label: String
+        let systemImage: String
+    }
+
+    let items: [Item]
+    @Binding var selection: Option
+    @Environment(\.perchPalette) private var palette
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(items, id: \.option.id) { item in
+                    pill(for: item)
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 14)
+            .padding(.bottom, 16)
+        }
+        .scrollClipDisabled()
+        .overlay(alignment: .bottom) {
+            palette.line.opacity(0.5)
+                .frame(height: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func pill(for item: Item) -> some View {
+        let isActive = item.option == selection
+        Button {
+            withAnimation(.timingCurve(0.2, 0.8, 0.2, 1, duration: 0.28)) {
+                selection = item.option
+                PerchHaptics.selection()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: item.systemImage)
+                    .font(.system(size: 15, weight: .regular))
+                    .frame(width: 18, height: 18)
+
+                if isActive {
+                    Text(item.label)
+                        .font(.system(size: 13, weight: .medium))
+                        .fixedSize()
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
+            }
+            .foregroundColor(isActive ? palette.heroText : palette.muted)
+            .padding(.horizontal, isActive ? 14 : 0)
+            .padding(.leading, isActive ? 10 : 0)
+            .frame(height: 36)
+            .frame(minWidth: 36)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(isActive ? palette.wellness : .clear)
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(isActive ? .clear : palette.muted.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
