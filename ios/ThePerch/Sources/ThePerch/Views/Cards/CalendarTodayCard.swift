@@ -50,165 +50,135 @@ struct CalendarTodayCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.HomeCard.verticalPadding) {
-            // Tappable header
-            Button {
-                PerchHaptics.selection()
-                PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.3)) {
-                    isCompact.toggle()
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 4) {
-                    HomeCardHeader(
-                        systemImage: "calendar",
-                        title: "TODAY",
-                        trailingText: todayEvents.isEmpty ? nil : "\(todayEvents.count) event\(todayEvents.count == 1 ? "" : "s")",
-                        showsChevron: true,
-                        isExpanded: !isCompact
-                    )
+        TodayCard {
+            VStack(alignment: .leading, spacing: 0) {
+                TodayEyebrow(label: "TODAY · \(todayDateString)", accent: PerchTheme.wellness, freshness: "LIVE")
+                TodayPhrase(text: calendarPhrase)
 
-                    // Gentle one-line read on the day's calendar shape.
-                    // Rotates daily through a library of variants so the
-                    // dashboard doesn't feel robotic across re-visits.
-                    Text(calendarPhrase)
-                        .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textPrimary)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(CardPressStyle())
+                if todayEvents.isEmpty {
+                    emptyStateIllustration
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(Array(upcomingEvents.prefix(5).enumerated()), id: \.element.record.id) { index, item in
+                            eventRow(event: item.event, isNext: index == 0)
+                        }
 
-            if todayEvents.isEmpty {
-                // Empty-day state — illustration carries the warmth, phrase
-                // above (e.g. "A breezy one") carries the message. No text
-                // duplication.
-                HStack {
-                    Spacer()
-                    Image("empty-calendar")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 120)
-                        .accessibilityLabel("No events today")
-                    Spacer()
-                }
-                .padding(.vertical, PerchTheme.Spacing.xSmall)
-            } else if isCompact {
-                // Compact: single-line summary
-                Text(compactSummary)
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-            } else {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
-                    // Upcoming events (up to 5)
-                    ForEach(Array(upcomingEvents.prefix(5).enumerated()), id: \.element.record.id) { index, item in
-                        eventRow(event: item.event, isNext: index == 0)
-                    }
+                        if !pastEvents.isEmpty && !upcomingEvents.isEmpty {
+                            Rectangle()
+                                .fill(PerchTheme.border)
+                                .frame(height: 1)
+                                .padding(.vertical, 2)
+                        }
 
-                    // Past events divider
-                    if !pastEvents.isEmpty && !upcomingEvents.isEmpty {
-                        Rectangle()
-                            .fill(PerchTheme.border)
-                            .frame(height: 1)
-                            .padding(.vertical, PerchTheme.Spacing.xxSmall)
-                    }
+                        ForEach(Array(pastEvents.suffix(2).enumerated()), id: \.element.record.id) { _, item in
+                            pastEventRow(event: item.event)
+                        }
 
-                    // Past events (up to 2)
-                    ForEach(Array(pastEvents.suffix(2).enumerated()), id: \.element.record.id) { _, item in
-                        pastEventRow(event: item.event)
-                    }
-
-                    // "View all" if more than 5 upcoming
-                    if upcomingEvents.count > 5 {
-                        Text("View all \(todayEvents.count) events")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
-                            .padding(.top, PerchTheme.Spacing.xxSmall)
+                        if upcomingEvents.count > 5 {
+                            Text("View all \(todayEvents.count) events")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.accent)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 2)
+                        }
                     }
                 }
             }
         }
-        .padding(.horizontal, PerchTheme.HomeCard.horizontalPadding)
-        .padding(.vertical, PerchTheme.HomeCard.verticalPadding)
-        .cardStyle()
-        .animation(.easeInOut(duration: 0.3), value: isCompact)
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
             now = Date.now
         }
     }
 
-    // MARK: - Event Rows
-
-    /// Upcoming / currently-happening event row. Editorial layout:
-    /// strong monospaced time column, clean title, quiet right-aligned
-    /// status (a small pill for "Now", a muted countdown otherwise).
-    /// No decorative bullets — hierarchy comes from weight and colour.
-    private func eventRow(event: EventData, isNext: Bool) -> some View {
-        let isHappening = event.start <= now && event.end > now
-
-        return HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.medium) {
-            // Time column — monospaced, fixed width, stronger when "next"
-            Text(PerchFormatters.time24h.string(from: event.start))
-                .font(PerchTheme.Font.headingNumeric)
-                .foregroundColor(isNext || isHappening ? PerchTheme.textPrimary : PerchTheme.textSecondary)
-                .frame(width: 56, alignment: .leading)
-
-            // Title
-            Text(event.title)
-                .font(PerchTheme.Font.heading)
-                .fontWeight(isNext || isHappening ? .semibold : .regular)
-                .foregroundColor(PerchTheme.textPrimary)
-                .lineLimit(1)
-
-            Spacer(minLength: PerchTheme.Spacing.small)
-
-            // Status pill: "Now" for happening, countdown for next, muted
-            // relative label for further-out events. One accent per row max.
-            if isHappening {
-                Text("Now")
-                    .font(PerchTheme.Font.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(PerchTheme.success)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(PerchTheme.success.opacity(0.12))
-                    )
-            } else {
-                Text(relativeTimeLabel(for: event))
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-        }
-        .padding(.vertical, 4)
+    /// "TUE, 7 APR" — card eyebrow suffix.
+    private var todayDateString: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE, d MMM"
+        return f.string(from: Date.now).uppercased()
     }
 
-    /// Past event row — restrained, dim, smaller. Filters to the visual
-    /// background so attention stays on what's next.
-    private func pastEventRow(event: EventData) -> some View {
-        let endedMinutesAgo = Int(now.timeIntervalSince(event.end) / 60)
+    @ViewBuilder
+    private var emptyStateIllustration: some View {
+        HStack {
+            Spacer()
+            Image("empty-calendar")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(height: 130)
+                .accessibilityLabel("No events today")
+            Spacer()
+        }
+    }
 
-        return HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.medium) {
+    // MARK: - Event Rows (Linen spec)
+    //
+    // Row grid: [time 56pt fixed] [title + where] [chip]
+    // Chips:
+    //   - Now  → white on wellness
+    //   - Soon → kinetic on chipBg (relative time, e.g. "in 2h")
+    //   - Done → faint, transparent
+    // Done rows render at 0.5 opacity with strikethrough.
+
+    private func eventRow(event: EventData, isNext: Bool) -> some View {
+        let isHappening = event.start <= now && event.end > now
+        let isFuture = event.start > now
+
+        return HStack(alignment: .top, spacing: 10) {
+            // Time column — 56pt fixed, tabular serif numerics.
             Text(PerchFormatters.time24h.string(from: event.start))
                 .font(PerchTheme.Font.captionNumeric)
-                .foregroundColor(PerchTheme.textTertiary)
+                .tracking(0.2)
+                .foregroundColor(PerchTheme.textSecondary)
                 .frame(width: 56, alignment: .leading)
+                .padding(.top, 1)
+
+            // Title + where
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.title)
+                    .font(PerchTheme.Font.body)
+                    .foregroundColor(PerchTheme.textPrimary)
+                    .lineLimit(1)
+                // If we ever have a `where` string on EventData, show it
+                // muted beneath. EventData doesn't currently expose one,
+                // so skip.
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Chip
+            if isHappening {
+                TodayChip(text: "Now", color: .white, background: PerchTheme.wellness)
+            } else if isFuture {
+                TodayChip(
+                    text: relativeTimeLabel(for: event),
+                    color: PerchTheme.accent,
+                    background: PerchTheme.cardInnerBackground
+                )
+            } else {
+                TodayChip(text: "done", color: PerchTheme.textTertiary, background: .clear)
+            }
+        }
+    }
+
+    private func pastEventRow(event: EventData) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(PerchFormatters.time24h.string(from: event.start))
+                .font(PerchTheme.Font.captionNumeric)
+                .tracking(0.2)
+                .foregroundColor(PerchTheme.textSecondary)
+                .frame(width: 56, alignment: .leading)
+                .padding(.top, 1)
 
             Text(event.title)
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
+                .font(PerchTheme.Font.body)
+                .foregroundColor(PerchTheme.textPrimary)
+                .strikethrough(color: PerchTheme.textTertiary)
                 .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: PerchTheme.Spacing.small)
-
-            Text(Self.pastRelativeLabel(minutesAgo: endedMinutesAgo))
-                .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
-                .fixedSize(horizontal: true, vertical: false)
+            TodayChip(text: "done", color: PerchTheme.textTertiary, background: .clear)
         }
-        .padding(.vertical, 4)
-        .opacity(endedMinutesAgo > 120 ? 0.55 : 0.75)
+        .opacity(0.5)
     }
 
     // MARK: - Helpers

@@ -109,139 +109,43 @@ struct NutritionHomeCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            // Tappable header
-            Button {
-                PerchHaptics.selection()
-                PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.3)) {
-                    isCompact.toggle()
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: PerchTheme.Spacing.xSmall) {
-                        Image(systemName: "fork.knife")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.wellness)
-                        Text(isMorning ? "YESTERDAY'S NUTRITION" : "NUTRITION")
-                            .font(PerchTheme.Font.cardEyebrow)
-                            .foregroundColor(PerchTheme.textSecondary)
-                            .textCase(.uppercase)
-                            .tracking(0.8)
-                        Spacer()
-                        CardFreshnessLabel(date: latestUpdate)
-                        Image(systemName: isCompact ? "chevron.down" : "chevron.up")
-                            .font(PerchTheme.Font.micro)
-                            .foregroundColor(PerchTheme.textTertiary)
-                    }
+        TodayCard {
+            VStack(alignment: .leading, spacing: 0) {
+                TodayEyebrow(
+                    label: isMorning ? "NUTRITION · YESTERDAY" : "NUTRITION · TRACKED",
+                    accent: PerchTheme.wellness,
+                    freshness: freshnessText
+                )
+                TodayPhrase(text: nutritionPhrase)
 
-                    // Gentle one-word read on the day, sits right under the
-                    // eyebrow — rotates through a library daily so it stays
-                    // fresh across re-visits. Skipped when hasData is false
-                    // because the empty state already carries its own copy.
-                    if hasData {
-                        Text(nutritionPhrase)
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
-                    }
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(CardPressStyle())
-
-            if !hasData {
-                // Empty state — illustration carries the warmth. "No meals
-                // logged yet" copy sits underneath as quieter caption so
-                // the intent is still clear to screen readers and glance.
-                VStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image("empty-nutrition")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 120)
-                    Text("No meals logged yet")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, PerchTheme.Spacing.small)
-            } else if isCompact {
-                // Compact: single-line summary
-                Text(compactSummary)
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-            } else {
-                // Hero stats: big display-size kcal number on the left with
-                // its unit, quiet target/remaining metadata on the right.
-                // Progress ring is kept but sized down so the number leads.
-                HStack(alignment: .center, spacing: PerchTheme.Spacing.medium) {
-                    if caloriesData != nil {
-                        calorieRing
-                    } else {
-                        // No ring → number takes the lead alone.
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(Int(consumed))")
-                                .font(PerchTheme.Font.displayNumeric)
-                                .foregroundColor(PerchTheme.textPrimary)
-                            Text("kcal")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textTertiary)
+                if !hasData {
+                    emptyIllustration
+                } else {
+                    hero
+                    if let macros = macrosData {
+                        VStack(spacing: 10) {
+                            macroBar(label: "Protein", value: macros.protein, target: macros.proteinTarget)
+                            macroBar(label: "Carbs",   value: macros.carbs,   target: macros.carbsTarget)
+                            macroBar(label: "Fat",     value: macros.fat,     target: macros.fatTarget)
                         }
                     }
-
-                    Spacer(minLength: PerchTheme.Spacing.small)
-
-                    if target > 0 {
-                        VStack(alignment: .trailing, spacing: 6) {
-                            statsLine(label: "TARGET", value: "\(Int(target))", emphasise: false)
-                            let remaining = max(target - consumed, 0)
-                            statsLine(
-                                label: remaining > 0 ? "REMAINING" : "OVER",
-                                value: "\(Int(abs(target - consumed)))",
-                                emphasise: true,
-                                color: remaining > 0 ? PerchTheme.textPrimary : PerchTheme.error
-                            )
-                        }
-                    }
-                }
-
-                // Macro bars — thinner (6pt), no track in light mode (just a
-                // whisper in dark), single-line label + value inline.
-                if let macros = macrosData {
-                    VStack(spacing: PerchTheme.Spacing.small) {
-                        macroBar(label: "Protein", value: macros.protein, target: macros.proteinTarget, color: Self.proteinColor)
-                        macroBar(label: "Carbs",   value: macros.carbs,   target: macros.carbsTarget,   color: Self.carbsColor)
-                        macroBar(label: "Fat",     value: macros.fat,     target: macros.fatTarget,     color: Self.fatColor)
-                    }
-                    .padding(.top, PerchTheme.Spacing.xSmall)
                 }
             }
         }
-        .padding(PerchTheme.Card.padding)
-        .cardStyle()
         .overlay(alignment: .center) {
-            // Goal-reached celebration: a brief illustrated moment when
-            // today's calorie target is first hit. Fades in, holds for ~2s,
-            // fades out. Skipped in Reduce Motion (didReachFull still flips,
-            // so we don't re-trigger).
+            // Goal-reached celebration overlay — brief moment when target
+            // is first hit.
             if showGoalCelebration {
                 Image("goal-reached")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 140, height: 140)
-                    .transition(
-                        .scale(scale: 0.7).combined(with: .opacity)
-                    )
+                    .frame(width: 160, height: 160)
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
         }
-        .animation(
-            PerchMotion.prefersReduced ? .none : .easeInOut(duration: 0.3),
-            value: isCompact
-        )
-        .animation(
-            PerchMotion.prefersReduced ? .none : .easeOut(duration: 0.25),
-            value: hasData
-        )
+        .animation(PerchMotion.prefersReduced ? .none : .easeOut(duration: 0.25), value: hasData)
         .onAppear {
             animateRingTo(progress, color: progressColor)
             PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {
@@ -253,11 +157,61 @@ struct NutritionHomeCard: View {
         }
     }
 
-    // MARK: - Calorie Ring
+    private var freshnessText: String {
+        guard let latest = latestUpdate else { return "—" }
+        let minutes = Int(Date.now.timeIntervalSince(latest) / 60)
+        if minutes < 1 { return "just now" }
+        if minutes < 60 { return "\(minutes) min" }
+        let hours = minutes / 60
+        return "\(hours) hr"
+    }
 
-    /// Editorial progress ring: thinner stroke (6pt), no glow shadow, big
-    /// monospaced display number centred. Ring track uses the barely-there
-    /// border colour so the filled portion reads as the primary signal.
+    @ViewBuilder
+    private var emptyIllustration: some View {
+        VStack(spacing: 8) {
+            Image("empty-nutrition")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(height: 130)
+            Text("No meals logged yet")
+                .font(PerchTheme.Font.caption)
+                .foregroundColor(PerchTheme.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Hero section: 108pt sage progress ring on the left, Target + Remaining
+    /// stats in a right-side column. Match the Linen spec.
+    @ViewBuilder
+    private var hero: some View {
+        HStack(alignment: .center, spacing: 26) {
+            calorieRing
+                .frame(width: 108, height: 108)
+
+            if target > 0 {
+                VStack(alignment: .leading, spacing: 10) {
+                    statsLine(label: "TARGET", value: "\(Int(target)) kcal")
+                    let remaining = max(target - consumed, 0)
+                    statsLine(
+                        label: remaining > 0 ? "REMAINING" : "OVER",
+                        value: "\(Int(abs(target - consumed))) kcal",
+                        color: remaining > 0 ? PerchTheme.textPrimary : PerchTheme.error
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.bottom, 18)
+    }
+
+    // MARK: - Calorie Ring (Linen spec)
+    //
+    // 108×108, 6pt stroke, sage-colored arc on a line-colored track.
+    // Center: big tabular serif number (30pt) + "kcal" faint caption.
+    // Ring color flips to kinetic only when goal reached.
+
     private var calorieRing: some View {
         ZStack {
             Circle()
@@ -270,41 +224,33 @@ struct NutritionHomeCard: View {
                 )
                 .rotationEffect(.degrees(-90))
 
-            VStack(spacing: 0) {
-                // .monospacedDigit() on a proportional SF Pro keeps digit
-                // columns aligned (useful when the number counts up) without
-                // the overly-wide glyphs of full `.monospaced` design — which
-                // was spreading "1489" across the ring interior with large
-                // gaps between characters. minimumScaleFactor handles edge
-                // cases like 4-digit or 5-digit calorie targets.
-                Text("\(Int(consumed))")
-                    .font(.system(size: 28, weight: .semibold))
-                    .monospacedDigit()
+            VStack(spacing: 2) {
+                Text(Int(consumed).formatted(.number))
+                    .font(PerchTheme.Font.displayNumeric)
+                    .tracking(-0.8)
+                    .foregroundColor(PerchTheme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                    .foregroundColor(PerchTheme.textPrimary)
                 Text("kcal")
-                    .font(PerchTheme.Font.micro)
+                    .font(.system(size: 10))
+                    .tracking(0.4)
                     .foregroundColor(PerchTheme.textTertiary)
             }
             .padding(.horizontal, 10)
         }
-        .frame(width: 104, height: 104)
         .scaleEffect(pulseScale)
     }
 
-    /// One line of the right-hand stats column — small uppercase label
-    /// on top, monospaced value below. Keeps the hero number dominant.
+    /// Uppercase faint label over tabular-num ink value.
     @ViewBuilder
-    private func statsLine(label: String, value: String, emphasise: Bool, color: Color? = nil) -> some View {
-        VStack(alignment: .trailing, spacing: 2) {
+    private func statsLine(label: String, value: String, color: Color? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
             Text(label)
-                .font(PerchTheme.Font.micro)
-                .fontWeight(.semibold)
+                .font(.system(size: 10))
                 .tracking(0.8)
                 .foregroundColor(PerchTheme.textTertiary)
             Text(value)
-                .font(emphasise ? PerchTheme.Font.headingNumeric : PerchTheme.Font.bodyNumeric)
+                .font(PerchTheme.Font.bodyNumeric)
                 .foregroundColor(color ?? PerchTheme.textPrimary)
         }
     }
@@ -347,30 +293,33 @@ struct NutritionHomeCard: View {
         }
     }
 
-    // MARK: - Macro Bar
+    // MARK: - Macro Bar (Linen spec)
 
-    /// Editorial macro row: label on the left, value on the right, thin
-    /// 4pt progress bar beneath both. No coloured dot, no card-inner
-    /// background — the coloured fill is the only visual accent.
-    private func macroBar(label: String, value: Double, target: Double?, color: Color) -> some View {
+    /// Linen macro row: label + tabular numeric value / target inline,
+    /// 4pt progress bar beneath. Fill color is wellness (sage) for all
+    /// macros — per the Linen spec, macros share the wellness register
+    /// so the card reads as a single unified "nutrition wellness" voice
+    /// rather than three separate traffic-light signals.
+    private func macroBar(label: String, value: Double, target: Double?) -> some View {
         VStack(spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
                 Text(label)
-                    .font(PerchTheme.Font.caption)
+                    .font(.system(size: 12))
+                    .tracking(0.3)
                     .foregroundColor(PerchTheme.textSecondary)
 
                 Spacer()
 
                 if let target {
                     Text("\(Int(value))")
-                        .font(PerchTheme.Font.captionNumeric)
+                        .font(.system(size: 13, weight: .medium).monospacedDigit())
                         .foregroundColor(PerchTheme.textPrimary)
                     + Text(" / \(Int(target))g")
-                        .font(PerchTheme.Font.captionNumeric)
+                        .font(.system(size: 13).monospacedDigit())
                         .foregroundColor(PerchTheme.textTertiary)
                 } else {
                     Text("\(Int(value))g")
-                        .font(PerchTheme.Font.captionNumeric)
+                        .font(.system(size: 13, weight: .medium).monospacedDigit())
                         .foregroundColor(PerchTheme.textPrimary)
                 }
             }
@@ -383,13 +332,11 @@ struct NutritionHomeCard: View {
                 let animatedWidth = animateMacros ? geometry.size.width * ratio : 0
 
                 ZStack(alignment: .leading) {
-                    // Track — barely-there hairline
                     Capsule(style: .continuous)
                         .fill(PerchTheme.border)
                         .frame(height: 4)
-                    // Fill — flat colour, no shadow
                     Capsule(style: .continuous)
-                        .fill(color)
+                        .fill(PerchTheme.wellness)
                         .frame(width: animatedWidth, height: 4)
                 }
             }
