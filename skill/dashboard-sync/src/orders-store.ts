@@ -75,8 +75,9 @@ export function carrierTrackingURL(carrier: string | null, trackingNumber: strin
 
   if (c.includes('FEDEX') || c.includes('FEDERAL EXPRESS'))
     return `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`;
-  if (c.includes('DHL'))
-    return `https://www.dhl.com/de-en/home/tracking/tracking-parcel.html?submit=1&trackingID=${trackingNumber}`;
+  // DHL's web tracking is a JS SPA that ignores URL params — fall back to 17track
+  // if (c.includes('DHL'))
+  //   return `https://www.dhl.com/...`
   if (c.includes('UPS'))
     return `https://www.ups.com/track?trackNums=${trackingNumber}`;
   if (c.includes('CTT') || c.includes('CORREIOS'))
