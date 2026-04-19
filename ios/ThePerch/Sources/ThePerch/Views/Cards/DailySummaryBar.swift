@@ -122,6 +122,8 @@ struct DailySummaryBar: View {
 }
 
 private struct MacroProgressMetric: View {
+    @Environment(\.perchPalette) private var palette
+
     let label: String
     let shortLabel: String
     let consumed: Double

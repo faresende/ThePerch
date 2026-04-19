@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @Environment(\.perchPalette) private var palette
+
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var selectedTab: RootTab = Self.initialTab()
     @State private var isShowingSettings = false
