@@ -27,31 +27,32 @@ struct TodayTab: View {
     var body: some View {
         ZStack {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    // Compact header: greeting + date + (optional) refresh indicator
-                    HStack(spacing: PerchTheme.Spacing.xSmall) {
-                        Text(greetingText)
-                            .font(PerchTheme.Font.heading)
-                            .foregroundColor(ambience.ambientColor)
+                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.cardStack) {
+                    // Editorial header: two-line greeting + date, profile avatar
+                    // floats right. Larger real estate on purpose — this is the
+                    // confident entry point to the whole feed.
+                    HStack(alignment: .center, spacing: PerchTheme.Spacing.small) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: PerchTheme.Spacing.xSmall) {
+                                Text(greetingText)
+                                    .font(PerchTheme.Font.title)
+                                    .foregroundColor(PerchTheme.textPrimary)
 
-                        Text("·")
-                            .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textTertiary)
+                                // Whisper-thin "refreshing in background" cue —
+                                // visible only during the brief cache→network
+                                // reconciliation window.
+                                if dashboardViewModel.isShowingCachedData {
+                                    ProgressView()
+                                        .controlSize(.mini)
+                                        .tint(PerchTheme.textTertiary)
+                                        .transition(.opacity)
+                                }
+                            }
 
-                        Text(shortDateString)
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
-                            .lineLimit(1)
-
-                        // Tiny inline spinner while cached data is being refreshed in the
-                        // background. Shows only for the brief window between cache-hit
-                        // render and network response, so users aren't staring at data
-                        // that's silently being replaced.
-                        if dashboardViewModel.isShowingCachedData {
-                            ProgressView()
-                                .controlSize(.mini)
-                                .tint(PerchTheme.textTertiary)
-                                .transition(.opacity)
+                            Text(shortDateString)
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textSecondary)
+                                .lineLimit(1)
                         }
 
                         Spacer()
@@ -237,46 +238,46 @@ struct TodayTab: View {
         return chips
     }
 
+    /// Horizontal row of at-a-glance chips (next event, deliveries, weather).
+    /// Collapses to nothing when no chips qualify — no reserved empty space.
+    @ViewBuilder
     private var quickGlanceBar: some View {
         let chips = quickGlanceChips
-
-        return GeometryReader { geo in
-            let spacing: CGFloat = PerchTheme.Spacing.small
-            let chipCount = max(CGFloat(chips.count), 3)
-            let totalSpacing = spacing * (chipCount - 1)
-            let chipWidth = (geo.size.width - totalSpacing) / chipCount
-
-            HStack(spacing: spacing) {
-                ForEach(chips) { chip in
+        if !chips.isEmpty {
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(Array(chips.enumerated()), id: \.element.id) { index, chip in
                     glanceChipView(chip: chip)
-                        .frame(width: chipWidth)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    // Thin vertical rule between chips — editorial separator,
+                    // no card chrome. Skipped after the last chip.
+                    if index < chips.count - 1 {
+                        Rectangle()
+                            .fill(PerchTheme.border)
+                            .frame(width: 1, height: 36)
+                            .padding(.horizontal, PerchTheme.Spacing.xSmall)
+                    }
                 }
             }
         }
-        .frame(height: 76)
     }
 
     @ViewBuilder
     private func glanceChipView(chip: GlanceChip) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(chip.emoji)
-                .font(.system(size: 14))
+            Text(chip.label.uppercased())
+                .font(PerchTheme.Font.micro)
+                .fontWeight(.semibold)
+                .tracking(0.8)
+                .foregroundColor(PerchTheme.textTertiary)
+                .lineLimit(1)
 
             Text(chip.value)
                 .font(PerchTheme.Font.heading)
-                .fontWeight(.bold)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(chip.accent ? PerchTheme.accent : PerchTheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-
-            Text(chip.label)
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textSecondary)
-                .lineLimit(1)
         }
-        .padding(PerchTheme.Spacing.small)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .cardStyle()
     }
 
     // MARK: - Modular Card Builder
