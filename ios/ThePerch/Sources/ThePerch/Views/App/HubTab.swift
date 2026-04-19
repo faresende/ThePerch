@@ -12,6 +12,7 @@ private struct HubTimelineEntry: Identifiable {
 /// Uses a top segmented picker + paged content, mirroring HealthTab layout.
 struct HubTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(\.perchPalette) private var palette
     @State private var travelViewModel = TravelViewModel()
     @State private var selectedSegment: HubSegment = Self.initialSegment()
 
@@ -97,6 +98,7 @@ struct HubTab: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
             }
         }
+        .background(palette.bg.ignoresSafeArea())
         .onChange(of: dashboardViewModel.travelRecords) { _, newRecords in
             travelViewModel.records = newRecords
             // If the active trip disappears while Travel is selected, fall back to Orders

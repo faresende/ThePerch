@@ -27,11 +27,12 @@ struct TodayTab: View {
         self.onOpenProfile = onOpenProfile
     }
 
+    @Environment(\.perchPalette) private var palette
+    @Environment(\.perchTimeOfDay) private var timeOfDay
+
     var body: some View {
         let records = dashboardViewModel.allRecords
         let deliveries = dashboardViewModel.trackedDeliveries
-        let timeOfDay = PerchTimeOfDay.current
-        let palette = PerchPalette.forTimeOfDay(timeOfDay)
 
         ScrollView {
             VStack(spacing: 0) {
@@ -109,8 +110,6 @@ struct TodayTab: View {
         // bottom edge, the whole page reads as a single continuous surface.
         .background(palette.bg.ignoresSafeArea())
         .ignoresSafeArea(edges: .top)
-        .environment(\.perchPalette, palette)
-        .environment(\.perchTimeOfDay, timeOfDay)
         .refreshable {
             PerchHaptics.medium()
             await dashboardViewModel.loadDashboard(forceRefresh: true)
