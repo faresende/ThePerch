@@ -4,6 +4,7 @@ import SwiftUI
 /// Tapping an email opens Fastmail. Hides when no important emails exist.
 struct EmailSummaryCard: View {
     let records: [Record]
+    @Environment(\.perchPalette) private var palette
 
     private var emailRecord: Record? {
         records.first { record in
@@ -23,95 +24,84 @@ struct EmailSummaryCard: View {
 
     var body: some View {
         if let summary = emailSummary, !summary.emails.isEmpty {
-            VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-                // Header
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image(systemName: "envelope.fill")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.accent)
-                    Text("IMPORTANT EMAILS")
-                        .font(PerchTheme.Font.cardEyebrow)
-                        .foregroundColor(PerchTheme.textSecondary)
-                        .textCase(.uppercase)
-                        .tracking(0.8)
-                    Spacer()
-                    CardFreshnessLabel(date: emailRecord?.updatedAt)
-                    if let unread = summary.totalUnread, unread > 0 {
-                        Text("\(unread) unread")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
-                    }
-                }
+            let top = Array(summary.emails.prefix(3))
+            TodayCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    TodayEyebrow(
+                        label: "EMAIL · WORTH A LOOK",
+                        accent: palette.wellness,
+                        freshness: freshnessText
+                    )
+                    TodayPhrase(text: PerchPhrase.emailPhrase(threadCount: top.count))
 
-                // Top 3 emails
-                ForEach(Array(summary.emails.prefix(3))) { email in
-                    emailRow(email: email)
-                }
-
-                // Footer: view all
-                if let unread = summary.totalUnread, unread > summary.emails.prefix(3).count {
-                    Button {
-                        openFastmail()
-                    } label: {
-                        Text("View all \(unread) unread")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.accent)
+                    VStack(spacing: 0) {
+                        ForEach(Array(top.enumerated()), id: \.element.id) { index, email in
+                            if index > 0 {
+                                Rectangle()
+                                    .fill(palette.line)
+                                    .frame(height: 1)
+                            }
+                            emailRow(email: email)
+                        }
                     }
-                    .buttonStyle(.plain)
+
+                    // View-all footer (when unread exceeds displayed)
+                    if let unread = summary.totalUnread, unread > top.count {
+                        Button { openFastmail() } label: {
+                            Text("View all \(unread) unread")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(palette.kinetic)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 10)
+                    }
                 }
             }
-            .padding(PerchTheme.Card.padding)
-            .cardStyle()
         }
     }
 
-    // MARK: - Email Row
+    private var freshnessText: String {
+        guard let date = emailRecord?.updatedAt else { return "—" }
+        let minutes = Int(Date.now.timeIntervalSince(date) / 60)
+        if minutes < 1 { return "just now" }
+        if minutes < 60 { return "\(minutes) min" }
+        return "\(minutes / 60) hr"
+    }
+
+    // MARK: - Email Row (Linen spec — priority rail, from, subject, age)
 
     private func emailRow(email: EmailSummaryData.EmailItem) -> some View {
-        Button {
+        let isHighPriority = email.isFlagged || email.isUrgent
+        return Button {
             openFastmailSearch(sender: email.sender, subject: email.subject)
         } label: {
-            HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
-                // Flag/urgent indicator
-                if email.isFlagged {
-                    Image(systemName: "star.fill")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.warning)
-                        .frame(width: 14)
-                } else if email.isUrgent {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(PerchTheme.Font.micro)
-                        .foregroundColor(PerchTheme.error)
-                        .frame(width: 14)
-                } else {
-                    Color.clear.frame(width: 14, height: 14)
-                }
+            HStack(alignment: .top, spacing: 10) {
+                // 4pt vertical priority rail — kinetic for high, line for low
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(isHighPriority ? palette.kinetic : palette.line)
+                    .frame(width: 4)
+                    .frame(maxHeight: .infinity)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    // Sender
+                VStack(alignment: .leading, spacing: 1) {
                     Text(email.sender)
-                        .font(PerchTheme.Font.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .font(.system(size: 12.5))
+                        .foregroundColor(palette.muted)
                         .lineLimit(1)
-                    // Subject
                     Text(email.subject)
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .font(PerchTheme.Font.bodyRow)
+                        .foregroundColor(palette.ink)
                         .lineLimit(1)
                 }
 
-                Spacer()
+                Spacer(minLength: 6)
 
-                // Time ago
                 Text(relativeTime(from: email.receivedAt))
-                    .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .font(PerchTheme.Font.microNumeric)
+                    .tracking(0.2)
+                    .foregroundColor(palette.faint)
+                    .padding(.top, 2)
             }
-            .padding(.horizontal, PerchTheme.Spacing.small)
-            .padding(.vertical, PerchTheme.Spacing.xSmall)
-            .background(PerchTheme.cardInnerBackground)
-            .cornerRadius(PerchTheme.Card.innerCornerRadius)
+            .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

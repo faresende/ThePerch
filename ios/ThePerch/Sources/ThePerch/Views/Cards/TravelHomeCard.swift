@@ -8,6 +8,7 @@ struct TravelHomeCard: View {
     let deliveries: [DeliveryData]
 
     @State private var travelVM = TravelViewModel()
+    @Environment(\.perchPalette) private var palette
 
     var body: some View {
         if let (_, trip) = travelVM.currentTrip, travelVM.shouldShowHomeCard {
@@ -18,47 +19,82 @@ struct TravelHomeCard: View {
             let weather = travelVM.weatherSummary(for: tripId)
             let nextSeg = travelVM.nextSegment(for: tripId)
 
-            VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                // Header
-                headerView(trip: trip, weather: weather, tier: tier)
+            TodayCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    TodayEyebrow(
+                        label: "TRAVEL · \(trip.destination.uppercased())",
+                        accent: palette.kinetic,
+                        freshness: travelFreshness(trip: trip)
+                    )
+                    TodayPhrase(text: travelPhrase(for: trip))
 
-                // Active alerts
-                if !alerts.isEmpty {
-                    ForEach(alerts.prefix(2), id: \.0.id) { _, alert in
-                        alertRow(alert: alert)
+                    // Header (dates + weather + day counter)
+                    headerView(trip: trip, weather: weather, tier: tier)
+                        .padding(.bottom, alerts.isEmpty && nextSeg == nil ? 0 : 12)
+
+                    // Active alerts
+                    if !alerts.isEmpty {
+                        VStack(spacing: 8) {
+                            ForEach(alerts.prefix(2), id: \.0.id) { _, alert in
+                                alertRow(alert: alert)
+                            }
+                        }
+                        .padding(.bottom, 10)
                     }
-                }
 
-                // Next segment (flight, hotel check-in, etc.)
-                if let (_, seg) = nextSeg {
-                    nextSegmentView(segment: seg)
-                }
-
-                // Cross-domain: deliveries arriving while away
-                let awayDeliveries = crossDomainDeliveries(tripStart: trip.startDateParsed, tripEnd: trip.endDateParsed)
-                if !awayDeliveries.isEmpty {
-                    HStack(spacing: PerchTheme.Spacing.small) {
-                        Image(systemName: "shippingbox.fill")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.warning)
-                        Text("📦 \(awayDeliveries.count) deliver\(awayDeliveries.count == 1 ? "y" : "ies") arriving while away")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.warning)
+                    // Next segment
+                    if let (_, seg) = nextSeg {
+                        nextSegmentView(segment: seg)
                     }
-                }
 
-                // Segment summary (compact)
-                if segments.count > 1 {
-                    segmentSummaryView(segments: segments, trip: trip)
+                    // Cross-domain: deliveries arriving while away
+                    let awayDeliveries = crossDomainDeliveries(tripStart: trip.startDateParsed, tripEnd: trip.endDateParsed)
+                    if !awayDeliveries.isEmpty {
+                        HStack(spacing: 8) {
+                            Image(systemName: "shippingbox")
+                                .font(.system(size: 11))
+                            Text("\(awayDeliveries.count) deliver\(awayDeliveries.count == 1 ? "y" : "ies") arriving while away")
+                                .font(PerchTheme.Font.caption)
+                        }
+                        .foregroundColor(palette.muted)
+                        .padding(.top, 10)
+                    }
+
+                    // Segment summary (compact)
+                    if segments.count > 1 {
+                        segmentSummaryView(segments: segments, trip: trip)
+                            .padding(.top, 10)
+                    }
                 }
             }
-            .padding(PerchTheme.Card.padding)
-            .background(cardBackground(tier: tier))
-            .overlay(cardBorder(tier: tier))
-            .cornerRadius(PerchTheme.Card.cornerRadius)
             .onChange(of: records) { _, new in travelVM.records = new }
             .onAppear { travelVM.records = records }
         }
+    }
+
+    private func travelFreshness(trip: TripData) -> String {
+        if trip.effectiveStatus == "active" {
+            if let day = trip.currentTripDay, let total = trip.totalDays {
+                return "Day \(day) of \(total)"
+            }
+            return "Active"
+        }
+        if let days = trip.daysUntilStart, days > 0 {
+            return "\(days) day\(days == 1 ? "" : "s")"
+        }
+        return "Today"
+    }
+
+    private func travelPhrase(for trip: TripData) -> String {
+        let phase: PerchPhrase.TravelPhase = {
+            switch trip.effectiveStatus {
+            case "active": return .active
+            default:
+                if (trip.daysUntilStart ?? 99) <= 0 { return .today }
+                return .upcoming
+            }
+        }()
+        return PerchPhrase.travelPhrase(phase: phase)
     }
 
     // MARK: - Header
