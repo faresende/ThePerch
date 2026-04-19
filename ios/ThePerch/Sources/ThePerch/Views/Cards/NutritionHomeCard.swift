@@ -140,46 +140,49 @@ struct NutritionHomeCard: View {
                     .font(PerchTheme.Font.body)
                     .foregroundColor(PerchTheme.textSecondary)
             } else {
-                HStack(spacing: PerchTheme.Spacing.large) {
-                    // Calorie ring
+                // Hero stats: big display-size kcal number on the left with
+                // its unit, quiet target/remaining metadata on the right.
+                // Progress ring is kept but sized down so the number leads.
+                HStack(alignment: .center, spacing: PerchTheme.Spacing.medium) {
                     if caloriesData != nil {
                         calorieRing
-                    }
-
-                    // Stats
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
-                        if target > 0 {
-                            HStack {
-                                Text("Target")
-                                    .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textSecondary)
-                                Spacer()
-                                Text("\(Int(target)) kcal")
-                                    .font(PerchTheme.Font.captionNumeric)
-                                    .foregroundColor(PerchTheme.textPrimary)
-                            }
-                            HStack {
-                                Text("Remaining")
-                                    .font(PerchTheme.Font.caption)
-                                    .foregroundColor(PerchTheme.textSecondary)
-                                Spacer()
-                                let remaining = max(target - consumed, 0)
-                                Text("\(Int(remaining)) kcal")
-                                    .font(PerchTheme.Font.captionNumeric)
-                                    .foregroundColor(remaining > 0 ? PerchTheme.accent : PerchTheme.error)
-                            }
+                    } else {
+                        // No ring → number takes the lead alone.
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(Int(consumed))")
+                                .font(PerchTheme.Font.displayNumeric)
+                                .foregroundColor(PerchTheme.textPrimary)
+                            Text("kcal")
+                                .font(PerchTheme.Font.caption)
+                                .foregroundColor(PerchTheme.textTertiary)
                         }
                     }
-                    .frame(maxWidth: .infinity)
+
+                    Spacer(minLength: PerchTheme.Spacing.small)
+
+                    if target > 0 {
+                        VStack(alignment: .trailing, spacing: 6) {
+                            statsLine(label: "TARGET", value: "\(Int(target))", emphasise: false)
+                            let remaining = max(target - consumed, 0)
+                            statsLine(
+                                label: remaining > 0 ? "REMAINING" : "OVER",
+                                value: "\(Int(abs(target - consumed)))",
+                                emphasise: true,
+                                color: remaining > 0 ? PerchTheme.textPrimary : PerchTheme.error
+                            )
+                        }
+                    }
                 }
 
-                // Macro bars
+                // Macro bars — thinner (6pt), no track in light mode (just a
+                // whisper in dark), single-line label + value inline.
                 if let macros = macrosData {
-                    VStack(spacing: PerchTheme.Spacing.xSmall) {
+                    VStack(spacing: PerchTheme.Spacing.small) {
                         macroBar(label: "Protein", value: macros.protein, target: macros.proteinTarget, color: Self.proteinColor)
-                        macroBar(label: "Carbs", value: macros.carbs, target: macros.carbsTarget, color: Self.carbsColor)
-                        macroBar(label: "Fat", value: macros.fat, target: macros.fatTarget, color: Self.fatColor)
+                        macroBar(label: "Carbs",   value: macros.carbs,   target: macros.carbsTarget,   color: Self.carbsColor)
+                        macroBar(label: "Fat",     value: macros.fat,     target: macros.fatTarget,     color: Self.fatColor)
                     }
+                    .padding(.top, PerchTheme.Spacing.xSmall)
                 }
             }
         }
@@ -206,20 +209,22 @@ struct NutritionHomeCard: View {
 
     // MARK: - Calorie Ring
 
+    /// Editorial progress ring: thinner stroke (6pt), no glow shadow, big
+    /// monospaced display number centred. Ring track uses the barely-there
+    /// border colour so the filled portion reads as the primary signal.
     private var calorieRing: some View {
         ZStack {
             Circle()
-                .stroke(PerchTheme.border, lineWidth: 8)
+                .stroke(PerchTheme.border, lineWidth: 6)
             Circle()
                 .trim(from: 0, to: min(animatedProgress, 1.0))
                 .stroke(
                     animatedColor,
-                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .shadow(color: animatedColor.opacity(0.4), radius: 6)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 0) {
                 Text("\(Int(consumed))")
                     .font(PerchTheme.Font.titleNumeric)
                     .foregroundColor(PerchTheme.textPrimary)
@@ -228,8 +233,24 @@ struct NutritionHomeCard: View {
                     .foregroundColor(PerchTheme.textTertiary)
             }
         }
-        .frame(width: 90, height: 90)
+        .frame(width: 104, height: 104)
         .scaleEffect(pulseScale)
+    }
+
+    /// One line of the right-hand stats column — small uppercase label
+    /// on top, monospaced value below. Keeps the hero number dominant.
+    @ViewBuilder
+    private func statsLine(label: String, value: String, emphasise: Bool, color: Color? = nil) -> some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(label)
+                .font(PerchTheme.Font.micro)
+                .fontWeight(.semibold)
+                .tracking(0.8)
+                .foregroundColor(PerchTheme.textTertiary)
+            Text(value)
+                .font(emphasise ? PerchTheme.Font.headingNumeric : PerchTheme.Font.bodyNumeric)
+                .foregroundColor(color ?? PerchTheme.textPrimary)
+        }
     }
 
     // MARK: - Ring Animation
@@ -255,17 +276,31 @@ struct NutritionHomeCard: View {
 
     // MARK: - Macro Bar
 
+    /// Editorial macro row: label on the left, value on the right, thin
+    /// 4pt progress bar beneath both. No coloured dot, no card-inner
+    /// background — the coloured fill is the only visual accent.
     private func macroBar(label: String, value: Double, target: Double?, color: Color) -> some View {
-        HStack(spacing: PerchTheme.Spacing.small) {
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(color)
-                    .frame(width: 6, height: 6)
+        VStack(spacing: 5) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(label)
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textSecondary)
+
+                Spacer()
+
+                if let target {
+                    Text("\(Int(value))")
+                        .font(PerchTheme.Font.captionNumeric)
+                        .foregroundColor(PerchTheme.textPrimary)
+                    + Text(" / \(Int(target))g")
+                        .font(PerchTheme.Font.captionNumeric)
+                        .foregroundColor(PerchTheme.textTertiary)
+                } else {
+                    Text("\(Int(value))g")
+                        .font(PerchTheme.Font.captionNumeric)
+                        .foregroundColor(PerchTheme.textPrimary)
+                }
             }
-            .frame(width: 70, alignment: .leading)
 
             GeometryReader { geometry in
                 let ratio: CGFloat = {
@@ -275,27 +310,17 @@ struct NutritionHomeCard: View {
                 let animatedWidth = animateMacros ? geometry.size.width * ratio : 0
 
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(PerchTheme.cardInnerBackground)
-                        .frame(height: 6)
-                    RoundedRectangle(cornerRadius: 3)
+                    // Track — barely-there hairline
+                    Capsule(style: .continuous)
+                        .fill(PerchTheme.border)
+                        .frame(height: 4)
+                    // Fill — flat colour, no shadow
+                    Capsule(style: .continuous)
                         .fill(color)
-                        .frame(width: animatedWidth, height: 6)
+                        .frame(width: animatedWidth, height: 4)
                 }
             }
-            .frame(height: 6)
-
-            if let target {
-                Text("\(Int(value))/\(Int(target))g")
-                    .font(PerchTheme.Font.microNumeric)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .frame(width: 65, alignment: .trailing)
-            } else {
-                Text("\(Int(value))g")
-                    .font(PerchTheme.Font.microNumeric)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .frame(width: 65, alignment: .trailing)
-            }
+            .frame(height: 4)
         }
     }
 }

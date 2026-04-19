@@ -117,95 +117,77 @@ struct CalendarTodayCard: View {
 
     // MARK: - Event Rows
 
+    /// Upcoming / currently-happening event row. Editorial layout:
+    /// strong monospaced time column, clean title, quiet right-aligned
+    /// status (a small pill for "Now", a muted countdown otherwise).
+    /// No decorative bullets — hierarchy comes from weight and colour.
     private func eventRow(event: EventData, isNext: Bool) -> some View {
         let isHappening = event.start <= now && event.end > now
 
-        return HStack(spacing: PerchTheme.HomeCard.rowSpacing) {
-            // Status indicator — green dot when event is happening now
-            if isHappening {
-                Circle()
-                    .fill(PerchTheme.success)
-                    .frame(width: 8, height: 8)
-            } else {
-                Circle()
-                    .fill(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
-                    .frame(width: 8, height: 8)
-            }
-
-            // Time
+        return HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.medium) {
+            // Time column — monospaced, fixed width, stronger when "next"
             Text(PerchFormatters.time24h.string(from: event.start))
-                .font(isNext ? PerchTheme.Font.headingNumeric : PerchTheme.Font.bodyNumeric)
-                .foregroundColor(PerchTheme.textPrimary)
-                .frame(minWidth: 50, alignment: .leading)
-                .fixedSize(horizontal: true, vertical: false)
+                .font(PerchTheme.Font.headingNumeric)
+                .foregroundColor(isNext || isHappening ? PerchTheme.textPrimary : PerchTheme.textSecondary)
+                .frame(width: 56, alignment: .leading)
 
             // Title
             Text(event.title)
-                .font(isNext ? PerchTheme.Font.heading : PerchTheme.Font.body)
+                .font(PerchTheme.Font.heading)
+                .fontWeight(isNext || isHappening ? .semibold : .regular)
                 .foregroundColor(PerchTheme.textPrimary)
                 .lineLimit(1)
-                .multilineTextAlignment(.leading)
 
-            Spacer()
+            Spacer(minLength: PerchTheme.Spacing.small)
 
-            // Relative time — "Now" with green, countdown with accent
+            // Status pill: "Now" for happening, countdown for next, muted
+            // relative label for further-out events. One accent per row max.
             if isHappening {
-                HStack(spacing: PerchTheme.Spacing.xxSmall) {
-                    Circle()
-                        .fill(PerchTheme.success)
-                        .frame(width: 6, height: 6)
-                    Text("Now")
-                        .font(PerchTheme.Font.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(PerchTheme.success)
-                }
+                Text("Now")
+                    .font(PerchTheme.Font.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(PerchTheme.success)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(PerchTheme.success.opacity(0.12))
+                    )
             } else {
                 Text(relativeTimeLabel(for: event))
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(isNext ? PerchTheme.accent : PerchTheme.textTertiary)
-                    .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
         }
-        .padding(.horizontal, isHappening ? PerchTheme.Spacing.small : 0)
-        .background(isHappening ? PerchTheme.success.opacity(0.08) : (isNext ? PerchTheme.accentMuted : Color.clear))
-        .cornerRadius(PerchTheme.Card.innerCornerRadius)
-        .homeCardRowStyle()
+        .padding(.vertical, 4)
     }
 
+    /// Past event row — restrained, dim, smaller. Filters to the visual
+    /// background so attention stays on what's next.
     private func pastEventRow(event: EventData) -> some View {
         let endedMinutesAgo = Int(now.timeIntervalSince(event.end) / 60)
 
-        return HStack(spacing: PerchTheme.HomeCard.rowSpacing) {
-            Image(systemName: "checkmark")
-                .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
-                .frame(width: 8)
-
+        return HStack(alignment: .firstTextBaseline, spacing: PerchTheme.Spacing.medium) {
             Text(PerchFormatters.time24h.string(from: event.start))
                 .font(PerchTheme.Font.captionNumeric)
                 .foregroundColor(PerchTheme.textTertiary)
-                .frame(minWidth: 50, alignment: .leading)
-                .fixedSize(horizontal: true, vertical: false)
+                .frame(width: 56, alignment: .leading)
 
             Text(event.title)
                 .font(PerchTheme.Font.caption)
                 .foregroundColor(PerchTheme.textTertiary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .layoutPriority(1)
+                .lineLimit(1)
 
-            Spacer()
+            Spacer(minLength: PerchTheme.Spacing.small)
 
             Text(Self.pastRelativeLabel(minutesAgo: endedMinutesAgo))
                 .font(PerchTheme.Font.micro)
                 .foregroundColor(PerchTheme.textTertiary)
-                .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-                .frame(minWidth: PerchTheme.HomeCard.trailingColumnMinWidth, alignment: .trailing)
         }
-        .homeCardRowStyle()
-        .opacity(endedMinutesAgo > 120 ? 0.6 : 0.8)
+        .padding(.vertical, 4)
+        .opacity(endedMinutesAgo > 120 ? 0.55 : 0.75)
     }
 
     // MARK: - Helpers

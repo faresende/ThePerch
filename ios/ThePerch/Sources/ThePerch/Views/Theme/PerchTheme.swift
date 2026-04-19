@@ -1,11 +1,13 @@
 import SwiftUI
 
 /// Centralized theme configuration for The Perch app.
-/// Tangerine — cool gray surfaces with a vivid citrus-orange accent.
-/// Light mode: clean #E8EBED page, white cards, tangerine primary.
-/// Dark mode: iOS-system charcoal (#1C1C1E) with a vivid tangerine pop.
-/// Colors derived from the Tangerine shadcn theme (shadcn.io/theme/tangerine),
-/// OKLCH → sRGB converted and mapped to SwiftUI adaptive UIColor pairs.
+/// "Quiet Dashboard" — editorial aesthetic with content-first surfaces.
+/// Inspired by Things 3 / Craft / Linear: no borders, no light-mode shadows,
+/// warm off-white (#FAFAF9) page behind pure-white cards, 16pt radii,
+/// strong typographic hierarchy (40pt display numerics, 11pt uppercase
+/// eyebrows), tangerine accent (#E05D38) used sparingly for the single
+/// highest-signal value per card.
+/// Dark mode mirrors the same structure on zinc-950 / zinc-900 surfaces.
 struct PerchTheme {
     // MARK: - Adaptive Color Helper
 
@@ -18,62 +20,68 @@ struct PerchTheme {
 
     // MARK: - Colors (Tangerine palette — OKLCH → sRGB)
 
-    /// Page background — cool gray (light) / iOS charcoal (dark)
-    /// Light: oklch(0.9383 0.0042 236.5) → #E8EBED
+    /// Page background — warm off-white (light) / zinc-950 (dark).
+    /// The warmth at ~#FAFAF9 gives depth against pure-white cards without
+    /// needing borders or shadows to separate them.
     static var background: Color {
         adaptive(
-            light: UIColor(red: 0.910, green: 0.922, blue: 0.929, alpha: 1),  // #E8EBED
-            dark:  UIColor(red: 0.110, green: 0.110, blue: 0.118, alpha: 1)   // #1C1C1E
+            light: UIColor(red: 0.980, green: 0.980, blue: 0.976, alpha: 1),  // #FAFAF9
+            dark:  UIColor(red: 0.035, green: 0.035, blue: 0.043, alpha: 1)   // #09090B (zinc-950)
         )
     }
 
-    /// Elevated surface for cards — white (light) / elevated charcoal (dark)
+    /// Elevated surface for cards — pure white (light) / zinc-900 (dark).
+    /// Depth comes from tonal contrast vs the slightly-warmer background,
+    /// not from borders or drop shadows.
     static var cardBackground: Color {
         adaptive(
             light: UIColor(red: 1.000, green: 1.000, blue: 1.000, alpha: 1),  // #FFFFFF
-            dark:  UIColor(red: 0.173, green: 0.173, blue: 0.180, alpha: 1)   // #2C2C2E
+            dark:  UIColor(red: 0.094, green: 0.094, blue: 0.106, alpha: 1)   // #18181B (zinc-900)
         )
     }
 
-    /// Inner surface for items within cards (checklist rows, selectors)
+    /// Inner surface for items within cards (selected rows, selectors) —
+    /// barely there in light, one notch lifted in dark.
     static var cardInnerBackground: Color {
         adaptive(
-            light: UIColor(red: 0.949, green: 0.957, blue: 0.965, alpha: 1),  // #F2F4F6
-            dark:  UIColor(red: 0.227, green: 0.227, blue: 0.235, alpha: 1)   // #3A3A3C
+            light: UIColor(red: 0.961, green: 0.961, blue: 0.961, alpha: 1),  // #F5F5F5 (zinc-100)
+            dark:  UIColor(red: 0.149, green: 0.149, blue: 0.161, alpha: 1)   // #27272A (zinc-800)
         )
     }
 
-    /// Card hover/pressed state — one step deeper than cardInner
+    /// Card hover/pressed state — one step deeper than cardInner.
     static var cardHover: Color {
         adaptive(
-            light: UIColor(red: 0.867, green: 0.875, blue: 0.898, alpha: 1),  // #DDDFE5
-            dark:  UIColor(red: 0.282, green: 0.282, blue: 0.290, alpha: 1)   // #48484A
+            light: UIColor(red: 0.910, green: 0.910, blue: 0.914, alpha: 1),  // #E8E8E9
+            dark:  UIColor(red: 0.227, green: 0.227, blue: 0.239, alpha: 1)   // #3A3A3C
         )
     }
 
-    /// Primary text — near-black (light) / near-white (dark)
-    /// Light: oklch(0.3211 0 0) → #333333
+    /// Primary text — near-black (light) / near-white (dark).
+    /// Uses #0F0F0F / #FAFAFA instead of pure black/white for reduced
+    /// harshness at display sizes.
     static var textPrimary: Color {
         adaptive(
-            light: UIColor(red: 0.200, green: 0.200, blue: 0.200, alpha: 1),  // #333333
-            dark:  UIColor(red: 0.949, green: 0.949, blue: 0.969, alpha: 1)   // #F2F2F7
+            light: UIColor(red: 0.059, green: 0.059, blue: 0.059, alpha: 1),  // #0F0F0F
+            dark:  UIColor(red: 0.980, green: 0.980, blue: 0.980, alpha: 1)   // #FAFAFA
         )
     }
 
-    /// Secondary text — muted gray (WCAG AA on card surfaces)
-    /// Light: oklch(0.5510 0.0234 264.4) → #6B7280
+    /// Secondary text — zinc-500 light / zinc-400 dark.
+    /// Meets WCAG AA on card surfaces in both modes.
     static var textSecondary: Color {
         adaptive(
-            light: UIColor(red: 0.420, green: 0.447, blue: 0.502, alpha: 1),  // #6B7280
-            dark:  UIColor(red: 0.682, green: 0.682, blue: 0.698, alpha: 1)   // #AEAEB2
+            light: UIColor(red: 0.443, green: 0.443, blue: 0.478, alpha: 1),  // #71717A (zinc-500)
+            dark:  UIColor(red: 0.631, green: 0.631, blue: 0.667, alpha: 1)   // #A1A1AA (zinc-400)
         )
     }
 
-    /// Tertiary text — dimmer, for timestamps and footnotes
+    /// Tertiary text — zinc-400 light / zinc-500 dark. For timestamps,
+    /// helper text, and auxiliary metadata.
     static var textTertiary: Color {
         adaptive(
-            light: UIColor(red: 0.612, green: 0.639, blue: 0.686, alpha: 1),  // #9CA3AF
-            dark:  UIColor(red: 0.557, green: 0.557, blue: 0.576, alpha: 1)   // #8E8E93
+            light: UIColor(red: 0.631, green: 0.631, blue: 0.667, alpha: 1),  // #A1A1AA (zinc-400)
+            dark:  UIColor(red: 0.443, green: 0.443, blue: 0.478, alpha: 1)   // #71717A (zinc-500)
         )
     }
 
@@ -166,12 +174,12 @@ struct PerchTheme {
         [macroFat.opacity(0.72), macroFat]
     }
 
-    /// Border — light cool gray hairline
-    /// Light: oklch(0.9022 0.0052 247.9) → #DDE2EC
+    /// Border — barely-there hairline, only used for inner dividers now.
+    /// The main card style no longer uses borders (depth from tonal contrast).
     static var border: Color {
         adaptive(
-            light: UIColor(red: 0.867, green: 0.886, blue: 0.925, alpha: 1),  // #DDE2EC
-            dark:  UIColor(red: 0.227, green: 0.227, blue: 0.235, alpha: 1)   // #3A3A3C
+            light: UIColor(red: 0.894, green: 0.894, blue: 0.906, alpha: 1),  // #E4E4E7 (zinc-200)
+            dark:  UIColor(red: 0.149, green: 0.149, blue: 0.161, alpha: 1)   // #27272A (zinc-800)
         )
     }
 
@@ -207,34 +215,35 @@ struct PerchTheme {
         )
     }
 
-    // MARK: - Typography (SF Pro — clean modern sans-serif matching Tangerine aesthetic)
+    // MARK: - Typography (SF Pro — editorial scale with strong hierarchy)
 
     enum Font {
-        /// 40pt — tab page headers
+        /// 40pt — hero numbers (calorie counts, event counts)
         static let largeTitle = SwiftUI.Font.system(size: 40, weight: .bold, design: .default)
-        /// 34pt — large hero numbers, page titles
-        static let display = SwiftUI.Font.system(size: 34, weight: .bold, design: .default)
-        /// 24pt — section titles
-        static let title = SwiftUI.Font.system(size: 24, weight: .semibold, design: .default)
-        /// 18pt — card titles, emphasis
-        static let heading = SwiftUI.Font.system(size: 18, weight: .semibold, design: .default)
-        /// 15pt — regular text
+        /// 40pt — alias for largeTitle; use .displayNumeric for monospaced hero numbers
+        static let display = SwiftUI.Font.system(size: 40, weight: .bold, design: .default)
+        /// 28pt — page / tab titles (Good afternoon, section headers)
+        static let title = SwiftUI.Font.system(size: 28, weight: .semibold, design: .default)
+        /// 17pt — card titles, emphasised data
+        static let heading = SwiftUI.Font.system(size: 17, weight: .semibold, design: .default)
+        /// 15pt — regular text, event titles, row values
         static let body = SwiftUI.Font.system(size: 15, weight: .regular, design: .default)
-        /// 13pt — metadata, labels
+        /// 13pt — metadata, labels, freshness timestamps
         static let caption = SwiftUI.Font.system(size: 13, weight: .regular, design: .default)
-        /// 11pt — footnotes, timestamps
+        /// 11pt — footnotes, inline timestamps
         static let micro = SwiftUI.Font.system(size: 11, weight: .regular, design: .default)
-        /// 12pt — uppercase card section labels
-        static let cardEyebrow = SwiftUI.Font.system(size: 12, weight: .semibold, design: .default)
+        /// 11pt — uppercase section eyebrows (apply `.tracking(1.0).textCase(.uppercase)`)
+        static let cardEyebrow = SwiftUI.Font.system(size: 11, weight: .semibold, design: .default)
 
-        // Numeric variants — .monospaced for clean data display
+        // Numeric variants — monospaced for aligned columns (times, macros, metrics).
+        // Use .displayNumeric for hero stats (big calorie count, day totals).
         static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .bold,     design: .monospaced)
-        static let displayNumeric    = SwiftUI.Font.system(size: 34, weight: .bold,     design: .monospaced)
-        static let titleNumeric      = SwiftUI.Font.system(size: 24, weight: .bold,     design: .monospaced)
-        static let headingNumeric    = SwiftUI.Font.system(size: 18, weight: .bold,     design: .monospaced)
-        static let bodyNumeric       = SwiftUI.Font.system(size: 15, weight: .semibold, design: .monospaced)
-        static let captionNumeric    = SwiftUI.Font.system(size: 13, weight: .semibold, design: .monospaced)
-        static let microNumeric      = SwiftUI.Font.system(size: 11, weight: .semibold, design: .monospaced)
+        static let displayNumeric    = SwiftUI.Font.system(size: 40, weight: .bold,     design: .monospaced)
+        static let titleNumeric      = SwiftUI.Font.system(size: 28, weight: .semibold, design: .monospaced)
+        static let headingNumeric    = SwiftUI.Font.system(size: 17, weight: .semibold, design: .monospaced)
+        static let bodyNumeric       = SwiftUI.Font.system(size: 15, weight: .medium,   design: .monospaced)
+        static let captionNumeric    = SwiftUI.Font.system(size: 13, weight: .medium,   design: .monospaced)
+        static let microNumeric      = SwiftUI.Font.system(size: 11, weight: .medium,   design: .monospaced)
 
         // Icon variant — use for SF Symbol sizing (passes through PerchTheme.Icon constants)
         static func icon(_ size: CGFloat) -> SwiftUI.Font {
@@ -259,13 +268,18 @@ struct PerchTheme {
         static let xLarge: CGFloat = 40
         static let xxLarge: CGFloat = 56
         static let xxxLarge: CGFloat = 80
+
+        /// Vertical rhythm between stacked cards in the Today/Health feeds.
+        /// Editorial spacing replaces the old border-separated rhythm — tune
+        /// whitespace, not chrome, to create hierarchy.
+        static let cardStack: CGFloat = 32
     }
 
-    // MARK: - Card Styling (friendly rounded corners — Tangerine `radius: ~0.6rem`)
+    // MARK: - Card Styling (editorial — no border, no light-mode shadow)
 
     enum Card {
-        static let cornerRadius: CGFloat = 10
-        static let innerCornerRadius: CGFloat = 7
+        static let cornerRadius: CGFloat = 16
+        static let innerCornerRadius: CGFloat = 10
         static let padding: CGFloat = 20
         static let shadowRadius: CGFloat = 5
         static let shadowOpacity: Double = 0.12
@@ -492,18 +506,17 @@ private struct CardStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
         let cardShape = RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
 
+        // Editorial card: no border, no light-mode drop shadow.
+        // Depth in light mode comes purely from the tonal contrast of pure
+        // white on the warm-off-white page background. Dark mode keeps a
+        // whisper of shadow because zinc-900 on zinc-950 alone is too flat.
         content
             .background(cardShape.fill(PerchTheme.cardBackground))
-            .overlay(
-                cardShape.stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
-            )
-            // Cool neutral shadow — Tangerine theme uses a soft gray drop shadow.
             .shadow(
-                color: Color.black
-                    .opacity(colorScheme == .dark ? 0.36 : 0.08),
-                radius: PerchTheme.Card.shadowRadius,
+                color: Color.black.opacity(colorScheme == .dark ? 0.32 : 0.0),
+                radius: colorScheme == .dark ? 10 : 0,
                 x: 0,
-                y: 2
+                y: colorScheme == .dark ? 4 : 0
             )
     }
 }
