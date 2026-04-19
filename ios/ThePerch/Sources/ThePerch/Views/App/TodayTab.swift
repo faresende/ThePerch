@@ -90,7 +90,7 @@ struct TodayTab: View {
                         // 4. Signoff — "— end of today —"
                         Text("— end of today —")
                             .font(PerchTheme.Font.signoff)
-                            .foregroundColor(PerchTheme.textTertiary)
+                            .foregroundColor(timeOfDay.pageForeground)
                             .tracking(0.4)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, 8)
@@ -102,7 +102,10 @@ struct TodayTab: View {
                 Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
             }
         }
-        .background(PerchTheme.background.ignoresSafeArea())
+        // Page background flows from the hero's palette — dusky rose at dusk,
+        // peach at sunrise, plum at night, etc. Creates a continuous atmosphere
+        // instead of the old hard edge between hero image and neutral linen.
+        .background(timeOfDay.pageBackground.ignoresSafeArea())
         .ignoresSafeArea(edges: .top)
         .refreshable {
             PerchHaptics.medium()
@@ -208,6 +211,39 @@ enum TimeOfDay {
         case .midday:  return "Midday scene"
         case .dusk:    return "Dusk scene"
         case .night:   return "Night scene"
+        }
+    }
+
+    /// Page background tint — picks up the dominant warm tone of the hero
+    /// image for each time of day so the hero flows seamlessly into the
+    /// feed instead of hitting a hard edge against the neutral linen.
+    /// Kept light enough that cream cards still read as elevated surfaces
+    /// during day hours; goes to a dusky plum at night so cards glow.
+    var pageBackground: Color {
+        switch self {
+        case .sunrise: return Color(red: 0.961, green: 0.878, blue: 0.780) // #F5E0C7 peach linen
+        case .midday:  return Color(red: 0.929, green: 0.890, blue: 0.800) // #EDE3CC sage linen
+        case .dusk:    return Color(red: 0.910, green: 0.820, blue: 0.816) // #E8D1D0 dusty rose
+        case .night:   return Color(red: 0.176, green: 0.149, blue: 0.196) // #2D2632 deep plum
+        }
+    }
+
+    /// Ink color that sits directly on pageBackground (signoff line,
+    /// any page-level metadata). Auto-switches to cream at night so
+    /// it's legible on the dark plum.
+    var pageForeground: Color {
+        switch self {
+        case .night: return Color(red: 0.945, green: 0.918, blue: 0.867) // warm cream
+        default:     return Color(red: 0.651, green: 0.608, blue: 0.545) // stone muted (textTertiary)
+        }
+    }
+
+    /// When true, cards should lean into a slightly darker warm surface
+    /// so text stays high-contrast against the dusky page.
+    var prefersDarkSurfaces: Bool {
+        switch self {
+        case .night: return true
+        default:     return false
         }
     }
 }
