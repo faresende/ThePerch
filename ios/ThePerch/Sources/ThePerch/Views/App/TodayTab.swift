@@ -28,12 +28,21 @@ struct TodayTab: View {
         ZStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.cardStack) {
-                    // Editorial header: two-line greeting + date, profile avatar
-                    // floats right. Larger real estate on purpose — this is the
-                    // confident entry point to the whole feed.
+                    // Gentler Perch header: small sage perch-bird glyph next to
+                    // the greeting, date underneath. The bird is a placeholder
+                    // using SF Symbols — swap to Image("perch-bird-small") once
+                    // the custom illustration asset is added to the asset catalog.
                     HStack(alignment: .center, spacing: PerchTheme.Spacing.small) {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: PerchTheme.Spacing.xSmall) {
+                                // PLACEHOLDER — replace with Image("perch-bird-small")
+                                // once the custom illustration is in Assets.xcassets.
+                                // Sized to sit optically inline with the title cap height.
+                                Image(systemName: "bird.fill")
+                                    .font(.system(size: 22, weight: .regular))
+                                    .foregroundColor(PerchTheme.wellness)
+                                    .accessibilityHidden(true)
+
                                 Text(greetingText)
                                     .font(PerchTheme.Font.title)
                                     .foregroundColor(PerchTheme.textPrimary)
@@ -53,6 +62,8 @@ struct TodayTab: View {
                                 .font(PerchTheme.Font.caption)
                                 .foregroundColor(PerchTheme.textSecondary)
                                 .lineLimit(1)
+                                // Align date under the greeting text, not the bird.
+                                .padding(.leading, 22 + PerchTheme.Spacing.xSmall)
                         }
 
                         Spacer()

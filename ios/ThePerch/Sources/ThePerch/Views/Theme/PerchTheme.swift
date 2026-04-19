@@ -1,13 +1,14 @@
 import SwiftUI
 
 /// Centralized theme configuration for The Perch app.
-/// "Quiet Dashboard" — editorial aesthetic with content-first surfaces.
-/// Inspired by Things 3 / Craft / Linear: no borders, no light-mode shadows,
-/// warm off-white (#FAFAF9) page behind pure-white cards, 16pt radii,
-/// strong typographic hierarchy (40pt display numerics, 11pt uppercase
-/// eyebrows), tangerine accent (#E05D38) used sparingly for the single
-/// highest-signal value per card.
-/// Dark mode mirrors the same structure on zinc-950 / zinc-900 surfaces.
+/// "Gentler Perch" — warm editorial aesthetic inspired by Gentler Streak's
+/// soft, encouraging tone. Cream (#F7F3EC) page behind soft-warm cards,
+/// stone-palette text (warm neutrals, not cold zinc), 20pt radii so cards
+/// feel plush, dual-accent vocabulary: tangerine (#E05D38) for kinetic
+/// signal (actions, alerts, travel, deliveries) and sage (#7A9E7C) for
+/// wellness signal (nutrition, health, sleep, workouts). Data paired with
+/// rotating interpretive phrases — "Light day" instead of just "489 kcal".
+/// Dark mode on stone-950 / stone-900 preserving the warmth.
 struct PerchTheme {
     // MARK: - Adaptive Color Helper
 
@@ -20,78 +21,97 @@ struct PerchTheme {
 
     // MARK: - Colors (Tangerine palette — OKLCH → sRGB)
 
-    /// Page background — warm off-white (light) / zinc-950 (dark).
-    /// The warmth at ~#FAFAF9 gives depth against pure-white cards without
-    /// needing borders or shadows to separate them.
+    /// Page background — cream/linen (light) / stone-950 (dark).
+    /// Warm neutrals that read as "paper" instead of "screen". The #F7F3EC
+    /// cream gives a softer canvas than cool off-whites, and preserves
+    /// depth against the soft-warm card surfaces without any border chrome.
     static var background: Color {
         adaptive(
-            light: UIColor(red: 0.980, green: 0.980, blue: 0.976, alpha: 1),  // #FAFAF9
-            dark:  UIColor(red: 0.035, green: 0.035, blue: 0.043, alpha: 1)   // #09090B (zinc-950)
+            light: UIColor(red: 0.969, green: 0.953, blue: 0.925, alpha: 1),  // #F7F3EC (linen)
+            dark:  UIColor(red: 0.043, green: 0.039, blue: 0.035, alpha: 1)   // #0B0A09 (stone-950)
         )
     }
 
-    /// Elevated surface for cards — pure white (light) / zinc-900 (dark).
-    /// Depth comes from tonal contrast vs the slightly-warmer background,
-    /// not from borders or drop shadows.
+    /// Elevated surface for cards — soft warm white (light) / stone-900 (dark).
+    /// Not quite pure white — #FEFCF8 has the barest cream undertone so cards
+    /// feel part of the same warm world as the background, not sterile islands.
     static var cardBackground: Color {
         adaptive(
-            light: UIColor(red: 1.000, green: 1.000, blue: 1.000, alpha: 1),  // #FFFFFF
-            dark:  UIColor(red: 0.094, green: 0.094, blue: 0.106, alpha: 1)   // #18181B (zinc-900)
+            light: UIColor(red: 0.996, green: 0.988, blue: 0.973, alpha: 1),  // #FEFCF8 (soft warm white)
+            dark:  UIColor(red: 0.110, green: 0.098, blue: 0.094, alpha: 1)   // #1C1918 (stone-900)
         )
     }
 
-    /// Inner surface for items within cards (selected rows, selectors) —
-    /// barely there in light, one notch lifted in dark.
+    /// Inner surface for items within cards — barely-lifted warm neutral
+    /// in light, one notch up in dark.
     static var cardInnerBackground: Color {
         adaptive(
-            light: UIColor(red: 0.961, green: 0.961, blue: 0.961, alpha: 1),  // #F5F5F5 (zinc-100)
-            dark:  UIColor(red: 0.149, green: 0.149, blue: 0.161, alpha: 1)   // #27272A (zinc-800)
+            light: UIColor(red: 0.953, green: 0.941, blue: 0.922, alpha: 1),  // #F3F0EB (warm stone-100)
+            dark:  UIColor(red: 0.161, green: 0.145, blue: 0.137, alpha: 1)   // #292523 (stone-800)
         )
     }
 
     /// Card hover/pressed state — one step deeper than cardInner.
     static var cardHover: Color {
         adaptive(
-            light: UIColor(red: 0.910, green: 0.910, blue: 0.914, alpha: 1),  // #E8E8E9
-            dark:  UIColor(red: 0.227, green: 0.227, blue: 0.239, alpha: 1)   // #3A3A3C
+            light: UIColor(red: 0.906, green: 0.890, blue: 0.867, alpha: 1),  // #E7E3DD
+            dark:  UIColor(red: 0.235, green: 0.216, blue: 0.208, alpha: 1)   // #3C3735
         )
     }
 
-    /// Primary text — near-black (light) / near-white (dark).
-    /// Uses #0F0F0F / #FAFAFA instead of pure black/white for reduced
-    /// harshness at display sizes.
+    /// Primary text — warm near-black (light) / cream-white (dark).
+    /// Stone-900 instead of pure black gives a softer, "ink-on-paper" feel.
     static var textPrimary: Color {
         adaptive(
-            light: UIColor(red: 0.059, green: 0.059, blue: 0.059, alpha: 1),  // #0F0F0F
-            dark:  UIColor(red: 0.980, green: 0.980, blue: 0.980, alpha: 1)   // #FAFAFA
+            light: UIColor(red: 0.110, green: 0.098, blue: 0.090, alpha: 1),  // #1C1917 (stone-900)
+            dark:  UIColor(red: 0.969, green: 0.961, blue: 0.949, alpha: 1)   // #F7F5F2 (warm white)
         )
     }
 
-    /// Secondary text — zinc-500 light / zinc-400 dark.
+    /// Secondary text — warm stone-500 light / stone-400 dark.
     /// Meets WCAG AA on card surfaces in both modes.
     static var textSecondary: Color {
         adaptive(
-            light: UIColor(red: 0.443, green: 0.443, blue: 0.478, alpha: 1),  // #71717A (zinc-500)
-            dark:  UIColor(red: 0.631, green: 0.631, blue: 0.667, alpha: 1)   // #A1A1AA (zinc-400)
+            light: UIColor(red: 0.471, green: 0.443, blue: 0.420, alpha: 1),  // #78716C (stone-500)
+            dark:  UIColor(red: 0.659, green: 0.635, blue: 0.608, alpha: 1)   // #A8A29E (stone-400)
         )
     }
 
-    /// Tertiary text — zinc-400 light / zinc-500 dark. For timestamps,
-    /// helper text, and auxiliary metadata.
+    /// Tertiary text — stone-400 light / stone-500 dark. Timestamps, helpers.
     static var textTertiary: Color {
         adaptive(
-            light: UIColor(red: 0.631, green: 0.631, blue: 0.667, alpha: 1),  // #A1A1AA (zinc-400)
-            dark:  UIColor(red: 0.443, green: 0.443, blue: 0.478, alpha: 1)   // #71717A (zinc-500)
+            light: UIColor(red: 0.659, green: 0.635, blue: 0.608, alpha: 1),  // #A8A29E (stone-400)
+            dark:  UIColor(red: 0.471, green: 0.443, blue: 0.420, alpha: 1)   // #78716C (stone-500)
         )
     }
 
-    /// Accent — tangerine orange (the theme's `primary`)
-    /// Light: oklch(0.6397 0.1720 36.44) → #E05D38
-    /// Dark: slightly brighter for contrast on charcoal → #FF7040
+    /// Accent — tangerine orange. Gentler Perch reserves tangerine for
+    /// KINETIC signal: actions, alerts, travel, deliveries, the "something
+    /// is happening" energy. Wellness cards (nutrition, health, sleep) use
+    /// `wellness` (sage green) instead so the feed doesn't shout in one color.
     static var accent: Color {
         adaptive(
             light: UIColor(red: 0.878, green: 0.365, blue: 0.220, alpha: 1),  // #E05D38
             dark:  UIColor(red: 1.000, green: 0.439, blue: 0.251, alpha: 1)   // #FF7040
+        )
+    }
+
+    /// Wellness accent — soft sage green. Used for nutrition, health summary,
+    /// sleep/recovery, workouts — anything body-related. Calmer than the
+    /// tangerine so the dashboard has two distinct emotional registers:
+    /// "do/go" (tangerine) and "notice/restore" (sage).
+    static var wellness: Color {
+        adaptive(
+            light: UIColor(red: 0.478, green: 0.620, blue: 0.486, alpha: 1),  // #7A9E7C (soft sage)
+            dark:  UIColor(red: 0.588, green: 0.737, blue: 0.592, alpha: 1)   // #96BC97 (brighter sage for dark bg)
+        )
+    }
+
+    /// Soft wellness tint for backgrounds of "at target / success" states.
+    static var wellnessMuted: Color {
+        adaptive(
+            light: UIColor(red: 0.478, green: 0.620, blue: 0.486, alpha: 0.12),
+            dark:  UIColor(red: 0.588, green: 0.737, blue: 0.592, alpha: 0.18)
         )
     }
 
@@ -119,13 +139,10 @@ struct PerchTheme {
         )
     }
 
-    /// Success — clean green
-    static var success: Color {
-        adaptive(
-            light: UIColor(red: 0.086, green: 0.639, blue: 0.290, alpha: 1),  // #16A34A
-            dark:  UIColor(red: 0.204, green: 0.780, blue: 0.349, alpha: 1)   // #34C759
-        )
-    }
+    /// Success — routed through `wellness` so positive signals share one
+    /// calm green across the dashboard. The old bright #16A34A read as
+    /// "alert, you did something" instead of "gently, well done".
+    static var success: Color { wellness }
 
     /// Warning — amber, distinct from tangerine accent
     static var warning: Color {
@@ -143,12 +160,13 @@ struct PerchTheme {
         )
     }
 
-    /// Error — red (the theme's `destructive`)
-    /// Light: oklch(0.6368 0.2078 25.33) → #DC2626
+    /// Error — warm terracotta instead of alarm red. Still clearly signals
+    /// "something's off" but in the same warm register as the rest of the
+    /// palette, so it doesn't break the calm when it appears.
     static var error: Color {
         adaptive(
-            light: UIColor(red: 0.863, green: 0.149, blue: 0.149, alpha: 1),  // #DC2626
-            dark:  UIColor(red: 1.000, green: 0.271, blue: 0.227, alpha: 1)   // #FF453A
+            light: UIColor(red: 0.722, green: 0.290, blue: 0.231, alpha: 1),  // #B84A3B (terracotta)
+            dark:  UIColor(red: 0.847, green: 0.478, blue: 0.412, alpha: 1)   // #D87A69 (lighter terracotta)
         )
     }
 
@@ -174,12 +192,12 @@ struct PerchTheme {
         [macroFat.opacity(0.72), macroFat]
     }
 
-    /// Border — barely-there hairline, only used for inner dividers now.
+    /// Border — warm stone hairline, only used for inner dividers now.
     /// The main card style no longer uses borders (depth from tonal contrast).
     static var border: Color {
         adaptive(
-            light: UIColor(red: 0.894, green: 0.894, blue: 0.906, alpha: 1),  // #E4E4E7 (zinc-200)
-            dark:  UIColor(red: 0.149, green: 0.149, blue: 0.161, alpha: 1)   // #27272A (zinc-800)
+            light: UIColor(red: 0.906, green: 0.890, blue: 0.867, alpha: 1),  // #E7E3DD (warm stone-200)
+            dark:  UIColor(red: 0.161, green: 0.145, blue: 0.137, alpha: 1)   // #292523 (stone-800)
         )
     }
 
@@ -277,11 +295,11 @@ struct PerchTheme {
         static let cardStack: CGFloat = 20
     }
 
-    // MARK: - Card Styling (editorial — no border, no light-mode shadow)
+    // MARK: - Card Styling (Gentler — plush 20pt corners, no chrome)
 
     enum Card {
-        static let cornerRadius: CGFloat = 16
-        static let innerCornerRadius: CGFloat = 10
+        static let cornerRadius: CGFloat = 20
+        static let innerCornerRadius: CGFloat = 12
         static let padding: CGFloat = 20
         static let shadowRadius: CGFloat = 5
         static let shadowOpacity: Double = 0.12
@@ -459,16 +477,19 @@ extension View {
             )
     }
 
-    /// Staggered fade + slide-up card appear animation (skipped when Reduce Motion is on)
+    /// Staggered fade + slide-up card appear animation.
+    /// Gentler spring (response 0.5, damping 0.85) — a touch softer and
+    /// slower than before so cards arrive calmly rather than popping in.
+    /// Skipped when Reduce Motion is on.
     func cardAppear(index: Int, appeared: Bool) -> some View {
         self
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : (PerchMotion.prefersReduced ? 0 : 20))
+            .offset(y: appeared ? 0 : (PerchMotion.prefersReduced ? 0 : 16))
             .animation(
                 PerchMotion.prefersReduced
                     ? .none
-                    : .spring(response: 0.45, dampingFraction: 0.8)
-                        .delay(Double(index) * 0.06),
+                    : .spring(response: 0.5, dampingFraction: 0.85)
+                        .delay(Double(index) * 0.05),
                 value: appeared
             )
     }
@@ -672,5 +693,155 @@ private struct HeroCardModifier: ViewModifier {
                 .clipShape(RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius))
             }
             .perchGlow(.ambient)
+    }
+}
+
+// MARK: - PerchPhrase (Gentler interpretive phrase library)
+
+/// Generates friendly interpretive phrases that sit alongside raw data on
+/// Today cards. Each card defines buckets (e.g. "light day", "on track",
+/// "over") and a library of phrasings per bucket. `PerchPhrase.today(...)`
+/// returns a stable phrase for today that cycles through the library over
+/// consecutive days so the dashboard never says the exact same thing twice
+/// in a row — but never changes mid-day either.
+///
+/// Inspired by Gentler Streak's "translate data into words" approach —
+/// statistics become a gentle read on how your day is shaping up.
+///
+/// Kept in this file (not a separate .swift) so it's picked up automatically
+/// by the existing Xcode target membership for PerchTheme.
+enum PerchPhrase {
+    /// Returns a phrase from `library` keyed to today's date combined with
+    /// `key`. Same calendar day + same key → same phrase. New day, same
+    /// key → next phrase in the rotation. Different key → different hash
+    /// offset so two cards on the same day don't land on the same phrase
+    /// by accident.
+    static func today(_ library: [String], for key: String) -> String {
+        guard !library.isEmpty else { return "" }
+        // Qualify as Foundation.Calendar — our nested `Calendar` enum
+        // (holding calendar-card phrase libraries) shadows the type.
+        let dayOfYear = Foundation.Calendar.current
+            .ordinality(of: .day, in: .year, for: Date.now) ?? 0
+        let keyHash = abs(key.perchStableHash)
+        let index = (dayOfYear &+ keyHash) % library.count
+        return library[index]
+    }
+
+    // MARK: Nutrition libraries
+
+    enum Nutrition {
+        /// < 30% of target — plenty of runway left.
+        static let low = [
+            "Just getting started", "Plenty of room", "Early innings",
+            "Quiet start", "Fresh canvas", "Barely begun",
+        ]
+        /// 30–70% of target — a light day so far.
+        static let light = [
+            "Light day", "Easy pace", "Steady mode",
+            "Half-full", "Moderate fuel", "Gentle rhythm",
+        ]
+        /// 70–100% of target — cruising toward it.
+        static let onTrack = [
+            "On track", "Cruising", "Nicely paced",
+            "Good rhythm", "Right on", "Within reach",
+        ]
+        /// 100–110% of target — landed right around the mark.
+        static let onTarget = [
+            "Right there", "Spot on", "Basically at target",
+            "Bullseye", "Met it", "Landed it",
+        ]
+        /// > 110% of target — gone past for the day.
+        static let over = [
+            "A bigger day", "Past the line", "Hearty one",
+            "Over for today", "Generous", "Abundant",
+        ]
+    }
+
+    static func nutritionPhrase(consumed: Double, target: Double) -> String {
+        guard target > 0 else {
+            return PerchPhrase.today(Nutrition.low, for: "nutrition-low")
+        }
+        let ratio = consumed / target
+        let (library, bucket): ([String], String) = {
+            if ratio < 0.3  { return (Nutrition.low,      "nutrition-low") }
+            if ratio < 0.7  { return (Nutrition.light,    "nutrition-light") }
+            if ratio < 1.0  { return (Nutrition.onTrack,  "nutrition-ontrack") }
+            if ratio <= 1.1 { return (Nutrition.onTarget, "nutrition-ontarget") }
+            return (Nutrition.over, "nutrition-over")
+        }()
+        return PerchPhrase.today(library, for: bucket)
+    }
+
+    // MARK: Calendar libraries
+
+    enum Calendar {
+        static let empty = [
+            "A breezy one", "Wide open", "Nothing scheduled",
+            "Empty canvas", "Free range", "Open skies", "Yours to shape",
+        ]
+        static let light = [
+            "Light calendar", "Easy day", "A touch to do",
+            "Manageable", "Room to breathe", "Quiet-ish",
+        ]
+        static let steady = [
+            "A few things on", "Steady schedule", "Solid plate",
+            "Active day", "Nicely filled", "Busy-ish",
+        ]
+        static let full = [
+            "Full plate", "Packed", "Back to back",
+            "Busy one", "Juggling act", "A lot going on",
+        ]
+    }
+
+    static func calendarPhrase(eventCount: Int) -> String {
+        let (library, bucket): ([String], String) = {
+            if eventCount == 0 { return (Calendar.empty,  "cal-empty") }
+            if eventCount <= 2 { return (Calendar.light,  "cal-light") }
+            if eventCount <= 5 { return (Calendar.steady, "cal-steady") }
+            return (Calendar.full, "cal-full")
+        }()
+        return PerchPhrase.today(library, for: bucket)
+    }
+
+    // MARK: Delivery libraries
+
+    enum Delivery {
+        static let empty = [
+            "Nothing in transit", "Doorstep quiet", "All clear",
+            "No packages today", "Mailbox empty",
+        ]
+        static let one = [
+            "One on the way", "A single delivery",
+            "One in flight", "One inbound",
+        ]
+        static let few = [
+            "A couple on the way", "Few incoming",
+            "Handful in transit", "Trickle of boxes",
+        ]
+        static let many = [
+            "Busy doorstep", "Lots incoming",
+            "Package parade", "Mailbox working overtime",
+        ]
+    }
+
+    static func deliveryPhrase(count: Int) -> String {
+        let (library, bucket): ([String], String) = {
+            if count == 0 { return (Delivery.empty, "del-empty") }
+            if count == 1 { return (Delivery.one,   "del-one") }
+            if count <= 3 { return (Delivery.few,   "del-few") }
+            return (Delivery.many, "del-many")
+        }()
+        return PerchPhrase.today(library, for: bucket)
+    }
+}
+
+// Stable hashing — String.hashValue is randomised per launch on Apple
+// platforms, so we hand-roll a djb2 hash to keep phrase rotation
+// deterministic across app launches.
+private extension String {
+    var perchStableHash: Int {
+        var hash: UInt64 = 5381
+        for byte in utf8 { hash = ((hash << 5) &+ hash) &+ UInt64(byte) }
+        return Int(truncatingIfNeeded: hash)
     }
 }
