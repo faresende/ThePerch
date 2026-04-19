@@ -28,6 +28,19 @@ struct TodayTab: View {
         ZStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.cardStack) {
+                    // Time-of-day hero strip — sets atmosphere for the whole
+                    // Today feed. Changes automatically with the hour so the
+                    // dashboard feels like it knows what part of the day it is.
+                    Image(timeOfDayHeroName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 140)
+                        .clipShape(RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous))
+                        .padding(.horizontal, PerchTheme.Spacing.large)
+                        .padding(.top, PerchTheme.Spacing.xSmall)
+                        .accessibilityLabel(timeOfDayAccessibilityLabel)
+
                     // Gentler Perch header: small sage perch-bird glyph next to
                     // the greeting, date underneath. The bird is a placeholder
                     // using SF Symbols — swap to Image("perch-bird-small") once
@@ -35,13 +48,13 @@ struct TodayTab: View {
                     HStack(alignment: .center, spacing: PerchTheme.Spacing.small) {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: PerchTheme.Spacing.xSmall) {
-                                // PLACEHOLDER — replace with Image("perch-bird-small")
-                                // once the custom illustration is in Assets.xcassets.
-                                // Sized to sit optically inline with the title cap height.
-                                Image(systemName: "bird.fill")
-                                    .font(.system(size: 22, weight: .regular))
-                                    .foregroundColor(PerchTheme.wellness)
-                                    .accessibilityHidden(true)
+                                // Custom perch-bird mascot illustration.
+                                // Colours are baked in — no tinting.
+                                Image("perch-bird-small")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 32, height: 32)
+                                    .accessibilityLabel("The Perch")
 
                                 Text(greetingText)
                                     .font(PerchTheme.Font.title)
@@ -63,7 +76,8 @@ struct TodayTab: View {
                                 .foregroundColor(PerchTheme.textSecondary)
                                 .lineLimit(1)
                                 // Align date under the greeting text, not the bird.
-                                .padding(.leading, 22 + PerchTheme.Spacing.xSmall)
+                                // 32pt bird + xSmall spacing.
+                                .padding(.leading, 32 + PerchTheme.Spacing.xSmall)
                         }
 
                         Spacer()
@@ -322,6 +336,30 @@ struct TodayTab: View {
         case 12..<17: return "Good afternoon"
         case 17..<22: return "Good evening"
         default: return "Good night"
+        }
+    }
+
+    /// Hero illustration asset name keyed to the current hour of day.
+    /// Four atmospheric scenes rotate automatically: sunrise / midday /
+    /// dusk / night. Each has the same colour DNA as the rest of the
+    /// palette so it reads as "part of the world", not a pasted-in photo.
+    private var timeOfDayHeroName: String {
+        let hour = Calendar.current.component(.hour, from: Date.now)
+        switch hour {
+        case 5..<12:  return "hero-morning"
+        case 12..<17: return "hero-afternoon"
+        case 17..<22: return "hero-evening"
+        default:      return "hero-night"
+        }
+    }
+
+    private var timeOfDayAccessibilityLabel: String {
+        let hour = Calendar.current.component(.hour, from: Date.now)
+        switch hour {
+        case 5..<12:  return "Morning scene"
+        case 12..<17: return "Afternoon scene"
+        case 17..<22: return "Evening scene"
+        default:      return "Night scene"
         }
     }
 
