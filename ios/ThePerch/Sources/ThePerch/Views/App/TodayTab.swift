@@ -7,7 +7,13 @@ struct TodayTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = HomeViewModel()
     @State private var searchText = ""
-    @State private var cardsAppeared = false
+    // Default to `true` so cards are visible from the first render. The
+    // previous default of `false` + a `.onAppear` flip was unreliable —
+    // SwiftUI's AttributeGraph could finish a render pass before .onAppear
+    // fired, leaving every card at .opacity(0) indefinitely (the "Today
+    // tab blank below header" bug). Staggered fade-in is nice-to-have;
+    // cards being visible is non-negotiable.
+    @State private var cardsAppeared = true
     @State private var ambience = AmbienceManager.shared
 
     let onOpenProfile: () -> Void
@@ -149,11 +155,6 @@ struct TodayTab: View {
         }
         .onAppear {
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
-            // Flip cardsAppeared here (reliable — fires once when TodayTab enters
-            // the hierarchy) instead of on the inner cards VStack, which could
-            // miss the event if records arrive after initial body evaluation and
-            // the content branch is reached without a fresh .onAppear cycle.
-            PerchMotion.withOptionalAnimation { cardsAppeared = true }
         }
     }
 
