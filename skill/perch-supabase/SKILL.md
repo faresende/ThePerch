@@ -14,7 +14,7 @@ Any task that reads from, writes to, or modifies the Supabase backend for The Pe
 
 The Supabase backend is the single source of truth for all data displayed in The Perch iOS app. It holds user records, orders, shipments, sections, agent health, and token usage. All agent-written data flows through here, and the iOS app reads from it in real time.
 
-The project uses two Supabase instances: a self-hosted legacy instance (`cgmaotzmeoiueyzlchaz.supabase.co`) and a managed cloud instance (`ulmerwkvcczgjcxdhfuo.supabase.co`). Agents write data using the service role key, which bypasses Row Level Security (RLS). The iOS app reads data using the anon key with user-scoped RLS policies.
+Each install runs against a single Supabase project. Agents write data using the service role key (server-side only), which bypasses Row Level Security (RLS). The iOS app reads data using the anon key with user-scoped RLS policies so each signed-in user only sees their own rows.
 
 ## Architecture
 
@@ -89,7 +89,7 @@ The `display_hint` field tells the iOS app how to render a record:
 ### Environment Variables
 
 ```bash
-SUPABASE_URL=https://cgmaotzmeoiueyzlchaz.supabase.co
+SUPABASE_URL=https://<YOUR-PROJECT-REF>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>  # For agent writes
 SUPABASE_ANON_KEY=<anon-key>                  # For iOS app reads
 ```
@@ -112,7 +112,7 @@ psql $DATABASE_URL -f backend/migrations/003_managed_tier.sql
 
 #### Query records (curl)
 ```bash
-curl -G "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/dashboard_records" \
+curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/dashboard_records" \
   -H "apikey: $SUPABASE_ANON_KEY" \
   -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
   --data-urlencode "category=eq.health" \
@@ -122,13 +122,13 @@ curl -G "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/dashboard_records" \
 
 #### Insert record (curl with service role)
 ```bash
-curl -X POST "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/dashboard_records" \
+curl -X POST "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/dashboard_records" \
   -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -H "Prefer: return=representation" \
   -d '{
-    "user_id": "00000000-0000-0000-0000-000000000000",
+    "user_id": "<YOUR_USER_UUID>",
     "agent_id": "claudinho",
     "type": "measurement",
     "category": "health",
@@ -142,7 +142,7 @@ curl -X POST "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/dashboard_records
 ```python
 import requests
 
-BASE = "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1"
+BASE = "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1"
 HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -187,7 +187,7 @@ const { data, error } = await supabase
 # Check recent records for a user
 curl -G "$BASE/dashboard_records" \
   -H "apikey: $KEY" \
-  --data-urlencode "user_id=eq.00000000-0000-0000-0000-000000000000" \
+  --data-urlencode "user_id=eq.<YOUR_USER_UUID>" \
   --data-urlencode "order=created_at.desc" \
   --data-urlencode "limit=5"
 

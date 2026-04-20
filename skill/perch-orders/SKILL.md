@@ -151,7 +151,7 @@ net-a-porter (restaurant), paypal, sendcloud, loox, amazon (all locales)
 python3 scripts/orders_autopilot_ingest_fastmail.py --limit 5 --json
 
 # Check recent orders in Supabase
-curl -G "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/orders" \
+curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/orders" \
   -H "apikey: $ANON_KEY" \
   --data-urlencode "order=created_at.desc" \
   --data-urlencode "limit=10"

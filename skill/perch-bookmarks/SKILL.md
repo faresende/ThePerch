@@ -101,13 +101,13 @@ Only the URL is strictly required. The agent or app can fill in the rest:
 
 ```bash
 # Via Supabase REST API
-curl -X POST "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/records" \
+curl -X POST "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/records" \
   -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -H "Prefer: return=representation" \
   -d '{
-    "user_id": "00000000-0000-0000-0000-000000000000",
+    "user_id": "<YOUR_USER_UUID>",
     "category": "bookmarks",
     "type": "bookmark",
     "title": "SwiftUI Documentation",

@@ -140,13 +140,13 @@ icalBuddy -f -n -nc -nrd -b "" -ps "/: /" eventsFrom:today to:tomorrow
 ### Writing to Supabase
 
 ```bash
-curl -X POST "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/records" \
+curl -X POST "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/records" \
   -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -H "Prefer: return=representation" \
   -d '{
-    "user_id": "00000000-0000-0000-0000-000000000000",
+    "user_id": "<YOUR_USER_UUID>",
     "category": "calendar",
     "type": "event",
     "title": "Team Standup",

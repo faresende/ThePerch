@@ -26,7 +26,7 @@ Create `Sources/ThePerch/Config/Secrets.plist`:
 <plist version="1.0">
 <dict>
     <key>SUPABASE_URL</key>
-    <string>https://cgmaotzmeoiueyzlchaz.supabase.co</string>
+    <string>https://<YOUR-PROJECT-REF>.supabase.co</string>
     <key>SUPABASE_ANON_KEY</key>
     <string>your-anon-key-here</string>
 </dict>

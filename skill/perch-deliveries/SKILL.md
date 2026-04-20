@@ -151,7 +151,7 @@ Attributes are defined in `PerchSharedKit/DeliveryActivityAttributes.swift` and 
 
 ```bash
 # Check canonical orders
-curl -G "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/orders" \
+curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/orders" \
   -H "apikey: $ANON_KEY" \
   --data-urlencode "order=created_at.desc" \
   --data-urlencode "limit=10"

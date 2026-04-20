@@ -132,7 +132,7 @@ The calendar integration uses the same `records` table query, filtered by date r
 // Agent: log a workout
 await dashboard_push({
   agent_id: "claudinho",
-  user_id: "00000000-0000-0000-0000-000000000000",
+  user_id: "<YOUR_USER_UUID>",
   type: "workout_session",
   category: "workouts",
   title: "Push Day",
@@ -151,7 +151,7 @@ await dashboard_push({
 
 ```bash
 # Check recent workouts
-curl -G "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/records" \
+curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/records" \
   -H "apikey: $ANON_KEY" \
   --data-urlencode "category=eq.workouts" \
   --data-urlencode "order=created_at.desc" \

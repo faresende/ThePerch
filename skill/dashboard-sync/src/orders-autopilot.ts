@@ -426,12 +426,12 @@ async function pushCommerceRecord(
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 /**
- * Get user ID from sender email.
- * Currently uses a simple lookup — in production this would query the users table.
+ * Get user ID from sender email, falling back to the `PERCH_USER_ID` environment
+ * variable when no users row matches. Set `PERCH_USER_ID` to your own Supabase
+ * auth.users UUID so the autopilot has a sensible default owner.
  */
 async function getUserIdFromEmail(senderEmail: string): Promise<string> {
-  // FABIO_HARDCODED for now — in production this would be a proper user lookup
-  const FABIO_USER_ID = '00000000-0000-0000-0000-000000000000';
+  const fallbackUserId = process.env.PERCH_USER_ID;
 
   const { data, error } = await supabase
     .from('users')
@@ -440,11 +440,17 @@ async function getUserIdFromEmail(senderEmail: string): Promise<string> {
     .maybeSingle();
 
   if (error) {
-    console.warn(`[orders-autopilot] User lookup failed for ${senderEmail}, using hardcoded Fabio:`, error.message);
-    return FABIO_USER_ID;
+    console.warn(`[orders-autopilot] User lookup failed for ${senderEmail}:`, error.message);
   }
 
-  return data?.id || FABIO_USER_ID;
+  const resolved = data?.id || fallbackUserId;
+  if (!resolved) {
+    throw new Error(
+      'orders-autopilot: no user match and PERCH_USER_ID is not set. ' +
+      'Either add a users row with the sender email or export PERCH_USER_ID.'
+    );
+  }
+  return resolved;
 }
 
 // ─── Tool wrappers for OpenClaw ────────────────────────────────────────────

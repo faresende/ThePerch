@@ -20,9 +20,21 @@ sys.path.insert(0, JMAP_DIR)
 
 import jmap_client as jc
 
-SUPABASE_BASE = 'https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1'
-SUPABASE_KEY = 'sb_secret_***REDACTED***'
-USER_ID = '00000000-0000-0000-0000-000000000000'
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+USER_ID = os.environ.get('PERCH_USER_ID')
+
+if not SUPABASE_URL or not SUPABASE_KEY or not USER_ID:
+    print(
+        'Missing required environment variables. Set:\n'
+        '  SUPABASE_URL                (e.g. https://<your-ref>.supabase.co)\n'
+        '  SUPABASE_SERVICE_ROLE_KEY   (server-side service-role key)\n'
+        '  PERCH_USER_ID               (your Supabase auth.users UUID)',
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+SUPABASE_BASE = f'{SUPABASE_URL.rstrip("/")}/rest/v1'
 HEADERS = {
     'apikey': SUPABASE_KEY,
     'Authorization': f'Bearer {SUPABASE_KEY}',

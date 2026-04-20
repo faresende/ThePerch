@@ -184,7 +184,7 @@ Minimal shape:
 
 ```json
 {
-  "user_id": "00000000-0000-0000-0000-000000000000",
+  "user_id": "<YOUR_USER_UUID>",
   "merchant_name": "UPS",
   "normalized_merchant": "ups",
   "order_number": "1Z123...",
