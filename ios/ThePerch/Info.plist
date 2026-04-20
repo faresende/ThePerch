@@ -30,5 +30,18 @@
 	<array>
 		<string>fetch</string>
 	</array>
+
+	<!-- Build-time secrets sourced from Secrets.xcconfig (gitignored). -->
+	<!-- See Config/Secrets.example.xcconfig and SecretsLoader.swift.   -->
+	<key>SUPABASE_URL</key>
+	<string>$(SUPABASE_URL)</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>SUPABASE_MANAGED_URL</key>
+	<string>$(SUPABASE_MANAGED_URL)</string>
+	<key>SUPABASE_MANAGED_ANON_KEY</key>
+	<string>$(SUPABASE_MANAGED_ANON_KEY)</string>
+	<key>KARAKEEP_TOKEN</key>
+	<string>$(KARAKEEP_TOKEN)</string>
 </dict>
 </plist>

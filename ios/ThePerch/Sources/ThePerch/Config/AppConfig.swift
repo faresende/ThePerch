@@ -3,6 +3,29 @@ import Foundation
 /// Configuration for the application, including Supabase credentials.
 struct AppConfig {
     static let shared = AppConfig()
+    static let defaultUserID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
+    /// Project URLs are not secrets (they're visible in any network trace),
+    /// so they may remain as string literals. Keys are never hardcoded.
+    static let legacySelfHostedURLString = "https://cgmaotzmeoiueyzlchaz.supabase.co"
+    static let managedCloudURLString = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
+
+    /// Managed-tier publishable key. Sourced at build time from
+    /// `Secrets.xcconfig` → `Info.plist` → `SecretsLoader`. Safe to ship in
+    /// the binary (publishable keys are designed for client use), but
+    /// routed through the xcconfig pipeline so no credential literal lives
+    /// in source control.
+    static var managedCloudAnonKey: String {
+        SecretsLoader.value(for: .supabaseManagedAnonKey) ?? ""
+    }
+
+    static var managedCloudConfiguration: AppConfiguration {
+        AppConfiguration(
+            supabaseURL: managedCloudURLString,
+            supabaseAnonKey: managedCloudAnonKey,
+            backendMode: .managedCloud
+        )
+    }
 
     let supabaseURL: URL
     let supabaseAnonKey: String
