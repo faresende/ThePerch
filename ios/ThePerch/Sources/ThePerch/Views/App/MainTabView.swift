@@ -81,7 +81,7 @@ struct MainTabView: View {
             // use. No custom overlay, no tab-bar-hide hack. The view
             // inside is the capture history; `.searchable` inside that
             // view binds the draft text and drives the keyboard.
-            Tab(RootTab.capture.title, systemImage: RootTab.capture.systemImage, value: RootTab.capture, role: .search) {
+            Tab(RootTab.capture.title, systemImage: RootTab.capture.systemImage, value: RootTab.capture) {
                 CaptureHistoryView(
                     onSubmit: handleCaptureSubmit
                 )
@@ -681,9 +681,22 @@ struct CaptureHistoryView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Attached photo now renders as an inline thumbnail in
-                // the search field's rightView (see SearchBarInputController).
-                // No separate list row is needed here anymore.
+                // Compose field sits at the top of the list as a
+                // full-width card. Renders the attachment thumbnail
+                // INSIDE the field (above the text line) when a photo
+                // is picked, so the card grows in height naturally.
+                SwiftUI.Section {
+                    CaptureComposeField(
+                        text: $draftText,
+                        attachedPhoto: $draftPhoto,
+                        palette: palette,
+                        onSubmit: submitDraft
+                    )
+                }
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
                 SwiftUI.Section("Recent captures") {
                     ForEach(history) { item in
                         Button {
@@ -723,72 +736,6 @@ struct CaptureHistoryView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Create")
             .navigationBarTitleDisplayMode(.large)
-            // Attachment banner. Rendered via `.searchable(..., searchSuggestions:)`
-            // so it appears INSIDE the search field's dropdown area,
-            // right underneath the text bar — visually reads as the
-            // field expanding down to hold the attachment, which is
-            // what the user asked for. UISearchBar is single-line
-            // by design; this is the closest native primitive that
-            // pins content directly to the search field.
-            .searchable(
-                text: $draftText,
-                prompt: "Log a meal, a receipt, anything"
-            ) {
-                // Search suggestions area: renders directly attached
-                // to the bottom of the search field when active. We
-                // piggy-back on it to show the attachment preview so
-                // the thumbnail feels welded to the text bar.
-                if let photo = draftPhoto {
-                    CaptureAttachmentRow(
-                        photo: photo,
-                        palette: palette,
-                        onRemove: { draftPhoto = nil }
-                    )
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                }
-            }
-            .onSubmit(of: .search) {
-                submitDraft()
-            }
-            // Swap the search field's leading magnifying glass for a
-            // tappable camera button. SwiftUI's `.searchable` doesn't
-            // expose the UISearchBar, so a tiny introspection helper
-            // walks up the UIKit hierarchy to find it and installs a
-            // UIButton as the searchTextField's leftView.
-            // Install the camera-icon leading button + custom photo
-            // keyboard (PerchPhotoKeyboardView). See SearchBarInputController
-            // for how the UIKit reach-in works. Passes the attached
-            // photo down so a tappable thumbnail + X renders inline
-            // on the search field's right side.
-            .background(
-                SearchBarInputController(
-                    systemImage: "camera",
-                    tint: UIColor(palette.kinetic),
-                    attachedPhoto: draftPhoto,
-                    onPhotoSelected: { image in
-                        draftPhoto = image
-                    },
-                    onPhotoRemoved: {
-                        draftPhoto = nil
-                    }
-                )
-            )
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    // Camera lives inside the search field now (as the
-                    // leading icon), so the keyboard toolbar only needs
-                    // the Send button on the trailing side.
-                    Spacer()
-
-                    Button {
-                        submitDraft()
-                    } label: {
-                        Text("Send")
-                            .fontWeight(.semibold)
-                    }
-                    .disabled(canSubmit == false)
-                }
-            }
         }
     }
 
@@ -815,312 +762,259 @@ private struct CaptureHistoryItem: Identifiable {
     let agoLabel: String
 }
 
-// MARK: - CaptureAttachmentRow
+// MARK: - CaptureComposeField
 //
-// Rendered inside `.searchable(..., searchSuggestions:)` so it sits
-// in the suggestions dropdown that UIKit pins directly under the
-// active search field. From the user's perspective the thumbnail
-// reads as welded to the text bar — same visual effect as the
-// text field growing to fit the attachment, done via a native
-// suggestions row instead of a separate chrome layer.
+// Custom text field that expands vertically when a photo is attached.
+// Attachment row sits ABOVE the input line inside the same rounded
+// rectangle, so the field reads as growing to two rows — exactly
+// what the user asked for. Camera icon (trailing) swaps the keyboard
+// for our PerchPhotoKeyboardView via the UITextField's `inputView`;
+// Send icon fires onSubmit.
+//
+// Trade-off: ditching `.searchable` means we lose the iOS 26
+// Apple-Music-style tab-bar-contract animation on tap. We gain the
+// multi-line-with-attachments behaviour UISearchBar fundamentally
+// can't provide (it's single-line by design).
 
-private struct CaptureAttachmentRow: View {
-    let photo: UIImage
+private struct CaptureComposeField: View {
+    @Binding var text: String
+    @Binding var attachedPhoto: UIImage?
     let palette: PerchPalette
-    let onRemove: () -> Void
+    let onSubmit: () -> Void
+
+    private var canSubmit: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || attachedPhoto != nil
+    }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(uiImage: photo)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 52, height: 52)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(palette.line, lineWidth: 0.5)
+        VStack(alignment: .leading, spacing: 10) {
+            // Attachment row — only present when a photo is attached.
+            // Makes the field visually grow to double height, with
+            // the thumbnail sitting above the text line.
+            if let photo = attachedPhoto {
+                HStack(spacing: 8) {
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .strokeBorder(palette.line, lineWidth: 0.5)
+                            )
+
+                        Button {
+                            attachedPhoto = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 20, height: 20)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .offset(x: 6, y: -6)
+                        .accessibilityLabel("Remove photo")
+                    }
+                    Spacer(minLength: 0)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            // Input row: text field (with photo-keyboard-capable
+            // UITextField underneath) + camera toggle + send.
+            HStack(spacing: 8) {
+                CaptureInputTextField(
+                    text: $text,
+                    attachedPhoto: $attachedPhoto,
+                    placeholder: "Log a meal, a receipt, anything",
+                    tint: UIColor(palette.kinetic),
+                    onReturn: onSubmit
                 )
+                .frame(maxWidth: .infinity, minHeight: 28)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Photo attached")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(palette.ink)
-                Text("Tap Send or add a note")
-                    .font(.system(size: 12))
-                    .foregroundStyle(palette.muted)
+                Button {
+                    onSubmit()
+                } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(canSubmit
+                                         ? Color(red: 1.0, green: 0.973, blue: 0.925)
+                                         : palette.faint)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            Circle().fill(canSubmit ? palette.kinetic : palette.ink.opacity(0.06))
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSubmit)
+                .animation(.easeInOut(duration: 0.18), value: canSubmit)
+                .accessibilityLabel("Send")
             }
-
-            Spacer(minLength: 8)
-
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 22))
-                    .foregroundStyle(palette.muted)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Remove photo")
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(palette.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(palette.line.opacity(0.4), lineWidth: 0.5)
+        )
+        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: attachedPhoto != nil)
     }
 }
 
-// MARK: - SearchBarInputController
+// MARK: - CaptureInputTextField
 //
-// SwiftUI's `.searchable` creates a UISearchBar internally but doesn't
-// expose it. This representable reaches into UIKit for two jobs:
-//   1. Swap the search bar's leading magnifying glass for a tappable
-//      camera button.
-//   2. Toggle the search text field's `inputView` between the default
-//      keyboard and our custom PerchPhotoKeyboardView when the camera
-//      button is tapped.
-//
-// Uses a Coordinator that persists across SwiftUI view updates — no
-// work is done on every `updateUIView` tick (that was the source of
-// the earlier perf regression). Install is one-shot, capped at 30
-// retries on a 100ms tick (≈3s) in case the NavigationStack's search
-// controller isn't attached yet.
+// UITextField wrapped so we can tap-to-swap the keyboard for the
+// PerchPhotoKeyboardView. SwiftUI's TextField doesn't expose
+// `inputView`; UITextField does, and flipping it + calling
+// `reloadInputViews()` is how you swap the keyboard for any
+// custom view. A leading camera button inside the field triggers
+// the swap. Tapping the text area (when the photo keyboard is
+// showing) flips back to the system keyboard.
 
-private struct SearchBarInputController: UIViewRepresentable {
-    let systemImage: String
+private struct CaptureInputTextField: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var attachedPhoto: UIImage?
+    let placeholder: String
     let tint: UIColor
-    let attachedPhoto: UIImage?
-    let onPhotoSelected: (UIImage) -> Void
-    let onPhotoRemoved: () -> Void
+    let onReturn: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
-            systemImage: systemImage,
+            text: $text,
+            attachedPhoto: $attachedPhoto,
             tint: tint,
-            attachedPhoto: attachedPhoto,
-            onPhotoSelected: onPhotoSelected,
-            onPhotoRemoved: onPhotoRemoved
+            onReturn: onReturn
         )
     }
 
-    func makeUIView(context: Context) -> UIView {
-        let probe = UIView()
-        probe.isUserInteractionEnabled = false
-        probe.backgroundColor = .clear
-        context.coordinator.probe = probe
-        context.coordinator.scheduleFirstInstall()
-        return probe
+    func makeUIView(context: Context) -> UITextField {
+        let tf = UITextField()
+        tf.placeholder = placeholder
+        tf.font = .systemFont(ofSize: 16)
+        tf.tintColor = tint
+        tf.returnKeyType = .send
+        tf.delegate = context.coordinator
+        tf.addTarget(context.coordinator, action: #selector(Coordinator.editingChanged(_:)), for: .editingChanged)
+        tf.autocorrectionType = .yes
+        tf.clearButtonMode = .whileEditing
+
+        // Leading camera button — lives inside the text field and
+        // toggles the keyboard ↔ photo grid.
+        let camera = UIButton(type: .system)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+        camera.setImage(UIImage(systemName: "camera", withConfiguration: cfg), for: .normal)
+        camera.tintColor = tint
+        camera.frame = CGRect(x: 0, y: 0, width: 32, height: 28)
+        camera.addAction(UIAction { [weak coordinator = context.coordinator] _ in
+            coordinator?.toggleInputView(on: tf)
+        }, for: .touchUpInside)
+        tf.leftView = camera
+        tf.leftViewMode = .always
+
+        // Gesture that flips back to keyboard if the photo grid is up
+        // and the user taps the text area. `cancelsTouchesInView = false`
+        // + delegate's `shouldRecognizeSimultaneously = true` so the
+        // text field's own tap handlers (which promote it to first
+        // responder) still fire on the first tap.
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTextFieldTap))
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        tf.addGestureRecognizer(tap)
+
+        context.coordinator.textField = tf
+        return tf
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
-        // Only re-apply the lightweight config (image, tint, closures,
-        // attached photo); the heavy install happens once from makeUIView.
-        context.coordinator.updateConfig(
-            systemImage: systemImage,
-            tint: tint,
-            attachedPhoto: attachedPhoto,
-            onPhotoSelected: onPhotoSelected,
-            onPhotoRemoved: onPhotoRemoved
-        )
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+        uiView.tintColor = tint
+        context.coordinator.onReturn = onReturn
     }
 
     @MainActor
-    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        private var systemImage: String
-        private var tint: UIColor
-        private var attachedPhoto: UIImage?
-        private var onPhotoSelected: (UIImage) -> Void
-        private var onPhotoRemoved: () -> Void
+    final class Coordinator: NSObject, UITextFieldDelegate, UIGestureRecognizerDelegate {
+        @Binding var text: String
+        @Binding var attachedPhoto: UIImage?
+        var tint: UIColor
+        var onReturn: () -> Void
 
-        weak var probe: UIView?
-        private weak var searchBar: UISearchBar?
-        private weak var installedButton: UIButton?
+        weak var textField: UITextField?
         private var photoKeyboardView: PerchPhotoKeyboardView?
-        private var retryWorkItem: DispatchWorkItem?
-        private static let maxRetries = 30
-
-        /// Which input view the search text field is currently using.
-        /// `false` = system keyboard, `true` = photo grid keyboard.
         private var showingPhotoKeyboard: Bool = false
 
         init(
-            systemImage: String,
+            text: Binding<String>,
+            attachedPhoto: Binding<UIImage?>,
             tint: UIColor,
-            attachedPhoto: UIImage?,
-            onPhotoSelected: @escaping (UIImage) -> Void,
-            onPhotoRemoved: @escaping () -> Void
+            onReturn: @escaping () -> Void
         ) {
-            self.systemImage = systemImage
+            self._text = text
+            self._attachedPhoto = attachedPhoto
             self.tint = tint
-            self.attachedPhoto = attachedPhoto
-            self.onPhotoSelected = onPhotoSelected
-            self.onPhotoRemoved = onPhotoRemoved
-            super.init()
+            self.onReturn = onReturn
         }
 
-        func updateConfig(
-            systemImage: String,
-            tint: UIColor,
-            attachedPhoto: UIImage?,
-            onPhotoSelected: @escaping (UIImage) -> Void,
-            onPhotoRemoved: @escaping () -> Void
-        ) {
-            self.systemImage = systemImage
-            self.tint = tint
-            self.onPhotoSelected = onPhotoSelected
-            self.onPhotoRemoved = onPhotoRemoved
-
-            if let button = installedButton {
-                applyConfig(to: button)
-            }
-            photoKeyboardView?.onPhotoSelected = onPhotoSelected
-
-            // Attached photo is now rendered by the SwiftUI banner
-            // above the List, not by this controller. The controller
-            // still holds the reference so the photo grid knows what
-            // the "current selection" is, but doesn't touch leftView.
-            self.attachedPhoto = attachedPhoto
+        @objc func editingChanged(_ tf: UITextField) {
+            text = tf.text ?? ""
         }
 
-        func scheduleFirstInstall() {
-            guard installedButton == nil else { return }
-            retryWorkItem?.cancel()
-            attemptInstall(retriesLeft: Self.maxRetries)
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            onReturn()
+            return true
         }
 
-        private func attemptInstall(retriesLeft: Int) {
-            if let bar = findSearchBar() {
-                install(on: bar)
-                return
-            }
-            guard retriesLeft > 0 else { return }
-            let work = DispatchWorkItem { [weak self] in
-                self?.attemptInstall(retriesLeft: retriesLeft - 1)
-            }
-            retryWorkItem = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+        @objc func handleTextFieldTap() {
+            guard showingPhotoKeyboard else { return }
+            // Tapping the text area while the photo grid is up flips
+            // back to the system keyboard.
+            guard let tf = textField else { return }
+            tf.inputView = nil
+            showingPhotoKeyboard = false
+            if tf.isFirstResponder { tf.reloadInputViews() }
         }
-
-        /// Walk up the UIResponder chain from the probe view to find
-        /// the UISearchBar installed by SwiftUI's `.searchable`.
-        private func findSearchBar() -> UISearchBar? {
-            guard let probe else { return nil }
-            var responder: UIResponder? = probe
-            while let r = responder {
-                if let vc = r as? UIViewController {
-                    if let bar = vc.navigationItem.searchController?.searchBar {
-                        return bar
-                    }
-                    if let nav = vc as? UINavigationController,
-                       let top = nav.topViewController,
-                       let bar = top.navigationItem.searchController?.searchBar {
-                        return bar
-                    }
-                }
-                responder = r.next
-            }
-            return nil
-        }
-
-        private func install(on bar: UISearchBar) {
-            let button = UIButton(type: .system)
-            button.frame = CGRect(x: 0, y: 0, width: 24, height: 24)
-            button.addAction(UIAction { [weak self] _ in
-                self?.toggleInputView()
-            }, for: .touchUpInside)
-            applyConfig(to: button)
-
-            bar.searchTextField.leftView = button
-            bar.searchTextField.leftViewMode = .always
-
-            // Tap gesture that ONLY flips back to keyboard when the
-            // photo grid is showing. `delegate = self` +
-            // shouldRecognizeSimultaneously = true lets the text
-            // field's own tap handlers fire too — otherwise the first
-            // tap wouldn't make the field first-responder and the
-            // keyboard wouldn't appear.
-            let tap = UITapGestureRecognizer(target: self, action: #selector(handleTextFieldTap))
-            tap.cancelsTouchesInView = false
-            tap.delegate = self
-            bar.searchTextField.addGestureRecognizer(tap)
-
-            installedButton = button
-            searchBar = bar
-        }
-
-        // MARK: UIGestureRecognizerDelegate
 
         nonisolated func gestureRecognizer(
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
         ) -> Bool {
-            // Let every other recogniser on the text field — including
-            // the tap that promotes it to first responder — fire
-            // alongside ours. Otherwise iOS 26's search bar loses its
-            // keyboard-on-first-tap behaviour.
             true
         }
 
-        private func applyConfig(to button: UIButton) {
-            let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
-            let image = UIImage(systemName: systemImage, withConfiguration: config)
-            button.setImage(image, for: .normal)
-            button.tintColor = tint
-        }
-
-        @objc private func handleTextFieldTap() {
-            // If we're showing the photo grid and the user taps the
-            // field, flip back to the keyboard.
+        func toggleInputView(on tf: UITextField) {
             if showingPhotoKeyboard {
-                showKeyboard()
-            }
-        }
-
-        private func toggleInputView() {
-            showingPhotoKeyboard ? showKeyboard() : showPhotoKeyboard()
-        }
-
-        private func showPhotoKeyboard() {
-            guard let textField = searchBar?.searchTextField else { return }
-
-            let gridView: PerchPhotoKeyboardView
-            if let existing = photoKeyboardView {
-                gridView = existing
+                tf.inputView = nil
+                showingPhotoKeyboard = false
             } else {
-                gridView = PerchPhotoKeyboardView(onPhotoSelected: onPhotoSelected)
-                photoKeyboardView = gridView
+                let grid: PerchPhotoKeyboardView
+                if let existing = photoKeyboardView {
+                    grid = existing
+                } else {
+                    grid = PerchPhotoKeyboardView { [weak self] image in
+                        self?.attachedPhoto = image
+                    }
+                    photoKeyboardView = grid
+                }
+                tf.inputView = grid
+                showingPhotoKeyboard = true
             }
-
-            textField.inputView = gridView
-            showingPhotoKeyboard = true
-            if textField.isFirstResponder {
-                textField.reloadInputViews()
+            if tf.isFirstResponder {
+                tf.reloadInputViews()
             } else {
-                textField.becomeFirstResponder()
+                tf.becomeFirstResponder()
             }
         }
-
-        private func showKeyboard() {
-            guard let textField = searchBar?.searchTextField else { return }
-            textField.inputView = nil
-            showingPhotoKeyboard = false
-            if textField.isFirstResponder {
-                textField.reloadInputViews()
-            }
-        }
-
     }
 }
-
-// MARK: - PerchPhotoKeyboardView
-//
-// UIView that replaces the on-screen keyboard when the compose
-// camera icon is tapped. Shows a 4-column grid: first cell is a
-// camera tile (tap to take a photo), the rest are thumbnails
-// fetched from the user's photo library, most-recent first.
-//
-// Height is fixed at 280pt — comfortably below a standard keyboard.
-// Selecting a photo fires `onPhotoSelected(UIImage)` on the caller,
-// which attaches it to the current compose draft. The camera tile
-// presents UIImagePickerController(.camera) on top of the key window.
-//
-// Future: live AVCaptureSession preview inside the camera tile,
-// multi-select with a Send-N-items confirm row, permission empty
-// states. Intentionally single-select for v1 — smallest surface
-// that matches the user's spec.
 
 final class PerchPhotoKeyboardView: UIView {
     var onPhotoSelected: (UIImage) -> Void
