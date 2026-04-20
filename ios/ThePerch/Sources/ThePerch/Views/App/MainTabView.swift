@@ -1,6 +1,7 @@
 import SwiftUI
 import Photos
 import PhotosUI
+import AVFoundation
 
 struct MainTabView: View {
     @Environment(\.perchPalette) private var palette
@@ -680,42 +681,9 @@ struct CaptureHistoryView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Attached photo preview — shown only while a photo is
-                // selected and the user hasn't submitted yet.
-                if let photo = draftPhoto {
-                    // `Section` resolves to the app's data model; qualify
-                    // as SwiftUI.Section.
-                    SwiftUI.Section {
-                        HStack(spacing: 12) {
-                            Image(uiImage: photo)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 48, height: 48)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Attached photo")
-                                    .font(.system(size: 14, weight: .medium))
-                                Text("Tap Send or add a note")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Button {
-                                draftPhoto = nil
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Remove photo")
-                        }
-                    }
-                }
-
+                // Attached photo now renders as an inline thumbnail in
+                // the search field's rightView (see SearchBarInputController).
+                // No separate list row is needed here anymore.
                 SwiftUI.Section("Recent captures") {
                     ForEach(history) { item in
                         Button {
@@ -769,13 +737,19 @@ struct CaptureHistoryView: View {
             // UIButton as the searchTextField's leftView.
             // Install the camera-icon leading button + custom photo
             // keyboard (PerchPhotoKeyboardView). See SearchBarInputController
-            // for how the UIKit reach-in works.
+            // for how the UIKit reach-in works. Passes the attached
+            // photo down so a tappable thumbnail + X renders inline
+            // on the search field's right side.
             .background(
                 SearchBarInputController(
                     systemImage: "camera",
                     tint: UIColor(palette.kinetic),
+                    attachedPhoto: draftPhoto,
                     onPhotoSelected: { image in
                         draftPhoto = image
+                    },
+                    onPhotoRemoved: {
+                        draftPhoto = nil
                     }
                 )
             )
@@ -840,10 +814,18 @@ private struct CaptureHistoryItem: Identifiable {
 private struct SearchBarInputController: UIViewRepresentable {
     let systemImage: String
     let tint: UIColor
+    let attachedPhoto: UIImage?
     let onPhotoSelected: (UIImage) -> Void
+    let onPhotoRemoved: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(systemImage: systemImage, tint: tint, onPhotoSelected: onPhotoSelected)
+        Coordinator(
+            systemImage: systemImage,
+            tint: tint,
+            attachedPhoto: attachedPhoto,
+            onPhotoSelected: onPhotoSelected,
+            onPhotoRemoved: onPhotoRemoved
+        )
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -856,16 +838,24 @@ private struct SearchBarInputController: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        // Only re-apply the lightweight config (image, tint, closure);
-        // the heavy install happens once from makeUIView.
-        context.coordinator.updateConfig(systemImage: systemImage, tint: tint, onPhotoSelected: onPhotoSelected)
+        // Only re-apply the lightweight config (image, tint, closures,
+        // attached photo); the heavy install happens once from makeUIView.
+        context.coordinator.updateConfig(
+            systemImage: systemImage,
+            tint: tint,
+            attachedPhoto: attachedPhoto,
+            onPhotoSelected: onPhotoSelected,
+            onPhotoRemoved: onPhotoRemoved
+        )
     }
 
     @MainActor
-    final class Coordinator {
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private var systemImage: String
         private var tint: UIColor
+        private var attachedPhoto: UIImage?
         private var onPhotoSelected: (UIImage) -> Void
+        private var onPhotoRemoved: () -> Void
 
         weak var probe: UIView?
         private weak var searchBar: UISearchBar?
@@ -878,20 +868,52 @@ private struct SearchBarInputController: UIViewRepresentable {
         /// `false` = system keyboard, `true` = photo grid keyboard.
         private var showingPhotoKeyboard: Bool = false
 
-        init(systemImage: String, tint: UIColor, onPhotoSelected: @escaping (UIImage) -> Void) {
+        /// True once we've installed the right-view thumbnail. We track
+        /// it so `updateConfig` only rebuilds the right view when the
+        /// attached photo identity actually changes.
+        private var hasRightViewPhoto: Bool = false
+
+        init(
+            systemImage: String,
+            tint: UIColor,
+            attachedPhoto: UIImage?,
+            onPhotoSelected: @escaping (UIImage) -> Void,
+            onPhotoRemoved: @escaping () -> Void
+        ) {
             self.systemImage = systemImage
             self.tint = tint
+            self.attachedPhoto = attachedPhoto
             self.onPhotoSelected = onPhotoSelected
+            self.onPhotoRemoved = onPhotoRemoved
+            super.init()
         }
 
-        func updateConfig(systemImage: String, tint: UIColor, onPhotoSelected: @escaping (UIImage) -> Void) {
+        func updateConfig(
+            systemImage: String,
+            tint: UIColor,
+            attachedPhoto: UIImage?,
+            onPhotoSelected: @escaping (UIImage) -> Void,
+            onPhotoRemoved: @escaping () -> Void
+        ) {
             self.systemImage = systemImage
             self.tint = tint
             self.onPhotoSelected = onPhotoSelected
+            self.onPhotoRemoved = onPhotoRemoved
+
             if let button = installedButton {
                 applyConfig(to: button)
             }
             photoKeyboardView?.onPhotoSelected = onPhotoSelected
+
+            // Thumbnail rightView only rebuilds if the image identity
+            // changes (pointer equality) or toggles nil↔non-nil.
+            let hadPhoto = self.attachedPhoto != nil
+            let hasPhoto = attachedPhoto != nil
+            let changed = (hadPhoto != hasPhoto) || (self.attachedPhoto !== attachedPhoto)
+            self.attachedPhoto = attachedPhoto
+            if changed {
+                refreshRightViewThumbnail()
+            }
         }
 
         func scheduleFirstInstall() {
@@ -945,15 +967,36 @@ private struct SearchBarInputController: UIViewRepresentable {
             bar.searchTextField.leftView = button
             bar.searchTextField.leftViewMode = .always
 
-            // Tapping the text field restores the keyboard. The gesture
-            // doesn't cancel touches so the text field's own selection
-            // handling still works.
+            // Tap gesture that ONLY flips back to keyboard when the
+            // photo grid is showing. `delegate = self` +
+            // shouldRecognizeSimultaneously = true lets the text
+            // field's own tap handlers fire too — otherwise the first
+            // tap wouldn't make the field first-responder and the
+            // keyboard wouldn't appear.
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTextFieldTap))
             tap.cancelsTouchesInView = false
+            tap.delegate = self
             bar.searchTextField.addGestureRecognizer(tap)
 
             installedButton = button
             searchBar = bar
+
+            // Install thumbnail right-view if we already have a photo
+            // attached by the time the bar is found.
+            refreshRightViewThumbnail()
+        }
+
+        // MARK: UIGestureRecognizerDelegate
+
+        nonisolated func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            // Let every other recogniser on the text field — including
+            // the tap that promotes it to first responder — fire
+            // alongside ours. Otherwise iOS 26's search bar loses its
+            // keyboard-on-first-tap behaviour.
+            true
         }
 
         private func applyConfig(to button: UIButton) {
@@ -1003,6 +1046,52 @@ private struct SearchBarInputController: UIViewRepresentable {
                 textField.reloadInputViews()
             }
         }
+
+        // MARK: Attached-photo thumbnail (rightView)
+
+        private func refreshRightViewThumbnail() {
+            guard let textField = searchBar?.searchTextField else { return }
+
+            if let photo = attachedPhoto {
+                textField.rightView = makeAttachedThumbnailView(photo: photo)
+                textField.rightViewMode = .always
+                hasRightViewPhoto = true
+            } else if hasRightViewPhoto {
+                textField.rightView = nil
+                textField.rightViewMode = .never
+                hasRightViewPhoto = false
+            }
+        }
+
+        /// 28pt thumbnail + inline X button, sized to fit comfortably
+        /// inside the search text field's right slot. Tapping X calls
+        /// `onPhotoRemoved` — SwiftUI's draftPhoto clears, the state
+        /// flows back through `updateConfig`, and the thumbnail is
+        /// torn down.
+        private func makeAttachedThumbnailView(photo: UIImage) -> UIView {
+            let container = UIView(frame: CGRect(x: 0, y: 0, width: 50, height: 28))
+
+            let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 28, height: 28))
+            imageView.image = photo
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
+            imageView.layer.cornerRadius = 4
+            imageView.layer.borderWidth = 0.5
+            imageView.layer.borderColor = UIColor.separator.cgColor
+            container.addSubview(imageView)
+
+            let xButton = UIButton(type: .system)
+            xButton.frame = CGRect(x: 30, y: 4, width: 20, height: 20)
+            let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+            xButton.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: config), for: .normal)
+            xButton.tintColor = .tertiaryLabel
+            xButton.addAction(UIAction { [weak self] _ in
+                self?.onPhotoRemoved()
+            }, for: .touchUpInside)
+            container.addSubview(xButton)
+
+            return container
+        }
     }
 }
 
@@ -1032,6 +1121,23 @@ final class PerchPhotoKeyboardView: UIView {
     private static let cameraReuseID = "CameraCell"
     private static let photoReuseID = "PhotoCell"
 
+    // MARK: Live camera preview
+    //
+    // One AVCaptureSession is owned by the keyboard view (not the cell)
+    // so session configuration / start / stop aren't tied to cell
+    // recycling. The preview layer is attached to whichever CameraCell
+    // is currently visible (usually the same one across scrolls).
+    //
+    // The session runs only while the keyboard view is in a window and
+    // stops the moment it's detached — both for battery and so opening
+    // the compose flow doesn't keep the camera hot.
+
+    private let capturePreviewLayer = AVCaptureVideoPreviewLayer()
+    private let captureSession = AVCaptureSession()
+    private let sessionQueue = DispatchQueue(label: "perch.compose.photoKeyboard.session")
+    private var sessionConfigured = false
+    private var cameraAuthorized = false
+
     init(onPhotoSelected: @escaping (UIImage) -> Void) {
         self.onPhotoSelected = onPhotoSelected
 
@@ -1045,12 +1151,24 @@ final class PerchPhotoKeyboardView: UIView {
         super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 280))
         autoresizingMask = [.flexibleWidth]
 
+        capturePreviewLayer.videoGravity = .resizeAspectFill
+
         setUpCollectionView()
         requestPhotoAccessAndLoad()
+        requestCameraAccess()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            startCaptureSessionIfAllowed()
+        } else {
+            stopCaptureSession()
+        }
+    }
 
     private func setUpCollectionView() {
         backgroundColor = .secondarySystemBackground
@@ -1096,10 +1214,76 @@ final class PerchPhotoKeyboardView: UIView {
         collectionView.reloadData()
     }
 
+    // MARK: Capture session lifecycle
+
+    private func requestCameraAccess() {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        switch status {
+        case .authorized:
+            cameraAuthorized = true
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                guard let self else { return }
+                DispatchQueue.main.async {
+                    self.cameraAuthorized = granted
+                    if granted && self.window != nil {
+                        self.startCaptureSessionIfAllowed()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            cameraAuthorized = false
+        @unknown default:
+            cameraAuthorized = false
+        }
+    }
+
+    private func startCaptureSessionIfAllowed() {
+        guard cameraAuthorized else { return }
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            self.configureSessionIfNeeded()
+            if !self.captureSession.isRunning {
+                self.captureSession.startRunning()
+            }
+        }
+    }
+
+    private func stopCaptureSession() {
+        sessionQueue.async { [weak self] in
+            guard let self, self.captureSession.isRunning else { return }
+            self.captureSession.stopRunning()
+        }
+    }
+
+    private func configureSessionIfNeeded() {
+        guard !sessionConfigured else { return }
+        captureSession.beginConfiguration()
+        captureSession.sessionPreset = .medium
+
+        if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+           let input = try? AVCaptureDeviceInput(device: device),
+           captureSession.canAddInput(input) {
+            captureSession.addInput(input)
+        }
+
+        captureSession.commitConfiguration()
+
+        DispatchQueue.main.async {
+            self.capturePreviewLayer.session = self.captureSession
+        }
+        sessionConfigured = true
+    }
+
     // MARK: - Cells
 
+    /// First cell in the grid. Hosts the live AVCaptureVideoPreviewLayer
+    /// from the enclosing keyboard view. The layer is owned by the
+    /// view (not the cell) so session start/stop isn't entangled with
+    /// cell recycling — the cell just pins it into its own bounds when
+    /// `attach(previewLayer:)` is called.
     private final class CameraCell: UICollectionViewCell {
-        private let icon: UIImageView = {
+        private let fallbackIcon: UIImageView = {
             let iv = UIImageView(image: UIImage(systemName: "camera.fill"))
             iv.tintColor = .white
             iv.contentMode = .center
@@ -1107,17 +1291,37 @@ final class PerchPhotoKeyboardView: UIView {
             return iv
         }()
 
+        private weak var previewLayer: AVCaptureVideoPreviewLayer?
+
         override init(frame: CGRect) {
             super.init(frame: frame)
             backgroundColor = UIColor(white: 0.12, alpha: 1)
             layer.cornerRadius = 4
-            contentView.addSubview(icon)
+            clipsToBounds = true
+            contentView.addSubview(fallbackIcon)
             NSLayoutConstraint.activate([
-                icon.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-                icon.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+                fallbackIcon.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+                fallbackIcon.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
             ])
         }
         required init?(coder: NSCoder) { fatalError() }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            previewLayer?.frame = contentView.bounds
+        }
+
+        func attach(previewLayer: AVCaptureVideoPreviewLayer) {
+            // If it's already parented here, just resize.
+            if previewLayer.superlayer === contentView.layer {
+                previewLayer.frame = contentView.bounds
+                return
+            }
+            previewLayer.removeFromSuperlayer()
+            contentView.layer.insertSublayer(previewLayer, above: fallbackIcon.layer)
+            previewLayer.frame = contentView.bounds
+            self.previewLayer = previewLayer
+        }
     }
 
     private final class PhotoCell: UICollectionViewCell {
@@ -1220,7 +1424,9 @@ extension PerchPhotoKeyboardView: UICollectionViewDataSource, UICollectionViewDe
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if indexPath.item == 0 {
-            return collectionView.dequeueReusableCell(withReuseIdentifier: Self.cameraReuseID, for: indexPath)
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.cameraReuseID, for: indexPath) as! CameraCell
+            cell.attach(previewLayer: capturePreviewLayer)
+            return cell
         }
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.photoReuseID, for: indexPath) as! PhotoCell
         if let asset = assets?.object(at: indexPath.item - 1) {
