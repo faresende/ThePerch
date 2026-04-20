@@ -48,13 +48,18 @@
                                     <constraint firstAttribute="height" constant="20" id="dot-h"/>
                                 </constraints>
                             </imageView>
-                            <!-- Wordmark: "The Perch" italic serif 40pt -->
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="The Perch" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="wordmark-01">
-                                <rect key="frame" x="0.0" y="523" width="393" height="48"/>
-                                <fontDescription key="fontDescription" type="italicSystem" pointSize="40"/>
-                                <color key="textColor" red="0.149" green="0.078" blue="0.200" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            <!-- Wordmark — rasterised "The Perch" in
+                                 Fraunces italic 500. Shipped as a PNG
+                                 because launch screens render before
+                                 UIAppFonts registers custom fonts, so
+                                 Fraunces can't be used as a live font
+                                 here. The image carries the same bone
+                                 background as the page so it blends
+                                 seamlessly. Width matches the spec's
+                                 40pt line × 5:1 glyph aspect. -->
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launch-wordmark" translatesAutoresizingMaskIntoConstraints="NO" id="wordmark-01">
+                                <rect key="frame" x="84.5" y="523" width="224" height="44"/>
+                            </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="safeArea-01"/>
                         <color key="backgroundColor" name="LaunchBG"/>
@@ -63,12 +68,15 @@
                             <constraint firstItem="bird-01" firstAttribute="width" constant="220" id="bird-w"/>
                             <constraint firstItem="bird-01" firstAttribute="height" constant="220" id="bird-h"/>
                             <constraint firstItem="bird-01" firstAttribute="centerX" secondItem="safeArea-01" secondAttribute="centerX" id="bird-cx"/>
-                            <!-- Wordmark below bird with 22pt gap, centered horizontally -->
+                            <!-- Wordmark below bird with 22pt gap, centered horizontally.
+                                 Fixed size so the PNG's aspect stays clean (5:1). -->
+                            <constraint firstItem="wordmark-01" firstAttribute="width" constant="224" id="wm-w"/>
+                            <constraint firstItem="wordmark-01" firstAttribute="height" constant="44" id="wm-h"/>
                             <constraint firstItem="wordmark-01" firstAttribute="centerX" secondItem="safeArea-01" secondAttribute="centerX" id="wm-cx"/>
                             <constraint firstItem="wordmark-01" firstAttribute="top" secondItem="bird-01" secondAttribute="bottom" constant="22" id="wm-top"/>
                             <!-- Group (bird + gap + wordmark) vertically centered in safe area.
-                                 Offset = -(gap/2 + wordmarkHeight/2) = -(22/2 + 48/2) = -35 -->
-                            <constraint firstItem="bird-01" firstAttribute="centerY" secondItem="safeArea-01" secondAttribute="centerY" constant="-35" id="bird-cy"/>
+                                 Offset = -(gap/2 + wordmarkHeight/2) = -(22/2 + 44/2) = -33 -->
+                            <constraint firstItem="bird-01" firstAttribute="centerY" secondItem="safeArea-01" secondAttribute="centerY" constant="-33" id="bird-cy"/>
                             <!-- Notification ring: top 28, trailing 18 relative to bird frame -->
                             <constraint firstItem="ring-01" firstAttribute="top" secondItem="bird-01" secondAttribute="top" constant="28" id="ring-t"/>
                             <constraint firstItem="bird-01" firstAttribute="trailing" secondItem="ring-01" secondAttribute="trailing" constant="18" id="ring-r"/>
@@ -85,6 +93,7 @@
     </scenes>
     <resources>
         <image name="perch-bird-hero" width="220" height="220"/>
+        <image name="launch-wordmark" width="224" height="44"/>
         <namedColor name="LaunchBG">
             <color red="0.961" green="0.910" blue="0.820" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
