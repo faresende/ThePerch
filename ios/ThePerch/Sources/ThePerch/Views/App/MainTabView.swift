@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct MainTabView: View {
     @Environment(\.perchPalette) private var palette
@@ -15,7 +16,8 @@ struct MainTabView: View {
     @State private var composeDraftText: String = ""
     @State private var composeHasPhoto: Bool = false
     @State private var composePhoto: UIImage?
-    @State private var isPresentingCamera: Bool = false
+    @State private var isPresentingPhotoPicker: Bool = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var composeToastMessage: String?
     @FocusState private var isComposeInputFocused: Bool
 
@@ -137,20 +139,28 @@ struct MainTabView: View {
         .sheet(isPresented: $isShowingSettings) {
             SettingsTab()
         }
-        .fullScreenCover(isPresented: $isPresentingCamera) {
-            PerchComposeCameraPicker(
-                onCapture: { image in
-                    if let image {
+        // Photo attach uses the system PhotosPicker (SwiftUI wrapper
+        // for PHPickerViewController). Presents the photo library as
+        // a sandboxed sheet — the user picks, we decode to UIImage,
+        // and it becomes the compose pill's thumbnail.
+        .photosPicker(
+            isPresented: $isPresentingPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .onChange(of: selectedPhotoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await MainActor.run {
                         composePhoto = image
                         composeHasPhoto = true
                     }
-                    isPresentingCamera = false
-                },
-                onCancel: {
-                    isPresentingCamera = false
                 }
-            )
-            .ignoresSafeArea()
+                await MainActor.run { selectedPhotoItem = nil }
+            }
         }
         .overlay(alignment: .top) {
             if let msg = composeToastMessage {
@@ -220,8 +230,11 @@ struct MainTabView: View {
         .padding(.bottom, 12)
     }
 
-    /// The collapsed tab bar on the left — a glass square showing the
-    /// currently-active section's icon. Tap to cancel and return to idle.
+    /// The collapsed tab bar on the left — a glass capsule holding the
+    /// currently-active section's icon. Shape matches iOS 26's native
+    /// tab-bar minimize pill so it reads as "the same tab bar I was
+    /// just using, just shrunk down to one icon". Tap to cancel and
+    /// return to idle.
     @ViewBuilder
     private func composeSectionFAB(palette: PerchPalette) -> some View {
         Button {
@@ -230,10 +243,10 @@ struct MainTabView: View {
             Image(systemName: previousContentTab.dockSymbol)
                 .font(.system(size: 20, weight: .regular))
                 .foregroundStyle(palette.ink)
-                .frame(width: 52, height: 52)
+                .frame(width: 56, height: 52)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .glassEffect(.regular, in: Capsule())
         .transition(.scale(scale: 0.6).combined(with: .opacity))
         .accessibilityLabel(Text("Close compose"))
     }
@@ -262,10 +275,13 @@ struct MainTabView: View {
 
     @ViewBuilder
     private func composeCameraButton(palette: PerchPalette) -> some View {
+        // Uses the photos icon rather than camera — it opens the
+        // photo library, not the live camera. Native PhotosPicker
+        // lets the user pick any photo they already have.
         Button {
-            isPresentingCamera = true
+            isPresentingPhotoPicker = true
         } label: {
-            Image(systemName: "camera")
+            Image(systemName: "photo")
                 .font(.system(size: 18, weight: .regular))
                 .foregroundStyle(composePhase == .composing ? palette.ink : palette.faint)
                 .frame(width: 40, height: 40)
@@ -273,7 +289,7 @@ struct MainTabView: View {
         }
         .buttonStyle(.plain)
         .disabled(composePhase != .composing)
-        .accessibilityLabel(Text("Take photo"))
+        .accessibilityLabel(Text("Choose photo"))
     }
 
     @ViewBuilder
@@ -962,54 +978,6 @@ private struct ComposeShimmerBar: View {
     }
 }
 
-// MARK: - Compose camera picker (native UIImagePickerController)
-
-/// Wraps the system UIImagePickerController so the compose flow pulls
-/// real photos from the camera on device, and falls back to the photo
-/// library on the simulator (no camera hardware). The captured image
-/// is returned to the caller via `onCapture(UIImage?)`.
-struct PerchComposeCameraPicker: UIViewControllerRepresentable {
-    let onCapture: (UIImage?) -> Void
-    let onCancel: () -> Void
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        #if targetEnvironment(simulator)
-        // The simulator has no camera; fall back to the photo library
-        // so the compose flow is still testable.
-        picker.sourceType = .photoLibrary
-        #else
-        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera)
-            ? .camera
-            : .photoLibrary
-        #endif
-        picker.allowsEditing = false
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: PerchComposeCameraPicker
-
-        init(_ parent: PerchComposeCameraPicker) { self.parent = parent }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
-        ) {
-            let image = info[.originalImage] as? UIImage
-            parent.onCapture(image)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.onCancel()
-        }
-    }
-}
 
 // MARK: - Compose acceptance toast
 
