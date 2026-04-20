@@ -7,26 +7,11 @@ struct MainTabView: View {
 
     @State private var selectedTab: RootTab = Self.initialTab()
     @State private var isShowingSettings = false
-    @State private var previousContentTab: RootTab = Self.initialTab()
     @State private var didHandleDebugLaunchRouting = false
 
-    // Compose flow state — all in one place so the custom bottom bar
-    // morph + AI card + toast can react to a single state machine.
-    @State private var composePhase: ComposePhase = .idle
-    @State private var composeDraftText: String = ""
-    @State private var composeHasPhoto: Bool = false
-    @State private var composePhoto: UIImage?
-    @State private var isPresentingPhotoPicker: Bool = false
-    @State private var selectedPhotoItem: PhotosPickerItem?
+    /// Shown briefly after Accept to confirm the capture was routed.
+    /// Lives at the TabView level so it can overlay every tab.
     @State private var composeToastMessage: String?
-    @FocusState private var isComposeInputFocused: Bool
-
-    enum ComposePhase: Equatable {
-        case idle       // native tab bar visible, no compose UI
-        case composing  // morphed bar: section FAB + input pill (keyboard up)
-        case sending    // shimmer bar + "Reading…"
-        case ai         // AI response card floats above the input pill
-    }
 
     enum RootTab: String, Hashable {
         case today
@@ -51,17 +36,6 @@ struct MainTabView: View {
             case .capture: "plus"
             }
         }
-
-        /// Outline SF Symbol used by the section-icon FAB during compose.
-        /// Filled weights are too heavy against liquid glass.
-        var dockSymbol: String {
-            switch self {
-            case .today:   "house"
-            case .health:  "heart"
-            case .hub:     "square.grid.2x2"
-            case .capture: "square.grid.2x2"
-            }
-        }
     }
 
     private static func initialTab() -> RootTab {
@@ -82,85 +56,41 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        // Resolve the active palette once at the tab root so every tab
-        // (Today, Health, Hub) inherits it via @Environment and the whole
-        // app re-tints atomically with the hour.
         let timeOfDay = PerchTimeOfDay.current
         let palette = PerchPalette.forTimeOfDay(timeOfDay)
-        let isComposing = composePhase != .idle
 
-        ZStack(alignment: .bottom) {
-            // ── Main content stack ──────────────────────────────────
-            // Native TabView — untouched in idle. When compose is
-            // active we hide its tab bar and blur the content so the
-            // custom morphed bar below can own the bottom slot.
-            TabView(selection: $selectedTab) {
-                Tab(RootTab.today.title, systemImage: RootTab.today.systemImage, value: RootTab.today) {
-                    TodayTab(onOpenProfile: presentSettings)
-                }
-
-                Tab(RootTab.health.title, systemImage: RootTab.health.systemImage, value: RootTab.health) {
-                    HealthTab(onOpenProfile: presentSettings)
-                }
-
-                Tab(RootTab.hub.title, systemImage: RootTab.hub.systemImage, value: RootTab.hub) {
-                    HubTab(onOpenProfile: presentSettings)
-                }
-
-                Tab(RootTab.capture.title, systemImage: RootTab.capture.systemImage, value: RootTab.capture, role: .search) {
-                    Color.clear
-                        .ignoresSafeArea()
-                }
+        TabView(selection: $selectedTab) {
+            Tab(RootTab.today.title, systemImage: RootTab.today.systemImage, value: RootTab.today) {
+                TodayTab(onOpenProfile: presentSettings)
             }
-            .tint(palette.kinetic)
-            .tabBarMinimizeBehavior(.onScrollDown)
-            .toolbar(isComposing ? .hidden : .visible, for: .tabBar)
-            // 2pt blur per spec — gentle enough to let the glass do the
-            // actual lifting. A heavier blur flattens the content,
-            // leaving the glass with nothing to pull from and making the
-            // custom bar read as plastic instead of material.
-            .blur(radius: isComposing ? 2 : 0)
-            .disabled(isComposing)
-            .animation(.easeInOut(duration: 0.28), value: isComposing)
 
-            // ── Morphed compose bar overlay ─────────────────────────
-            // Lives only while composePhase != .idle. Section-icon
-            // glass FAB on the left replaces the nav; input pill on
-            // the right expands to take the remaining bottom width.
-            // AI response card floats above both when present.
-            if isComposing {
-                composeOverlay(palette: palette)
-                    .transition(.opacity)
+            Tab(RootTab.health.title, systemImage: RootTab.health.systemImage, value: RootTab.health) {
+                HealthTab(onOpenProfile: presentSettings)
+            }
+
+            Tab(RootTab.hub.title, systemImage: RootTab.hub.systemImage, value: RootTab.hub) {
+                HubTab(onOpenProfile: presentSettings)
+            }
+
+            // The Create tab uses the iOS 26 `.search` role. When the
+            // user taps it, iOS natively contracts the other tabs to
+            // icon-only on the left and expands the search field on
+            // the right — same mechanism Apple Music, Mail, and Photos
+            // use. No custom overlay, no tab-bar-hide hack. The view
+            // inside is the capture history; `.searchable` inside that
+            // view binds the draft text and drives the keyboard.
+            Tab(RootTab.capture.title, systemImage: RootTab.capture.systemImage, value: RootTab.capture, role: .search) {
+                CaptureHistoryView(
+                    onSubmit: handleCaptureSubmit
+                )
             }
         }
-        .background(palette.bg.ignoresSafeArea())
+        .tint(palette.kinetic)
+        .tabBarMinimizeBehavior(.onScrollDown)
         .environment(\.perchPalette, palette)
         .environment(\.perchTimeOfDay, timeOfDay)
         .sheet(isPresented: $isShowingSettings) {
             SettingsTab()
-        }
-        // Photo attach uses the system PhotosPicker (SwiftUI wrapper
-        // for PHPickerViewController). Presents the photo library as
-        // a sandboxed sheet — the user picks, we decode to UIImage,
-        // and it becomes the compose pill's thumbnail.
-        .photosPicker(
-            isPresented: $isPresentingPhotoPicker,
-            selection: $selectedPhotoItem,
-            matching: .images,
-            photoLibrary: .shared()
-        )
-        .onChange(of: selectedPhotoItem) { _, item in
-            guard let item else { return }
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let image = UIImage(data: data) {
-                    await MainActor.run {
-                        composePhoto = image
-                        composeHasPhoto = true
-                    }
-                }
-                await MainActor.run { selectedPhotoItem = nil }
-            }
         }
         .overlay(alignment: .top) {
             if let msg = composeToastMessage {
@@ -168,22 +98,6 @@ struct MainTabView: View {
                     .padding(.top, 64)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .allowsHitTesting(false)
-            }
-        }
-        .onChange(of: selectedTab) { _, newTab in
-            if newTab == .capture {
-                // Bounce the tab selection back to the previous content
-                // tab and open the compose overlay in its place. The
-                // section-FAB symbol follows `previousContentTab`.
-                selectedTab = previousContentTab
-                startComposing()
-            } else {
-                previousContentTab = newTab
-            }
-        }
-        .onChange(of: composePhase) { _, new in
-            if new == .sending {
-                Task { await runMockSending() }
             }
         }
         .task(id: "main-tab-debug-routing") {
@@ -200,329 +114,19 @@ struct MainTabView: View {
         }
     }
 
-    // MARK: - Compose overlay
-
-    @ViewBuilder
-    private func composeOverlay(palette: PerchPalette) -> some View {
-        VStack(spacing: 10) {
-            if composePhase == .ai {
-                composeAICard(palette: palette)
-                    .padding(.horizontal, 12)
-                    .transition(.asymmetric(
-                        insertion: .offset(y: 18).combined(with: .opacity),
-                        removal: .opacity
-                    ))
-            }
-
-            // GlassEffectContainer groups the section FAB and the input
-            // pill into a single coherent glass surface — same iOS 26
-            // material the native tab bar uses. Without the container,
-            // the two elements render as independent glass shapes and
-            // the effect feels detached / placeholder-ish.
-            GlassEffectContainer(spacing: 8) {
-                HStack(spacing: 8) {
-                    composeSectionFAB(palette: palette)
-                    composeInputPill(palette: palette)
-                }
-            }
-            .padding(.horizontal, 10)
-        }
-        .padding(.bottom, 12)
-    }
-
-    /// The collapsed tab bar on the left — a glass capsule holding the
-    /// currently-active section's icon. Shape matches iOS 26's native
-    /// tab-bar minimize pill so it reads as "the same tab bar I was
-    /// just using, just shrunk down to one icon". Tap to cancel and
-    /// return to idle.
-    @ViewBuilder
-    private func composeSectionFAB(palette: PerchPalette) -> some View {
-        Button {
-            collapseCompose()
-        } label: {
-            Image(systemName: previousContentTab.dockSymbol)
-                .font(.system(size: 20, weight: .regular))
-                .foregroundStyle(palette.ink)
-                .frame(width: 56, height: 52)
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular, in: Capsule())
-        .transition(.scale(scale: 0.6).combined(with: .opacity))
-        .accessibilityLabel(Text("Close compose"))
-    }
-
-    /// Liquid-glass capsule holding camera · (optional photo thumb) ·
-    /// text field · send. Expands to fill the remaining bottom width.
-    @ViewBuilder
-    private func composeInputPill(palette: PerchPalette) -> some View {
-        HStack(spacing: 6) {
-            composeCameraButton(palette: palette)
-
-            if composeHasPhoto && composePhase != .sending {
-                composePhotoThumbnail
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
-            }
-
-            composeInputField(palette: palette)
-                .frame(maxWidth: .infinity)
-
-            composeSendButton(palette: palette)
-        }
-        .padding(6)
-        .frame(height: 52)
-        .glassEffect(.regular, in: Capsule())
-    }
-
-    @ViewBuilder
-    private func composeCameraButton(palette: PerchPalette) -> some View {
-        // Uses the photos icon rather than camera — it opens the
-        // photo library, not the live camera. Native PhotosPicker
-        // lets the user pick any photo they already have.
-        Button {
-            isPresentingPhotoPicker = true
-        } label: {
-            Image(systemName: "photo")
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(composePhase == .composing ? palette.ink : palette.faint)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(palette.ink.opacity(0.05)))
-        }
-        .buttonStyle(.plain)
-        .disabled(composePhase != .composing)
-        .accessibilityLabel(Text("Choose photo"))
-    }
-
-    @ViewBuilder
-    private var composePhotoThumbnail: some View {
-        Group {
-            if let photo = composePhoto {
-                Image(uiImage: photo)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                // Fallback used when composeHasPhoto is forced true
-                // without an actual UIImage (shouldn't happen in
-                // production — defensive).
-                Color.gray
-            }
-        }
-        .frame(width: 32, height: 32)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
-        )
-    }
-
-    @ViewBuilder
-    private func composeInputField(palette: PerchPalette) -> some View {
-        switch composePhase {
-        case .sending:
-            HStack(spacing: 10) {
-                ComposeShimmerBar()
-                    .frame(maxWidth: .infinity)
-                Text("Reading…")
-                    .font(.system(size: 12.5, weight: .regular, design: .serif).italic())
-                    .foregroundStyle(palette.muted)
-            }
-        case .ai:
-            Text(composeHasPhoto ? "Photo · understood" : composeDraftText)
-                .font(.system(size: 14.5))
-                .foregroundStyle(palette.muted)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        case .composing, .idle:
-            TextField(
-                composeHasPhoto ? "Add a note…" : "Log a meal, a receipt, anything",
-                text: $composeDraftText,
-                axis: .horizontal
-            )
-            .font(.system(size: 14.5))
-            .foregroundStyle(palette.ink)
-            .tint(palette.kinetic)
-            .submitLabel(.send)
-            .focused($isComposeInputFocused)
-            .onSubmit(attemptSend)
-        }
-    }
-
-    private var canSend: Bool {
-        composePhase == .composing &&
-        (composeHasPhoto || !composeDraftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-    }
-
-    @ViewBuilder
-    private func composeSendButton(palette: PerchPalette) -> some View {
-        Button(action: attemptSend) {
-            Image(systemName: "paperplane.fill")
-                .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(canSend
-                                 ? Color(red: 1.0, green: 0.973, blue: 0.925)
-                                 : palette.faint)
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle().fill(canSend ? palette.kinetic : palette.ink.opacity(0.05))
-                )
-        }
-        .buttonStyle(.plain)
-        .disabled(!canSend)
-        .animation(.easeInOut(duration: 0.2), value: canSend)
-        .accessibilityLabel(Text("Send"))
-    }
-
-    // MARK: - AI response card
-
-    @ViewBuilder
-    private func composeAICard(palette: PerchPalette) -> some View {
-        let ai = mockAI
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(palette.wellness)
-                    .frame(width: 32, height: 32)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(palette.wellness.opacity(0.22))
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("UNDERSTOOD · GOES TO \(ai.destination.uppercased())")
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .tracking(1.2)
-                        .foregroundStyle(palette.muted)
-
-                    Text(ai.title)
-                        .font(.system(size: 20, weight: .medium, design: .serif).italic())
-                        .foregroundStyle(palette.ink)
-                        .tracking(-0.3)
-                        .lineLimit(2)
-
-                    Text(ai.body)
-                        .font(.system(size: 13.5, weight: .regular, design: .serif))
-                        .foregroundStyle(palette.muted)
-                }
-                Spacer(minLength: 0)
-            }
-
-            HStack(spacing: 8) {
-                Button {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
-                        composePhase = .composing
-                    }
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(150))
-                        isComposeInputFocused = true
-                    }
-                } label: {
-                    Text("Edit")
-                        .font(.system(size: 14.5, weight: .medium))
-                        .foregroundStyle(palette.ink)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(palette.ink.opacity(0.08))
-                        )
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    acceptAI(ai)
-                } label: {
-                    Text("Accept")
-                        .font(.system(size: 14.5, weight: .semibold))
-                        .foregroundStyle(Color(red: 1.0, green: 0.973, blue: 0.925))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(palette.kinetic)
-                        )
-                        .shadow(color: palette.kinetic.opacity(0.35), radius: 10, x: 0, y: 5)
-                }
-                .buttonStyle(.plain)
-                .layoutPriority(1.4)
-            }
-        }
-        .padding(18)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-    }
-
-    // MARK: - Mock AI + state transitions
-
-    /// Canned AI response for v1. Photo → Nutrition, text → Travel.
-    /// Swap for a real LLM call without changing the view shape.
-    private var mockAI: AIResult {
-        if composeHasPhoto {
-            return AIResult(
-                title: "One pastel de nata",
-                body: "~250 cal · 5g P · 25g C · 14g F",
-                destination: "Nutrition"
-            )
-        } else {
-            return AIResult(
-                title: "Flight to Porto · BA 1234",
-                body: "Fri, 10 Apr · 07:45 LGW → 10:30 OPO",
-                destination: "Travel"
-            )
-        }
-    }
-
-    struct AIResult: Equatable {
-        let title: String
-        let body: String
-        let destination: String
-    }
-
-    private func startComposing() {
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
-            composePhase = .composing
-        }
-        // Slight delay gives the keyboard animation room to align with
-        // the bar expansion — avoids the "bar jumps" look.
-        Task {
-            try? await Task.sleep(for: .milliseconds(320))
-            isComposeInputFocused = true
-        }
-    }
-
-    private func collapseCompose() {
-        isComposeInputFocused = false
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
-            composePhase = .idle
-            composeDraftText = ""
-            composeHasPhoto = false
-            composePhoto = nil
-        }
-    }
-
-    private func attemptSend() {
-        guard canSend else { return }
-        isComposeInputFocused = false
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
-            composePhase = .sending
-        }
-    }
-
-    private func runMockSending() async {
-        try? await Task.sleep(for: .milliseconds(1600))
-        guard composePhase == .sending else { return }
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
-            composePhase = .ai
-        }
-    }
-
-    private func acceptAI(_ ai: AIResult) {
-        let destination = ai.destination
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
-            composePhase = .idle
-            composeDraftText = ""
-            composeHasPhoto = false
-            composePhoto = nil
+    /// Called by CaptureHistoryView when the user submits a capture
+    /// (via search-field return or a tapped history row). For v1 the
+    /// AI routing is stubbed: text → Travel, photo → Nutrition. Real
+    /// LLM call lands here later without changing the view shape.
+    private func handleCaptureSubmit(_ draft: CaptureDraft) {
+        let destination = draft.mockDestination
+        // Pop the user back to Today so the toast reads as "that thing
+        // landed in X" rather than staying on the search page.
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+            selectedTab = .today
         }
         Task {
-            try? await Task.sleep(for: .milliseconds(200))
+            try? await Task.sleep(for: .milliseconds(250))
             withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
                 composeToastMessage = "Added to \(destination)"
             }
@@ -532,6 +136,7 @@ struct MainTabView: View {
             }
         }
     }
+
 
     // MARK: - Debug routing
 
@@ -1014,4 +619,211 @@ struct PerchComposeToast: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(message))
     }
+}
+
+// MARK: - CaptureDraft
+//
+// Shape the CaptureHistoryView hands back to MainTabView when the
+// user submits. Real AI routing plugs into `mockDestination` later.
+
+struct CaptureDraft: Equatable {
+    var text: String
+    var photo: UIImage?
+
+    /// Stubbed routing for v1. Photo → Nutrition, text → Travel.
+    /// Matches the handoff's canned examples.
+    var mockDestination: String {
+        photo != nil ? "Nutrition" : "Travel"
+    }
+
+    var isEmpty: Bool {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && photo == nil
+    }
+}
+
+// MARK: - CaptureHistoryView
+//
+// Rendered inside the `Tab(role: .search)` slot. iOS 26 automatically
+// contracts the other tabs and expands the search field when this tab
+// is active — no custom chrome needed.
+//
+// Structure:
+//   - NavigationStack + List with "Recent captures" section (mocked for
+//     v1; real history coming when captures persist to Supabase).
+//   - `.searchable` binds the draft text to the native field. iOS
+//     handles keyboard, clear/X button, and field animation.
+//   - Keyboard toolbar (placement: .keyboard) adds the photo button +
+//     Send. Tapping photo presents the native PhotosPicker as a sheet
+//     until the custom photo-keyboard input view lands in a follow-up.
+//   - Tapping a history row treats it like a re-submit with that item's
+//     original text.
+
+struct CaptureHistoryView: View {
+    @Environment(\.perchPalette) private var palette
+
+    let onSubmit: (CaptureDraft) -> Void
+
+    @State private var draftText: String = ""
+    @State private var draftPhoto: UIImage?
+    @State private var isPresentingPhotoPicker: Bool = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+
+    /// Mocked history until captures persist to the backend. Each row
+    /// shows what the user previously sent — tap to re-add.
+    private let history: [CaptureHistoryItem] = [
+        .init(text: "One pastel de nata", destination: "Nutrition", systemImage: "leaf", agoLabel: "Yesterday"),
+        .init(text: "Flight to Porto · BA 1234", destination: "Travel", systemImage: "airplane", agoLabel: "2d ago"),
+        .init(text: "Gym · Chest and Triceps", destination: "Health", systemImage: "dumbbell", agoLabel: "2d ago"),
+        .init(text: "Dentist Wednesday 9:30 Dr Schneider", destination: "Calendar", systemImage: "calendar", agoLabel: "3d ago"),
+        .init(text: "MR Porter · linen jacket", destination: "Orders", systemImage: "shippingbox", agoLabel: "1w ago"),
+    ]
+
+    var body: some View {
+        NavigationStack {
+            List {
+                // Attached photo preview — shown only while a photo is
+                // selected and the user hasn't submitted yet.
+                if let photo = draftPhoto {
+                    // `Section` resolves to the app's data model; qualify
+                    // as SwiftUI.Section.
+                    SwiftUI.Section {
+                        HStack(spacing: 12) {
+                            Image(uiImage: photo)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 48, height: 48)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Attached photo")
+                                    .font(.system(size: 14, weight: .medium))
+                                Text("Tap Send or add a note")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Button {
+                                draftPhoto = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Remove photo")
+                        }
+                    }
+                }
+
+                SwiftUI.Section("Recent captures") {
+                    ForEach(history) { item in
+                        Button {
+                            // Tap-to-re-add shortcut. Hand straight to
+                            // onSubmit with the item's text; the parent
+                            // runs the same routing path.
+                            let draft = CaptureDraft(text: item.text, photo: nil)
+                            onSubmit(draft)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: item.systemImage)
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundStyle(palette.kinetic)
+                                    .frame(width: 28, height: 28)
+                                    .background(
+                                        Circle().fill(palette.kinetic.opacity(0.12))
+                                    )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.text)
+                                        .font(.system(size: 15))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                    Text("\(item.destination) · \(item.agoLabel)")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Create")
+            .navigationBarTitleDisplayMode(.large)
+            .searchable(
+                text: $draftText,
+                prompt: "Log a meal, a receipt, anything"
+            )
+            .onSubmit(of: .search) {
+                submitDraft()
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    // Photo attach: native PhotosPicker sheet for now.
+                    // Custom photo-keyboard replacement is a follow-up.
+                    Button {
+                        isPresentingPhotoPicker = true
+                    } label: {
+                        Image(systemName: "photo")
+                    }
+
+                    Spacer()
+
+                    Button {
+                        submitDraft()
+                    } label: {
+                        Text("Send")
+                            .fontWeight(.semibold)
+                    }
+                    .disabled(canSubmit == false)
+                }
+            }
+            .photosPicker(
+                isPresented: $isPresentingPhotoPicker,
+                selection: $selectedPhotoItem,
+                matching: .images,
+                photoLibrary: .shared()
+            )
+            .onChange(of: selectedPhotoItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        await MainActor.run {
+                            draftPhoto = image
+                        }
+                    }
+                    await MainActor.run { selectedPhotoItem = nil }
+                }
+            }
+        }
+    }
+
+    private var canSubmit: Bool {
+        !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draftPhoto != nil
+    }
+
+    private func submitDraft() {
+        guard canSubmit else { return }
+        let draft = CaptureDraft(text: draftText, photo: draftPhoto)
+        draftText = ""
+        draftPhoto = nil
+        onSubmit(draft)
+    }
+}
+
+/// One row in the CaptureHistoryView list. Real items will come from
+/// Supabase when captures persist; for v1 they're hard-coded.
+private struct CaptureHistoryItem: Identifiable {
+    let id = UUID()
+    let text: String
+    let destination: String
+    let systemImage: String
+    let agoLabel: String
 }
