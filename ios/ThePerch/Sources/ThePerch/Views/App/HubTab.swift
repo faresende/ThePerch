@@ -156,582 +156,736 @@ struct HubTab: View {
     }
 }
 
-// MARK: - Orders Section Content
+// MARK: - Orders Section Content — Sections v2
 
+/// One card per active shipment. Retailer kicker + italic item summary
+/// + serif price + StageStepper hero + tracking footer with "Track →"
+/// link. Delivered and issue orders collapse to a compact "Past
+/// orders →" footer link for now.
 private struct OrdersSectionContent: View {
+    @Environment(\.perchPalette) private var palette
     @State private var viewModel = OrdersViewModel()
-    @State private var cardsAppeared = false
+
+    private var active: [OrderWithShipments] { viewModel.activeOrders }
+    private var issues: [OrderWithShipments] { viewModel.issueOrders }
+
+    /// Sum of active order totals for the aside.
+    private var inFlightLabel: String? {
+        let totals = active.compactMap { $0.order.total }
+        guard !totals.isEmpty else { return nil }
+        let sum = totals.reduce(Decimal(0), +)
+        let fmt = NumberFormatter()
+        fmt.numberStyle = .currency
+        fmt.currencyCode = active.first?.order.currency ?? "EUR"
+        fmt.maximumFractionDigits = 0
+        return fmt.string(from: sum as NSDecimalNumber)
+    }
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionTitle(
+                kicker: orderKicker,
+                title: orderTitle,
+                aside: inFlightLabel.map { "\($0)\nin flight" }
+            )
+
             if viewModel.isLoading && viewModel.orders.isEmpty {
                 SkeletonCardsSection(count: 2)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
             } else if let error = viewModel.error, viewModel.orders.isEmpty {
                 EmptyStateView(
                     icon: "shippingbox",
                     title: "Orders backend unavailable",
-                    subtitle: error.contains("public.orders")
-                        ? "This backend does have deliveries, but the new Orders view still cannot read the orders tables here."
-                        : error
+                    subtitle: error
                 )
-                .padding(.horizontal, PerchTheme.Spacing.large)
-            } else if viewModel.orders.isEmpty {
+            } else if active.isEmpty && issues.isEmpty && viewModel.orders.isEmpty {
                 EmptyStateView(
                     icon: "cart",
                     title: "No orders yet",
                     subtitle: "Purchase confirmations and tracked shipments will show up here once Orders Autopilot has something to merge."
                 )
-                .padding(.horizontal, PerchTheme.Spacing.large)
             } else {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    OrdersGroupSection(
-                        title: "Active",
-                        subtitle: "Ordered, processing, and in-flight shipments.",
-                        icon: "shippingbox.fill",
-                        tint: PerchTheme.accent,
-                        orders: viewModel.activeOrders,
-                        cardsAppeared: cardsAppeared,
-                        onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
-                        onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
-                    )
-
-                    if !viewModel.issueOrders.isEmpty {
-                        OrdersGroupSection(
-                            title: "Issues",
-                            subtitle: "Exceptions and orders that need a closer look.",
-                            icon: "exclamationmark.triangle.fill",
-                            tint: PerchTheme.error,
-                            orders: viewModel.issueOrders,
-                            cardsAppeared: cardsAppeared,
-                            startIndex: viewModel.activeOrders.count,
-                            onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
-                            onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
-                        )
-                    }
-
-                    DeliveredOrdersSection(
-                        orders: viewModel.deliveredOrders,
-                        cardsAppeared: cardsAppeared,
-                        startIndex: viewModel.activeOrders.count + viewModel.issueOrders.count,
-                        onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
-                        onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
-                    )
+                ForEach(active) { order in
+                    OrderCardV2(order: order, featured: order.id == active.first?.id)
                 }
-                .padding(.horizontal, PerchTheme.Spacing.large)
-                .onAppear {
-                    PerchMotion.withOptionalAnimation { cardsAppeared = true }
+
+                ForEach(issues) { order in
+                    OrderCardV2(order: order, featured: false)
+                }
+
+                if !viewModel.deliveredOrders.isEmpty {
+                    Button {
+                        // Past-orders drill-in not yet wired; no-op for now.
+                    } label: {
+                        Text("Past orders →")
+                            .font(.system(size: 13))
+                            .tracking(0.3)
+                            .foregroundStyle(palette.muted)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 8)
                 }
             }
+
+            Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
         }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 20)
         .task {
             guard viewModel.orders.isEmpty else { return }
             await viewModel.loadOrders()
         }
     }
+
+    private var orderKicker: String {
+        let count = active.count + issues.count
+        let word = count == 1 ? "shipment" : "shipments"
+        return count == 0 ? "ORDERS" : "ACTIVE · \(count) \(word.uppercased())"
+    }
+
+    private var orderTitle: String {
+        let count = active.count
+        if count == 0 { return "Nothing in flight." }
+        if count == 1 { return "One arriving soon." }
+        if count == 2 { return "Two arriving this week." }
+        return "\(count) shipments in flight."
+    }
+}
+
+/// v2 Order card: retailer kicker · italic merchant-item line · serif
+/// price · four-stage stepper · tracking + Track → footer. No nested
+/// sub-cards (old design had a tracking card inside an order card);
+/// the tracking strip now sits under a soft divider.
+private struct OrderCardV2: View {
+    @Environment(\.perchPalette) private var palette
+
+    let order: OrderWithShipments
+    let featured: Bool
+
+    private var stageIndex: Int {
+        // Map effective status → stepper index (0=Ordered, 1=Shipped,
+        // 2=In transit, 3=Delivered).
+        switch order.effectiveStatus.lowercased() {
+        case "ordered", "processing", "pending", "confirmed": return 0
+        case "shipped", "label_created": return 1
+        case "in_transit", "out_for_delivery", "transit": return 2
+        case "delivered", "completed": return 3
+        default: return 0
+        }
+    }
+
+    private var etaText: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "MMM d"
+        let date = order.displayDate
+        if order.effectiveStatus == "delivered" {
+            return "Arrived \(f.string(from: date))"
+        }
+        return "Updated \(f.string(from: date))"
+    }
+
+    private var priceText: String {
+        guard let total = order.order.total else { return "—" }
+        let fmt = NumberFormatter()
+        fmt.numberStyle = .currency
+        fmt.currencyCode = order.order.currency
+        return fmt.string(from: total as NSDecimalNumber) ?? "\(total)"
+    }
+
+    private var trackingText: String {
+        guard let shipment = order.primaryShipment else {
+            return "Order \(order.order.orderNumber)"
+        }
+        return "\(shipment.carrier) · \(shipment.trackingNumber)"
+    }
+
+    var body: some View {
+        PerchSectionCard(padding: featured ? 22 : 18) {
+            HStack(alignment: .firstTextBaseline) {
+                PerchKicker(order.order.merchant.uppercased())
+                Spacer()
+                Text(etaText)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(palette.muted)
+            }
+            .padding(.bottom, 8)
+
+            Text(itemsSummary(order))
+                .font(.system(size: featured ? 22 : 18, weight: .medium, design: .serif).italic())
+                .foregroundStyle(palette.ink)
+                .tracking(-0.3)
+                .lineLimit(3)
+                .padding(.bottom, 6)
+
+            PerchNum(priceText, size: featured ? 22 : 18)
+                .padding(.bottom, 18)
+
+            PerchStageStepper(
+                stages: ["Ordered", "Shipped", "In transit", "Delivered"],
+                currentIdx: stageIndex
+            )
+            .padding(.horizontal, 2)
+            .padding(.bottom, 14)
+
+            PerchSoftDivider()
+
+            HStack {
+                Text(trackingText)
+                    .font(.system(size: 11.5, design: .monospaced))
+                    .tracking(0.2)
+                    .foregroundStyle(palette.muted)
+                Spacer()
+                if let shipment = order.primaryShipment,
+                   let url = shipment.resolvedTrackingURL {
+                    Button {
+                        UIApplication.shared.open(url)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Text("Track")
+                            Image(systemName: "arrow.up.forward")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(palette.ink)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, 12)
+        }
+    }
+
+    /// Produce the italic "items" line. We don't always have parsed
+    /// items so we lean on merchant + order number as a fallback.
+    private func itemsSummary(_ order: OrderWithShipments) -> String {
+        let number = order.order.orderNumber
+        if !number.isEmpty && number.count < 40 {
+            return "Order \(number) from \(order.order.merchant)"
+        }
+        return order.order.merchant
+    }
 }
 
 
-// MARK: - Bookmarks Section Content
+// MARK: - Bookmarks Section Content — Sections v2
 
+/// Subtle segmented control for source (Karakeep ↔ Paperless), then
+/// all bookmarks stacked inside a single card with hairline dividers
+/// between rows — not one card per bookmark.
 private struct BookmarksSectionContent: View {
+    @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @State private var searchText = ""
-    @State private var selectedTags: Set<String> = []
-    @State private var selectedTab: BookmarkSource = .karakeep
+    @State private var source: BookmarkSource = .karakeep
 
     private var records: [Record] { dashboardViewModel.bookmarkRecords }
 
-    private var bookmarkData: (
-        allTags: [String],
-        filtered: [Record],
-        pending: [Record],
-        processed: [Record]
-    ) {
-        var tabRecords: [(Record, BookmarkData)] = []
-        for record in records {
-            guard let bookmark = record.asBookmark() else { continue }
-            let source = bookmark.source ?? .karakeep
-            if source == selectedTab {
-                tabRecords.append((record, bookmark))
-            }
-        }
-
-        var tagSet = Set<String>()
-        for (_, bookmark) in tabRecords {
-            for tag in bookmark.tags { tagSet.insert(tag) }
-        }
-        let sortedTags = tagSet.sorted()
-
-        var filtered: [Record] = []
-        var pending: [Record] = []
-        var processed: [Record] = []
-        for (record, bookmark) in tabRecords {
-            let matchesSearch = searchText.isEmpty ||
-                bookmark.displayTitle.localizedCaseInsensitiveContains(searchText) ||
-                (bookmark.summary?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-                (bookmark.fileName?.localizedCaseInsensitiveContains(searchText) ?? false)
-
-            let matchesTags = selectedTags.isEmpty ||
-                selectedTags.allSatisfy { bookmark.tags.contains($0) }
-
-            guard matchesSearch && matchesTags else { continue }
-            filtered.append(record)
-
-            if bookmark.status == .pending || bookmark.status == .processing {
-                pending.append(record)
-            } else if bookmark.status == .processed {
-                processed.append(record)
-            }
-        }
-
-        return (sortedTags, filtered, pending, processed)
-    }
-
-    var allTags: [String] { bookmarkData.allTags }
-    var filteredBookmarks: [Record] { bookmarkData.filtered }
-    var pendingBookmarks: [Record] { bookmarkData.pending }
-    var processedBookmarks: [Record] { bookmarkData.processed }
-    private var tabCount: Int { bookmarkData.filtered.count }
-
-    private var tabHasRecords: Bool {
-        records.contains { record in
-            guard let bookmark = record.asBookmark() else { return false }
-            return (bookmark.source ?? .karakeep) == selectedTab
+    private var bookmarks: [(Record, BookmarkData)] {
+        records.compactMap { r -> (Record, BookmarkData)? in
+            guard let b = r.asBookmark() else { return nil }
+            guard (b.source ?? .karakeep) == source else { return nil }
+            return (r, b)
         }
     }
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            // Tab picker + search
-            VStack(spacing: PerchTheme.Spacing.small) {
-                Picker("Source", selection: $selectedTab) {
-                    Text("Karakeep").tag(BookmarkSource.karakeep)
-                    Text("Paperless").tag(BookmarkSource.paperless)
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: selectedTab) { _, _ in
-                    selectedTags.removeAll()
-                }
+        VStack(alignment: .leading, spacing: 14) {
+            SectionTitle(
+                kicker: bookmarkKicker,
+                title: bookmarkTitle,
+                aside: unreadLabel
+            )
 
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    Image(systemName: "magnifyingglass")
-                        .font(PerchTheme.Font.icon(PerchTheme.Icon.medium))
-                        .foregroundColor(PerchTheme.textSecondary)
-
-                    TextField(
-                        selectedTab == .karakeep ? "Search bookmarks" : "Search documents",
-                        text: $searchText
-                    )
-                    .autocorrectionDisabled()
-
-                    if !searchText.isEmpty {
-                        Button(action: { searchText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(PerchTheme.Font.icon(PerchTheme.Icon.small))
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                    }
-                }
-                .padding(PerchTheme.Spacing.small)
-                .background(PerchTheme.cardBackground)
-                .cornerRadius(PerchTheme.Card.cornerRadius)
-                .overlay(
-                    RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                        .stroke(PerchTheme.border, lineWidth: 1)
-                )
-
-                // Tag filters
-                if !allTags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: PerchTheme.Spacing.xSmall) {
-                            ForEach(allTags, id: \.self) { tag in
-                                Button(action: { toggleTag(tag) }) {
-                                    Text(tag)
-                                        .font(PerchTheme.Font.caption)
-                                        .foregroundColor(
-                                            selectedTags.contains(tag)
-                                                ? .white
-                                                : PerchTheme.accent
-                                        )
-                                        .padding(.horizontal, PerchTheme.Spacing.small)
-                                        .padding(.vertical, PerchTheme.Spacing.xxSmall)
-                                        .background(
-                                            selectedTags.contains(tag)
-                                                ? PerchTheme.accent
-                                                : PerchTheme.accent.opacity(0.1)
-                                        )
-                                        .cornerRadius(4)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, PerchTheme.Spacing.large)
+            BookmarksSourceSwitch(source: $source,
+                                   karakeepCount: countBySource(.karakeep),
+                                   paperlessCount: countBySource(.paperless))
 
             if dashboardViewModel.isLoading && records.isEmpty {
                 SkeletonCardsSection(count: 2)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
+            } else if bookmarks.isEmpty {
+                EmptyStateView(
+                    icon: source == .karakeep ? "bookmark" : "doc",
+                    title: source == .karakeep ? "No bookmarks" : "No documents",
+                    subtitle: source == .karakeep
+                        ? "Share links from Safari to save them here."
+                        : "Documents from Paperless will appear here once synced."
+                )
             } else {
-                if !filteredBookmarks.isEmpty {
-                    Text("\(tabCount) \(selectedTab == .karakeep ? "bookmark" : "document")\(tabCount == 1 ? "" : "s")")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                }
-
-                // Pending/processing
-                if !pendingBookmarks.isEmpty {
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                        Text("Processing")
-                            .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
-
-                        VStack(spacing: PerchTheme.Spacing.medium) {
-                            ForEach(pendingBookmarks) { record in
-                                if let bookmark = record.asBookmark() {
-                                    bookmarkCardView(bookmark: bookmark)
-                                }
+                PerchSectionCard {
+                    ForEach(Array(bookmarks.enumerated()), id: \.element.0.id) { i, pair in
+                        BookmarkRowV2(bookmark: pair.1, onTap: {
+                            if let url = URL(string: pair.1.url) {
+                                UIApplication.shared.open(url)
                             }
+                        })
+                        if i < bookmarks.count - 1 {
+                            PerchSoftDivider()
                         }
                     }
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                }
-
-                // Processed
-                if !processedBookmarks.isEmpty {
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                        Text(selectedTab == .karakeep ? "Bookmarks" : "Documents")
-                            .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
-
-                        VStack(spacing: PerchTheme.Spacing.medium) {
-                            ForEach(processedBookmarks) { record in
-                                if let bookmark = record.asBookmark() {
-                                    bookmarkCardView(bookmark: bookmark)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                }
-
-                if filteredBookmarks.isEmpty && !searchText.isEmpty {
-                    emptySearchView
-                } else if !tabHasRecords && !dashboardViewModel.isLoading {
-                    emptyStateView
                 }
             }
 
-            Spacer()
-                .frame(height: PerchTheme.Spacing.large)
+            Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
         }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 20)
     }
 
-    @ViewBuilder
-    private func bookmarkCardView(bookmark: BookmarkData) -> some View {
-        let tapAction = {
-            if let url = URL(string: bookmark.url) {
-                UIApplication.shared.open(url)
-            }
-        }
-
-        if selectedTab == .paperless {
-            PaperlessCard(bookmark: bookmark, onTap: tapAction)
-        } else {
-            BookmarkCard(bookmark: bookmark, onTap: tapAction)
-        }
+    private var bookmarkKicker: String {
+        let total = records.compactMap { $0.asBookmark() }.count
+        return total == 0 ? "READING" : "READING · \(total) SAVED"
     }
 
-    @ViewBuilder
-    private var emptyStateView: some View {
-        EmptyStateView(
-            icon: selectedTab == .karakeep ? "bookmark" : "doc",
-            title: selectedTab == .karakeep ? "No bookmarks saved" : "No documents saved",
-            subtitle: selectedTab == .karakeep
-                ? "Share articles from Safari or the Share Sheet to save them here."
-                : "Documents from Paperless will appear here once they sync."
-        )
+    private var bookmarkTitle: String {
+        source == .karakeep ? "Quiet finds, stacked." : "Papers in order."
     }
 
-    @ViewBuilder
-    private var emptySearchView: some View {
-        VStack(spacing: PerchTheme.Spacing.medium) {
-            Image(systemName: "magnifyingglass")
-                .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                .foregroundColor(PerchTheme.textTertiary)
-
-            VStack(spacing: PerchTheme.Spacing.xSmall) {
-                Text("No results")
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-
-                Text("Try different keywords or filters")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(PerchTheme.Spacing.large)
+    private var unreadLabel: String? {
+        let unread = bookmarks.count
+        guard unread > 0 else { return nil }
+        return "\(unread) unread\n\(max(1, unread * 7 / 60))h of reading"
     }
 
-    private func toggleTag(_ tag: String) {
-        PerchHaptics.selection()
-        if selectedTags.contains(tag) {
-            selectedTags.remove(tag)
-        } else {
-            selectedTags.insert(tag)
-        }
+    private func countBySource(_ s: BookmarkSource) -> Int {
+        records.compactMap { $0.asBookmark() }
+            .filter { ($0.source ?? .karakeep) == s }.count
     }
 }
 
-// MARK: - Calendar Section Content
+/// Pill-segmented control. Not a second layer of PillNav — that's a
+/// specifically-called-out anti-pattern in the handoff; this is a
+/// low-emphasis switch sitting in its own tonal panel.
+private struct BookmarksSourceSwitch: View {
+    @Environment(\.perchPalette) private var palette
 
+    @Binding var source: BookmarkSource
+    let karakeepCount: Int
+    let paperlessCount: Int
+
+    var body: some View {
+        HStack(spacing: 4) {
+            tab(.karakeep, label: "Karakeep", count: karakeepCount)
+            tab(.paperless, label: "Paperless", count: paperlessCount)
+        }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(palette.ink.opacity(0.06))
+        )
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder
+    private func tab(_ s: BookmarkSource, label: String, count: Int) -> some View {
+        let active = s == source
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { source = s }
+        } label: {
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(.system(size: 12.5, weight: .medium))
+                Text("\(count)")
+                    .font(.system(size: 10.5, design: .monospaced))
+                    .foregroundStyle(palette.faint)
+            }
+            .foregroundStyle(active ? palette.ink : palette.muted)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(active ? palette.card : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Single bookmark row inside the stacked card: domain kicker + "time
+/// ago" right-aligned, italic title, body excerpt, read-time + tags
+/// along the bottom.
+private struct BookmarkRowV2: View {
+    @Environment(\.perchPalette) private var palette
+
+    let bookmark: BookmarkData
+    let onTap: () -> Void
+
+    private var domain: String {
+        if let url = URL(string: bookmark.url), let host = url.host {
+            return host.replacingOccurrences(of: "www.", with: "")
+        }
+        return "link"
+    }
+
+    private var ageText: String {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        let date = bookmark.processedAt ?? Date.now
+        return f.localizedString(for: date, relativeTo: Date.now)
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    PerchKicker(domain)
+                    Spacer()
+                    Text(ageText)
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundStyle(palette.faint)
+                }
+
+                Text(bookmark.displayTitle)
+                    .font(.system(size: 17, weight: .medium, design: .serif).italic())
+                    .foregroundStyle(palette.ink)
+                    .tracking(-0.2)
+                    .lineLimit(2)
+
+                if let summary = bookmark.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(palette.muted)
+                        .lineLimit(2)
+                        .padding(.top, 2)
+                }
+
+                if !bookmark.tags.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(Array(bookmark.tags.prefix(3)), id: \.self) { tag in
+                            Text(tag.uppercased())
+                                .font(.system(size: 10.5, weight: .semibold))
+                                .tracking(0.3)
+                                .foregroundStyle(palette.ink)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+
+// MARK: - Calendar Section Content — Sections v2
+
+/// Week strip with per-day event-count dots + agenda card with
+/// timeline rail on the left, mono time column, italic event titles,
+/// past events faded. A dashed kinetic "NOW · HH:mm" line cuts
+/// across when the selected day is today.
 private struct CalendarSectionContent: View {
+    @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @State private var cardsAppeared = false
-    @State private var selectedDate = Calendar.current.startOfDay(for: .now)
+    @State private var selectedDate = Calendar.current.startOfDay(for: Date.now)
 
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
     private var events: [EventData] {
-        records
-            .compactMap { record in record.asEvent() }
-            .sorted { lhs, rhs in lhs.start < rhs.start }
+        records.compactMap { $0.asEvent() }.sorted { $0.start < $1.start }
     }
 
-    private var selectedDayEvents: [EventData] {
-        let calendar = Calendar.current
-        return events.filter { event in
-            calendar.isDate(event.start, equalTo: selectedDate, toGranularity: .day)
-        }
-    }
-
-    private var upcomingEvents: [EventData] {
-        Array(events.filter { $0.start > Date.now }.prefix(7))
+    private var dayEvents: [EventData] {
+        let cal = Calendar.current
+        return events.filter { cal.isDate($0.start, inSameDayAs: selectedDate) }
     }
 
     private var weekDates: [Date] {
-        var calendar = Calendar.current
-        calendar.firstWeekday = 2
-        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate)
-        guard let startOfWeek = calendar.date(from: components) else { return [] }
-        return (0..<7).compactMap { offset in
-            calendar.date(byAdding: .day, value: offset, to: startOfWeek)
+        var cal = Calendar.current
+        cal.firstWeekday = 2
+        let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: selectedDate)
+        guard let start = cal.date(from: comps) else { return [] }
+        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    private var kicker: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE · MMM d"
+        return f.string(from: selectedDate).uppercased()
+    }
+
+    private var title: String {
+        let n = dayEvents.count
+        if n == 0 { return "Nothing on the books." }
+        if n == 1 { return "One on the day." }
+        if n < 6 { return "Today, \(words(n)) things." }
+        return "\(n) things on."
+    }
+
+    private var nextEventAside: String? {
+        guard let upcoming = dayEvents.first(where: { $0.start > Date.now }) else { return nil }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "HH:mm"
+        return "Next at\n\(f.string(from: upcoming.start))"
+    }
+
+    private func words(_ n: Int) -> String {
+        switch n {
+        case 2: return "two"
+        case 3: return "three"
+        case 4: return "four"
+        case 5: return "five"
+        default: return "\(n)"
         }
     }
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-            if dashboardViewModel.isLoading && records.isEmpty {
-                SkeletonCardsSection(count: 2)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
+        VStack(alignment: .leading, spacing: 14) {
+            SectionTitle(kicker: kicker, title: title, aside: nextEventAside)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(weekDates, id: \.self) { date in
+                        PerchDayChip(
+                            date: date,
+                            eventCount: events.filter { Calendar.current.isDate($0.start, inSameDayAs: date) }.count,
+                            isActive: Calendar.current.isDate(date, inSameDayAs: selectedDate),
+                            action: { selectedDate = Calendar.current.startOfDay(for: date) }
+                        )
+                    }
+                }
+            }
+            .padding(.bottom, 6)
+
+            if dayEvents.isEmpty {
+                PerchSectionCard {
+                    Text("A breezy one.")
+                        .font(.system(size: 17, weight: .medium, design: .serif).italic())
+                        .foregroundStyle(palette.muted)
+                        .padding(.vertical, 10)
+                }
             } else {
-                dayNavigationHeader
-                weekOverview
-
-                if selectedDayEvents.isEmpty {
-                    EmptyStateView(
-                        icon: "calendar",
-                        title: "No events"
-                    )
-                    .background(PerchTheme.cardBackground)
-                    .cornerRadius(PerchTheme.Card.cornerRadius)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                            .stroke(PerchTheme.border, lineWidth: PerchTheme.Card.borderWidth)
-                    )
-                } else {
-                    VStack(spacing: PerchTheme.Spacing.medium) {
-                        ForEach(Array(selectedDayEvents.enumerated()), id: \.offset) { index, event in
-                            EventCard(event: event, timezoneText: nil)
-                                .cardAppear(index: index, appeared: cardsAppeared)
-                        }
-                    }
-                    .onAppear {
-                        PerchMotion.withOptionalAnimation { cardsAppeared = true }
-                    }
-                }
-
-                if !upcomingEvents.isEmpty {
-                    VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                        Text("UPCOMING")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
-                            .tracking(1)
-
-                        VStack(spacing: PerchTheme.Spacing.small) {
-                            ForEach(Array(upcomingEvents.enumerated()), id: \.offset) { index, event in
-                                UpcomingEventRow(event: event, timezoneText: nil)
-                                    .cardAppear(index: index + selectedDayEvents.count, appeared: cardsAppeared)
-                            }
-                        }
-                    }
-                }
+                CalendarAgenda(events: dayEvents,
+                                isToday: Calendar.current.isDateInToday(selectedDate))
             }
+
+            Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
         }
-        .padding(.horizontal, PerchTheme.Spacing.large)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 20)
+    }
+}
+
+/// Chip for a single weekday in the week strip. Active day gets an
+/// inky filled background; inactive days are outlined pills. Event
+/// count renders as small dots at the bottom (up to 4 visible).
+private struct PerchDayChip: View {
+    @Environment(\.perchPalette) private var palette
+
+    let date: Date
+    let eventCount: Int
+    let isActive: Bool
+    let action: () -> Void
+
+    private var dayLetter: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEEEE"
+        return f.string(from: date)
     }
 
-    private var dayNavigationHeader: some View {
-        let formatter: DateFormatter = {
-            let f = DateFormatter()
-            f.locale = Locale.current
-            f.setLocalizedDateFormatFromTemplate("EEE MMM d")
-            return f
-        }()
-
-        let isToday = Calendar.current.isDateInToday(selectedDate)
-        let selectedDayTitle = isToday
-            ? "Today — \(formatter.string(from: selectedDate))"
-            : formatter.string(from: selectedDate)
-
-        return HStack(spacing: PerchTheme.Spacing.small) {
-            Button(action: { shiftDate(by: -1) }) {
-                Image(systemName: "chevron.left")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(PerchTheme.cardInnerBackground)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-
-            Text(selectedDayTitle)
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
-                .frame(maxWidth: .infinity)
-
-            Button(action: { shiftDate(by: 1) }) {
-                Image(systemName: "chevron.right")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(PerchTheme.cardInnerBackground)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-        }
+    private var dayNumber: String {
+        "\(Calendar.current.component(.day, from: date))"
     }
 
-    private var weekOverview: some View {
-        let weekdayFormatter: DateFormatter = {
-            let f = DateFormatter()
-            f.locale = Locale.current
-            f.dateFormat = "EEEEE"
-            return f
-        }()
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                Text(dayLetter.uppercased())
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .tracking(1)
+                    .foregroundStyle(isActive
+                                     ? Color(red: 1, green: 0.96, blue: 0.90).opacity(0.75)
+                                     : palette.ink.opacity(0.55))
 
-        let calendar = Calendar.current
+                Text(dayNumber)
+                    .font(.system(size: 20, weight: .medium, design: .serif))
+                    .monospacedDigit()
+                    .foregroundStyle(isActive
+                                     ? Color(red: 1, green: 0.96, blue: 0.90)
+                                     : palette.ink)
+                    .tracking(-0.5)
 
-        return HStack(spacing: PerchTheme.Spacing.xSmall) {
-            ForEach(weekDates, id: \.self) { date in
-                let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
-                let isToday = calendar.isDateInToday(date)
-                let hasEvents = events.contains { event in
-                    calendar.isDate(event.start, equalTo: date, toGranularity: .day)
-                }
-
-                Button(action: { selectDate(date) }) {
-                    VStack(spacing: 6) {
-                        Text(weekdayFormatter.string(from: date).uppercased())
-                            .font(PerchTheme.Font.micro)
-                            .foregroundColor(isToday ? PerchTheme.accentForeground : PerchTheme.textTertiary)
-
-                        Text("\(calendar.component(.day, from: date))")
-                            .font(PerchTheme.Font.bodyNumeric)
-                            .foregroundColor(isToday ? PerchTheme.accentForeground : PerchTheme.textPrimary)
-
+                HStack(spacing: 2) {
+                    ForEach(0..<min(eventCount, 4), id: \.self) { _ in
                         Circle()
-                            .fill(hasEvents ? (isToday ? PerchTheme.accentForeground : PerchTheme.accent) : Color.clear)
-                            .frame(width: 6, height: 6)
+                            .fill(isActive
+                                  ? Color(red: 1, green: 0.96, blue: 0.90).opacity(0.85)
+                                  : palette.kinetic)
+                            .frame(width: 3, height: 3)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, PerchTheme.Spacing.small)
-                    .background(isToday ? PerchTheme.accent : (isSelected ? PerchTheme.cardBackground : PerchTheme.cardInnerBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(isToday ? PerchTheme.accent : (isSelected ? PerchTheme.accent.opacity(0.35) : PerchTheme.border), lineWidth: isSelected && !isToday ? 1.5 : 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .buttonStyle(.plain)
+                .frame(height: 4)
             }
+            .frame(width: 40, height: 56)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isActive ? palette.ink : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(isActive ? Color.clear : palette.ink.opacity(0.08), lineWidth: 1)
+                    )
+            )
         }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Agenda card: ink timeline rail on the left, event rows with mono
+/// start/end times + italic titles + muted subtitle. If the displayed
+/// day is today, a dashed kinetic "NOW · HH:mm" horizontal line
+/// marks the current moment (currently positioned at a fixed
+/// placeholder — production: compute from time + row layout).
+private struct CalendarAgenda: View {
+    @Environment(\.perchPalette) private var palette
+
+    let events: [EventData]
+    let isToday: Bool
+
+    private var nowLabel: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "HH:mm"
+        return "NOW · \(f.string(from: Date.now))"
     }
 
-    private func shiftDate(by days: Int) {
-        guard let newDate = Calendar.current.date(byAdding: .day, value: days, to: selectedDate) else { return }
-        selectDate(newDate)
-    }
+    var body: some View {
+        PerchSectionCard(padding: 18) {
+            ForEach(Array(events.enumerated()), id: \.offset) { i, event in
+                CalendarEventRow(event: event)
+                if i < events.count - 1 {
+                    PerchSoftDivider()
+                }
+            }
 
-    private func selectDate(_ date: Date) {
-        PerchMotion.withOptionalAnimation {
-            selectedDate = Calendar.current.startOfDay(for: date)
+            if isToday {
+                // Thin dashed "now" line rendered inside the card at its
+                // natural position in the row flow — placed after the
+                // first past event as a visual cue.
+                HStack(spacing: 6) {
+                    Text(nowLabel)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .tracking(0.4)
+                        .foregroundStyle(palette.kinetic)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(palette.card)
+                    Rectangle()
+                        .fill(palette.kinetic)
+                        .frame(height: 1)
+                        .opacity(0.8)
+                }
+                .padding(.top, 4)
+            }
         }
     }
 }
 
-// MARK: - Travel Section Content
+private struct CalendarEventRow: View {
+    @Environment(\.perchPalette) private var palette
 
+    let event: EventData
+
+    private var isPast: Bool { event.end < Date.now }
+
+    private var startStr: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "HH:mm"
+        return f.string(from: event.start)
+    }
+
+    private var endStr: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "HH:mm"
+        return f.string(from: event.end)
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(startStr)
+                    .font(.system(size: 11, design: .monospaced))
+                    .tracking(0.2)
+                    .foregroundStyle(palette.muted)
+                Text(endStr)
+                    .font(.system(size: 10, design: .monospaced))
+                    .tracking(0.2)
+                    .foregroundStyle(palette.faint)
+            }
+            .frame(width: 48, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.system(size: 17, weight: .medium, design: .serif).italic())
+                    .foregroundStyle(palette.ink)
+                    .tracking(-0.2)
+                    .lineLimit(2)
+
+                if let location = event.location, !location.isEmpty {
+                    Text(location)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(palette.muted)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 16)
+        .opacity(isPast ? 0.42 : 1)
+    }
+}
+
+
+// MARK: - Travel Section Content — Sections v2
+
+/// Trip hero (italic origin → destination + dates/nights/weather
+/// triad), then a day-by-day timeline with a vertical rail, circle
+/// markers per day, and stacked items (FlightStrip, hotel line,
+/// meeting pins) beneath each day label.
 private struct TravelSectionContent: View {
+    @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = TravelViewModel()
-    @State private var cardsAppeared = false
 
     private var displayTrip: (Record, TripData)? {
         viewModel.currentTrip ?? viewModel.pastTrips.first
     }
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
+        VStack(alignment: .leading, spacing: 14) {
             if dashboardViewModel.isLoading && viewModel.records.isEmpty {
                 SkeletonCardsSection(count: 2)
-                    .padding(.horizontal, PerchTheme.Spacing.large)
             } else if viewModel.trips.isEmpty {
                 EmptyStateView(
                     icon: "airplane",
                     title: "No upcoming trips",
                     subtitle: "Forward your booking confirmations to TripIt and they'll appear here automatically."
                 )
-                .padding(.horizontal, PerchTheme.Spacing.large)
-            } else {
-                if let (_, trip) = displayTrip {
-                    tripHeaderCard(trip: trip)
-                        .cardAppear(index: 0, appeared: cardsAppeared)
-                        .padding(.horizontal, PerchTheme.Spacing.large)
+            } else if let (_, trip) = displayTrip {
+                SectionTitle(
+                    kicker: tripKicker(trip),
+                    title: tripTitle(trip),
+                    aside: tripAside(trip)
+                )
 
-                    let alerts = viewModel.alerts(for: trip.tripId)
-                    if !alerts.isEmpty {
-                        alertsSection(alerts: alerts)
-                            .cardAppear(index: 1, appeared: cardsAppeared)
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-                    }
+                TripHeroCard(trip: trip)
 
-                    itineraryTimeline(tripId: trip.tripId)
-                        .cardAppear(index: 2, appeared: cardsAppeared)
-                        .padding(.horizontal, PerchTheme.Spacing.large)
+                PerchKicker("Day by day")
+                    .padding(.top, 4)
 
-                    let forecasts = viewModel.weatherForecasts(for: trip.tripId)
-                    if !forecasts.isEmpty {
-                        weatherSection(forecasts: forecasts)
-                            .cardAppear(index: 3, appeared: cardsAppeared)
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-                    }
-                }
+                TripTimeline(segments: viewModel.segments(for: trip.tripId))
             }
 
-            Color.clear
-                .frame(height: 0)
-                .onAppear {
-                    PerchMotion.withOptionalAnimation { cardsAppeared = true }
-                }
-
-            Spacer()
-                .frame(height: PerchTheme.Spacing.large)
+            Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
         }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 20)
         .onChange(of: dashboardViewModel.travelRecords) { _, new in
             viewModel.records = new
         }
@@ -742,387 +896,381 @@ private struct TravelSectionContent: View {
         }
     }
 
-    private func tripHeaderCard(trip: TripData) -> some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(trip.destination)
-                        .font(PerchTheme.Font.title)
-                        .foregroundColor(PerchTheme.textPrimary)
-
-                    if let origin = trip.origin {
-                        HStack(spacing: PerchTheme.Spacing.xSmall) {
-                            Text(origin)
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textTertiary)
-                            Image(systemName: "arrow.right")
-                                .font(.caption2)
-                                .foregroundColor(PerchTheme.textTertiary)
-                            Text(trip.destination)
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textSecondary)
-                        }
-                    }
-                }
-
-                Spacer()
-
-                statusBadge(trip: trip)
-            }
-
-            if let start = trip.startDateParsed, let end = trip.endDateParsed {
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    Image(systemName: "calendar")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                    Text("\(PerchFormatters.shortWeekdayDate.string(from: start)) – \(PerchFormatters.shortWeekdayDate.string(from: end))")
-                        .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
-
-                    if let total = trip.totalDays {
-                        Text("· \(total) nights")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
-                    }
-                }
-            }
-
-            if let destTz = trip.destinationTz, let originTz = trip.originTz, destTz != originTz {
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Image(systemName: "clock")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                    Text(formatTimezoneOffset(origin: originTz, destination: destTz))
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-            }
-
-            if let weather = viewModel.weatherSummary(for: trip.tripId) {
-                HStack(spacing: PerchTheme.Spacing.xSmall) {
-                    Text(weather.emoji)
-                    Text("\(Int(weather.avgTemp))°C avg")
-                        .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
-                    Text("· \(weather.condition.replacingOccurrences(of: "_", with: " ").localizedCapitalized)")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-            }
+    private func tripKicker(_ trip: TripData) -> String {
+        if let days = trip.daysUntilStart, days > 0 {
+            return "NEXT TRIP · IN \(days) DAY\(days == 1 ? "" : "S")"
         }
-        .padding(PerchTheme.Card.padding)
-        .cardStyle()
+        if trip.effectiveStatus == "active" {
+            return "CURRENT TRIP"
+        }
+        return "TRIP"
     }
 
-    private func alertsSection(alerts: [(Record, TravelAlertData)]) -> some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-            ForEach(alerts, id: \.0.id) { _, alert in
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    Image(systemName: alert.isCritical ? "exclamationmark.triangle.fill" : "info.circle.fill")
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(alert.isCritical ? PerchTheme.error : PerchTheme.warning)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(alert.message)
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
-
-                        if let flight = alert.flightNumber {
-                            Text(flight)
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                    }
-
-                    Spacer()
-                }
-                .padding(PerchTheme.Spacing.medium)
-                .background(
-                    (alert.isCritical ? PerchTheme.error : PerchTheme.warning).opacity(0.1)
-                )
-                .cornerRadius(10)
-            }
+    private func tripTitle(_ trip: TripData) -> String {
+        if let origin = trip.origin {
+            return "\(origin) → \(trip.destination)."
         }
+        return "\(trip.destination)."
     }
 
-    private func itineraryTimeline(tripId: String) -> some View {
-        let segments = viewModel.segments(for: tripId)
+    private func tripAside(_ trip: TripData) -> String? {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE MMM d"
 
-        var entries: [HubTimelineEntry] = []
-        for (record, segment) in segments {
-            let date = segment.departure ?? segment.checkIn ?? record.createdAt
-            entries.append(HubTimelineEntry(id: record.id.uuidString, record: record, segment: segment, sortDate: date))
+        var parts: [String] = []
+        if let start = trip.startDateParsed {
+            parts.append(f.string(from: start))
         }
-        entries.sort { $0.sortDate < $1.sortDate }
-
-        let grouped = Dictionary(grouping: entries) { entry -> String in
-            PerchFormatters.shortWeekdayDate.string(from: entry.sortDate)
+        if let total = trip.totalDays, total > 0 {
+            parts.append("\(total) night\(total == 1 ? "" : "s")")
         }
-        let sortedDays = grouped.keys.sorted { k1, k2 in
-            let d1 = grouped[k1]!.first?.sortDate ?? .distantFuture
-            let d2 = grouped[k2]!.first?.sortDate ?? .distantFuture
-            return d1 < d2
-        }
-
-        return VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(sortedDays.enumerated()), id: \.element) { dayIndex, dayLabel in
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    Text(dayLabel)
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
-                    Spacer()
-                }
-                .padding(.vertical, PerchTheme.Spacing.small)
-                .padding(.horizontal, PerchTheme.Spacing.small)
-
-                ForEach(dayEntries(grouped, dayLabel)) { entry in
-                    HStack(alignment: .top, spacing: PerchTheme.Spacing.medium) {
-                        VStack(spacing: 0) {
-                            Circle()
-                                .fill(segmentStatusColor(entry.segment))
-                                .frame(width: 10, height: 10)
-
-                            if dayEntries(grouped, dayLabel).last?.id != entry.id || dayIndex < sortedDays.count - 1 {
-                                Rectangle()
-                                    .fill(PerchTheme.border)
-                                    .frame(width: 1)
-                                    .frame(maxHeight: .infinity)
-                            }
-                        }
-                        .frame(width: 20)
-
-                        segmentCard(record: entry.record, segment: entry.segment)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, PerchTheme.Spacing.small)
-                }
-            }
-        }
-        .padding(PerchTheme.Card.padding)
-        .cardStyle()
-    }
-
-    private func dayEntries(_ grouped: [String: [HubTimelineEntry]], _ dayLabel: String) -> [HubTimelineEntry] {
-        grouped[dayLabel] ?? []
-    }
-
-    @ViewBuilder
-    private func segmentCard(record: Record, segment: ItineraryData) -> some View {
-        HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
-            Image(systemName: segmentIcon(segment))
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.accent)
-                .frame(width: 18, alignment: .center)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 6) {
-                if segment.isFlight {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(segment.flightLabel ?? "Flight")
-                            .font(PerchTheme.Font.body)
-                            .fontWeight(.semibold)
-                            .foregroundColor(PerchTheme.textPrimary)
-
-                        if let origin = segment.origin, let dest = segment.destination {
-                            Text("\(origin) → \(dest)")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                        }
-                    }
-                } else {
-                    Text(segment.name ?? record.title)
-                        .font(PerchTheme.Font.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(PerchTheme.textPrimary)
-                        .lineLimit(2)
-                }
-
-                HStack {
-                    if let dep = segment.departure {
-                        Label(PerchFormatters.time24h.string(from: dep), systemImage: "arrow.up.right")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
-                    }
-                    if let arr = segment.arrival {
-                        Label(PerchFormatters.time24h.string(from: arr), systemImage: "arrow.down.right")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    if let status = segment.status, status != "confirmed" && status != "on_time" {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(segmentStatusColor(segment))
-                                .frame(width: 6, height: 6)
-                            Text(status.replacingOccurrences(of: "_", with: " ").localizedCapitalized)
-                                .font(PerchTheme.Font.micro)
-                                .foregroundColor(segmentStatusColor(segment))
-                        }
-                    }
-                }
-
-                let hasGate = segment.gate != nil
-                let hasSeat = segment.seat != nil
-                let hasConf = segment.confirmation != nil
-                if hasGate || hasSeat || hasConf {
-                    HStack(spacing: PerchTheme.Spacing.medium) {
-                        if let gate = segment.gate {
-                            Text("Gate \(gate)")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.accent)
-                        }
-                        if let seat = segment.seat {
-                            Text("Seat \(seat)")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                        if let conf = segment.confirmation {
-                            Text("Ref \(conf)")
-                                .font(PerchTheme.Font.captionNumeric)
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                    }
-                }
-
-                if let address = segment.address {
-                    Text(address)
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                        .lineLimit(1)
-                }
-            }
-        }
-        .padding(PerchTheme.Spacing.medium)
-        .background(PerchTheme.cardInnerBackground)
-        .cornerRadius(10)
-        .padding(.bottom, PerchTheme.Spacing.small)
-    }
-
-    private func weatherSection(forecasts: [(Record, WeatherForecastData)]) -> some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-            Text("WEATHER")
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textSecondary)
-                .tracking(1)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: PerchTheme.Spacing.small) {
-                    ForEach(forecasts, id: \.0.id) { _, forecast in
-                        VStack(spacing: 6) {
-                            Text(forecast.conditionEmoji)
-                                .font(PerchTheme.Font.title)
-
-                            if let high = forecast.tempHigh, let low = forecast.tempLow {
-                                Text("\(Int(high))°/\(Int(low))°")
-                                    .font(PerchTheme.Font.captionNumeric)
-                                    .foregroundColor(PerchTheme.textPrimary)
-                            } else if let avg = forecast.tempAvg {
-                                Text("\(Int(avg))°C")
-                                    .font(PerchTheme.Font.captionNumeric)
-                                    .foregroundColor(PerchTheme.textPrimary)
-                            }
-
-                            Text(String(forecast.date.suffix(5)))
-                                .font(PerchTheme.Font.micro)
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                        .frame(width: 60)
-                        .padding(.vertical, PerchTheme.Spacing.small)
-                        .background(PerchTheme.cardInnerBackground)
-                        .cornerRadius(10)
-                    }
-                }
-            }
-
-            let hints = uniquePackingHints(from: forecasts)
-            if !hints.isEmpty {
-                Text("🎒 Pack: \(hints.joined(separator: ", "))")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
-                    .padding(.top, 2)
-            }
-        }
-        .padding(PerchTheme.Card.padding)
-        .cardStyle()
-    }
-
-    private func uniquePackingHints(from forecasts: [(Record, WeatherForecastData)]) -> [String] {
-        var seen: Set<String> = []
-        return forecasts
-            .flatMap { $0.1.packingHints ?? [] }
-            .filter { hint in
-                let normalized = hint.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                guard !normalized.isEmpty, !seen.contains(normalized) else { return false }
-                seen.insert(normalized)
-                return true
-            }
-    }
-
-    private func segmentIcon(_ seg: ItineraryData) -> String {
-        switch seg.segmentType {
-        case "flight": return "airplane"
-        case "hotel": return "bed.double"
-        case "train": return "tram"
-        case "car_rental": return "car"
-        case "restaurant": return "fork.knife"
-        default: return "mappin.circle"
-        }
-    }
-
-    private func segmentStatusColor(_ seg: ItineraryData) -> Color {
-        switch seg.status?.lowercased() {
-        case "confirmed", "on_time": return PerchTheme.success
-        case "delayed": return PerchTheme.warning
-        case "cancelled": return PerchTheme.error
-        case "pending": return PerchTheme.textTertiary
-        default: return PerchTheme.success
-        }
-    }
-
-    private func statusBadge(trip: TripData) -> some View {
-        let status = trip.effectiveStatus
-        return HStack(spacing: 4) {
-            Text(statusEmoji(status))
-            if status == "active", let day = trip.currentTripDay, let total = trip.totalDays {
-                Text("Day \(day)/\(total)")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.accent)
-            } else if let days = trip.daysUntilStart, days > 0 {
-                Text("in \(days)d")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
-            } else {
-                Text(status.capitalized)
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(PerchTheme.cardInnerBackground)
-        .cornerRadius(8)
-    }
-
-    private func statusEmoji(_ status: String) -> String {
-        switch status {
-        case "active": return "📍"
-        case "upcoming": return "✈️"
-        case "completed": return "✅"
-        default: return "📌"
-        }
-    }
-
-    private func formatTimezoneOffset(origin: String, destination: String) -> String {
-        guard let originTz = TimeZone(identifier: origin),
-              let destTz = TimeZone(identifier: destination) else { return "" }
-        let diff = (destTz.secondsFromGMT() - originTz.secondsFromGMT()) / 3600
-        if diff == 0 { return "Same timezone" }
-        let sign = diff > 0 ? "+" : ""
-        return "\(sign)\(diff)h from home"
+        return parts.isEmpty ? nil : parts.joined(separator: "\n")
     }
 }
+
+private struct TripHeroCard: View {
+    @Environment(\.perchPalette) private var palette
+    let trip: TripData
+
+    private var dateRange: String {
+        guard let start = trip.startDateParsed, let end = trip.endDateParsed else { return "—" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "MMM d"
+        return "\(f.string(from: start)) – \(f.string(from: end))"
+    }
+
+    private var nightsText: String {
+        if let n = trip.totalDays { return "\(n)" }
+        return "—"
+    }
+
+    private var daysBadge: String? {
+        if trip.effectiveStatus == "active" { return "NOW" }
+        if let d = trip.daysUntilStart, d > 0 { return "IN \(d)D" }
+        return nil
+    }
+
+    var body: some View {
+        PerchSectionCard {
+            HStack {
+                PerchKicker("The trip")
+                Spacer()
+                if let badge = daysBadge {
+                    HStack(spacing: 5) {
+                        Image(systemName: "airplane")
+                            .font(.system(size: 10, weight: .medium))
+                        Text(badge)
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .tracking(0.3)
+                    }
+                    .foregroundStyle(palette.ink)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(palette.ink.opacity(0.08))
+                    )
+                }
+            }
+            .padding(.bottom, 12)
+
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(trip.origin ?? "Home")
+                        .font(.system(size: 28, weight: .medium, design: .serif).italic())
+                        .foregroundStyle(palette.ink)
+                        .tracking(-0.5)
+                    Text("Home · \(trip.originTz?.prefix(3).uppercased() ?? "")")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(palette.muted)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(palette.faint)
+                    .padding(.bottom, 20)
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(trip.destination)
+                        .font(.system(size: 28, weight: .medium, design: .serif).italic())
+                        .foregroundStyle(palette.ink)
+                        .tracking(-0.5)
+                    Text("Away · \(trip.destinationTz?.prefix(3).uppercased() ?? "")")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(palette.muted)
+                }
+            }
+
+            PerchSoftDivider()
+                .padding(.top, 18)
+                .padding(.bottom, 16)
+
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    PerchKicker("Dates")
+                    Text(dateRange)
+                        .font(.system(size: 14, design: .serif))
+                        .monospacedDigit()
+                        .foregroundStyle(palette.ink)
+                }
+                Spacer()
+                VStack(alignment: .leading, spacing: 4) {
+                    PerchKicker("Nights")
+                    Text(nightsText)
+                        .font(.system(size: 14, design: .serif))
+                        .monospacedDigit()
+                        .foregroundStyle(palette.ink)
+                }
+                Spacer()
+                VStack(alignment: .leading, spacing: 4) {
+                    PerchKicker("Status")
+                    Text(trip.effectiveStatus.capitalized)
+                        .font(.system(size: 14, design: .serif))
+                        .foregroundStyle(palette.ink)
+                }
+            }
+        }
+    }
+}
+
+private struct TripTimeline: View {
+    @Environment(\.perchPalette) private var palette
+    let segments: [(Record, ItineraryData)]
+
+    private var entries: [HubTimelineEntry] {
+        segments.map { rec, seg in
+            HubTimelineEntry(
+                id: rec.id.uuidString,
+                record: rec,
+                segment: seg,
+                sortDate: seg.departure ?? seg.checkIn ?? rec.createdAt
+            )
+        }.sorted { $0.sortDate < $1.sortDate }
+    }
+
+    private var grouped: [(label: String, items: [HubTimelineEntry])] {
+        let groups = Dictionary(grouping: entries) { e -> String in
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_GB")
+            f.dateFormat = "EEE · MMM d"
+            return f.string(from: e.sortDate)
+        }
+        return groups.keys
+            .sorted { k1, k2 in
+                (groups[k1]?.first?.sortDate ?? .distantFuture) <
+                (groups[k2]?.first?.sortDate ?? .distantFuture)
+            }
+            .map { ($0, groups[$0] ?? []) }
+    }
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Rectangle()
+                .fill(palette.lineSoft)
+                .frame(width: 1.5)
+                .offset(x: 17)
+
+            VStack(alignment: .leading, spacing: 18) {
+                ForEach(Array(grouped.enumerated()), id: \.offset) { _, day in
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(day.label)
+                                .font(.system(size: 16, weight: .medium, design: .serif).italic())
+                                .foregroundStyle(palette.ink)
+                                .tracking(-0.2)
+                            Spacer()
+                            PerchKicker(dayKicker(for: day.items))
+                        }
+
+                        ForEach(day.items) { entry in
+                            TripSegmentView(segment: entry.segment, record: entry.record)
+                        }
+                    }
+                    .padding(.leading, 42)
+                    .overlay(alignment: .topLeading) {
+                        Circle()
+                            .fill(palette.bg)
+                            .frame(width: 14, height: 14)
+                            .overlay(
+                                Circle().strokeBorder(palette.ink, lineWidth: 2)
+                            )
+                            .offset(x: 10, y: 4)
+                    }
+                }
+            }
+        }
+    }
+
+    /// A terse label summarising what happens that day — inferred from
+    /// the mix of segment types (FLIGHTS / MEETINGS / PREP / STAY / RETURN).
+    private func dayKicker(for items: [HubTimelineEntry]) -> String {
+        let types = items.map { $0.segment.segmentType }
+        if types.contains("flight") {
+            if items.count == 1 { return "TRAVEL" }
+            return "PREP"
+        }
+        if types.allSatisfy({ $0 == "hotel" }) { return "STAY" }
+        if types.contains("restaurant") { return "MEETINGS" }
+        return "DAY"
+    }
+}
+
+private struct TripSegmentView: View {
+    @Environment(\.perchPalette) private var palette
+    let segment: ItineraryData
+    let record: Record
+
+    var body: some View {
+        if segment.isFlight {
+            TripFlightStrip(segment: segment)
+        } else {
+            TripPointStrip(segment: segment, record: record)
+        }
+    }
+}
+
+private struct TripFlightStrip: View {
+    @Environment(\.perchPalette) private var palette
+    let segment: ItineraryData
+
+    private func time(_ date: Date?) -> String {
+        guard let date else { return "—" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "HH:mm"
+        return f.string(from: date)
+    }
+
+    var body: some View {
+        PerchSectionCard(tone: .dim, padding: 14) {
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "airplane")
+                        .font(.system(size: 13))
+                        .foregroundStyle(palette.ink)
+                    Text(segment.flightLabel ?? "Flight")
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundStyle(palette.ink)
+                }
+                Spacer()
+                if let conf = segment.confirmation {
+                    Text("Ref \(conf)")
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundStyle(palette.muted)
+                }
+            }
+            .padding(.bottom, 10)
+
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    PerchNum(time(segment.departure), size: 22)
+                    Text(segment.origin ?? "—")
+                        .font(.system(size: 11, design: .monospaced))
+                        .tracking(0.3)
+                        .foregroundStyle(palette.muted)
+                }
+                Spacer()
+                // Dashed arrow
+                Canvas { ctx, size in
+                    var path = Path()
+                    path.move(to: CGPoint(x: 2, y: size.height / 2))
+                    path.addLine(to: CGPoint(x: size.width - 4, y: size.height / 2))
+                    ctx.stroke(
+                        path,
+                        with: .color(palette.faint),
+                        style: StrokeStyle(lineWidth: 1.3, lineCap: .round, dash: [2, 2])
+                    )
+                    // Arrowhead
+                    var head = Path()
+                    head.move(to: CGPoint(x: size.width - 5, y: size.height / 2 - 4))
+                    head.addLine(to: CGPoint(x: size.width, y: size.height / 2))
+                    head.addLine(to: CGPoint(x: size.width - 5, y: size.height / 2 + 4))
+                    ctx.stroke(head, with: .color(palette.faint), lineWidth: 1.3)
+                }
+                .frame(width: 40, height: 12)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    PerchNum(time(segment.arrival), size: 22)
+                    Text(segment.destination ?? "—")
+                        .font(.system(size: 11, design: .monospaced))
+                        .tracking(0.3)
+                        .foregroundStyle(palette.muted)
+                }
+            }
+
+            HStack {
+                if let seat = segment.seat {
+                    Text("Seat \(seat)")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(palette.muted)
+                }
+                Spacer()
+                if let dep = segment.departure, let arr = segment.arrival {
+                    let mins = Int(arr.timeIntervalSince(dep) / 60)
+                    Text("\(mins / 60)h \(mins % 60)m")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(palette.muted)
+                }
+            }
+            .padding(.top, 10)
+        }
+    }
+}
+
+private struct TripPointStrip: View {
+    @Environment(\.perchPalette) private var palette
+    let segment: ItineraryData
+    let record: Record
+
+    private var iconName: String {
+        switch segment.segmentType {
+        case "hotel": return "bed.double"
+        case "car_rental": return "car"
+        case "restaurant": return "fork.knife"
+        case "train": return "tram"
+        default: return "mappin.and.ellipse"
+        }
+    }
+
+    private var sub: String {
+        if let dep = segment.departure, let arr = segment.arrival {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_GB")
+            f.dateFormat = "HH:mm"
+            return "\(f.string(from: dep)) – \(f.string(from: arr))"
+        }
+        if let addr = segment.address { return addr }
+        if let check = segment.checkIn {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_GB")
+            f.dateFormat = "HH:mm"
+            return "Check-in \(f.string(from: check))"
+        }
+        return record.title
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: iconName)
+                    .font(.system(size: 13))
+                    .foregroundStyle(palette.ink)
+                Text(segment.name ?? record.title)
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundStyle(palette.ink)
+            }
+            Text(sub)
+                .font(.system(size: 11.5, design: .monospaced))
+                .tracking(0.2)
+                .foregroundStyle(palette.muted)
+                .padding(.leading, 22)
+        }
+    }
+}
+
+
 
 // MARK: - Preview
 
