@@ -1,33 +1,83 @@
-# Local workflow state — not repo content
+# ─── Local workflow state ─────────────────────────────────────────────────
 .bancada/
 
-# Supabase credentials — NEVER commit these
+# ─── Secrets: Supabase, iOS, Python, private keys ─────────────────────────
+# iOS Secrets.plist (legacy local secret store; do not commit).
 ios/ThePerch/Sources/ThePerch/Config/Secrets.plist
 Secrets.plist
 
-# Apple Developer keys
+# iOS xcconfig: never commit the real one. Commit only the .example file.
+*.xcconfig
+!*.example.xcconfig
+
+# Python and tooling .env: commit only .env.example.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Private keys and certificates of any kind.
 *.p8
 AuthKey_*.p8
 *.p12
+*.pem
+*.key
+id_rsa
+id_rsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
 
-# macOS
+# Cloud service accounts.
+service-account*.json
+service_account*.json
+gcp-*.json
+firebase-adminsdk*.json
+
+# ─── macOS ────────────────────────────────────────────────────────────────
 .DS_Store
 .AppleDouble
 .LSOverride
 
-# Xcode
+# ─── Xcode ────────────────────────────────────────────────────────────────
 *.xcuserdata
+*.xcuserdatad/
 DerivedData/
 *.moved-aside
 xcuserdata/
+UserInterfaceState.xcuserstate
+xcschememanagement.plist
 *.xccheckout
 *.xcscmblueprint
 
-# CocoaPods
+# Xcode build output
+build/
+.build/
+ios/.build/
+
+# ─── CocoaPods / Swift packages ───────────────────────────────────────────
 Pods/
-docs/superpowers/plans/2026-03-29-nutrition-food-memory.md
+
+# ─── Supabase CLI ─────────────────────────────────────────────────────────
 supabase/.temp/
 
-# Local env vars
-.env
-.env.local
+# ─── Node / npm (skill/dashboard-sync etc.) ───────────────────────────────
+node_modules/
+
+# ─── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# ─── Editor junk ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Historical one-off entries (kept for reference) ──────────────────────
+docs/superpowers/plans/2026-03-29-nutrition-food-memory.md
