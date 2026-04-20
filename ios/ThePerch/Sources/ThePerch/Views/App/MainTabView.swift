@@ -868,10 +868,11 @@ private struct SearchBarInputController: UIViewRepresentable {
         /// `false` = system keyboard, `true` = photo grid keyboard.
         private var showingPhotoKeyboard: Bool = false
 
-        /// True once we've installed the right-view thumbnail. We track
-        /// it so `updateConfig` only rebuilds the right view when the
-        /// attached photo identity actually changes.
-        private var hasRightViewPhoto: Bool = false
+        /// True once a photo has been attached into the search field's
+        /// leftView, replacing the camera icon. Used so `updateConfig`
+        /// only rebuilds the thumbnail when the photo identity actually
+        /// changes (pointer equality).
+        private var hasAttachedThumbnail: Bool = false
 
         init(
             systemImage: String,
@@ -905,14 +906,14 @@ private struct SearchBarInputController: UIViewRepresentable {
             }
             photoKeyboardView?.onPhotoSelected = onPhotoSelected
 
-            // Thumbnail rightView only rebuilds if the image identity
+            // Thumbnail leftView only rebuilds if the image identity
             // changes (pointer equality) or toggles nil↔non-nil.
             let hadPhoto = self.attachedPhoto != nil
             let hasPhoto = attachedPhoto != nil
             let changed = (hadPhoto != hasPhoto) || (self.attachedPhoto !== attachedPhoto)
             self.attachedPhoto = attachedPhoto
             if changed {
-                refreshRightViewThumbnail()
+                refreshLeftView()
             }
         }
 
@@ -981,9 +982,9 @@ private struct SearchBarInputController: UIViewRepresentable {
             installedButton = button
             searchBar = bar
 
-            // Install thumbnail right-view if we already have a photo
-            // attached by the time the bar is found.
-            refreshRightViewThumbnail()
+            // If a photo is already attached by the time the bar is
+            // found, swap the camera icon out for the thumbnail.
+            refreshLeftView()
         }
 
         // MARK: UIGestureRecognizerDelegate
@@ -1047,50 +1048,88 @@ private struct SearchBarInputController: UIViewRepresentable {
             }
         }
 
-        // MARK: Attached-photo thumbnail (rightView)
+        // MARK: Attached-photo thumbnail (leftView swap)
 
-        private func refreshRightViewThumbnail() {
+        /// When a photo is attached, the camera icon in the leftView
+        /// is replaced with a bigger thumbnail + corner X (matches
+        /// Telegram's reply pattern). Tap the thumbnail to re-open the
+        /// photo grid; tap the X to remove the photo and restore the
+        /// camera icon.
+        private func refreshLeftView() {
             guard let textField = searchBar?.searchTextField else { return }
 
             if let photo = attachedPhoto {
-                textField.rightView = makeAttachedThumbnailView(photo: photo)
-                textField.rightViewMode = .always
-                hasRightViewPhoto = true
-            } else if hasRightViewPhoto {
-                textField.rightView = nil
-                textField.rightViewMode = .never
-                hasRightViewPhoto = false
+                textField.leftView = makeAttachedThumbnailView(photo: photo)
+                textField.leftViewMode = .always
+                hasAttachedThumbnail = true
+            } else if hasAttachedThumbnail, let button = installedButton {
+                textField.leftView = button
+                textField.leftViewMode = .always
+                hasAttachedThumbnail = false
             }
         }
 
-        /// 28pt thumbnail + inline X button, sized to fit comfortably
-        /// inside the search text field's right slot. Tapping X calls
-        /// `onPhotoRemoved` — SwiftUI's draftPhoto clears, the state
-        /// flows back through `updateConfig`, and the thumbnail is
-        /// torn down.
+        /// 36pt square thumbnail with a small circular X overhanging
+        /// the top-right corner. The whole tile is tappable (re-opens
+        /// the photo keyboard); the X handles removal.
         private func makeAttachedThumbnailView(photo: UIImage) -> UIView {
-            let container = UIView(frame: CGRect(x: 0, y: 0, width: 50, height: 28))
+            let thumbSize: CGFloat = 36
+            let xSize: CGFloat = 18
 
-            let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 28, height: 28))
+            // Container gives the X a little room outside the thumb.
+            let container = UIView(frame: CGRect(
+                x: 0, y: 0,
+                width: thumbSize + 4,
+                height: thumbSize + 4
+            ))
+            container.isUserInteractionEnabled = true
+
+            let imageView = UIImageView(frame: CGRect(
+                x: 0, y: 4,
+                width: thumbSize,
+                height: thumbSize
+            ))
             imageView.image = photo
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
-            imageView.layer.cornerRadius = 4
+            imageView.layer.cornerRadius = 6
             imageView.layer.borderWidth = 0.5
             imageView.layer.borderColor = UIColor.separator.cgColor
+            imageView.isUserInteractionEnabled = true
             container.addSubview(imageView)
 
-            let xButton = UIButton(type: .system)
-            xButton.frame = CGRect(x: 30, y: 4, width: 20, height: 20)
-            let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
-            xButton.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: config), for: .normal)
-            xButton.tintColor = .tertiaryLabel
+            // Tap the thumbnail (not the X) to re-open the photo grid.
+            let tap = UITapGestureRecognizer(target: self, action: #selector(attachedThumbnailTapped))
+            imageView.addGestureRecognizer(tap)
+
+            // X overlay: dark-tinted circle with a white glyph, sits
+            // at the top-right edge so it stays legible on every photo.
+            let xButton = UIButton(type: .custom)
+            xButton.frame = CGRect(
+                x: thumbSize + 4 - xSize,
+                y: 0,
+                width: xSize,
+                height: xSize
+            )
+            xButton.backgroundColor = UIColor(white: 0, alpha: 0.55)
+            xButton.layer.cornerRadius = xSize / 2
+            xButton.tintColor = .white
+            let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
+            xButton.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
             xButton.addAction(UIAction { [weak self] _ in
                 self?.onPhotoRemoved()
             }, for: .touchUpInside)
             container.addSubview(xButton)
 
             return container
+        }
+
+        @objc private func attachedThumbnailTapped() {
+            // Re-opening the photo grid keyboard when the user taps
+            // the thumbnail is a faster path to swapping the photo
+            // than removing + re-adding.
+            showingPhotoKeyboard = false // force toggle into the grid
+            toggleInputView()
         }
     }
 }
