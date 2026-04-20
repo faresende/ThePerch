@@ -211,6 +211,69 @@ def get_tracking_url(carrier, tracking_number):
     return None
 
 
+def upsert_delivery_record(order_id, merchant, status, tracking_number=None, carrier=None, tracking_url=None, source_email_id=None):
+    """Create or update a delivery record for an order in dashboard_records."""
+    delivered = status == 'delivered'
+    data = {
+        'order_id': order_id,
+        'carrier': carrier or 'unknown',
+        'status': status,
+        'vendor': merchant,
+        'delivered': delivered,
+    }
+    if tracking_number:
+        data['tracking_number'] = tracking_number
+    if tracking_url:
+        data['tracking_url'] = tracking_url
+    if carrier:
+        data['items'] = [{'name': merchant, 'quantity': 1}]
+
+    dash_payload = {
+        'agent_id': 'claudinho',
+        'user_id': USER_ID,
+        'type': 'delivery',
+        'category': 'deliveries',
+        'title': merchant,
+        'data': data,
+        'display_hint': 'delivery',
+    }
+
+    # Try to find existing delivery record for this order
+    try:
+        resp = requests.get(
+            SUPABASE_BASE + '/dashboard_records',
+            params={
+                'order_id': f'eq.{order_id}',
+                'category': 'eq.deliveries',
+                'select': 'id',
+                'limit': 1,
+            },
+            headers=HEADERS, timeout=30
+        )
+        existing = resp.json()
+        if existing:
+            # Update existing
+            requests.patch(
+                SUPABASE_BASE + '/dashboard_records',
+                params={'id': f'eq.{existing[0]["id"]}'},
+                headers=HEADERS, json={'data': data, 'title': merchant}, timeout=30
+            )
+            return existing[0]['id'], False
+    except: pass
+
+    # Create new
+    try:
+        resp = requests.post(
+            SUPABASE_BASE + '/dashboard_records',
+            headers=HEADERS, json=dash_payload, timeout=30
+        )
+        data_resp = resp.json()
+        return (data_resp[0].get('id') if isinstance(data_resp, list) else data_resp.get('id')), True
+    except Exception as e:
+        print(f'  Delivery record error: {e}', file=sys.stderr)
+        return None, True
+
+
 def upsert_order(order_number, merchant, total, currency, status, source_email_id, from_email):
     """Upsert order. If order_number is None, upserts by merchant+email combo."""
     order_id = None
@@ -273,8 +336,15 @@ def upsert_order(order_number, merchant, total, currency, status, source_email_i
     )
     data = resp.json()
     if data:
-        return (data[0].get('id') if isinstance(data, list) else data.get('id'))
-    return None
+        order_id = (data[0].get('id') if isinstance(data, list) else data.get('id')) if data else None
+    else:
+        order_id = None
+
+    # Always create/update delivery record for the order
+    if order_id:
+        upsert_delivery_record(order_id, merchant, status, source_email_id=source_email_id)
+
+    return order_id
 
 
 def upsert_shipment(order_id, tracking_number, carrier, status, source_email_id):
@@ -303,23 +373,11 @@ def upsert_shipment(order_id, tracking_number, carrier, status, source_email_id)
     data = resp.json()
     shipment_id = (data[0].get('id') if isinstance(data, list) else data.get('id')) if data else None
 
-    # Push delivery record to dashboard_records
-    dash_payload = {
-        'agent_id': 'orders-autopilot', 'user_id': USER_ID,
-        'type': 'delivery', 'category': 'deliveries', 'title': carrier or 'Unknown',
-        'data': {
-            'order_id': order_id, 'carrier': carrier or 'unknown',
-            'tracking_number': tracking_number, 'status': status,
-            'items': [{'name': carrier or 'Unknown', 'quantity': 1}],
-            'vendor': carrier or 'Unknown', 'tracking_url': tracking_url,
-            'delivered': status == 'delivered',
-        },
-        'display_hint': 'delivery',
-    }
-    try:
-        requests.post(SUPABASE_BASE + '/dashboard_records', headers=HEADERS, json=dash_payload, timeout=30)
-    except Exception as e:
-        print(f'  Dashboard record error: {e}', file=sys.stderr)
+    # Update delivery record with tracking info
+    if order_id and order_id != 'pending':
+        upsert_delivery_record(order_id, carrier or 'Unknown', status,
+                               tracking_number=tracking_number, carrier=carrier,
+                               tracking_url=tracking_url, source_email_id=source_email_id)
 
     return shipment_id, True
 
