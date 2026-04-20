@@ -51,6 +51,13 @@ struct SettingsTab: View {
                 aboutSection
                 signOutSection
             }
+            // Explicit tint on the Form, not the NavigationStack:
+            // Toggle's switch thumb ignores inherited tint through sheet
+            // boundaries on iOS and falls back to system green.
+            // Setting .tint() here forces the palette accent onto every
+            // Toggle in the Form as well as NavigationLink chevrons and
+            // the Done button.
+            .tint(palette.kinetic)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .environment(\.editMode, .constant(.active))
