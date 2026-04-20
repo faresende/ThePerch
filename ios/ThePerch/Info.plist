@@ -22,6 +22,8 @@
 	<string>The Perch writes health metrics synced from your OpenClaw agents to Apple Health for safekeeping.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>The Perch lets you attach photos from your library to meals, receipts, and other items you log.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The Perch uses the camera so you can snap meals, receipts, and boarding passes directly from the compose bar.</string>
 
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
