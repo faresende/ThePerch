@@ -14,6 +14,7 @@ struct MainTabView: View {
     @State private var composePhase: ComposePhase = .idle
     @State private var composeDraftText: String = ""
     @State private var composeHasPhoto: Bool = false
+    @State private var composePhoto: UIImage?
     @State private var isPresentingCamera: Bool = false
     @State private var composeToastMessage: String?
     @FocusState private var isComposeInputFocused: Bool
@@ -112,7 +113,11 @@ struct MainTabView: View {
             .tint(palette.kinetic)
             .tabBarMinimizeBehavior(.onScrollDown)
             .toolbar(isComposing ? .hidden : .visible, for: .tabBar)
-            .blur(radius: isComposing ? 6 : 0)
+            // 2pt blur per spec — gentle enough to let the glass do the
+            // actual lifting. A heavier blur flattens the content,
+            // leaving the glass with nothing to pull from and making the
+            // custom bar read as plastic instead of material.
+            .blur(radius: isComposing ? 2 : 0)
             .disabled(isComposing)
             .animation(.easeInOut(duration: 0.28), value: isComposing)
 
@@ -133,15 +138,19 @@ struct MainTabView: View {
             SettingsTab()
         }
         .fullScreenCover(isPresented: $isPresentingCamera) {
-            PerchComposeCameraOverlay(
-                onCapture: {
-                    composeHasPhoto = true
+            PerchComposeCameraPicker(
+                onCapture: { image in
+                    if let image {
+                        composePhoto = image
+                        composeHasPhoto = true
+                    }
                     isPresentingCamera = false
                 },
-                onClose: {
+                onCancel: {
                     isPresentingCamera = false
                 }
             )
+            .ignoresSafeArea()
         }
         .overlay(alignment: .top) {
             if let msg = composeToastMessage {
@@ -195,9 +204,16 @@ struct MainTabView: View {
                     ))
             }
 
-            HStack(spacing: 8) {
-                composeSectionFAB(palette: palette)
-                composeInputPill(palette: palette)
+            // GlassEffectContainer groups the section FAB and the input
+            // pill into a single coherent glass surface — same iOS 26
+            // material the native tab bar uses. Without the container,
+            // the two elements render as independent glass shapes and
+            // the effect feels detached / placeholder-ish.
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    composeSectionFAB(palette: palette)
+                    composeInputPill(palette: palette)
+                }
             }
             .padding(.horizontal, 10)
         }
@@ -262,29 +278,23 @@ struct MainTabView: View {
 
     @ViewBuilder
     private var composePhotoThumbnail: some View {
-        ZStack {
-            RadialGradient(
-                colors: [
-                    Color(red: 0.91, green: 0.69, blue: 0.44),
-                    Color(red: 0.54, green: 0.31, blue: 0.13),
-                    Color(red: 0.23, green: 0.12, blue: 0.04)
-                ],
-                center: .init(x: 0.35, y: 0.35),
-                startRadius: 0,
-                endRadius: 28
-            )
-            RadialGradient(
-                colors: [Color.black.opacity(0.7), .clear],
-                center: .init(x: 0.65, y: 0.70),
-                startRadius: 0,
-                endRadius: 18
-            )
+        Group {
+            if let photo = composePhoto {
+                Image(uiImage: photo)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                // Fallback used when composeHasPhoto is forced true
+                // without an actual UIImage (shouldn't happen in
+                // production — defensive).
+                Color.gray
+            }
         }
         .frame(width: 32, height: 32)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+                .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
         )
     }
 
@@ -467,6 +477,7 @@ struct MainTabView: View {
             composePhase = .idle
             composeDraftText = ""
             composeHasPhoto = false
+            composePhoto = nil
         }
     }
 
@@ -492,6 +503,7 @@ struct MainTabView: View {
             composePhase = .idle
             composeDraftText = ""
             composeHasPhoto = false
+            composePhoto = nil
         }
         Task {
             try? await Task.sleep(for: .milliseconds(200))
@@ -950,139 +962,51 @@ private struct ComposeShimmerBar: View {
     }
 }
 
-// MARK: - Compose camera overlay (full-screen mock)
+// MARK: - Compose camera picker (native UIImagePickerController)
 
-/// Placeholder camera UI. In production this is the OS camera picker;
-/// for v1 it's a static viewfinder simulation. `onCapture` fires when
-/// the shutter is tapped (no actual photo bytes returned yet).
-struct PerchComposeCameraOverlay: View {
-    let onCapture: () -> Void
-    let onClose: () -> Void
+/// Wraps the system UIImagePickerController so the compose flow pulls
+/// real photos from the camera on device, and falls back to the photo
+/// library on the simulator (no camera hardware). The captured image
+/// is returned to the caller via `onCapture(UIImage?)`.
+struct PerchComposeCameraPicker: UIViewControllerRepresentable {
+    let onCapture: (UIImage?) -> Void
+    let onCancel: () -> Void
 
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                // Top bar
-                HStack {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                    }
-                    .buttonStyle(.plain)
-                    .background(.ultraThinMaterial, in: Circle())
-
-                    Spacer()
-
-                    Button {} label: {
-                        Image(systemName: "bolt")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                    }
-                    .buttonStyle(.plain)
-                    .background(.ultraThinMaterial, in: Circle())
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 54)
-
-                // Viewfinder
-                ZStack {
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.17, green: 0.11, blue: 0.07),
-                            Color(red: 0.08, green: 0.04, blue: 0.02),
-                            .black
-                        ],
-                        center: .init(x: 0.30, y: 0.30),
-                        startRadius: 0,
-                        endRadius: 420
-                    )
-
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    Color(red: 0.88, green: 0.63, blue: 0.35).opacity(0.45),
-                                    .clear
-                                ],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 110
-                            )
-                        )
-                        .frame(width: 220, height: 220)
-                        .offset(y: 10)
-
-                    thirdsGrid
-
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(Color(red: 0.97, green: 0.92, blue: 0.82), lineWidth: 1.5)
-                        .frame(width: 72, height: 72)
-                        .opacity(0.7)
-                        .offset(y: 8)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .padding(.horizontal, 16)
-                .padding(.top, 28)
-
-                Spacer(minLength: 0)
-
-                // Bottom controls
-                HStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.25), lineWidth: 1.5)
-                        )
-                        .frame(width: 44, height: 44)
-
-                    Spacer()
-
-                    Button(action: onCapture) {
-                        Circle()
-                            .fill(Color(red: 0.97, green: 0.92, blue: 0.82))
-                            .frame(width: 76, height: 76)
-                            .overlay(
-                                Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 4)
-                            )
-                            .shadow(color: Color.white.opacity(0.15), radius: 6)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Capture"))
-
-                    Spacer()
-
-                    Button {} label: {
-                        Image(systemName: "arrow.triangle.2.circlepath.camera")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                    }
-                    .buttonStyle(.plain)
-                    .background(.ultraThinMaterial, in: Circle())
-                }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 64)
-            }
-        }
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        #if targetEnvironment(simulator)
+        // The simulator has no camera; fall back to the photo library
+        // so the compose flow is still testable.
+        picker.sourceType = .photoLibrary
+        #else
+        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera)
+            ? .camera
+            : .photoLibrary
+        #endif
+        picker.allowsEditing = false
+        return picker
     }
 
-    private var thirdsGrid: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            Path { p in
-                p.move(to: CGPoint(x: w / 3, y: 0));       p.addLine(to: CGPoint(x: w / 3, y: h))
-                p.move(to: CGPoint(x: 2 * w / 3, y: 0));   p.addLine(to: CGPoint(x: 2 * w / 3, y: h))
-                p.move(to: CGPoint(x: 0, y: h / 3));       p.addLine(to: CGPoint(x: w, y: h / 3))
-                p.move(to: CGPoint(x: 0, y: 2 * h / 3));   p.addLine(to: CGPoint(x: w, y: 2 * h / 3))
-            }
-            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: PerchComposeCameraPicker
+
+        init(_ parent: PerchComposeCameraPicker) { self.parent = parent }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
+        ) {
+            let image = info[.originalImage] as? UIImage
+            parent.onCapture(image)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.onCancel()
         }
     }
 }
