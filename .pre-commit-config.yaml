@@ -1,0 +1,35 @@
+# .pre-commit-config.yaml
+#
+# Install once per machine:
+#   brew install pre-commit    (or: pip install pre-commit)
+#   pre-commit install
+#
+# Then every commit runs the configured hooks on staged changes. A hook
+# failure aborts the commit. To bypass in an emergency: git commit -n
+# (but please do not: that is how secrets get shipped).
+#
+# Run against the whole repo (useful after first install):
+#   pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        name: gitleaks (secret detection)
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=2048']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+        exclude: ^skill/dashboard-sync/tsconfig\.json$
+      - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: \.pbxproj$
+      - id: trailing-whitespace
+        exclude: \.pbxproj$
