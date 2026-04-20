@@ -2,130 +2,154 @@
 
 ## Trigger
 
-Any task involving saved links, bookmarks, URL management, or the bookmark ingestion pipeline (iOS Share Extension, Safari Extension, Telegram, web chat).
+Any task involving saving, retrieving, searching, or managing bookmarks/links for The Perch. Also triggered when debugging bookmark-related cards, tag management, or bookmark display issues in the iOS app.
 
 ## What it does
 
-The bookmarks pipeline captures links saved by the user from any surface (iOS Share Extension, Safari Extension, Telegram bot, or web chat), stores them in the Supabase `records` table with `category=bookmarks` and `type=bookmark`, then enriches them via an OpenClaw agent (Archie) that fetches the page, extracts a title, generates a summary, and assigns tags.
+This skill manages the bookmark data pipeline for The Perch, allowing URLs to be saved with titles, favicons, and tags for later retrieval. Bookmarks are stored in the Supabase `records` table with `category=bookmarks` and `type=bookmark`. The iOS app renders bookmarks as card grids or individual bookmark cards, with search and tag-based filtering.
 
-Bookmarks go through a lifecycle: `pending` → `processing` → `processed` (or `failed`). The bookmark-watcher cron job in the dashboard-sync skill polls for pending bookmarks and triggers agent enrichment.
+Bookmarks can be created from any source: agent conversations, web browsing, email links, or direct app input. Each bookmark carries structured metadata (URL, title, favicon URL, tags) in the `data` JSON field, enabling flexible categorization and retrieval.
 
 ## Architecture
 
 ```
-User saves link (iOS Share / Safari / Telegram / Web)
-        │
-        │ Direct write to Supabase
-        ▼
-  records table (category=bookmarks, type=bookmark, status=pending)
-        │
-        │ cron job (every 2 min)
-        ▼
-  bookmark-watcher (dashboard-sync)
-  ├─ Poll: bookmarks with status='pending'
-  ├─ Call Archie agent for enrichment
-  └─ Update: enriched_title, summary, tags, status='processed'
-        │
-        ▼
-  iOS: BookmarksView → BookmarksViewModel → SupabaseService
-         └─→ BookmarksCard (grid/list layout)
+Agent / Manual Input / Browser Extension
+     │
+     │  direct API or agent command
+     ▼
+┌──────────────────────────────────────────────────────┐
+│              Supabase `records` table                 │
+│                                                      │
+│  category = "bookmarks"                              │
+│  type = "bookmark"                                   │
+│  data (JSON): url, title, favicon, tags              │
+└──────────────────────────────────────────────────────┘
+                      │
+                      │  anon key + user auth (RLS)
+                      ▼
+            ┌──────────────────────┐
+            │   The Perch iOS App  │
+            │                      │
+            │  BookmarksViewModel  │
+            │    ├─ BookmarkCard   │
+            │    ├─ Search/filter  │
+            │    └─ Tag browser    │
+            │                      │
+            │  BookmarksView       │
+            └──────────────────────┘
 ```
 
-### Submission Sources
+### Data Flow
 
-| Source | Mechanism |
-|--------|-----------|
-| iOS Share Extension | Share sheet → direct Supabase write with `submitted_from: 'ios_share'` |
-| Safari Extension | Same pipeline |
-| Telegram | Bot command `/save <url>` → agent writes to Supabase |
-| Web chat | Agent tool call to save bookmark |
-
-### Enrichment Data
-
-After Archie processes a bookmark, these fields are populated:
-- `enriched_title`: Title extracted from page `<title>` tag
-- `summary`: 2-3 sentence page summary
-- `tags`: Array of inferred topic tags (e.g., `["swiftui", "ios", "tutorial"]`)
-- `domain`: Extracted root domain
-- `image_url`: Open Graph image if found
-- `reading_time_minutes`: Estimated reading time
-- `processed_at`: ISO8601 timestamp
+1. **Input**: Bookmarks are saved via agent commands ("bookmark this: https://..."), direct API calls, or within the app.
+2. **Enrichment**: The agent can fetch the page title and favicon automatically if only a URL is provided.
+3. **Persistence**: Records use `category=bookmarks`, `type=bookmark`, with all metadata in the `data` JSON field.
+4. **Display**: The iOS `BookmarksViewModel` supports full-text search on titles and filtering by tags. `BookmarkCard` renders individual links with favicon preview.
 
 ## Data Schema
 
-### records table (bookmarks category)
+### Supabase `records` table (bookmark rows)
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | UUID | Primary key |
-| `user_id` | UUID | Owner |
-| `category` | TEXT | `bookmarks` |
-| `type` | TEXT | `bookmark` |
-| `title` | TEXT | User-provided or original page title |
-| `data` | JSONB | Bookmark payload |
-| `display_hint` | TEXT | `bookmark_card` or `bookmark_grid` |
-| `created_at` | TIMESTAMPTZ | When saved |
+| `user_id` | UUID | Owner (references auth.users) |
+| `category` | text | Always `"bookmarks"` |
+| `type` | text | Always `"bookmark"` |
+| `title` | text | Page title or user-provided label |
+| `data` | JSONB | Bookmark payload (see below) |
+| `created_at` | timestamptz | Record creation time |
 
-### data payload
+### Bookmark Data (`type=bookmark`, `data` JSON)
 
 ```json
 {
   "url": "https://developer.apple.com/documentation/swiftui",
-  "original_title": "SwiftUI | Apple Developer Documentation",
-  "enriched_title": "SwiftUI | Apple Developer Documentation",
-  "summary": "Comprehensive guide to building user interfaces with SwiftUI...",
-  "tags": ["swiftui", "ios", "apple", "documentation"],
-  "status": "processed",
-  "domain": "developer.apple.com",
-  "image_url": "https://.../og-image.png",
-  "reading_time_minutes": 15,
-  "submitted_from": "ios_share",
-  "processed_at": "2026-04-20T10:00:00+01:00"
+  "title": "SwiftUI Documentation",
+  "favicon": "https://developer.apple.com/favicon.ico",
+  "tags": ["ios", "swift", "documentation", "reference"],
+  "description": "Apple's official SwiftUI framework documentation",
+  "domain": "developer.apple.com"
 }
 ```
 
-### Status lifecycle
+### Minimal Bookmark
 
-`pending` → `processing` → `processed` / `failed`
+Only the URL is strictly required. The agent or app can fill in the rest:
 
-## Search and Retrieval
-
-Bookmarks are queried by `category=bookmarks`. The iOS app supports:
-- Text search across `title` and `summary`
-- Tag filtering (tags stored as JSON array in `data->tags`)
-- Domain filtering
-- Sort by `created_at` or `processed_at`
-
-```sql
--- Find bookmarks by tag
-SELECT * FROM records
-WHERE category = 'bookmarks'
-  AND data->'tags' ? 'swiftui'
-ORDER BY created_at DESC;
+```json
+{
+  "url": "https://example.com/article",
+  "tags": []
+}
 ```
+
+## Setup
+
+### Prerequisites
+
+- Supabase project with migrations applied (see perch-supabase)
+- No additional services required (bookmarks are self-contained in `records`)
+
+### Saving a Bookmark
+
+```bash
+# Via Supabase REST API
+curl -X POST "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/records" \
+  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Prefer: return=representation" \
+  -d '{
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "category": "bookmarks",
+    "type": "bookmark",
+    "title": "SwiftUI Documentation",
+    "data": {
+      "url": "https://developer.apple.com/documentation/swiftui",
+      "title": "SwiftUI Documentation",
+      "favicon": "https://developer.apple.com/favicon.ico",
+      "tags": ["ios", "swift", "documentation"],
+      "domain": "developer.apple.com"
+    }
+  }'
+```
+
+### Enriching a URL (Agent Flow)
+
+When saving a bookmark from a bare URL:
+1. Fetch the page with `web_fetch` to extract the title and meta description
+2. Derive the favicon URL from `domain + /favicon.ico` or parse `<link rel="icon">` from the HTML
+3. Prompt for tags or auto-suggest based on content analysis
+4. Write the enriched record to Supabase
 
 ## Maintenance
 
 ### Debugging
 
-```bash
-# Check pending bookmarks
-curl -G "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/records" \
-  -H "apikey: $ANON_KEY" \
-  --data-urlencode "category=eq.bookmarks" \
-  --data-urlencode "data->>status=eq.pending" \
-  --data-urlencode "limit=10"
+- **Bookmarks not appearing**: Verify `category=bookmarks` and `type=bookmark` are set correctly. The iOS `BookmarksViewModel` filters on both fields.
+- **Search not finding a bookmark**: The search is text-based on `title` and `data->>'title'`. Tag-based filtering uses the `tags` array in the `data` JSON.
+- **Missing favicon**: Favicons are optional. If the URL doesn't serve a favicon, the app shows a fallback icon based on the first letter of the domain.
 
-# Check all bookmark statuses
-curl -G ".../records" \
-  -H "apikey: $ANON_KEY" \
-  --data-urlencode "category=eq.bookmarks" \
-  --data-urlencode "order=created_at.desc" \
-  --data-urlencode "limit=20"
+### Monitoring
+
+```sql
+-- Recent bookmarks
+SELECT title, data->>'url' as url, data->>'tags' as tags, created_at
+FROM records
+WHERE category = 'bookmarks'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- Bookmarks by tag (PostgreSQL JSON array containment)
+SELECT title, data->>'url' as url
+FROM records
+WHERE category = 'bookmarks'
+  AND data->'tags' ? 'ios';
 ```
 
 ### Common Issues
 
-- **Bookmark stuck in `processing`**: The watcher considers bookmarks `processing` for >10 minutes as stuck and marks them `failed`. If a bookmark is stuck, check the Archie agent logs.
-- **Tags not extracted**: Archie enrichment may fail on paywalled or JavaScript-rendered pages. The `summary` and `tags` fields may be empty in those cases.
-- **iOS Share Extension not saving**: Check that the Share Extension's Supabase write is using the correct user_id and that RLS policies allow inserts.
+- **Duplicate bookmarks**: Check for existing records with the same URL before inserting. Use `data->>'url'` for deduplication.
+- **Broken favicon URLs**: Some sites serve favicons on non-standard paths. Fall back to `https://{domain}/favicon.ico` or Google's favicon API: `https://www.google.com/s2/favicons?domain={domain}&sz=64`
+- **Too many tags**: Tags are freeform strings. Consider normalizing common tags (e.g., "iOS" vs "ios" vs "IOS") in the agent layer.

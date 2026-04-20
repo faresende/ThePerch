@@ -2,134 +2,181 @@
 
 ## Trigger
 
-Any task involving calendar events, travel detection, event scheduling, or syncing Apple Calendar data to The Perch.
+Any task involving calendar events, schedule management, event ingestion from Apple Calendar, travel mode detection, or the calendar data pipeline for The Perch. Also triggered when debugging calendar-related cards or event display issues in the iOS app.
 
 ## What it does
 
-The calendar pipeline reads events from the user's Apple Calendar (synced via iCloud) using icalBuddy, then stores them in the Supabase `records` table with `category=calendar` and `type=event`. The iOS app displays these events in CalendarView and uses them for travel mode detection (identifying when the user is away from their home location).
+This skill manages the calendar data pipeline for The Perch, ingesting events from Apple Calendar (iCloud-synced) via icalBuddy and persisting them to the Supabase `records` table with `category=calendar`. The iOS app reads these records and renders them as event cards with time, location, and attendee information.
 
-The pipeline runs on a schedule (typically every 15-30 minutes via a LaunchAgent or cron) and does delta syncs — only fetching events that have changed since the last run.
+The pipeline handles timezone-aware timestamps (ISO8601 with explicit timezone offsets), supports travel mode detection by parsing event location fields, and integrates with the training schedule to surface workout sessions alongside regular calendar events.
 
 ## Architecture
 
 ```
-Apple Calendar (iCloud synced)
-        │
-        │ icalBuddy CLI
-        ▼
-  calendar-sync agent (Node/Python)
-  ├─ icalBuddy - CalendarName "eventsToday+14" → raw event text
-  ├─ Parse: title, start/end times, location, attendees
-  ├─ Normalize: ISO8601 with timezone (+00:00 suffix)
-  └─ Upsert to Supabase
-        │
-        ▼
-  records table (category=calendar, type=event)
-        │
-        ▼
-  iOS: CalendarView → CalendarDecodingTests (Swift)
-         └─→ TravelViewModel (travel mode detection)
+Apple Calendar (iCloud)
+     │
+     │  icalBuddy CLI
+     ▼
+Calendar Ingestion Script
+  ├─ Parse events (title, start, end, location, notes)
+  ├─ Detect travel mode via location heuristics
+  └─ Format timestamps as ISO8601 with timezone
+     │
+     ▼
+┌──────────────────────────────────────────────────────┐
+│              Supabase `records` table                 │
+│                                                      │
+│  category = "calendar"                               │
+│  type = "event"                                      │
+│  data (JSON): start, end, location, travel_mode, etc.│
+└──────────────────────────────────────────────────────┘
+                      │
+                      │  anon key + user auth (RLS)
+                      ▼
+            ┌──────────────────────┐
+            │   The Perch iOS App  │
+            │                      │
+            │  CalendarView        │
+            │    └─ EventCard      │
+            │                      │
+            │  Home tab            │
+            │    └─ Upcoming events│
+            └──────────────────────┘
 ```
 
-### icalBuddy Usage
+### Data Flow
 
-```bash
-# Today's events
-icalBuddy -Calendar "Home" -sd -tf "%Y-%m-%dT%H:%M:%S%z" eventsToday
-
-# Next 14 days
-icalBuddy -Calendar "Home" -sd -tf "%Y-%m-%dT%H:%M:%S%z" eventsToday+14
-
-# Specific calendar
-icalBuddy -Calendar "Work" -sd -tf "%Y-%m-%dT%H:%M:%S%z" eventsToday+7
-```
-
-### ISO8601 Timezone Requirement
-
-**All event times MUST include a timezone suffix** (e.g., `+00:00`, `+01:00`, `Z`). 
-
-Without a timezone, the iOS app's Swift date decoder (`ISO8601Decoder`) fails silently and the card shows empty. This is the most common calendar integration bug.
-
-Valid: `2026-04-20T09:00:00+01:00`
-Invalid: `2026-04-20T09:00:00` (missing timezone)
+1. **Ingestion**: icalBuddy reads upcoming events from Apple Calendar. The agent runs this on a schedule (typically every 30-60 minutes).
+2. **Transformation**: Raw icalBuddy output is parsed into structured event records with timezone-aware timestamps.
+3. **Travel Detection**: Location fields are analyzed for travel indicators (airport codes, city names, hotel chains) to set a `travel_mode` flag.
+4. **Persistence**: Events are upserted into `records` with `category=calendar`, `type=event`, and ISO8601 timestamps including timezone offset (e.g., `+00:00` for UTC).
+5. **Display**: The iOS app renders events via `EventCard` in `CalendarView` and upcoming events on the Home tab.
 
 ### Travel Mode Detection
 
-Travel mode is triggered when an event's `location` field matches known airport codes, hotel patterns, or non-home city names. The TravelViewModel scans upcoming events for location data that indicates the user is away. When detected, The Perch switches to travel mode, which:
-- Adjusts health/nutrition targets (e.g., looser calorie targets)
-- Shows a travel indicator in the HomeView
-- Switches weather display to destination city
+Events with location data are checked against heuristics:
+- Airport names or codes (e.g., "LIS", "Schiphol")
+- Foreign city names outside the user's home area
+- Hotel chain keywords (e.g., "Marriott", "Hilton")
+- Explicit travel keywords (e.g., "flight", "train to")
+
+When detected, the record includes `"travel_mode": true` and the app can show travel-specific UI.
 
 ## Data Schema
 
-### records table (calendar category)
+### Supabase `records` table (calendar rows)
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | UUID | Primary key |
-| `user_id` | UUID | Owner |
-| `category` | TEXT | `calendar` |
-| `type` | TEXT | `event` |
-| `title` | TEXT | Event title |
-| `data` | JSONB | Event payload |
-| `display_hint` | TEXT | `calendar_event` |
-| `created_at` | TIMESTAMPTZ | When stored |
+| `user_id` | UUID | Owner (references auth.users) |
+| `category` | text | Always `"calendar"` |
+| `type` | text | Always `"event"` |
+| `title` | text | Event title (e.g., "Team Standup", "Flight to Amsterdam") |
+| `data` | JSONB | Event payload (see below) |
+| `created_at` | timestamptz | Record creation time |
 
-### data payload
+### Event Data (`type=event`, `data` JSON)
 
 ```json
 {
-  "start_time": "2026-04-20T09:00:00+01:00",
-  "end_time": "2026-04-20T10:30:00+01:00",
-  "location": "Lisbon, PT",
-  "attendees": ["Fábio Resende", "Jane Doe"],
-  "calendar": "Home",
-  "uid": "ical-uuid-12345@calendarserver"
+  "start_time": "2025-04-21T09:00:00+01:00",
+  "end_time": "2025-04-21T09:30:00+01:00",
+  "location": "Office, Room 3B",
+  "notes": "Weekly sync with engineering",
+  "calendar_name": "Work",
+  "all_day": false,
+  "travel_mode": false,
+  "attendees": ["alice@example.com", "bob@example.com"]
 }
 ```
 
-## Common Parsing Errors
+### Travel Event Example
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| Empty card in iOS | Missing timezone suffix on times | Always output `+00:00` or `+01:00` |
-| Wrong date | All-day events parsed as 00:00 UTC | Handle all-day events separately |
-| Missing location | Event has no location field | Default to null, don't omit |
-| Duplicate events | Running sync twice without dedup | Use event `uid` for upsert key |
+```json
+{
+  "start_time": "2025-04-25T06:30:00+00:00",
+  "end_time": "2025-04-25T10:15:00+01:00",
+  "location": "Lisbon Airport (LIS) → Schiphol (AMS)",
+  "calendar_name": "Personal",
+  "all_day": false,
+  "travel_mode": true,
+  "travel_details": {
+    "origin": "Lisbon",
+    "destination": "Amsterdam",
+    "type": "flight"
+  }
+}
+```
+
+**Critical**: All timestamps must use ISO8601 with explicit timezone offset (e.g., `+00:00`, `+01:00`). Never use naive datetime strings. The iOS app parses these with `ISO8601DateFormatter` and expects the offset.
 
 ## Setup
 
-### icalBuddy Installation
+### Prerequisites
+
+- macOS with Apple Calendar configured and iCloud sync enabled
+- icalBuddy installed: `brew install ical-buddy`
+- Supabase project with migrations applied (see perch-supabase)
+
+### Ingesting Events
 
 ```bash
-brew install icalBuddy
+# List today's and tomorrow's events
+icalBuddy -f -n -nc -nrd -b "" -ps "/: /" eventsFrom:today to:tomorrow
+
+# Example output:
+# • Team Standup
+#   2025-04-21 09:00 - 09:30
+#   Location: Office, Room 3B
 ```
 
-### Cron Schedule
+### Writing to Supabase
 
-```cron
-# Every 15 minutes
-*/15 * * * * cd /Users/faresende/.openclaw/workspace/ThePerch && node scripts/calendar-sync.js >> ~/.openclaw/logs/calendar.log 2>&1
+```bash
+curl -X POST "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/records" \
+  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Prefer: return=representation" \
+  -d '{
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "category": "calendar",
+    "type": "event",
+    "title": "Team Standup",
+    "data": {
+      "start_time": "2025-04-21T09:00:00+01:00",
+      "end_time": "2025-04-21T09:30:00+01:00",
+      "location": "Office, Room 3B",
+      "calendar_name": "Work",
+      "all_day": false,
+      "travel_mode": false
+    }
+  }'
 ```
 
 ## Maintenance
 
 ### Debugging
 
-```bash
-# Test icalBuddy output
-icalBuddy -Calendar "Home" -sd -tf "%Y-%m-%dT%H:%M:%S%z" eventsToday+7
+- **Events not showing**: Verify icalBuddy has calendar access in System Settings → Privacy & Security → Calendars. Also check that the agent is running the ingestion on schedule.
+- **Wrong timezone**: Ensure timestamps include the `+00:00` / `+01:00` suffix. The iOS app will not parse naive datetimes correctly.
+- **Missing travel detection**: Add new location patterns to the travel detection heuristics in the ingestion script.
 
-# Check calendar records in Supabase
-curl -G "https://cgmaotzmeoiueyzlchaz.supabase.co/rest/v1/records" \
-  -H "apikey: $ANON_KEY" \
-  --data-urlencode "category=eq.calendar" \
-  --data-urlencode "order=created_at.desc" \
-  --data-urlencode "limit=20"
+### Monitoring
+
+```sql
+-- Check recent calendar records
+SELECT title, data->>'start_time' as start_time, data->>'location' as location,
+       data->>'travel_mode' as travel_mode
+FROM records
+WHERE category = 'calendar'
+  AND created_at > now() - interval '24 hours'
+ORDER BY (data->>'start_time') ASC;
 ```
 
 ### Common Issues
 
-- **Card shows empty in iOS**: Verify all times have timezone suffixes. Run icalBuddy directly to check raw output.
-- **Events not syncing**: Check that the calendar name matches exactly (case-sensitive). Run with verbose logging.
-- **Travel mode not triggering**: Travel detection looks for location field in events. If calendars don't have location set, travel mode won't activate.
+- **icalBuddy permission denied**: Re-grant calendar access in macOS Privacy settings. Terminal/iTerm may lose calendar access after macOS updates.
+- **Duplicate events**: The pipeline should upsert based on title + start_time. If duplicates appear, deduplicate with a SQL query matching on title and start_time proximity.
+- **Stale events**: The pipeline should clean up past events periodically. Events older than the current day can be deleted or archived.
