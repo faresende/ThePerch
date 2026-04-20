@@ -39,7 +39,6 @@ struct TodayTab: View {
                 TodayHero(
                     timeOfDay: timeOfDay,
                     greeting: timeOfDay.greeting,
-                    dateString: fullDateString,
                     onProfileTap: onOpenProfile,
                     isShowingCached: dashboardViewModel.isShowingCachedData
                 )
@@ -144,14 +143,6 @@ struct TodayTab: View {
         }
     }
 
-    /// "TUESDAY, 7 APRIL" — uppercase long-form date for the header date line.
-    private var fullDateString: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEEE, d MMMM"
-        return f.string(from: Date.now).uppercased()
-    }
-
 }
 
 // MARK: - Full-bleed Today hero (video or still + overlaid greeting)
@@ -164,7 +155,6 @@ struct TodayTab: View {
 struct TodayHero: View {
     let timeOfDay: PerchTimeOfDay
     let greeting: String
-    let dateString: String
     let onProfileTap: () -> Void
     let isShowingCached: Bool
 
@@ -197,13 +187,18 @@ struct TodayHero: View {
             )
             .allowsHitTesting(false)
 
-            // Layer 3 — greeting block, bottom-left.
+            // Layer 3 — greeting, bottom-left.
             //
             // Aligned to 18pt (PerchTheme.Spacing.screenHorizontal) so the
             // greeting's left edge sits on the same vertical line as every
-            // card below it. Trailing matches so short greetings like
-            // "Afternoon, Fábio." stay on a single line at 34pt.
-            VStack(alignment: .leading, spacing: 10) {
+            // card below. At 34pt Fraunces-italic, "Afternoon, Fábio."
+            // fits on a single line within the full column width.
+            //
+            // The cached-data spinner trails the greeting when stale data
+            // is being shown — small, non-blocking, disappears once fresh
+            // data lands. The explicit date line has been removed; the
+            // greeting alone is enough.
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(greeting)
                     .font(PerchTheme.Font.greeting)
                     .foregroundColor(palette.heroText)
@@ -216,23 +211,15 @@ struct TodayHero: View {
                     .shadow(color: palette.scrimDark.opacity(0.9), radius: 14, x: 0, y: 3)
                     .shadow(color: palette.scrimDark.opacity(0.75), radius: 3, x: 0, y: 1)
 
-                HStack(spacing: 8) {
-                    Text(dateString)
-                        .font(.system(size: 11))
-                        .tracking(1.4)
-                        .foregroundColor(palette.heroText.opacity(0.82))
-                        .shadow(color: palette.scrimDark.opacity(0.8), radius: 5, x: 0, y: 2)
-                        .shadow(color: palette.scrimDark.opacity(0.6), radius: 1, x: 0, y: 1)
-
-                    if isShowingCached {
-                        ProgressView()
-                            .controlSize(.mini)
-                            .tint(palette.heroText.opacity(0.85))
-                            .transition(.opacity)
-                    }
+                if isShowingCached {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(palette.heroText.opacity(0.85))
+                        .transition(.opacity)
                 }
+
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
             .padding(.bottom, 34)
 
