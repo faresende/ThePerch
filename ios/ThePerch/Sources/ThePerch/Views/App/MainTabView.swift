@@ -1,4 +1,5 @@
 import SwiftUI
+import Photos
 import PhotosUI
 
 struct MainTabView: View {
@@ -665,8 +666,6 @@ struct CaptureHistoryView: View {
 
     @State private var draftText: String = ""
     @State private var draftPhoto: UIImage?
-    @State private var isPresentingPhotoPicker: Bool = false
-    @State private var selectedPhotoItem: PhotosPickerItem?
 
     /// Mocked history until captures persist to the backend. Each row
     /// shows what the user previously sent — tap to re-add.
@@ -768,13 +767,17 @@ struct CaptureHistoryView: View {
             // expose the UISearchBar, so a tiny introspection helper
             // walks up the UIKit hierarchy to find it and installs a
             // UIButton as the searchTextField's leftView.
+            // Install the camera-icon leading button + custom photo
+            // keyboard (PerchPhotoKeyboardView). See SearchBarInputController
+            // for how the UIKit reach-in works.
             .background(
-                SearchBarLeadingButtonConfigurator(
+                SearchBarInputController(
                     systemImage: "camera",
-                    tint: UIColor(palette.kinetic)
-                ) {
-                    isPresentingPhotoPicker = true
-                }
+                    tint: UIColor(palette.kinetic),
+                    onPhotoSelected: { image in
+                        draftPhoto = image
+                    }
+                )
             )
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -790,24 +793,6 @@ struct CaptureHistoryView: View {
                             .fontWeight(.semibold)
                     }
                     .disabled(canSubmit == false)
-                }
-            }
-            .photosPicker(
-                isPresented: $isPresentingPhotoPicker,
-                selection: $selectedPhotoItem,
-                matching: .images,
-                photoLibrary: .shared()
-            )
-            .onChange(of: selectedPhotoItem) { _, item in
-                guard let item else { return }
-                Task {
-                    if let data = try? await item.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        await MainActor.run {
-                            draftPhoto = image
-                        }
-                    }
-                    await MainActor.run { selectedPhotoItem = nil }
                 }
             }
         }
@@ -836,143 +821,448 @@ private struct CaptureHistoryItem: Identifiable {
     let agoLabel: String
 }
 
-// MARK: - SearchBarLeadingButtonConfigurator
+// MARK: - SearchBarInputController
 //
 // SwiftUI's `.searchable` creates a UISearchBar internally but doesn't
-// expose it for customisation — the magnifying glass on the leading
-// side is baked in. We need a tappable camera icon in that slot to
-// open the photo picker (per design spec).
+// expose it. This representable reaches into UIKit for two jobs:
+//   1. Swap the search bar's leading magnifying glass for a tappable
+//      camera button.
+//   2. Toggle the search text field's `inputView` between the default
+//      keyboard and our custom PerchPhotoKeyboardView when the camera
+//      button is tapped.
 //
-// Workaround: a zero-sized representable that walks up the UIKit
-// responder chain to find the UINavigationController hosting our
-// SwiftUI NavigationStack, reaches into its `navigationItem
-// .searchController?.searchBar`, and replaces the searchTextField's
-// `leftView` with a UIButton that fires the provided action.
-//
-// `leftView`/`leftViewMode` are standard UITextField properties, so
-// the swap is well-supported even though the reach-in isn't.
+// Uses a Coordinator that persists across SwiftUI view updates — no
+// work is done on every `updateUIView` tick (that was the source of
+// the earlier perf regression). Install is one-shot, capped at 30
+// retries on a 100ms tick (≈3s) in case the NavigationStack's search
+// controller isn't attached yet.
 
-private struct SearchBarLeadingButtonConfigurator: UIViewControllerRepresentable {
+private struct SearchBarInputController: UIViewRepresentable {
     let systemImage: String
     let tint: UIColor
-    let action: () -> Void
+    let onPhotoSelected: (UIImage) -> Void
 
-    func makeUIViewController(context: Context) -> LeadingButtonHostController {
-        LeadingButtonHostController(
-            systemImage: systemImage,
-            tint: tint,
-            action: action
-        )
+    func makeCoordinator() -> Coordinator {
+        Coordinator(systemImage: systemImage, tint: tint, onPhotoSelected: onPhotoSelected)
     }
 
-    func updateUIViewController(_ uiViewController: LeadingButtonHostController, context: Context) {
-        uiViewController.systemImage = systemImage
-        uiViewController.tint = tint
-        uiViewController.action = action
-        uiViewController.configureSearchBarIfNeeded()
+    func makeUIView(context: Context) -> UIView {
+        let probe = UIView()
+        probe.isUserInteractionEnabled = false
+        probe.backgroundColor = .clear
+        context.coordinator.probe = probe
+        context.coordinator.scheduleFirstInstall()
+        return probe
     }
 
-    /// Hosts the (empty) UIView background and owns the installation
-    /// logic. Retrying from viewWillAppear covers the window where the
-    /// NavigationStack's UISearchBar isn't attached yet.
-    final class LeadingButtonHostController: UIViewController {
-        fileprivate var systemImage: String
-        fileprivate var tint: UIColor
-        fileprivate var action: () -> Void
-        private var installed: Bool = false
-        private var cameraButton: UIButton?
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // Only re-apply the lightweight config (image, tint, closure);
+        // the heavy install happens once from makeUIView.
+        context.coordinator.updateConfig(systemImage: systemImage, tint: tint, onPhotoSelected: onPhotoSelected)
+    }
 
-        init(systemImage: String, tint: UIColor, action: @escaping () -> Void) {
+    @MainActor
+    final class Coordinator {
+        private var systemImage: String
+        private var tint: UIColor
+        private var onPhotoSelected: (UIImage) -> Void
+
+        weak var probe: UIView?
+        private weak var searchBar: UISearchBar?
+        private weak var installedButton: UIButton?
+        private var photoKeyboardView: PerchPhotoKeyboardView?
+        private var retryWorkItem: DispatchWorkItem?
+        private static let maxRetries = 30
+
+        /// Which input view the search text field is currently using.
+        /// `false` = system keyboard, `true` = photo grid keyboard.
+        private var showingPhotoKeyboard: Bool = false
+
+        init(systemImage: String, tint: UIColor, onPhotoSelected: @escaping (UIImage) -> Void) {
             self.systemImage = systemImage
             self.tint = tint
-            self.action = action
-            super.init(nibName: nil, bundle: nil)
+            self.onPhotoSelected = onPhotoSelected
         }
 
-        @available(*, unavailable)
-        required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
-
-        override func viewDidLoad() {
-            super.viewDidLoad()
-            view.isUserInteractionEnabled = false
-            view.backgroundColor = .clear
+        func updateConfig(systemImage: String, tint: UIColor, onPhotoSelected: @escaping (UIImage) -> Void) {
+            self.systemImage = systemImage
+            self.tint = tint
+            self.onPhotoSelected = onPhotoSelected
+            if let button = installedButton {
+                applyConfig(to: button)
+            }
+            photoKeyboardView?.onPhotoSelected = onPhotoSelected
         }
 
-        override func viewWillAppear(_ animated: Bool) {
-            super.viewWillAppear(animated)
-            configureSearchBarIfNeeded()
+        func scheduleFirstInstall() {
+            guard installedButton == nil else { return }
+            retryWorkItem?.cancel()
+            attemptInstall(retriesLeft: Self.maxRetries)
         }
 
-        override func didMove(toParent parent: UIViewController?) {
-            super.didMove(toParent: parent)
-            configureSearchBarIfNeeded()
-        }
-
-        fileprivate func configureSearchBarIfNeeded() {
-            guard let searchBar = findSearchBar() else {
-                // Retry on the next runloop tick — NavigationStack may
-                // still be installing its searchController.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                    self?.configureSearchBarIfNeeded()
-                }
+        private func attemptInstall(retriesLeft: Int) {
+            if let bar = findSearchBar() {
+                install(on: bar)
                 return
             }
-            install(on: searchBar)
+            guard retriesLeft > 0 else { return }
+            let work = DispatchWorkItem { [weak self] in
+                self?.attemptInstall(retriesLeft: retriesLeft - 1)
+            }
+            retryWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
         }
 
-        /// Walk up the controller hierarchy to locate the navigation
-        /// controller that owns the searchable UISearchBar.
+        /// Walk up the UIResponder chain from the probe view to find
+        /// the UISearchBar installed by SwiftUI's `.searchable`.
         private func findSearchBar() -> UISearchBar? {
-            var current: UIViewController? = self
-            while let vc = current {
-                // Direct navigation controller.
-                if let nav = vc as? UINavigationController {
-                    if let bar = nav.topViewController?.navigationItem.searchController?.searchBar {
+            guard let probe else { return nil }
+            var responder: UIResponder? = probe
+            while let r = responder {
+                if let vc = r as? UIViewController {
+                    if let bar = vc.navigationItem.searchController?.searchBar {
+                        return bar
+                    }
+                    if let nav = vc as? UINavigationController,
+                       let top = nav.topViewController,
+                       let bar = top.navigationItem.searchController?.searchBar {
                         return bar
                     }
                 }
-                // Parent has a search controller.
-                if let bar = vc.navigationItem.searchController?.searchBar {
-                    return bar
-                }
-                current = vc.parent
+                responder = r.next
             }
             return nil
         }
 
-        private func install(on searchBar: UISearchBar) {
-            // Re-install if systemImage or tint changed (e.g. palette
-            // flipped time-of-day). Idempotent otherwise.
-            if installed,
-               let existing = cameraButton,
-               existing.image(for: .normal)?.description == UIImage(systemName: systemImage)?.description,
-               existing.tintColor == tint {
-                return
-            }
+        private func install(on bar: UISearchBar) {
+            let button = UIButton(type: .system)
+            button.frame = CGRect(x: 0, y: 0, width: 24, height: 24)
+            button.addAction(UIAction { [weak self] _ in
+                self?.toggleInputView()
+            }, for: .touchUpInside)
+            applyConfig(to: button)
 
+            bar.searchTextField.leftView = button
+            bar.searchTextField.leftViewMode = .always
+
+            // Tapping the text field restores the keyboard. The gesture
+            // doesn't cancel touches so the text field's own selection
+            // handling still works.
+            let tap = UITapGestureRecognizer(target: self, action: #selector(handleTextFieldTap))
+            tap.cancelsTouchesInView = false
+            bar.searchTextField.addGestureRecognizer(tap)
+
+            installedButton = button
+            searchBar = bar
+        }
+
+        private func applyConfig(to button: UIButton) {
             let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
             let image = UIImage(systemName: systemImage, withConfiguration: config)
-
-            let button: UIButton
-            if let existing = cameraButton {
-                button = existing
-            } else {
-                button = UIButton(type: .system)
-                button.translatesAutoresizingMaskIntoConstraints = false
-                button.addAction(UIAction { [weak self] _ in
-                    self?.action()
-                }, for: .touchUpInside)
-                cameraButton = button
-            }
-
             button.setImage(image, for: .normal)
             button.tintColor = tint
-            button.frame = CGRect(x: 0, y: 0, width: 24, height: 24)
-
-            searchBar.searchTextField.leftView = button
-            searchBar.searchTextField.leftViewMode = .always
-
-            installed = true
         }
+
+        @objc private func handleTextFieldTap() {
+            // If we're showing the photo grid and the user taps the
+            // field, flip back to the keyboard.
+            if showingPhotoKeyboard {
+                showKeyboard()
+            }
+        }
+
+        private func toggleInputView() {
+            showingPhotoKeyboard ? showKeyboard() : showPhotoKeyboard()
+        }
+
+        private func showPhotoKeyboard() {
+            guard let textField = searchBar?.searchTextField else { return }
+
+            let gridView: PerchPhotoKeyboardView
+            if let existing = photoKeyboardView {
+                gridView = existing
+            } else {
+                gridView = PerchPhotoKeyboardView(onPhotoSelected: onPhotoSelected)
+                photoKeyboardView = gridView
+            }
+
+            textField.inputView = gridView
+            showingPhotoKeyboard = true
+            if textField.isFirstResponder {
+                textField.reloadInputViews()
+            } else {
+                textField.becomeFirstResponder()
+            }
+        }
+
+        private func showKeyboard() {
+            guard let textField = searchBar?.searchTextField else { return }
+            textField.inputView = nil
+            showingPhotoKeyboard = false
+            if textField.isFirstResponder {
+                textField.reloadInputViews()
+            }
+        }
+    }
+}
+
+// MARK: - PerchPhotoKeyboardView
+//
+// UIView that replaces the on-screen keyboard when the compose
+// camera icon is tapped. Shows a 4-column grid: first cell is a
+// camera tile (tap to take a photo), the rest are thumbnails
+// fetched from the user's photo library, most-recent first.
+//
+// Height is fixed at 280pt — comfortably below a standard keyboard.
+// Selecting a photo fires `onPhotoSelected(UIImage)` on the caller,
+// which attaches it to the current compose draft. The camera tile
+// presents UIImagePickerController(.camera) on top of the key window.
+//
+// Future: live AVCaptureSession preview inside the camera tile,
+// multi-select with a Send-N-items confirm row, permission empty
+// states. Intentionally single-select for v1 — smallest surface
+// that matches the user's spec.
+
+final class PerchPhotoKeyboardView: UIView {
+    var onPhotoSelected: (UIImage) -> Void
+
+    private let collectionView: UICollectionView
+    private let imageManager = PHCachingImageManager()
+    private var assets: PHFetchResult<PHAsset>?
+    private static let cameraReuseID = "CameraCell"
+    private static let photoReuseID = "PhotoCell"
+
+    init(onPhotoSelected: @escaping (UIImage) -> Void) {
+        self.onPhotoSelected = onPhotoSelected
+
+        let layout = UICollectionViewFlowLayout()
+        layout.minimumInteritemSpacing = 2
+        layout.minimumLineSpacing = 2
+        self.collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+
+        // Height of ≈280pt fits within the keyboard's own slot on
+        // most iPhones. Autoresizing lets it stretch horizontally.
+        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 280))
+        autoresizingMask = [.flexibleWidth]
+
+        setUpCollectionView()
+        requestPhotoAccessAndLoad()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
+
+    private func setUpCollectionView() {
+        backgroundColor = .secondarySystemBackground
+        collectionView.backgroundColor = .clear
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.dataSource = self
+        collectionView.delegate = self
+        collectionView.register(CameraCell.self, forCellWithReuseIdentifier: Self.cameraReuseID)
+        collectionView.register(PhotoCell.self, forCellWithReuseIdentifier: Self.photoReuseID)
+        collectionView.alwaysBounceVertical = true
+
+        addSubview(collectionView)
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: topAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
+    }
+
+    private func requestPhotoAccessAndLoad() {
+        let handler: (PHAuthorizationStatus) -> Void = { [weak self] status in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                if status == .authorized || status == .limited {
+                    self.fetchAssets()
+                } else {
+                    // No permission — collection stays empty apart
+                    // from the camera cell, which still works via
+                    // UIImagePickerController's own permission flow.
+                    self.collectionView.reloadData()
+                }
+            }
+        }
+        PHPhotoLibrary.requestAuthorization(for: .readWrite, handler: handler)
+    }
+
+    private func fetchAssets() {
+        let options = PHFetchOptions()
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        options.fetchLimit = 120
+        assets = PHAsset.fetchAssets(with: .image, options: options)
+        collectionView.reloadData()
+    }
+
+    // MARK: - Cells
+
+    private final class CameraCell: UICollectionViewCell {
+        private let icon: UIImageView = {
+            let iv = UIImageView(image: UIImage(systemName: "camera.fill"))
+            iv.tintColor = .white
+            iv.contentMode = .center
+            iv.translatesAutoresizingMaskIntoConstraints = false
+            return iv
+        }()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            backgroundColor = UIColor(white: 0.12, alpha: 1)
+            layer.cornerRadius = 4
+            contentView.addSubview(icon)
+            NSLayoutConstraint.activate([
+                icon.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+                icon.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+            ])
+        }
+        required init?(coder: NSCoder) { fatalError() }
+    }
+
+    private final class PhotoCell: UICollectionViewCell {
+        private let imageView: UIImageView = {
+            let iv = UIImageView()
+            iv.contentMode = .scaleAspectFill
+            iv.clipsToBounds = true
+            iv.translatesAutoresizingMaskIntoConstraints = false
+            return iv
+        }()
+        private var assetID: String?
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            layer.cornerRadius = 4
+            clipsToBounds = true
+            contentView.addSubview(imageView)
+            NSLayoutConstraint.activate([
+                imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+                imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+                imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor)
+            ])
+        }
+        required init?(coder: NSCoder) { fatalError() }
+
+        func configure(asset: PHAsset, manager: PHCachingImageManager, targetSize: CGSize) {
+            assetID = asset.localIdentifier
+            imageView.image = nil
+            manager.requestImage(
+                for: asset,
+                targetSize: targetSize,
+                contentMode: .aspectFill,
+                options: nil
+            ) { [weak self] image, _ in
+                guard let self, self.assetID == asset.localIdentifier else { return }
+                self.imageView.image = image
+            }
+        }
+    }
+
+    // MARK: - Camera presentation
+
+    private func presentCamera() {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            // No camera (simulator) — nothing to do. Photo library
+            // thumbnails are still tappable below.
+            return
+        }
+        guard let presenter = topMostViewController() else { return }
+
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = cameraDelegate
+        presenter.present(picker, animated: true)
+    }
+
+    /// Held on the view so the picker's delegate outlives the call.
+    private lazy var cameraDelegate: CameraPickerDelegate = CameraPickerDelegate { [weak self] image in
+        guard let self, let image else { return }
+        self.onPhotoSelected(image)
+    }
+
+    private final class CameraPickerDelegate: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onImage: (UIImage?) -> Void
+
+        init(onImage: @escaping (UIImage?) -> Void) {
+            self.onImage = onImage
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            let image = info[.originalImage] as? UIImage
+            picker.dismiss(animated: true) {
+                self.onImage(image)
+            }
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
+    }
+
+    private func topMostViewController() -> UIViewController? {
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })
+        var vc = scene?.keyWindow?.rootViewController
+        while let presented = vc?.presentedViewController {
+            vc = presented
+        }
+        return vc
+    }
+}
+
+extension PerchPhotoKeyboardView: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        (assets?.count ?? 0) + 1  // +1 for the camera tile
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        if indexPath.item == 0 {
+            return collectionView.dequeueReusableCell(withReuseIdentifier: Self.cameraReuseID, for: indexPath)
+        }
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.photoReuseID, for: indexPath) as! PhotoCell
+        if let asset = assets?.object(at: indexPath.item - 1) {
+            let size = cellSize(at: indexPath)
+            let scale = UIScreen.main.scale
+            let targetSize = CGSize(width: size.width * scale, height: size.height * scale)
+            cell.configure(asset: asset, manager: imageManager, targetSize: targetSize)
+        }
+        return cell
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if indexPath.item == 0 {
+            presentCamera()
+        } else if let asset = assets?.object(at: indexPath.item - 1) {
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            options.isSynchronous = false
+            options.isNetworkAccessAllowed = true
+            imageManager.requestImage(
+                for: asset,
+                targetSize: CGSize(width: 1600, height: 1600),
+                contentMode: .aspectFit,
+                options: options
+            ) { [weak self] image, _ in
+                guard let self, let image else { return }
+                DispatchQueue.main.async {
+                    self.onPhotoSelected(image)
+                }
+            }
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, layout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        cellSize(at: indexPath)
+    }
+
+    private func cellSize(at indexPath: IndexPath) -> CGSize {
+        let spacing: CGFloat = 2
+        let columns: CGFloat = 4
+        let available = bounds.width
+        let width = floor((available - spacing * (columns - 1)) / columns)
+        return CGSize(width: width, height: width)
     }
 }
