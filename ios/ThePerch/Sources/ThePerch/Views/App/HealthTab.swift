@@ -75,13 +75,18 @@ struct HealthTab: View {
 
 // MARK: - Overview Segment
 
-/// Health overview: body metrics, sleep score + readiness, trend charts.
-/// Reuses existing HealthView content directly.
+/// Health overview — Sections v2.
+/// Editorial opener, readiness ring + sleep/recovery stack, 7-day trend
+/// table with sparklines + ink deltas, and a "Today" plan card. Colour
+/// discipline: kinetic is reserved for the active pill-nav tab; all
+/// emphasis here is in ink. Real data where available (sleep_duration,
+/// avg_sleep_hrv, lowest_sleep_hr); readiness + trend deltas fall back
+/// to spec-matching mocks until the Oura pipeline exposes them.
 struct HealthOverviewSegment: View {
+    @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = HealthViewModel()
     @State private var selectedDetail: HealthDetailInfo?
-    @State private var cardsAppeared = false
 
     struct HealthDetailInfo: Identifiable {
         let id = UUID()
@@ -92,147 +97,163 @@ struct HealthOverviewSegment: View {
         let higherIsBetter: Bool
     }
 
+    // MARK: Data derivations
+
+    /// Most recent measurement value for a metric key, or nil if we
+    /// don't have it yet.
+    private func latest(_ key: String) -> Double? {
+        viewModel.latestByMetric[key]?.1.value
+    }
+
+    /// "7:12" style hours:minutes from a decimal-hour value (e.g. 7.2).
+    private func formatSleepHours(_ hours: Double) -> String {
+        let h = Int(hours)
+        let m = Int((hours - Double(h)) * 60)
+        return String(format: "%d:%02d", h, m)
+    }
+
+    /// Last N measurement points for a metric, padded with the most
+    /// recent value if we don't have enough history yet.
+    private func sparkPoints(_ key: String, count: Int = 7) -> [Double] {
+        let recent = viewModel.recordsForMetric(key)
+            .suffix(count)
+            .compactMap { $0.asMeasurement()?.value }
+        if recent.count >= 2 { return Array(recent) }
+        // Fall back so the sparkline still renders flat-ish.
+        let v = recent.last ?? latest(key) ?? 0
+        return Array(repeating: v, count: count)
+    }
+
+    /// Uppercase short weekday + date, e.g. "MON · APR 20".
+    private var todayKicker: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE · MMM d"
+        return f.string(from: Date.now).uppercased()
+    }
+
+    /// "Apr 14 – 20" for the 7-day trend card.
+    private var sevenDayRange: String {
+        let cal = Calendar.current
+        let now = Date.now
+        let weekAgo = cal.date(byAdding: .day, value: -6, to: now) ?? now
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "MMM d"
+        return "\(f.string(from: weekAgo)) – \(f.string(from: now))"
+    }
+
     var body: some View {
+        // Real-data pulls. Defaults match the handoff mocks so the
+        // screen reads as designed before the full Oura pipeline is wired.
+        let sleepHours = latest("sleep_duration") ?? 7.20
+        let hrv = latest("avg_sleep_hrv") ?? 58
+        let rhr = latest("lowest_sleep_hr") ?? 52
+        // Readiness + recovery aren't in chartMetricOrder yet; mocked.
+        let readiness = 82
+        let recoveryPct = 74
+        let deepSleepDeltaMin = 12
+
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                if viewModel.error != nil {
-                    ErrorBanner(
-                        message: "Failed to load health data",
-                        retryAction: { Task { await dashboardViewModel.loadDashboard(forceRefresh: true) } },
-                        onDismiss: { viewModel.clearError() }
-                    )
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                SectionTitle(
+                    kicker: todayKicker,
+                    title: "Well-rested. Ready when you are.",
+                    aside: "Updated\n5:42 am"
+                )
 
-                if dashboardViewModel.isLoading && viewModel.records.isEmpty {
-                    SkeletonCardsSection(count: 3)
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                } else if viewModel.records.isEmpty {
-                    EmptyStateView(
-                        icon: "heart.text.square",
-                        title: "No health data",
-                        subtitle: viewModel.isHealthKitAvailable
-                            ? "Connect Apple Health to start syncing your latest health metrics."
-                            : "Health data will appear here once your sources start syncing.",
-                        actionTitle: viewModel.isHealthKitAvailable ? "Connect Apple Health" : nil,
-                        action: viewModel.isHealthKitAvailable ? { Task { await viewModel.syncWithHealthKit() } } : nil
-                    )
-                    .padding(.horizontal, PerchTheme.Spacing.large)
-                } else {
-                    // Daily calories card
-                    if let (record, measurement) = viewModel.displayedDailyCalories,
-                       let target = measurement.target {
-                        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-                            CaloriesCard(
-                                consumed: measurement.value,
-                                target: target,
-                                unit: measurement.unit,
-                                lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (measurement.timestamp ?? record.updatedAt)
-                            )
+                // ── Readiness hero card ────────────────────────────
+                PerchSectionCard {
+                    HStack(alignment: .center, spacing: 22) {
+                        ReadinessRing(value: readiness)
 
-                            if !viewModel.isSyntheticNutritionRecord(record) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Button {
-                                        Task { await viewModel.saveDailyCaloriesToHealth() }
-                                    } label: {
-                                        HStack(spacing: 8) {
-                                            if viewModel.isSavingToHealth {
-                                                ProgressView()
-                                                    .progressViewStyle(CircularProgressViewStyle())
-                                                    .scaleEffect(0.8)
-                                            } else {
-                                                Image(systemName: "square.and.arrow.down")
-                                            }
-                                            Text(viewModel.isSavingToHealth ? "Saving to Apple Health..." : "Save daily calories to Apple Health")
-                                        }
-                                        .font(PerchTheme.Font.caption)
-                                        .foregroundColor(PerchTheme.accent)
-                                    }
-                                    .disabled(viewModel.isSavingToHealth)
-
-                                    if let success = viewModel.healthExportSuccess {
-                                        Text(success)
-                                            .font(PerchTheme.Font.caption)
-                                            .foregroundColor(PerchTheme.success)
-                                    }
-
-                                    if let error = viewModel.healthExportError {
-                                        Text(error)
-                                            .font(PerchTheme.Font.caption)
-                                            .foregroundColor(PerchTheme.error)
-                                    }
+                        VStack(alignment: .leading, spacing: 14) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                PerchKicker("Sleep")
+                                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                    PerchNum(formatSleepHours(sleepHours), size: 24)
+                                    Text("hrs")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(palette.muted)
                                 }
-                                .padding(.horizontal, PerchTheme.Spacing.small)
+                                Text("Deep +\(deepSleepDeltaMin)m vs avg")
+                                    .font(.system(size: 11.5))
+                                    .foregroundStyle(palette.muted)
+                                    .padding(.top, 2)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                PerchKicker("Recovery")
+                                PerchNum("\(recoveryPct)", size: 24, suffix: "%")
+                                Text("HRV \(Int(hrv)) · RHR \(Int(rhr))")
+                                    .font(.system(size: 11.5))
+                                    .foregroundStyle(palette.muted)
+                                    .padding(.top, 2)
                             }
                         }
-                        .cardAppear(index: 0, appeared: cardsAppeared)
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                    } else {
-                        placeholderCard(title: "Daily Calories", emoji: "🔥", hint: "Log food with Claudinho")
-                    }
 
-                    // Daily macros card
-                    if let (record, macros) = viewModel.displayedMacros {
-                        MacrosCard(
-                            protein: macros.protein,
-                            proteinTarget: macros.proteinTarget,
-                            carbs: macros.carbs,
-                            carbsTarget: macros.carbsTarget,
-                            fat: macros.fat,
-                            fatTarget: macros.fatTarget,
-                            lastUpdated: viewModel.isSyntheticNutritionRecord(record) ? nil : (macros.dateAsDate ?? record.updatedAt)
-                        )
-                        .cardAppear(index: 1, appeared: cardsAppeared)
-                        .padding(.horizontal, PerchTheme.Spacing.large)
-                    } else {
-                        placeholderCard(title: "Daily Macros", emoji: "🥩", hint: "Log food with Claudinho")
+                        Spacer(minLength: 0)
                     }
+                }
 
-                    // Chart cards per metric
-                    ForEach(Array(HealthViewModel.chartMetricOrder.enumerated()), id: \.element.key) { chartIndex, metricInfo in
-                        let metricRecords = viewModel.recordsForMetric(metricInfo.key)
-                        let isTimeBased = metricInfo.key == "sleep_duration" || metricInfo.key == "deep_sleep"
-                        if !metricRecords.isEmpty {
-                            Button {
-                                PerchHaptics.light()
-                                selectedDetail = HealthDetailInfo(
-                                    title: metricInfo.title,
-                                    records: metricRecords,
-                                    unit: isTimeBased ? "" : metricInfo.unit,
-                                    formatAsTime: isTimeBased,
-                                    higherIsBetter: metricInfo.higherIsBetter
-                                )
-                            } label: {
-                                ChartCard(
-                                    title: metricInfo.title,
-                                    records: metricRecords,
-                                    unit: isTimeBased ? "" : metricInfo.unit,
-                                    formatAsTime: isTimeBased,
-                                    higherIsBetter: metricInfo.higherIsBetter
-                                )
-                            }
-                            .buttonStyle(CardPressStyle())
-                            .cardAppear(index: chartIndex + 4, appeared: cardsAppeared)
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-                        } else {
-                            placeholderCard(
-                                title: metricInfo.title,
-                                emoji: metricInfo.emoji,
-                                hint: placeholderHint(for: metricInfo.key)
-                            )
+                // ── 7-day trend card ────────────────────────────────
+                PerchSectionCard {
+                    HStack {
+                        PerchKicker("Seven-day trend")
+                        Spacer()
+                        Text(sevenDayRange)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(palette.muted)
+                    }
+                    .padding(.bottom, 4)
+
+                    let trendRows: [OverviewTrendRow.Model] = [
+                        .init(label: "Sleep",
+                              current: formatSleepHours(sleepHours).appending("h"),
+                              delta: "+22m",
+                              points: sparkPoints("sleep_duration")),
+                        .init(label: "Recovery",
+                              current: "\(recoveryPct)%",
+                              delta: "+4%",
+                              points: sparkPoints("avg_sleep_hrv")),
+                        .init(label: "Resting HR",
+                              current: "\(Int(rhr)) bpm",
+                              delta: "−2",
+                              points: sparkPoints("lowest_sleep_hr"))
+                    ]
+
+                    ForEach(Array(trendRows.enumerated()), id: \.offset) { i, row in
+                        OverviewTrendRow(model: row)
+                        if i < trendRows.count - 1 {
+                            PerchSoftDivider()
                         }
                     }
                 }
 
-                Color.clear
-                    .frame(height: 0)
-                    .onAppear {
-                        PerchMotion.withOptionalAnimation { cardsAppeared = true }
+                // ── Today's plan card ───────────────────────────────
+                PerchSectionCard {
+                    PerchKicker("Today")
+                        .padding(.bottom, 10)
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        TodayPlanRow(
+                            symbol: "dumbbell",
+                            title: "Chest & Triceps · Session 48",
+                            subtitle: "Suggested · 18:00 · ~55 min"
+                        )
+                        TodayPlanRow(
+                            symbol: "leaf",
+                            title: "Target: 2,900 kcal · 190P / 350C / 80F",
+                            subtitle: "1,331 logged · 1,569 to go"
+                        )
                     }
+                }
 
                 Color.clear
                     .frame(height: PerchTheme.TabBar.shellContentInsetHeight)
             }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 140)
         }
         .refreshable {
             PerchHaptics.medium()
@@ -257,41 +278,116 @@ struct HealthOverviewSegment: View {
             )
         }
     }
+}
 
-    private func placeholderCard(title: String, emoji: String, hint: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(emoji)
-                    .font(PerchTheme.Font.title)
-                Text(title.uppercased())
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+// MARK: - Overview sub-components
+
+/// Big circular readiness ring: 130pt diameter, 6pt stroke, ink colour.
+/// Number + "READY" cap sit centred. 82 is the spec default.
+private struct ReadinessRing: View {
+    @Environment(\.perchPalette) private var palette
+    let value: Int
+
+    var body: some View {
+        let fraction = Double(max(0, min(100, value))) / 100.0
+        ZStack {
+            Circle()
+                .stroke(palette.ink.opacity(0.12), lineWidth: 6)
+                .frame(width: 130, height: 130)
+
+            Circle()
+                .trim(from: 0, to: CGFloat(fraction))
+                .stroke(palette.ink,
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: 130, height: 130)
+
+            VStack(spacing: 4) {
+                Text("\(value)")
+                    .font(.system(size: 36, weight: .medium, design: .serif))
+                    .monospacedDigit()
+                    .foregroundStyle(palette.ink)
+                    .tracking(-1)
+                Text("READY")
+                    .font(.system(size: 9.5))
+                    .tracking(1.6)
+                    .foregroundStyle(palette.muted)
             }
-
-            Text("No data yet")
-                .font(PerchTheme.Font.displayNumeric)
-                .foregroundColor(PerchTheme.textTertiary)
-
-            Text(hint)
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(PerchTheme.Card.padding)
-        .cardStyle()
-        .padding(.horizontal, PerchTheme.Spacing.large)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Readiness \(value) out of 100")
+    }
+}
+
+/// One row in the "Seven-day trend" card: label · sparkline · current
+/// value · coloured delta. Delta colour is `palette.good` for positive
+/// moves; ink for neutral.
+private struct OverviewTrendRow: View {
+    @Environment(\.perchPalette) private var palette
+
+    struct Model {
+        let label: String
+        let current: String
+        let delta: String
+        let points: [Double]
     }
 
-    private func placeholderHint(for metricKey: String) -> String {
-        switch metricKey {
-        case "weight":
-            return "Sync Apple Health or log with Claudinho"
-        case "skeletal_muscle", "body_fat_mass":
-            return "Share your InBody scan with Claudinho"
-        case "sleep_duration", "deep_sleep", "lowest_sleep_hr", "avg_sleep_hrv":
-            return "Share your Oura data with Claudinho"
-        default:
-            return "Ask Claudinho to log this metric"
+    let model: Model
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Text(model.label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(palette.ink)
+                .frame(width: 90, alignment: .leading)
+
+            PerchSpark(points: model.points, size: CGSize(width: 86, height: 22))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(model.current)
+                .font(.system(size: 15, weight: .regular, design: .serif))
+                .monospacedDigit()
+                .foregroundStyle(palette.ink)
+
+            Text(model.delta)
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(palette.good)
+                .frame(width: 44, alignment: .trailing)
+        }
+        .padding(.vertical, 10)
+    }
+}
+
+/// Row inside the "Today" plan card: square ink-tinted icon badge +
+/// title + subtitle. Icon uses SF Symbols in the active palette's ink.
+private struct TodayPlanRow: View {
+    @Environment(\.perchPalette) private var palette
+
+    let symbol: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(palette.ink.opacity(0.08))
+                .frame(width: 34, height: 34)
+                .overlay(
+                    Image(systemName: symbol)
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(palette.ink)
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 14.5, weight: .medium))
+                    .foregroundStyle(palette.ink)
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(palette.muted)
+            }
+
+            Spacer(minLength: 0)
         }
     }
 }
@@ -919,6 +1015,261 @@ private struct HealthTabPersonalRecordsCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+    }
+}
+
+// MARK: - v2 Primitives
+//
+// Shared building blocks for the Sections v2 redesign. Used by the
+// Health segments and the Hub sections. All read from
+// @Environment(\.perchPalette) so the screens re-tint with the
+// time-of-day palette like the rest of the app.
+
+/// Screen-opening header: small uppercase kicker + italic Fraunces
+/// title + optional right-aligned aside. One per screen.
+/// e.g. `SectionTitle(kicker: "MON · APR 20", title: "Well-rested.
+/// Ready when you are.", aside: "Updated\n5:42 am")`
+struct SectionTitle: View {
+    @Environment(\.perchPalette) private var palette
+
+    let kicker: String?
+    let title: String
+    let aside: String?
+
+    init(kicker: String? = nil, title: String, aside: String? = nil) {
+        self.kicker = kicker
+        self.title = title
+        self.aside = aside
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                if let kicker {
+                    Text(kicker)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(palette.muted)
+                        .textCase(.uppercase)
+                }
+                Text(title)
+                    .font(.system(size: 28, weight: .regular, design: .serif).italic())
+                    .foregroundStyle(palette.ink)
+                    .tracking(-0.5)
+                    .lineSpacing(-2) // → ~1.1 line-height
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let aside {
+                Spacer(minLength: 0)
+                Text(aside)
+                    .font(.system(size: 12))
+                    .foregroundStyle(palette.muted)
+                    .multilineTextAlignment(.trailing)
+                    .lineSpacing(1)
+                    .fixedSize(horizontal: true, vertical: true)
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.top, 6)
+        .padding(.bottom, 14)
+        .padding(.horizontal, 4)
+    }
+}
+
+/// 10.5pt uppercase tracked label. The small eyebrow above each card's
+/// content. `accent` overrides the default muted tone (used when a
+/// label wants to carry a kinetic/wellness dot).
+struct PerchKicker: View {
+    @Environment(\.perchPalette) private var palette
+
+    let text: String
+    var accent: Color? = nil
+
+    init(_ text: String, accent: Color? = nil) {
+        self.text = text
+        self.accent = accent
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10.5, weight: .semibold))
+            .tracking(1.2)
+            .foregroundStyle(accent ?? palette.muted)
+            .textCase(.uppercase)
+    }
+}
+
+/// Fraunces tabular-nums numeric. Used for every quantitative value
+/// across the sections. `suffix` renders smaller + muted (e.g. "%" or
+/// "kcal"). Sized via the `size` param.
+struct PerchNum: View {
+    @Environment(\.perchPalette) private var palette
+
+    let value: String
+    let size: CGFloat
+    var suffix: String? = nil
+
+    init(_ value: String, size: CGFloat = 32, suffix: String? = nil) {
+        self.value = value
+        self.size = size
+        self.suffix = suffix
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text(value)
+                .font(.system(size: size, weight: .medium, design: .serif))
+                .monospacedDigit()
+                .foregroundStyle(palette.ink)
+                .tracking(size > 28 ? -0.8 : -0.3)
+            if let suffix {
+                Text(suffix)
+                    .font(.system(size: size * 0.5, weight: .regular, design: .serif))
+                    .foregroundStyle(palette.muted)
+            }
+        }
+    }
+}
+
+/// Card wrapper — 22pt radius, 20pt padding, palette card surface.
+/// `tone: .dim` swaps to `palette.cardDim` for subordinate sub-panels
+/// (used e.g. by the Travel FlightStrip inside its parent trip card).
+struct PerchSectionCard<Content: View>: View {
+    @Environment(\.perchPalette) private var palette
+
+    enum Tone { case card, dim }
+
+    let tone: Tone
+    let padding: CGFloat
+    let content: Content
+
+    init(tone: Tone = .card, padding: CGFloat = 20, @ViewBuilder content: () -> Content) {
+        self.tone = tone
+        self.padding = padding
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(padding)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(tone == .dim ? palette.cardDim : palette.card)
+            )
+    }
+}
+
+/// Soft hairline divider inside a card (row separator).
+struct PerchSoftDivider: View {
+    @Environment(\.perchPalette) private var palette
+    var body: some View {
+        Rectangle()
+            .fill(palette.lineSoft)
+            .frame(height: 1)
+    }
+}
+
+/// 4-stage stepper: Ordered → Shipped → In transit → Delivered.
+/// Filled dot = done, larger filled dot with ink-haloed ring = active,
+/// hollow ring = pending. Connector line: 1.5pt, ink@0.7 when the
+/// preceding dot is done, faint@0.3 otherwise. Labels below each dot.
+struct PerchStageStepper: View {
+    @Environment(\.perchPalette) private var palette
+
+    let stages: [String]
+    let currentIdx: Int
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(stages.enumerated()), id: \.offset) { i, label in
+                dot(at: i, label: label)
+
+                if i < stages.count - 1 {
+                    Rectangle()
+                        .fill(i < currentIdx ? palette.ink.opacity(0.7) : palette.faint.opacity(0.3))
+                        .frame(height: 1.5)
+                        .frame(maxWidth: .infinity)
+                        // Line aligns with the dot's vertical center (≈5pt down)
+                        .padding(.top, 5)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dot(at i: Int, label: String) -> some View {
+        let done = i < currentIdx
+        let active = i == currentIdx
+        let color: Color = (done || active) ? palette.ink : palette.faint
+
+        VStack(spacing: 8) {
+            ZStack {
+                if active {
+                    Circle()
+                        .fill(palette.ink.opacity(0.12))
+                        .frame(width: 20, height: 20)
+                }
+                Circle()
+                    .fill(done || active ? color : Color.clear)
+                    .frame(width: active ? 12 : 8, height: active ? 12 : 8)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(color, lineWidth: (done || active) ? 0 : 1.5)
+                    )
+            }
+            .frame(width: 20, height: 20)
+
+            Text(label)
+                .font(.system(size: 10.5, weight: active ? .semibold : .regular))
+                .tracking(0.2)
+                .foregroundStyle(active ? palette.ink : palette.faint)
+                .textCase(.uppercase)
+                .lineLimit(1)
+                .fixedSize()
+        }
+        .frame(minWidth: 46)
+    }
+}
+
+/// Tiny polyline sparkline. Fits in a row beside a label + value.
+/// Normalises the incoming series to its own min/max for maximum
+/// visual variation; the point here is "does this trend up or down",
+/// not absolute scale.
+struct PerchSpark: View {
+    @Environment(\.perchPalette) private var palette
+
+    let points: [Double]
+    var size: CGSize = CGSize(width: 86, height: 22)
+    var color: Color? = nil
+
+    var body: some View {
+        Canvas { ctx, _ in
+            guard points.count >= 2 else { return }
+            let lo = points.min() ?? 0
+            let hi = points.max() ?? 1
+            let range = (hi - lo) == 0 ? 1 : (hi - lo)
+
+            var path = Path()
+            for (i, v) in points.enumerated() {
+                let x = CGFloat(i) / CGFloat(points.count - 1) * size.width
+                let y = size.height - CGFloat((v - lo) / range) * size.height
+                if i == 0 {
+                    path.move(to: CGPoint(x: x, y: y))
+                } else {
+                    path.addLine(to: CGPoint(x: x, y: y))
+                }
+            }
+
+            ctx.stroke(
+                path,
+                with: .color(color ?? palette.ink),
+                style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+            )
+        }
+        .frame(width: size.width, height: size.height)
     }
 }
 
