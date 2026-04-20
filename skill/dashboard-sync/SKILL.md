@@ -1,4 +1,11 @@
+---
+name: dashboard-sync
+description: Core agent tool for The Perch ecosystem. Provides dashboard_push, dashboard_query, and dashboard_heartbeat for persisting structured data to Supabase. Persists measurements, deliveries, events, statuses, and other records displayed in the iOS app. Also tracks agent health and token usage.
+---
+
 # Dashboard Sync ⚠️ See [perch-supabase](../perch-supabase/SKILL.md) first
+
+> **This skill is part of the perch-skills ecosystem. See [README.md](../README.md) for full skill index.**
 
 > **Foundation**: The Perch skill ecosystem is built on a shared Supabase backend. Read [perch-supabase](../perch-supabase/SKILL.md) before working with any Perch skill to understand the schema, RLS policies, and service role setup.
 

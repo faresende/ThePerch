@@ -1,3 +1,9 @@
+---
+name: perch-health
+description: "Health data pipeline from Oura Ring sensor data through to Supabase records, including sleep, readiness, HRV, weight and body metrics."
+version: 1.0.0
+---
+
 # perch-health
 
 ## Trigger

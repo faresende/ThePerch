@@ -1,3 +1,9 @@
+---
+name: perch-calendar
+description: "Apple Calendar event ingestion via icalBuddy, stored in Supabase records with ISO8601 timezone-aware timestamps."
+version: 1.0.0
+---
+
 # perch-calendar
 
 ## Trigger

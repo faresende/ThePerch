@@ -1,3 +1,9 @@
+---
+name: perch-bookmarks
+description: "URL bookmarking system with titles, favicons, and tags stored in Supabase records table."
+version: 1.0.0
+---
+
 # perch-bookmarks
 
 ## Trigger

@@ -1,3 +1,9 @@
+---
+name: perch-ios
+description: "Native iOS personal dashboard app built with SwiftUI. Covers building, running, architecture, widgets, and contributing."
+version: 1.0.0
+---
+
 # perch-ios
 
 ## Trigger

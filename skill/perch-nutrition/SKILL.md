@@ -1,3 +1,9 @@
+---
+name: perch-nutrition
+description: "Nutrition data pipeline covering meal logging, supplement tracking, macro/calorie targets, and progress summaries."
+version: 1.0.0
+---
+
 # perch-nutrition
 
 ## Trigger

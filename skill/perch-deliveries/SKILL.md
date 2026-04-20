@@ -1,3 +1,9 @@
+---
+name: perch-deliveries
+description: "Two-pipeline delivery tracking: orders+shipments tables for Orders tab, and dashboard_records for Home Deliveries card. Includes Live Activities."
+version: 1.0.0
+---
+
 # perch-deliveries
 
 ## Trigger

@@ -1,3 +1,9 @@
+---
+name: perch-supabase
+description: "Supabase backend schema, RLS policies, authentication, and service role setup for The Perch iOS app."
+version: 1.0.0
+---
+
 # perch-supabase
 
 ## Trigger

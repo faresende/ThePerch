@@ -1,3 +1,9 @@
+---
+name: perch-orders
+description: "Scans commerce confirmation emails from Fastmail via JMAP, extracts orders and shipments, writes to Supabase orders and shipments tables."
+version: 1.0.0
+---
+
 # perch-orders
 
 ## Trigger

@@ -1,3 +1,9 @@
+---
+name: perch-workouts
+description: "Resistance training tracking with pull/push/legs rotation, rest days, and calendar integration for the The Perch workouts section."
+version: 1.0.0
+---
+
 # perch-workouts
 
 ## Trigger
