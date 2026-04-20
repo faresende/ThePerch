@@ -92,6 +92,11 @@ struct TodayTab: View {
                     }
                 }
                 .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
+                // Pull the card stack a touch up into the hero's lower
+                // seam zone. At y=308–320 the V1 gradient is 100%
+                // palette.bg, so the overlap reads as the same surface —
+                // just tightens the hero-to-feed transition visually.
+                .padding(.top, -12)
 
                 // Bottom padding for tab bar.
                 Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)

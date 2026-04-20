@@ -4,6 +4,7 @@ import SwiftUI
 /// Evolves from SettingsView, absorbing AdminView content (integrations, debug, advanced).
 struct SettingsTab: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.perchPalette) private var palette
     @Environment(AuthViewModel.self) var authViewModel
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
@@ -138,15 +139,22 @@ struct SettingsTab: View {
             LabeledContent("Mode") {
                 HStack(spacing: 6) {
                     Text(backendModeLabel)
+                    // Status check uses the palette's kinetic accent
+                    // instead of the default system green, so Settings
+                    // reads as part of the same colour language as the
+                    // rest of the app.
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(palette.kinetic)
                         .font(.footnote)
                 }
             }
 
-            Button("Change Backend", role: .destructive) {
+            // Dropped `role: .destructive` (which forces system red) so
+            // the label can pick up the palette accent via foregroundColor.
+            Button("Change Backend") {
                 showChangeBackend = true
             }
+            .foregroundColor(palette.kinetic)
         }
     }
 
@@ -159,7 +167,9 @@ struct SettingsTab: View {
 
     private var signOutSection: some View {
         SwiftUI.Section {
-            Button(role: .destructive) {
+            // Dropped `role: .destructive` so the Sign Out label uses the
+            // palette accent instead of system red.
+            Button {
                 handleSignOut()
             } label: {
                 HStack {
@@ -170,6 +180,7 @@ struct SettingsTab: View {
                     Spacer()
                 }
             }
+            .foregroundColor(palette.kinetic)
             .disabled(isSigningOut)
         }
     }
