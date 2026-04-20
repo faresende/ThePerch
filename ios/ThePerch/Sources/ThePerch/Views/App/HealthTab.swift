@@ -44,7 +44,17 @@ struct HealthTab: View {
                 .background(palette.bg)
                 .padding(.top, 54) // reserve for Dynamic Island / status bar
 
-                // Segment content
+                // Segment content.
+                //
+                // `.ignoresSafeArea(edges: .bottom)` lets this inner page
+                // TabView extend under the main tab bar. Without it, the
+                // inner TabView stops at the system tab bar's safe-area
+                // inset, leaving a flat strip of `palette.bg` visible
+                // through the tab bar's glass — which reads as a solid box
+                // instead of glass. Each segment's ScrollView has a
+                // `shellContentInsetHeight` bottom spacer so visible content
+                // still ends above the tab bar; only scroll geometry
+                // extends beneath it to feed the glass.
                 TabView(selection: $selectedSegment) {
                     HealthOverviewSegment()
                         .tag(HealthSegment.overview)
@@ -56,6 +66,7 @@ struct HealthTab: View {
                         .tag(HealthSegment.nutrition)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .ignoresSafeArea(edges: .bottom)
             }
         }
         .ignoresSafeArea(edges: .top)

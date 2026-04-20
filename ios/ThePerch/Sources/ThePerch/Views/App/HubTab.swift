@@ -93,7 +93,17 @@ struct HubTab: View {
                     .padding(.top, PerchTheme.Spacing.small)
                 }
 
-                // Paged segment content
+                // Paged segment content.
+                //
+                // `.ignoresSafeArea(edges: .bottom)` lets this inner page
+                // TabView extend under the main tab bar. Without it, the
+                // inner TabView stops at the system tab bar's safe-area
+                // inset, leaving a flat strip of `palette.bg` visible
+                // through the tab bar's glass — which reads as a solid box
+                // instead of glass. Each `hubPage`'s ScrollView already has
+                // a `shellContentInsetHeight` bottom spacer so visible
+                // content stops above the tab bar; only scroll geometry
+                // extends beneath it to feed the glass.
                 TabView(selection: $selectedSegment) {
                     hubPage { OrdersSectionContent() }
                         .tag(HubSegment.orders)
@@ -110,6 +120,7 @@ struct HubTab: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .ignoresSafeArea(edges: .bottom)
             }
         }
         .ignoresSafeArea(edges: .top)
