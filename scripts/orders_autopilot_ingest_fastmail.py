@@ -2,6 +2,7 @@
 """
 orders_autopilot_ingest_fastmail.py
 Fetches recent commerce emails from Fastmail (Paper Trail + Inbox),
+detects order emails by content patterns (not sender whitelist),
 processes them through the orders autopilot pipeline, and pushes
 delivery records to The Perch dashboard_records table.
 """
@@ -29,44 +30,167 @@ HEADERS = {
     'Prefer': 'return=representation',
 }
 
-COMMERCE_SENDERS = [
-    'vollebak', 'mr porter', 'dak coffee', 'ace & tate', 'amazon',
-    'dhl', 'ups', 'fedex', 'mrport', 'nick and steve',
-    'dakcoffe', 'la plantation', 'arnold', 'misterolympia', 'hartem',
+# Patterns that indicate an order/commerce email (subject or body)
+ORDER_SUBJECT_PATTERNS = [
+    # English
+    r'\border\b', r'\bordering\b', r'\border\s+confirmation\b', r'\border\s+received\b',
+    r'\bconfirmation\b', r'\bconfirmed\b', r'\bshipped\b', r'\bshipping\b',
+    r'\bdelivered\b', r'\bdelivery\b', r'\btracking\b', r'\btrack(?:ing)?\s*(?:number|id|#)\b',
+    r'\bin\s+transit\b', r'\bout\s+for\s+delivery\b',
+    r'\binvoice\b', r'\bfatura\b', r'\breceipt\b', r'\bpurchase\b',
+    r'\bpackage\b', r'\bparcel\b',
+    # Portuguese
+    r'\bencomenda\b', r'\bconfirmação\b', r'\bconfirma\b', r'\bpedido\b',
+    r'\benviado\b', r'\bentregue\b', r'\bfatura\b', r'\brecibo\b',
+    # Dutch
+    r'\bbestelling\b', r'\bbestätigung\b', r'\bverzonden\b', r'\bgeleverd\b',
+    # German
+    r'\bbestellung\b', r'\bversandt\b', r'\blieferung\b',
+    # Generic signals
+    r'\border\s*#', r'\borden\s*#', r'\bpedido\s*#', r'\btracking\s*:',
+    r'\bupcoming\s+delivery\b', r'\byour\s+order\b', r'\byour\s+package\b',
 ]
-EXCLUDE_SENDERS = ['glovo', 'uber', 'bolt', 'freenow', 'taxis', 'lyft', 'deliveroo', 'just eat']
+
+# Patterns that indicate this is NOT an order email (exclude)
+# Exclude subjects that look like notifications, not orders
+EXCLUDE_SUBJECT = [
+    # Newsletter/marketing
+    r"^unsubscriber", r"^unsubscribe", r"^spam", r"^newsletter",
+    r"\bnewsletter\b", r"\bmarketing\b", r"\bpromotional\b", r"\bpromo\b",
+    r"\bsale\b", r"\bdiscount\b", r"\boffer\b", r"\bclick\s+bait\b",
+    r"\bpassword\b", r"\bsign(?:ed)?\s*in\b",
+    # Logistics/service
+    r"\bdhl\s+on\s+demand\b", r"\bdhl\s+odd\b",
+    r"^email\s*$", r"^message\s*$",
+    # Review/reminder
+    r"\breminder\b", r"\breview\b",
+    r"\byour\s+receipt\b",
+]
+
+# Exclude these senders regardless of content
+EXCLUDE_SENDERS = [
+    "glovo", "uber", "bolt", "freenow", "taxis", "lyft", "deliveroo", "just eat",
+    "net-a-porter", "restaurante", "restaurant", "food", "pizza", "sushi",
+    "bolha", "mcdonald", "kfc", "subway", "starbucks",
+    "no-reply", "noreply", "dontreply", "donotreply",
+    "amazon.nl", "amazon.de", "amazon.es", "amazon.fr",
+    "paypal.com", "service@paypal",
+    "sendcloud.com",
+    "loox.io",
+    "email.apple.com",
+]
+
+STRONG_ORDER_SIGNALS = [
+    r'\border\b', r'\bencomenda\b', r'\bconfirmação\b', r'\bconfirma\b',
+    r'\bpedido\b', r'\bfatura\b', r'\bpedido\b', r'\bordering\b',
+    r'\border\s+confirmation\b', r'\border\s+received\b',
+    r'\border\s+#', r'\bordered\s+#',
+    r'\binvoice\b', r'\breceipt\b', r'\bpurchase\b',
+    r'\bupcoming\s+delivery\b', r'\byour\s+order\b', r'\byour\s+package\b',
+]
+
+# Weak order signals — need at least one strong signal or a tracking number
+WEAK_ORDER_SIGNALS = [
+    r'\bshipped\b', r'\bshipping\b', r'\bdispatched\b',
+    r'\bdelivered\b', r'\bpackage\b', r'\bparcel\b',
+    r'\bout\s+for\s+delivery\b', r'\btracking\b',
+    r'\bin\s+transit\b', r'\benviado\b', r'\bentregue\b', r'\bverzonden\b',
+    r'\bgeliefert\b', r'\bversandt\b',
+]
 
 
-def is_commerce_sender(from_email):
+def matches_any(text, patterns):
+    t = text.lower()
+    return any(re.search(p, t) for p in patterns)
+
+
+def is_order_email(subject, body, from_email):
+    """Detect if an email is an order/shipping confirmation by content, not sender."""
     f = from_email.lower()
-    if any(s in f for s in EXCLUDE_SENDERS):
-        return False
-    return any(s in f for s in COMMERCE_SENDERS)
+
+    # Always exclude certain senders
+    for exc in EXCLUDE_SENDERS:
+        if exc in f:
+            return False
+
+    subject_lower = subject.lower()
+    body_lower = body.lower()
+    combined = subject_lower + ' ' + body_lower
+
+    # Must have at least one strong order signal
+    has_strong = matches_any(subject_lower, STRONG_ORDER_SIGNALS)
+    has_weak = matches_any(combined, WEAK_ORDER_SIGNALS)
+
+    # Strong signal in subject = order
+    if has_strong:
+        # Exclude logistics/service emails that happen to have order in subject
+        if matches_any(subject_lower, EXCLUDE_SUBJECT):
+            return False
+        return True
+
+    # Weak-only signals need more: must have a tracking number or order number
+    if has_weak:
+        tracking_num, _ = extract_tracking_number(body)
+        order_num = extract_order_number(subject + ' ' + body)
+        if tracking_num or order_num:
+            return True
+
+    return False
+
+
+def infer_order_status(subject, body, has_tracking, has_order_number):
+    """Infer order status from email content."""
+    text = (subject + ' ' + body).lower()
+
+    if has_tracking and ('delivered' in text or 'entregue' in text or 'geleverd' in text):
+        return 'delivered'
+    if has_tracking and ('shipped' in text or 'enviado' in text or 'versandt' in text or 'verzonden' in text or 'on its way' in text or 'dispatched' in text):
+        return 'shipped'
+    if has_tracking and ('out for delivery' in text or 'entrega' in text or 'out for delivery' in text):
+        return 'out_for_delivery'
+    if has_tracking and ('in transit' in text or 'transit' in text or 'em trânsito' in text):
+        return 'in_transit'
+    if has_tracking:
+        return 'shipped'  # assume shipped once tracking exists
+    if has_order_number:
+        return 'ordered'
+    return 'ordered'
 
 
 def extract_tracking_number(text):
     text_upper = text.upper()
+    # UPS 1Z format
     m = re.search(r'1Z[A-Z0-9]{16}', text_upper)
     if m:
         return m.group(0), 'UPS'
-    m = re.search(r'(?:tracking|tracking\s*#|track\s*#)[:.\s]*([A-Z0-9]{8,30})', text_upper)
+    # DHL numeric
+    m = re.search(r'(?<!\d)\d{10,15}(?!\d)', text)
     if m:
-        tn = m.group(1).strip()
-        carrier = 'unknown'
-        if 'DHL' in text_upper: carrier = 'DHL'
-        elif 'FEDEX' in text_upper: carrier = 'FedEx'
-        elif 'UPS' in text_upper: carrier = 'UPS'
-        elif 'USPS' in text_upper: carrier = 'USPS'
-        return tn, carrier
+        tn = m.group(0)
+        if 'DHL' in text_upper: return tn, 'DHL'
+    # Generic tracking patterns
+    m = re.search(r'(?:tracking|tracking\s*#|track\s*#|tracking-id|trknr)[:.\s]*([A-Z0-9]{6,30})', text_upper)
+    if m:
+        tn = m.group(1).strip().replace(' ', '')
+        if len(tn) >= 6:
+            carrier = 'unknown'
+            if 'DHL' in text_upper: carrier = 'DHL'
+            elif 'FEDEX' in text_upper or 'FED EX' in text_upper: carrier = 'FedEx'
+            elif 'UPS' in text_upper: carrier = 'UPS'
+            elif 'USPS' in text_upper: carrier = 'USPS'
+            elif 'GLS' in text_upper: carrier = 'GLS'
+            elif 'DPD' in text_upper: carrier = 'DPD'
+            elif 'CTT' in text_upper or 'CORREIOS' in text_upper: carrier = 'CTT'
+            return tn, carrier
     return None, None
 
 
 def extract_order_number(text):
     m = re.search(r' - ([A-Z0-9]{10,20})$', text)
     if m: return m.group(1).strip().upper()
-    m = re.search(r'(?:^|[^A-Za-z])#([A-Z0-9]{6,20})(?!\w)', text)
+    m = re.search(r'(?:^|[^A-Za-z])#([A-Z0-9]{8,20})(?!\w)', text)
     if m: return m.group(1).strip().upper()
-    m = re.search(r'\b([A-Z0-9]*[A-Z][A-Z0-9]{9,19})\b', text)
+    m = re.search(r'\b([A-Z0-9]*[A-Z][A-Z0-9]{11,19})\b', text)
     if m:
         val = m.group(1).strip().upper()
         skip = {'ORDER', 'CONFIRMATION', 'INVOICE', 'TRACKING', 'SHIPPING', 'DELIVERY', 'PENDING', 'PROCESSING', 'NUMBER', 'REFERENCE'}
@@ -79,7 +203,7 @@ def get_tracking_url(carrier, tracking_number):
     c = carrier.upper()
     if 'FEDEX' in c: return f'https://www.fedex.com/fedextrack/?trknbr={tracking_number}'
     if 'UPS' in c: return f'https://www.ups.com/track?trackNums={tracking_number}'
-    if 'DHL' in c: return None
+    if 'DHL' in c: return f'https://www.dhl.com/pt-en/home/tracking.html?tracking-id={tracking_number}&submit=1'
     if 'USPS' in c: return f'https://www.usps.com/tracking/{tracking_number}'
     if 'CTT' in c or 'CORREIOS' in c: return f'https://www.ctt.pt/track-and-trace?trackingId={tracking_number}'
     if 'DPD' in c: return f'https://tracking.dpd.de/status/en_US/parcel/{tracking_number}'
@@ -87,39 +211,70 @@ def get_tracking_url(carrier, tracking_number):
     return None
 
 
-def upsert_order(order_number, merchant, total, currency, status, source_email_id):
-    """Upsert order. Returns order_id."""
-    resp = requests.get(
+def upsert_order(order_number, merchant, total, currency, status, source_email_id, from_email):
+    """Upsert order. If order_number is None, upserts by merchant+email combo."""
+    order_id = None
+
+    if order_number:
+        resp = requests.get(
+            SUPABASE_BASE + '/orders',
+            params={'order_number': f'eq.{order_number}', 'select': 'id'},
+            headers=HEADERS, timeout=30
+        )
+        existing = resp.json()
+        if existing:
+            order_id = existing[0]['id']
+            requests.patch(
+                SUPABASE_BASE + '/orders',
+                params={'id': f'eq.{order_id}'},
+                headers=HEADERS, json={
+                    'status': status, 'source_email_id': source_email_id,
+                }, timeout=30
+            )
+            return order_id
+
+    # No order number or not found — upsert by normalized_merchant + recent
+    norm = merchant.lower()
+    # Try to find existing pending/procssing order from same merchant (within 30 days)
+    try:
+        resp = requests.get(
+            SUPABASE_BASE + '/orders',
+            params={
+                'normalized_merchant': f'eq.{norm}',
+                'status': 'in.(ordered,processing)',
+                'select': 'id,created_at',
+                'order': 'created_at.desc',
+                'limit': 1,
+            },
+            headers=HEADERS, timeout=30
+        )
+        existing = resp.json()
+        if existing:
+            order_id = existing[0]['id']
+            requests.patch(
+                SUPABASE_BASE + '/orders',
+                params={'id': f'eq.{order_id}'},
+                headers=HEADERS, json={'status': status, 'source_email_id': source_email_id}, timeout=30
+            )
+            return order_id
+    except: pass
+
+    # Create new order (order_number may be None for new-vendor PDFs)
+    payload = {
+        'user_id': USER_ID, 'merchant': merchant, 'merchant_name': merchant,
+        'normalized_merchant': norm, 'order_number': order_number,
+        'total_amount': total, 'currency': currency or 'EUR', 'status': status,
+        'source_email_ids': [source_email_id], 'source_email_id': source_email_id,
+        'confidence_score': 0.75,
+    }
+    resp = requests.post(
         SUPABASE_BASE + '/orders',
-        params={'order_number': f'eq.{order_number}', 'select': 'id'},
-        headers=HEADERS, timeout=30
+        headers=HEADERS, json=payload, timeout=30
     )
-    existing = resp.json()
-    if existing:
-        order_id = existing[0]['id']
-        requests.patch(
-            SUPABASE_BASE + '/orders',
-            params={'id': f'eq.{order_id}'},
-            headers=HEADERS, json={
-                'merchant': merchant, 'merchant_name': merchant,
-                'normalized_merchant': merchant.lower(), 'status': status,
-                'source_email_id': source_email_id,
-                'user_id': USER_ID,
-            }, timeout=30
-        )
-        return order_id
-    else:
-        resp = requests.post(
-            SUPABASE_BASE + '/orders',
-            headers=HEADERS, json={
-                'user_id': USER_ID, 'merchant': merchant, 'merchant_name': merchant,
-                'normalized_merchant': merchant.lower(), 'order_number': order_number,
-                'total_amount': total, 'currency': currency, 'status': status,
-                'source_email_ids': [source_email_id], 'confidence_score': 0.9,
-            }, timeout=30
-        )
-        data = resp.json()
-        return (data[0].get('id') if isinstance(data, list) else data.get('id')) if data else None
+    data = resp.json()
+    if data:
+        return (data[0].get('id') if isinstance(data, list) else data.get('id'))
+    return None
 
 
 def upsert_shipment(order_id, tracking_number, carrier, status, source_email_id):
@@ -149,15 +304,14 @@ def upsert_shipment(order_id, tracking_number, carrier, status, source_email_id)
     shipment_id = (data[0].get('id') if isinstance(data, list) else data.get('id')) if data else None
 
     # Push delivery record to dashboard_records
-    merchant = carrier or 'Unknown'
     dash_payload = {
         'agent_id': 'orders-autopilot', 'user_id': USER_ID,
-        'type': 'delivery', 'category': 'deliveries', 'title': merchant,
+        'type': 'delivery', 'category': 'deliveries', 'title': carrier or 'Unknown',
         'data': {
             'order_id': order_id, 'carrier': carrier or 'unknown',
-            'tracking_number': tracking_number, 'status': 'in_transit' if status != 'delivered' else 'delivered',
-            'items': [{'name': merchant, 'quantity': 1}],
-            'vendor': merchant, 'tracking_url': tracking_url,
+            'tracking_number': tracking_number, 'status': status,
+            'items': [{'name': carrier or 'Unknown', 'quantity': 1}],
+            'vendor': carrier or 'Unknown', 'tracking_url': tracking_url,
             'delivered': status == 'delivered',
         },
         'display_hint': 'delivery',
@@ -203,7 +357,7 @@ def main():
         unique_ids = list(dict.fromkeys(all_ids))
 
         if not unique_ids:
-            if json_output: print(json.dumps({'orders': 0, 'shipments': 0}))
+            if json_output: print(json.dumps({'emails': 0, 'orders': 0, 'shipments': 0, 'skipped': 0, 'errors': 0}))
             else: print('No new emails found.')
             return
 
@@ -231,7 +385,6 @@ def main():
         subject = email.get('subject', '')
         from_list = email.get('from', [])
         sender = from_list[0].get('email', '') if from_list else ''
-        received_at = email.get('receivedAt', '')
 
         body_values = email.get('bodyValues', {})
         body = ''
@@ -239,16 +392,15 @@ def main():
             if isinstance(v, dict) and v.get('value'):
                 body += v['value'] + '\n'
 
-        if not is_commerce_sender(sender) and not is_commerce_sender(subject):
+        # Content-based detection (replaces sender whitelist)
+        if not is_order_email(subject, body, sender):
             skipped += 1
             continue
 
         order_num = extract_order_number(subject + ' ' + body)
         tracking_num, carrier = extract_tracking_number(body)
 
-        status = 'ordered'
-        if not order_num and tracking_num:
-            status = 'in_transit'
+        status = infer_order_status(subject, body, bool(tracking_num), bool(order_num))
 
         merchant = sender
         if '@' in merchant:
@@ -256,20 +408,25 @@ def main():
             merchant = domain.title()
 
         try:
-            order_id = None
-            if order_num:
-                order_id = upsert_order(order_num, merchant, None, 'EUR', status, email_id)
+            order_id = upsert_order(order_num, merchant, None, 'EUR', status, email_id, sender)
+            if order_id:
                 orders_created += 1
 
-            if tracking_num:
-                _, is_new = upsert_shipment(order_id or 'pending', tracking_num, carrier or 'unknown', status, email_id)
+            if tracking_num and order_id:
+                _, is_new = upsert_shipment(order_id, tracking_num, carrier or 'unknown', status, email_id)
                 if is_new: shipments_created += 1
         except Exception as e:
             errors += 1
             print(f'Error processing {email_id}: {e}', file=sys.stderr)
 
     if json_output:
-        print(json.dumps({'emails': len(emails), 'orders': orders_created, 'shipments': shipments_created, 'skipped': skipped, 'errors': errors}))
+        print(json.dumps({
+            'emails': len(emails),
+            'orders': orders_created,
+            'shipments': shipments_created,
+            'skipped': skipped,
+            'errors': errors,
+        }))
     else:
         print(f'Done. Orders: {orders_created}, Shipments: {shipments_created}, Skipped: {skipped}, Errors: {errors}')
 
