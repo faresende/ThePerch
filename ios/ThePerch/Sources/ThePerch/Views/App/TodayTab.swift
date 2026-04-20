@@ -204,12 +204,20 @@ struct TodayHero: View {
                     .foregroundColor(palette.heroText)
                     .tracking(-0.5)
                     .lineSpacing(-8) // → effective 1.02 line-height at 34pt
-                    // Stacked shadows: a wide soft halo for lift, a tighter
-                    // shadow for hard-edge legibility on the busy
-                    // illustration. Upping both opacity+radius makes the
-                    // text read cleanly on the brightest midday palette.
-                    .shadow(color: palette.scrimDark.opacity(0.9), radius: 14, x: 0, y: 3)
-                    .shadow(color: palette.scrimDark.opacity(0.75), radius: 3, x: 0, y: 1)
+                    // Palette-tinted shadow: the greeting now carries the
+                    // same wellness accent used elsewhere on the page
+                    // (calorie ring, now chip, health eyebrows). The glow
+                    // shifts with the time-of-day palette — plum on
+                    // midday, lavender on sunrise, teal on dusk, sage on
+                    // night — so the hero text visually threads into the
+                    // rest of the feed's accent language.
+                    //
+                    // Two stacks: wide outer halo for the coloured glow
+                    // + tight high-opacity inner for edge legibility,
+                    // which a light tint alone can't deliver on bright
+                    // illustration zones.
+                    .shadow(color: palette.wellness.opacity(0.95), radius: 16, x: 0, y: 3)
+                    .shadow(color: palette.wellness.opacity(0.85), radius: 4, x: 0, y: 1)
 
                 if isShowingCached {
                     ProgressView()
