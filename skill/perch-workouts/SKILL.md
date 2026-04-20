@@ -107,10 +107,26 @@ Workout schedule is visible in CalendarView by querying records with `category=w
 
 The calendar integration uses the same `records` table query, filtered by date range.
 
-## Adding a Workout Session
+## Setup
 
-1. **Via iOS app**: Open WorkoutView → tap "+" → select workout type → fill in exercises
-2. **Via agent**: Use `dashboard_push` tool with `type=workout_session`, `category=workouts`
+### Prerequisites
+
+- Supabase project with the `records` table configured for `category=workouts`
+- iOS app screens wired to `WorkoutViewModel` and Calendar integration
+- Optional `dashboard-sync` support if logging workouts through the agent path
+
+### Step-by-step
+
+1. Confirm the iOS app can read workout records from Supabase.
+2. Create at least one `workout_session` row to seed the rotation logic.
+3. Verify WorkoutView renders the latest session and next suggested workout.
+4. Verify CalendarView overlays workout sessions alongside calendar events.
+5. Test a rest day entry and confirm it is handled distinctly from pull/push/legs sessions.
+
+### Logging a workout session
+
+1. **Via iOS app**: Open WorkoutView, tap "+", select workout type, then enter exercises.
+2. **Via agent**: Use `dashboard_push` with `type=workout_session` and `category=workouts`.
 
 ```typescript
 // Agent: log a workout

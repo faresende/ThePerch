@@ -119,11 +119,31 @@ let state = DeliveryActivityAttributes.ContentState(
 
 Attributes are defined in `PerchSharedKit/DeliveryActivityAttributes.swift` and consumed by both the main app and the widget extension.
 
-## Adding a Delivery
+## Setup
 
-1. **Via email** (automatic): The orders autopilot script picks up confirmation emails and creates order + shipment records automatically.
+### Prerequisites
+
+- Supabase project with `orders`, `shipments`, and `dashboard_records` tables available
+- Fastmail JMAP credentials for automatic email ingestion
+- Orders autopilot script configured at `/Users/faresende/.openclaw/workspace/ThePerch/scripts/orders_autopilot_ingest_fastmail.py`
+- Optional 17track credentials if live carrier polling is enabled
+
+### Step-by-step
+
+1. Configure Supabase service-role access for agent writes.
+2. Set up Fastmail JMAP credentials and verify the ingestion script can read recent commerce emails.
+3. Run the autopilot script once and confirm it creates rows in `orders` and `shipments`.
+4. Verify the same flow projects compatible delivery data to `dashboard_records` for the Home card.
+5. Open the iOS app and confirm:
+   - Orders tab loads `OrderWithShipments`
+   - Home tab shows `DeliveryHomeCard`
+   - Live Activity starts for `in_transit` or `out_for_delivery` shipments
+
+### Manual entry paths
+
+1. **Via email**: The orders autopilot script picks up confirmation emails and creates order + shipment records automatically.
 2. **Manually**: Insert directly into the `orders` table with `user_id`, `merchant_name`, and optionally `order_number`. Then insert into `shipments` with `order_id` and tracking details.
-3. **Via iOS app** (UI): The OrdersView may have an "Add Order" button for manual entry.
+3. **Via iOS app**: The OrdersView may expose an add-order flow for manual entry.
 
 ## Maintenance
 
