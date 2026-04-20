@@ -14,6 +14,30 @@ import sys
 import requests
 from datetime import datetime, timedelta, timezone
 
+
+def _load_dotenv_if_available() -> None:
+    """Load scripts/.env in development if python-dotenv is installed.
+
+    No-op in production environments where real values are provided by the
+    host (systemd, launchd, Docker, etc.). Silently passes if python-dotenv
+    is not installed so prod hosts do not need the dev dependency.
+    """
+    try:
+        from dotenv import load_dotenv  # type: ignore
+    except ImportError:
+        return
+
+    # Search for scripts/.env relative to this file, then fall back to CWD.
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(script_dir, '.env')
+    if os.path.isfile(env_path):
+        load_dotenv(dotenv_path=env_path, override=False)
+    else:
+        load_dotenv(override=False)
+
+
+_load_dotenv_if_available()
+
 WORKSPACE = os.path.expanduser('~/.openclaw/workspace')
 JMAP_DIR = os.path.join(WORKSPACE, 'sandbox/fastmail-jmap')
 sys.path.insert(0, JMAP_DIR)

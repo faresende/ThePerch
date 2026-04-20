@@ -1,0 +1,19 @@
+# Python dependencies for the ThePerch orders-autopilot worker.
+#
+# Install with:
+#   python3 -m venv scripts/.venv
+#   source scripts/.venv/bin/activate
+#   pip install -r scripts/requirements.txt
+#
+# Note: the worker also imports `jmap_client` from
+# ~/.openclaw/workspace/sandbox/fastmail-jmap which is NOT on PyPI.
+# Install OpenClaw separately and ensure that path exists on the host.
+
+# HTTP client used for Supabase REST calls.
+requests>=2.31,<3
+
+# Loads scripts/.env in development. No-op in production where env vars
+# are provided by the host (launchd, systemd, Docker, etc.). The worker
+# silently skips .env loading if this dependency is missing, so it is
+# optional on production hosts.
+python-dotenv>=1.0,<2
