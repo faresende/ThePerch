@@ -723,6 +723,25 @@ struct CaptureHistoryView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Create")
             .navigationBarTitleDisplayMode(.large)
+            // Attachment preview sits between the nav bar (which hosts
+            // the searchable field) and the List. Reads as though the
+            // text field expanded downward when a photo was picked —
+            // same effect as Telegram's reply banner, done with
+            // SwiftUI-native primitives instead of forcing a multi-
+            // line UITextField inside a UISearchBar.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let photo = draftPhoto {
+                    CaptureAttachmentBanner(
+                        photo: photo,
+                        palette: palette,
+                        onRemove: { draftPhoto = nil },
+                        onTapThumbnail: { /* opens photo grid via camera button toggle — user can
+                                             re-pick by tapping camera icon again */ }
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.spring(response: 0.38, dampingFraction: 0.88), value: draftPhoto != nil)
             .searchable(
                 text: $draftText,
                 prompt: "Log a meal, a receipt, anything"
@@ -793,6 +812,72 @@ private struct CaptureHistoryItem: Identifiable {
     let destination: String
     let systemImage: String
     let agoLabel: String
+}
+
+// MARK: - CaptureAttachmentBanner
+//
+// Sits below the searchable field when a photo is attached, so the
+// user sees the attachment right where they're typing. Not inside
+// the UISearchBar itself (which is single-line by design), but
+// visually adjacent — same glass/tint as the field. Mirrors the
+// reply-banner pattern in iMessage, Telegram, Slack.
+
+private struct CaptureAttachmentBanner: View {
+    let photo: UIImage
+    let palette: PerchPalette
+    let onRemove: () -> Void
+    let onTapThumbnail: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button(action: onTapThumbnail) {
+                ZStack(alignment: .topTrailing) {
+                    Image(uiImage: photo)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(palette.line, lineWidth: 0.5)
+                        )
+
+                    Button(action: onRemove) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Color.black.opacity(0.55))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: 6, y: -6)
+                    .accessibilityLabel("Remove photo")
+                }
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Photo attached")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(palette.ink)
+                Text("Tap Send or add a note")
+                    .font(.system(size: 12))
+                    .foregroundStyle(palette.muted)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thickMaterial)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(palette.line.opacity(0.5))
+                .frame(height: 0.5)
+        }
+    }
 }
 
 // MARK: - SearchBarInputController
@@ -868,12 +953,6 @@ private struct SearchBarInputController: UIViewRepresentable {
         /// `false` = system keyboard, `true` = photo grid keyboard.
         private var showingPhotoKeyboard: Bool = false
 
-        /// True once a photo has been attached into the search field's
-        /// leftView, replacing the camera icon. Used so `updateConfig`
-        /// only rebuilds the thumbnail when the photo identity actually
-        /// changes (pointer equality).
-        private var hasAttachedThumbnail: Bool = false
-
         init(
             systemImage: String,
             tint: UIColor,
@@ -906,15 +985,11 @@ private struct SearchBarInputController: UIViewRepresentable {
             }
             photoKeyboardView?.onPhotoSelected = onPhotoSelected
 
-            // Thumbnail leftView only rebuilds if the image identity
-            // changes (pointer equality) or toggles nil↔non-nil.
-            let hadPhoto = self.attachedPhoto != nil
-            let hasPhoto = attachedPhoto != nil
-            let changed = (hadPhoto != hasPhoto) || (self.attachedPhoto !== attachedPhoto)
+            // Attached photo is now rendered by the SwiftUI banner
+            // above the List, not by this controller. The controller
+            // still holds the reference so the photo grid knows what
+            // the "current selection" is, but doesn't touch leftView.
             self.attachedPhoto = attachedPhoto
-            if changed {
-                refreshLeftView()
-            }
         }
 
         func scheduleFirstInstall() {
@@ -981,10 +1056,6 @@ private struct SearchBarInputController: UIViewRepresentable {
 
             installedButton = button
             searchBar = bar
-
-            // If a photo is already attached by the time the bar is
-            // found, swap the camera icon out for the thumbnail.
-            refreshLeftView()
         }
 
         // MARK: UIGestureRecognizerDelegate
@@ -1048,89 +1119,6 @@ private struct SearchBarInputController: UIViewRepresentable {
             }
         }
 
-        // MARK: Attached-photo thumbnail (leftView swap)
-
-        /// When a photo is attached, the camera icon in the leftView
-        /// is replaced with a bigger thumbnail + corner X (matches
-        /// Telegram's reply pattern). Tap the thumbnail to re-open the
-        /// photo grid; tap the X to remove the photo and restore the
-        /// camera icon.
-        private func refreshLeftView() {
-            guard let textField = searchBar?.searchTextField else { return }
-
-            if let photo = attachedPhoto {
-                textField.leftView = makeAttachedThumbnailView(photo: photo)
-                textField.leftViewMode = .always
-                hasAttachedThumbnail = true
-            } else if hasAttachedThumbnail, let button = installedButton {
-                textField.leftView = button
-                textField.leftViewMode = .always
-                hasAttachedThumbnail = false
-            }
-        }
-
-        /// 36pt square thumbnail with a small circular X overhanging
-        /// the top-right corner. The whole tile is tappable (re-opens
-        /// the photo keyboard); the X handles removal.
-        private func makeAttachedThumbnailView(photo: UIImage) -> UIView {
-            let thumbSize: CGFloat = 36
-            let xSize: CGFloat = 18
-
-            // Container gives the X a little room outside the thumb.
-            let container = UIView(frame: CGRect(
-                x: 0, y: 0,
-                width: thumbSize + 4,
-                height: thumbSize + 4
-            ))
-            container.isUserInteractionEnabled = true
-
-            let imageView = UIImageView(frame: CGRect(
-                x: 0, y: 4,
-                width: thumbSize,
-                height: thumbSize
-            ))
-            imageView.image = photo
-            imageView.contentMode = .scaleAspectFill
-            imageView.clipsToBounds = true
-            imageView.layer.cornerRadius = 6
-            imageView.layer.borderWidth = 0.5
-            imageView.layer.borderColor = UIColor.separator.cgColor
-            imageView.isUserInteractionEnabled = true
-            container.addSubview(imageView)
-
-            // Tap the thumbnail (not the X) to re-open the photo grid.
-            let tap = UITapGestureRecognizer(target: self, action: #selector(attachedThumbnailTapped))
-            imageView.addGestureRecognizer(tap)
-
-            // X overlay: dark-tinted circle with a white glyph, sits
-            // at the top-right edge so it stays legible on every photo.
-            let xButton = UIButton(type: .custom)
-            xButton.frame = CGRect(
-                x: thumbSize + 4 - xSize,
-                y: 0,
-                width: xSize,
-                height: xSize
-            )
-            xButton.backgroundColor = UIColor(white: 0, alpha: 0.55)
-            xButton.layer.cornerRadius = xSize / 2
-            xButton.tintColor = .white
-            let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
-            xButton.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
-            xButton.addAction(UIAction { [weak self] _ in
-                self?.onPhotoRemoved()
-            }, for: .touchUpInside)
-            container.addSubview(xButton)
-
-            return container
-        }
-
-        @objc private func attachedThumbnailTapped() {
-            // Re-opening the photo grid keyboard when the user taps
-            // the thumbnail is a faster path to swapping the photo
-            // than removing + re-adding.
-            showingPhotoKeyboard = false // force toggle into the grid
-            toggleInputView()
-        }
     }
 }
 
