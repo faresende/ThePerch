@@ -723,29 +723,30 @@ struct CaptureHistoryView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Create")
             .navigationBarTitleDisplayMode(.large)
-            // Attachment preview sits between the nav bar (which hosts
-            // the searchable field) and the List. Reads as though the
-            // text field expanded downward when a photo was picked —
-            // same effect as Telegram's reply banner, done with
-            // SwiftUI-native primitives instead of forcing a multi-
-            // line UITextField inside a UISearchBar.
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if let photo = draftPhoto {
-                    CaptureAttachmentBanner(
-                        photo: photo,
-                        palette: palette,
-                        onRemove: { draftPhoto = nil },
-                        onTapThumbnail: { /* opens photo grid via camera button toggle — user can
-                                             re-pick by tapping camera icon again */ }
-                    )
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
-            .animation(.spring(response: 0.38, dampingFraction: 0.88), value: draftPhoto != nil)
+            // Attachment banner. Rendered via `.searchable(..., searchSuggestions:)`
+            // so it appears INSIDE the search field's dropdown area,
+            // right underneath the text bar — visually reads as the
+            // field expanding down to hold the attachment, which is
+            // what the user asked for. UISearchBar is single-line
+            // by design; this is the closest native primitive that
+            // pins content directly to the search field.
             .searchable(
                 text: $draftText,
                 prompt: "Log a meal, a receipt, anything"
-            )
+            ) {
+                // Search suggestions area: renders directly attached
+                // to the bottom of the search field when active. We
+                // piggy-back on it to show the attachment preview so
+                // the thumbnail feels welded to the text bar.
+                if let photo = draftPhoto {
+                    CaptureAttachmentRow(
+                        photo: photo,
+                        palette: palette,
+                        onRemove: { draftPhoto = nil }
+                    )
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                }
+            }
             .onSubmit(of: .search) {
                 submitDraft()
             }
@@ -814,68 +815,50 @@ private struct CaptureHistoryItem: Identifiable {
     let agoLabel: String
 }
 
-// MARK: - CaptureAttachmentBanner
+// MARK: - CaptureAttachmentRow
 //
-// Sits below the searchable field when a photo is attached, so the
-// user sees the attachment right where they're typing. Not inside
-// the UISearchBar itself (which is single-line by design), but
-// visually adjacent — same glass/tint as the field. Mirrors the
-// reply-banner pattern in iMessage, Telegram, Slack.
+// Rendered inside `.searchable(..., searchSuggestions:)` so it sits
+// in the suggestions dropdown that UIKit pins directly under the
+// active search field. From the user's perspective the thumbnail
+// reads as welded to the text bar — same visual effect as the
+// text field growing to fit the attachment, done via a native
+// suggestions row instead of a separate chrome layer.
 
-private struct CaptureAttachmentBanner: View {
+private struct CaptureAttachmentRow: View {
     let photo: UIImage
     let palette: PerchPalette
     let onRemove: () -> Void
-    let onTapThumbnail: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            Button(action: onTapThumbnail) {
-                ZStack(alignment: .topTrailing) {
-                    Image(uiImage: photo)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 56, height: 56)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(palette.line, lineWidth: 0.5)
-                        )
-
-                    Button(action: onRemove) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(Color.black.opacity(0.55))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: 6, y: -6)
-                    .accessibilityLabel("Remove photo")
-                }
-            }
-            .buttonStyle(.plain)
+            Image(uiImage: photo)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 52, height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(palette.line, lineWidth: 0.5)
+                )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Photo attached")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(palette.ink)
                 Text("Tap Send or add a note")
                     .font(.system(size: 12))
                     .foregroundStyle(palette.muted)
             }
 
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thickMaterial)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(palette.line.opacity(0.5))
-                .frame(height: 0.5)
+            Spacer(minLength: 8)
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(palette.muted)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove photo")
         }
     }
 }
