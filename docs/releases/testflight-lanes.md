@@ -3,7 +3,7 @@
 ## Lanes
 
 ### Alpha
-- Purpose: Fábio daily-driver builds
+- Purpose: the user daily-driver builds
 - Speed over ceremony
 - Default deploy lane in the script
 - Safe for frequent internal iteration

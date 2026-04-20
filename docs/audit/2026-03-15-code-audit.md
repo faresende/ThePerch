@@ -12,10 +12,10 @@
 
 ## WARNING (Bug Risk) — 15 issues
 
-1. **Hardcoded user ID** in AdminCommandService + HealthKitSyncService (Fábio's UUID, force unwrap)
+1. **Hardcoded user ID** in AdminCommandService + HealthKitSyncService (the user's UUID, force unwrap)
 2. **Auth gate commented out** — entire auth flow disabled, all data accessible without login
 3. **Hardcoded "default_user" cache key** in 4 files — all users would share same cache
-4. **Hardcoded "Fabio"** in greeting, settings, auth views
+4. **Hardcoded "the user"** in greeting, settings, auth views
 5. **3 duplicate relativeTime implementations** — divergence risk
 6. **2 duplicate CardGalleryView files** — compile conflict risk
 7. **SectionViewModelProtocol declared but never used** — dead protocol

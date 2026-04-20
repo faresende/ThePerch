@@ -27,7 +27,7 @@ SWIFT SOURCE FILES
    - Save/Cancel buttons with loading state
    - Success checkmark animation (auto-dismiss 1.5s)
    - Error message display
-   - TODO comments for Fabio to customize
+   - TODO comments for the user to customize
 
 3. ShareSupabaseClient.swift (7.1 KB)
    PURPOSE: Lightweight Supabase API client (no SDK dependencies)
@@ -67,7 +67,7 @@ DOCUMENTATION FILES
    - Complete overview and architecture
    - File structure and features list
    - Core functionality explanation
-   - Customization points for Fabio
+   - Customization points for the user
    - Error handling reference
    - Security notes and performance metrics
 
@@ -175,7 +175,7 @@ UI FLOW
 1. User taps Share button → selects "Save to The Perch"
 2. ShareViewController extracts URL & title from NSExtensionItem
 3. ShareExtensionView shows:
-   - Domain/favicon circle (placeholder, customize for Fabio)
+   - Domain/favicon circle (placeholder, customize for the user)
    - Page title
    - Full URL (truncated)
    - Optional tags input field (comma-separated)

@@ -293,7 +293,7 @@ Every view has a `#Preview` block with mock data
 - `SupabaseService` - data fetching
 - Real API integration ready (no changes needed)
 
-## Next Steps for Fabio
+## Next Steps for the user
 
 1. **Connect Real Data**: Replace MockData with actual Supabase queries
 2. **Customize Colors**: Adjust PerchTheme accent color if desired

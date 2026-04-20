@@ -31,7 +31,7 @@ struct ShareExtensionView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         // URL/Domain indicator with favicon placeholder
-                        // TODO: Fabio - Add actual favicon fetching here
+                        // TODO: the user - Add actual favicon fetching here
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle()

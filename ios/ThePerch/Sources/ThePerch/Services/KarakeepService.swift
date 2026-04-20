@@ -106,8 +106,16 @@ final class KarakeepService {
         AppConfig.shared.karakeepToken
     }
 
-    /// The base URL for the Karakeep API.
-    private let baseURL = "https://karakeep.fabio.lol/api/v1"
+    /// The base URL for the Karakeep API. Override via `KARAKEEP_BASE_URL`
+    /// in Secrets.plist / Info.plist if you self-host Karakeep on your own
+    /// domain. Users without Karakeep should leave `karakeepToken` empty —
+    /// callers skip this service when the token is unset.
+    private let baseURL: String = {
+        if let override = Bundle.main.infoDictionary?["KARAKEEP_BASE_URL"] as? String, !override.isEmpty {
+            return override
+        }
+        return "https://karakeep.example.com/api/v1"
+    }()
 
     // MARK: - Private
 

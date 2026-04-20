@@ -20,7 +20,7 @@ The app has a solid foundation but is not production-ready. The main risks are:
 2. Fix CacheService/CrashReporter thread safety
 3. Fix AuthViewModel task leak
 4. Extract hardcoded user ID to AppConfig
-5. Remove hardcoded "Fabio" from UI
+5. Remove hardcoded "the user" from UI
 6. Remove duplicate CardGalleryView file
 7. Remove dead SectionViewModelProtocol
 8. Add Sendable conformance to model types

@@ -2,7 +2,7 @@
 
 ## Product rule
 Voice is the superpower, not the default mode.
-The display should feel quiet until Fábio explicitly asks for help.
+The display should feel quiet until the user explicitly asks for help.
 
 ## Core principles
 - Push-to-talk only

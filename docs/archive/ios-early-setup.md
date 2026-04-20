@@ -1,4 +1,4 @@
-# The Perch iOS App - Quick Start Guide for Fabio
+# The Perch iOS App - Quick Start Guide for the user
 
 Welcome! This guide will get you up and running with the foundation that's been built for you.
 
@@ -215,7 +215,7 @@ struct DashboardView: View {
 }
 ```
 
-## Customization Points (Marked with `// TODO: Fabio`)
+## Customization Points (Marked with `// TODO: the user`)
 
 You'll see these comments in the code where you should customize:
 
@@ -259,7 +259,7 @@ You'll see these comments in the code where you should customize:
 
 Check the comments in the code:
 - `// MARK:` sections describe major components
-- `// TODO: Fabio` marks places to customize
+- `// TODO: the user` marks places to customize
 - Docstring comments explain public interfaces
 
 Good luck! Build something beautiful.

@@ -1,58 +1,106 @@
-# The Perch — Skill Ecosystem
+# The Perch
 
-This is the modular skill documentation for The Perch iOS app and its supporting backend infrastructure.
+**A personal life dashboard for iOS, driven by your own agents.**
 
-## Quick Start
+The Perch is a native iOS app that shows your daily life at a glance — sleep and health, upcoming events, packages in transit, meals, workouts, bookmarks, anything you decide to feed it — pulled from a Supabase backend you own. Any coding agent (OpenClaw, Claude Code, plain scripts) can write data into it.
 
-**New contributor?** Read these in order:
-1. [perch-supabase](./skill/perch-supabase/SKILL.md) — understand the shared database
-2. [perch-ios](./skill/perch-ios/SKILL.md) — understand the app architecture
-3. Then explore the feature skills below based on what you're working on
+| | |
+|---|---|
+| **Status** | Personal project, opening up for others to try |
+| **Platforms** | iOS 17+ (iPhone, widgets, Live Activities) |
+| **Backend** | Supabase (self-hosted on their free tier — you own it) |
+| **Data-writer agents** | Any — OpenClaw, Claude Code, or your own scripts |
 
-## Skill Map
+---
+
+## Is this for you?
+
+The Perch is a good fit if you:
+- want a **private** life dashboard you fully control,
+- are comfortable **running your own Supabase project** (the free tier is enough),
+- have (or want) a **coding agent** that can send data to that Supabase,
+- want to mix and match what the dashboard shows — you **pick only the skills you want**.
+
+It is **not** a good fit if you want a polished commercial app you can install from the App Store today. That might come later.
+
+---
+
+## How it works
+
+```
+Your agent           Your Supabase             The Perch (iOS)
+  (any)    ────────▶   (dashboard_records,  ────▶   Cards, widgets,
+                        orders, shipments)          Live Activities
+```
+
+1. You run a Supabase project — the free tier works.
+2. You install the iOS app on your phone (build from source today; TestFlight later).
+3. You pick which **skills** you want (health? bookmarks? deliveries?) and drop them into your agent runtime.
+4. Your agent writes data. Your iOS app reads it and shows it.
+
+Nothing leaves your Supabase — there's no The-Perch server. You're the host.
+
+---
+
+## Start here
+
+| If you want to... | Read this |
+|---|---|
+| Understand the whole picture and get it running | [SHARE.md](./SHARE.md) |
+| Hand setup off to your coding agent | [AGENT_BOOTSTRAP.md](./AGENT_BOOTSTRAP.md) |
+| See what a finished install looks like | [GETTING_STARTED.md](./GETTING_STARTED.md) |
+
+---
+
+## The skill ecosystem
+
+Each skill is a self-contained directory under [`skill/`](./skill) that describes one feature — the Supabase contract, how to wire a data source in, and how to install it into OpenClaw, Claude Code, or use its scripts directly. Pick only what you need.
+
+| Skill | What it powers | Needs |
+|---|---|---|
+| [`perch-supabase`](./skill/perch-supabase) | **Foundation** — schema, RLS, auth | Supabase project |
+| [`perch-ios`](./skill/perch-ios) | **The iOS app itself** — architecture, build, theme | macOS + Xcode |
+| [`dashboard-sync`](./skill/dashboard-sync) | Core tool: `dashboard_push`, `dashboard_query`, `dashboard_heartbeat` | Service role key |
+| [`perch-bookmarks`](./skill/perch-bookmarks) | Link saving + tagging | — |
+| [`perch-calendar`](./skill/perch-calendar) | Calendar events → Supabase | Any ICS/CalDAV source (reference: `icalBuddy` on macOS) |
+| [`perch-health`](./skill/perch-health) | Sleep, HRV, body metrics | Any sleep source (reference: Oura Ring API) |
+| [`perch-nutrition`](./skill/perch-nutrition) | Meals + macros | Any meal tracker |
+| [`perch-orders`](./skill/perch-orders) | Commerce emails → tracked orders | Any JMAP/IMAP email source (reference: Fastmail JMAP) |
+| [`perch-deliveries`](./skill/perch-deliveries) | Orders tab + Home Deliveries + Live Activities | — |
+| [`perch-workouts`](./skill/perch-workouts) | Pull/push/legs log | — |
+
+All skills share the same Supabase contract. You can start with `perch-supabase` + `perch-ios` + one feature skill, and add more later.
+
+---
+
+## What's in this repo
 
 ```
 ThePerch
-├── perch-supabase     ← FOUNDATIONAL: schema, RLS, service role, all tables
-├── perch-ios          ← iOS app: SwiftUI, MVVM, widgets, theme
-├── perch-orders       ← Commerce email → orders + shipments pipeline
-├── perch-health       ← Oura Ring + manual body metrics
-├── perch-nutrition     ← Calorie/macro tracking via BioChecha
-├── perch-calendar     ← Apple Calendar → Supabase events + travel detection
-├── perch-bookmarks     ← Link saving + agent enrichment (Archie)
-├── perch-deliveries   ← Two-pipeline delivery tracking + Live Activities
-├── perch-workouts     ← Pull/push/legs training log + calendar integration
-└── dashboard-sync    ← Core agent tool: dashboard_push/query/heartbeat
+├── ios/                 The SwiftUI app (Xcode project)
+├── skill/               10 modular skills (see table above)
+├── supabase/            Schema migrations + demo seed data
+├── backend/             Self-host backend guide
+├── web/                 Supporting web assets
+├── scripts/             Reference helper scripts
+├── docs/                Guides and archived historical design docs
+└── README.md            ← you are here
 ```
 
-## Skills Reference
+---
 
-| Skill | Description |
-|-------|-------------|
-| **[perch-supabase](./skill/perch-supabase/)** | Database schema, RLS policies, authentication, service role, example queries |
-| **[perch-ios](./skill/perch-ios/)** | iOS app architecture, project structure, build/run, theme system, widgets |
-| **[perch-orders](./skill/perch-orders/)** | Fastmail JMAP email ingestion, order/shipment detection, 17track polling |
-| **[perch-health](./skill/perch-health/)** | Oura Ring API, weight/body metrics, body goal trending |
-| **[perch-nutrition](./skill/perch-nutrition/)** | BioChecha meal logging, macro targets, nutrition cards on iOS |
-| **[perch-calendar](./skill/perch-calendar/)** | icalBuddy → Supabase events, timezone handling, travel mode |
-| **[perch-bookmarks](./skill/perch-bookmarks/)** | Bookmark lifecycle, enrichment pipeline, search/filter |
-| **[perch-deliveries](./skill/perch-deliveries/)** | Orders tab + Home Deliveries card, two-pipeline architecture, Live Activities |
-| **[perch-workouts](./skill/perch-workouts/)** | Pull/push/legs rotation, workout logging, calendar integration |
-| **[dashboard-sync](./skill/dashboard-sync/)** | Core agent tools: dashboard_push, dashboard_query, dashboard_heartbeat |
+## Status and expectations
 
-## Key Architecture Decisions
+This was built for one person. Opening it up is an experiment. Expect:
 
-### Two-Pipeline Delivery Model
-The deliveries feature uses two parallel pipelines for historical reasons. See [perch-deliveries](./skill/perch-deliveries/) for the full explanation.
+- Rough edges, especially outside the golden path the author actually uses.
+- Docs that still assume some familiarity with Supabase, iOS, and coding agents.
+- No support guarantee. Issues and PRs welcome once the repo is public.
 
-### nutrition `meal_log` Known Issue
-Newer nutrition rows with `type=meal` and `display_hint=meal_log` may not be handled by the generic `dashboard_push` helper. See [perch-nutrition](./skill/perch-nutrition/).
+If something's broken or confusing, the most useful thing you can do is open an issue describing what you tried and where it fell over.
 
-### ISO8601 Timezone Requirement
-All calendar event times must include a timezone suffix. Missing timezones cause silent decoding failures and empty cards. See [perch-calendar](./skill/perch-calendar/).
+---
 
-## Repository
+## License
 
-- **GitHub**: https://github.com/faresende/ThePerch
-- **Live**: https://whoisthisfabio.com/ThePerch/
-- **Supabase**: cgmaotzmeoiueyzlchaz.supabase.co
+TBD — a permissive open-source license will be added before the repo goes public.

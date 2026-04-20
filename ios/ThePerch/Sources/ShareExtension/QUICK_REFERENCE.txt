@@ -124,7 +124,7 @@ RECORDS TABLE:
   - created_at: Timestamp
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CUSTOMIZATION TODOS (For Fabio)
+CUSTOMIZATION TODOS (For the user)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 FILE: ShareExtensionView.swift

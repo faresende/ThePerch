@@ -60,7 +60,7 @@ A lightweight, functional iOS Share Extension that allows users to save URLs fro
 ✅ **Modern Swift**: Uses async/await, SwiftUI, and latest patterns
 ✅ **Error Handling**: Graceful error messages with clear feedback
 ✅ **Auto-dismiss**: Success state auto-closes after 1.5 seconds
-✅ **Clean UI**: Minimal, functional design ready for Fabio's customization
+✅ **Clean UI**: Minimal, functional design ready for the user's customization
 
 ## Quick Start
 
@@ -161,7 +161,7 @@ updated_at (TIMESTAMPTZ)
 
 ## Customization Points
 
-The code includes TODO comments for Fabio to customize:
+The code includes TODO comments for the user to customize:
 
 1. **Favicon Fetching** (ShareExtensionView ~73)
    - Replace blue placeholder circle with real favicons

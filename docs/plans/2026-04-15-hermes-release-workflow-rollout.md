@@ -17,7 +17,7 @@ For future ThePerch work, Hermes should reliably do the following:
 - enforce build/test verification before claiming done
 - enforce visual QA for UI changes
 - end with an explicit release verdict: `not release-ready`, `alpha-ready`, or `beta-ready`
-- require Fábio approval before TestFlight deploys
+- require the user approval before TestFlight deploys
 - require explicit lane choice for deploys
 
 ## Rollout policy
@@ -42,7 +42,7 @@ For future ThePerch work, Hermes should reliably do the following:
 - release verdict must mention visual inspection explicitly
 
 4. Any deploy
-- Fábio approval required
+- the user approval required
 - lane must be explicit
 - `alpha` is default recommendation unless evidence clearly supports `beta`
 
@@ -127,7 +127,7 @@ Every meaningful task ends with one of:
 - `beta-ready`
 
 ### Stage 8: Deploy handling
-If Fábio asks to deploy and approves it:
+If the user asks to deploy and approves it:
 - choose lane explicitly
 - use `deploy-testflight.sh --lane=alpha` or `--lane=beta`
 - do not silently skip tests or QA for beta-grade recommendations

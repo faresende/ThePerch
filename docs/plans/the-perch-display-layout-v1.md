@@ -182,7 +182,7 @@ If the request started in voice, auto-play voice reply unless muted.
 ## Content constraints
 
 ### Maximum visible facts rule
-The screen should not ask Fábio to parse more than about 7 distinct facts at once.
+The screen should not ask the user to parse more than about 7 distinct facts at once.
 
 ### Summarization rule
 If a source has more than 3 items worth showing, the source must summarize before rendering.
@@ -203,7 +203,7 @@ The display should feel:
 - multiple tabs or pages
 - a permanent always-visible reply panel when there is nothing fresh to show
 
-## Questions to iterate with Fábio
+## Questions to iterate with the user
 1. Does the Nudge block deserve full width, or should Latest Reply be larger than Nudge?
 2. Should the voice dock be icon-first or text-first?
 3. Should “Read latest aloud” be a separate action or part of the Latest Reply card?

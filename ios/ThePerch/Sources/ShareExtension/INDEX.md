@@ -39,7 +39,7 @@ ShareExtension/
 | **QUICKSTART.md** | 7-step setup checklist | Ready to implement |
 | **SETUP.md** | Comprehensive guide | Need detailed instructions |
 | **ShareViewController.swift** | Extension initializer | Setting up the project |
-| **ShareExtensionView.swift** | UI customization | Fabio needs to customize |
+| **ShareExtensionView.swift** | UI customization | the user needs to customize |
 | **ShareSupabaseClient.swift** | API integration | Debugging Supabase issues |
 | **SharedConstants.swift** | Configuration | Changing identifiers |
 | **MainAppIntegration.swift** | Main app code | Integrating with main app |
@@ -181,7 +181,7 @@ com.theperch.auth
 
 ## Customization Roadmap
 
-### Immediate (Fabio)
+### Immediate (the user)
 - [ ] Replace placeholder favicon circle
 - [ ] Update colors to brand colors
 - [ ] Adjust fonts and spacing

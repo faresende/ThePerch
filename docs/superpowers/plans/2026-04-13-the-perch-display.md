@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build The Perch Display, a calm ambient display surface for Meta Portal and other tablet/kiosk hosts that shows what matters now and lets Fábio talk to Claudinho and SideQuest without picking up his phone.
+**Goal:** Build The Perch Display, a calm ambient display surface for Meta Portal and other tablet/kiosk hosts that shows what matters now and lets the user talk to Claudinho and SideQuest without picking up his phone.
 
 **Architecture:** Treat this as a new surface, not a port of the iOS app. Use a landscape-first web kiosk client in `web/`, powered by one composed display snapshot from Supabase/OpenClaw, plus a voice bridge that routes push-to-talk input to Claudinho and SideQuest and returns text plus spoken replies. Keep business logic in the snapshot/bridge layer and keep the display client dumb, glanceable, and calm.
 
@@ -19,7 +19,7 @@ It is **The Perch Display**: an ambient home command surface.
 Its job is to reduce cognitive load by making the next useful thing visible without asking for attention all day.
 
 ### Core product promise
-At a glance, Fábio should be able to answer:
+At a glance, the user should be able to answer:
 - What matters now?
 - What is next?
 - What needs attention today?
@@ -251,7 +251,7 @@ This order is intentional. It protects the product from overfitting to Portal be
 - [ ] **Step 1: Write the layout brief with one landscape-first screen and persistent rails**
 - [ ] **Step 2: Write the voice interaction brief with push-to-talk, transcript, and spoken-reply rules**
 - [ ] **Step 3: Define the exact v1 module list and explicit non-goals**
-- [ ] **Step 4: Review the layout with Fábio and revise until approved**
+- [ ] **Step 4: Review the layout with the user and revise until approved**
 - [ ] **Step 5: Open/update GitHub issues to match the approved scope**
 
 ### Task 2: Freeze the display payload contract
@@ -456,7 +456,7 @@ The biggest product win would be making this feel like a calm household surface 
 
 ## Success criteria
 
-- Fábio can understand the day in under 3 seconds from across the room
+- the user can understand the day in under 3 seconds from across the room
 - The screen never feels like a wall of widgets
 - Things, SideQuest, macros, calendar, and weather are visible without navigation
 - Claudinho and SideQuest can be reached in one tap from the display

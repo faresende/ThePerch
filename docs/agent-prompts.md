@@ -1,4 +1,4 @@
-# Claudinho Prompts for ThePerch Dashboard Data
+# Your Agent Prompts for ThePerch Dashboard Data
 
 These are instructions for OpenClaw agents to populate the Supabase `dashboard_records` table with data that ThePerch iOS app will display.
 
@@ -6,28 +6,28 @@ These are instructions for OpenClaw agents to populate the Supabase `dashboard_r
 
 There are **two levels** of database operations:
 
-### 1. Schema Setup (Fabio runs SQL manually — one-time)
-Table creation, column changes, indexes, RLS policies — anything that changes the database *structure*. Claudinho generates the SQL, Fabio copies it into the **Supabase SQL Editor** and runs it.
+### 1. Schema Setup (the user runs SQL manually — one-time)
+Table creation, column changes, indexes, RLS policies — anything that changes the database *structure*. Your Agent generates the SQL, the user copies it into the **Supabase SQL Editor** and runs it.
 
-### 2. Data Operations (Claudinho does directly via REST API)
-Inserting, updating, and upserting *records* — Claudinho can do this autonomously using the **Supabase REST API** (PostgREST). He just needs:
+### 2. Data Operations (Your Agent does directly via REST API)
+Inserting, updating, and upserting *records* — Your Agent can do this autonomously using the **Supabase REST API** (PostgREST). He just needs:
 - **Project URL:** `https://<project-ref>.supabase.co`
 - **API Key:** the `anon` or `service_role` key from Supabase Settings → API
 - **HTTP requests:** `POST` to insert, `PATCH` to update, with the table name in the URL path
 
-So for day-to-day data entry (logging sleep, calories, deliveries, etc.), **Claudinho handles it directly** — no copy-pasting SQL needed.
+So for day-to-day data entry (logging sleep, calories, deliveries, etc.), **Your Agent handles it directly** — no copy-pasting SQL needed.
 
 ### Example: Logging sleep data
 
-> **Fabio:** "Log my sleep: 7h total, 1.5h deep, lowest HR 52, HRV 45"
+> **the user:** "Log my sleep: 7h total, 1.5h deep, lowest HR 52, HRV 45"
 >
-> **Claudinho:** *(makes 4 POST requests to Supabase REST API and confirms)* "Done! Logged your sleep data — 7h total, 1.5h deep sleep, 52 bpm lowest HR, 45ms HRV."
+> **Your Agent:** *(makes 4 POST requests to Supabase REST API and confirms)* "Done! Logged your sleep data — 7h total, 1.5h deep sleep, 52 bpm lowest HR, 45ms HRV."
 
 ### Example: Schema change (one-time)
 
-> **Fabio:** "Add a new column for sleep scores"
+> **the user:** "Add a new column for sleep scores"
 >
-> **Claudinho:** "Here's the SQL to run in the Supabase SQL Editor:"
+> **Your Agent:** "Here's the SQL to run in the Supabase SQL Editor:"
 > ```sql
 > ALTER TABLE dashboard_records ADD COLUMN sleep_score integer;
 > ```
@@ -36,9 +36,9 @@ So for day-to-day data entry (logging sleep, calories, deliveries, etc.), **Clau
 
 ## 1. Oura Ring Sleep Data (Daily)
 
-**Agent:** Claudinho (or a dedicated sleep agent)
-**Trigger:** When Fabio shares his Oura sleep data in chat
-**Source:** Fabio tells Claudinho the values from the Oura app
+**Agent:** Your Agent (or a dedicated sleep agent)
+**Trigger:** When the user shares his Oura sleep data in chat
+**Source:** the user tells Your Agent the values from the Oura app
 **Method:** Supabase REST API (direct insert)
 
 ### Prompt:
@@ -47,7 +47,7 @@ So for day-to-day data entry (logging sleep, calories, deliveries, etc.), **Clau
 When I share my sleep data from Oura, insert the following records into the `dashboard_records` table via the Supabase REST API. Each metric should be its own separate record.
 
 Use these exact field values for each record:
-- agent_id: "claudinho"
+- agent_id: "your-agent"
 - user_id: (my user UUID)
 - category: "health"
 - type: "measurement"
@@ -79,9 +79,9 @@ Convert all durations to hours (e.g., 7h 23m = 7.38). Round to 2 decimal places.
 
 ## 2. Daily Calories Tracking (Updated Throughout Day)
 
-**Agent:** Claudinho
-**Trigger:** Every time Fabio logs food in chat
-**Source:** Conversation with Fabio (food logging)
+**Agent:** Your Agent
+**Trigger:** Every time the user logs food in chat
+**Source:** Conversation with the user (food logging)
 **Method:** Supabase REST API (upsert — update if today's record exists, insert if first entry)
 
 ### Prompt:
@@ -90,7 +90,7 @@ Convert all durations to hours (e.g., 7h 23m = 7.38). Round to 2 decimal places.
 When I tell you what I've eaten, upsert my daily calorie record in the `dashboard_records` table via the Supabase REST API.
 
 Upsert (update if exists for today, insert if first entry):
-- agent_id: "claudinho"
+- agent_id: "your-agent"
 - user_id: (my user UUID)
 - category: "health"
 - type: "measurement"
@@ -114,9 +114,9 @@ IMPORTANT:
 
 ## 3. Daily Macros Tracking (Updated Throughout Day)
 
-**Agent:** Claudinho
+**Agent:** Your Agent
 **Trigger:** Updated alongside calories when food is logged
-**Source:** Conversation with Fabio (food logging)
+**Source:** Conversation with the user (food logging)
 **Method:** Supabase REST API (upsert alongside calories)
 
 ### Prompt:
@@ -125,7 +125,7 @@ IMPORTANT:
 When updating my daily calories, also upsert my macronutrient record in `dashboard_records` via the Supabase REST API.
 
 Upsert for today's date:
-- agent_id: "claudinho"
+- agent_id: "your-agent"
 - user_id: (my user UUID)
 - category: "health"
 - type: "measurement"
@@ -151,9 +151,9 @@ IMPORTANT:
 
 ## 4. Body Composition Data (from InBody / Manual)
 
-**Agent:** Claudinho
-**Trigger:** When Fabio shares InBody results or manual measurements
-**Source:** Conversation with Fabio
+**Agent:** Your Agent
+**Trigger:** When the user shares InBody results or manual measurements
+**Source:** Conversation with the user
 **Method:** Supabase REST API (direct insert)
 
 ### Prompt:
@@ -171,7 +171,7 @@ When I share body composition data (InBody scan, manual measurements, etc.), ins
    - data: {"metric": "body_fat_pct", "value": <percentage>, "unit": "%"}
    - display_hint: "chart"
 
-All records: agent_id "claudinho", category "health", type "measurement".
+All records: agent_id "your-agent", category "health", type "measurement".
 ```
 
 ---
@@ -186,7 +186,7 @@ IMPORTANT CONTRACT UPDATE:
 - Only write legacy `dashboard_records` delivery rows if a specific compatibility surface still requires them.
 
 **Agent:** Entregas
-**Trigger:** When Fabio shares a tracking number or asks for delivery updates
+**Trigger:** When the user shares a tracking number or asks for delivery updates
 **Source:** Tracking numbers from conversation
 **Method:** Supabase REST API (insert new deliveries, update status on existing ones)
 
@@ -225,7 +225,7 @@ If you also need a legacy delivery card for temporary compatibility, say so expl
 ## 6. Calendar Events
 
 **Agent:** Calendario
-**Trigger:** When Fabio asks to sync calendar events or mentions upcoming events
+**Trigger:** When the user asks to sync calendar events or mentions upcoming events
 **Source:** Google Calendar API, conversation
 **Method:** Supabase REST API (insert new events, update changed ones)
 
@@ -259,8 +259,8 @@ IMPORTANT:
 
 ## 7. Admin: Gateway Status & Crons
 
-**Agent:** Claudinho (system task)
-**Trigger:** When Fabio asks for a system status update, or periodically as part of a health check
+**Agent:** Your Agent (system task)
+**Trigger:** When the user asks for a system status update, or periodically as part of a health check
 **Method:** Supabase REST API (upsert status records)
 
 ### Prompt for Gateway Status:
@@ -268,7 +268,7 @@ IMPORTANT:
 ```
 Write a gateway status snapshot to `dashboard_records` via the Supabase REST API.
 
-- agent_id: "claudinho"
+- agent_id: "your-agent"
 - category: "admin"
 - type: "status"
 - display_hint: "single_value"
@@ -290,7 +290,7 @@ Write a gateway status snapshot to `dashboard_records` via the Supabase REST API
 ```
 For each active cron job in OpenClaw, write a record to `dashboard_records` via the Supabase REST API.
 
-- agent_id: "claudinho"
+- agent_id: "your-agent"
 - category: "admin"
 - type: "status"
 - display_hint: "status_list"
@@ -311,7 +311,7 @@ Update these records periodically to keep next_run_at accurate.
 
 ## Schema Setup SQL (Run Once in Supabase SQL Editor)
 
-These are the one-time SQL statements Fabio needs to run manually. Claudinho should generate these when setting up new table structures:
+These are the one-time SQL statements the user needs to run manually. Your Agent should generate these when setting up new table structures:
 
 ```sql
 -- The dashboard_records table (if not already created)

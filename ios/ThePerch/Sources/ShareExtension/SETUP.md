@@ -210,7 +210,7 @@ KeychainHelper.store(
 
 ## UI Customization
 
-The `ShareExtensionView.swift` contains TODO comments for Fabio to customize:
+The `ShareExtensionView.swift` contains TODO comments for the user to customize:
 
 1. **Favicon Fetching** (line ~73): Replace the placeholder blue circle with actual favicons
 2. **Design Polish**: Update colors, spacing, fonts, and animations

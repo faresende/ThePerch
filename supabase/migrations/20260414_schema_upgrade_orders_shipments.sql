@@ -16,7 +16,7 @@
 --     future writes populate them.
 --   • Does NOT apply itself — must be run manually after review.
 --
--- Author: Claude / Fabio
+-- Author: Claude / the user
 -- Date: 2026-04-14
 
 BEGIN;

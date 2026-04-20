@@ -230,7 +230,7 @@ CREATE POLICY "Users can insert their own records" ON records
 - Confirm user has write permissions on bookmarks/records tables
 - Try logging out and logging back in to refresh token
 
-## Customization TODO Items for Fabio
+## Customization TODO Items for the user
 
 The UI in `ShareExtensionView.swift` has TODO comments for customization:
 
