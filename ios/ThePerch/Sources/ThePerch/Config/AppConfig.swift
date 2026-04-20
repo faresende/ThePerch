@@ -3,16 +3,6 @@ import Foundation
 /// Configuration for the application, including Supabase credentials.
 struct AppConfig {
     static let shared = AppConfig()
-    static let defaultUserID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
-
-    static let legacySelfHostedURLString = "https://cgmaotzmeoiueyzlchaz.supabase.co"
-    static let managedCloudURLString = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
-    static let managedCloudAnonKey = "***REDACTED_MANAGED_ANON***"
-    static let managedCloudConfiguration = AppConfiguration(
-        supabaseURL: managedCloudURLString,
-        supabaseAnonKey: managedCloudAnonKey,
-        backendMode: .managedCloud
-    )
 
     let supabaseURL: URL
     let supabaseAnonKey: String
