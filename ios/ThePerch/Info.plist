@@ -20,8 +20,6 @@
 	<string>The Perch reads your health data (weight, sleep, heart rate) to display trends and insights on your dashboard.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>The Perch writes health metrics synced from your OpenClaw agents to Apple Health for safekeeping.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>The Perch uses the camera to capture meals, receipts, boarding passes, and other items you log from the compose button.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>The Perch lets you attach photos from your library to meals, receipts, and other items you log.</string>
 
