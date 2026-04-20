@@ -1,10 +1,12 @@
 {
   "images" : [
     {
+      "filename" : "launch-wordmark.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
+      "filename" : "launch-wordmark@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
