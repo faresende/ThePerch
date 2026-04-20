@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Centralized theme configuration for The Perch app.
 /// "Linen / Editorial" — Variant A of the Claude-Design-driven redesign.
@@ -1027,6 +1030,54 @@ struct PerchPalette: Equatable, Sendable {
     /// Cream overlay colour for hero greeting text — a warm off-white
     /// that reads on every scrimDark.
     let heroText: Color = Color(red: 0.969, green: 0.941, blue: 0.867) // #F7F0DD
+
+    // MARK: v2 extension tokens (Sections redesign)
+    //
+    // Subtler tones for cards-within-cards, soft dividers, and
+    // semantic deltas (good / warn). `cardDim` sits between `card` and
+    // `bg` so a sub-panel inside a card reads as tonally indented
+    // without drawing a second border. `lineSoft` is a gentler hairline
+    // for row separators inside the same card. `good` and `warn` are
+    // ink-adjacent so they stay in the warm palette's register — no
+    // pure red, no pure green.
+
+    /// Subordinate panel fill inside a card (e.g. Travel flight strip).
+    /// One step closer to `bg` than `card`. Always opaque.
+    var cardDim: Color {
+        // Midday reference: #F5CECF. Computed from card/bg midpoint.
+        let m = Self.midpoint(self.card, self.bg, t: 0.35)
+        return m
+    }
+
+    /// Soft divider inside a card (row separator). Lighter than `line`.
+    var lineSoft: Color {
+        // Midday reference: #EABBBD. Midpoint of card and line.
+        let m = Self.midpoint(self.card, self.line, t: 0.6)
+        return m
+    }
+
+    /// Positive delta (e.g. +22m, +4%). Moss green, ink-adjacent.
+    let good: Color = Color(red: 0.420, green: 0.561, blue: 0.369) // #6B8F5E
+
+    /// Warning (watchouts). Amber, never red.
+    let warn: Color = Color(red: 0.769, green: 0.541, blue: 0.247) // #C48A3F
+
+    /// Linear RGB midpoint helper for deriving tonal tokens.
+    /// `t` = 0 returns a, `t` = 1 returns b. Uses UIColor for RGB
+    /// extraction so results match design specs closely.
+    private static func midpoint(_ a: Color, _ b: Color, t: CGFloat) -> Color {
+        let ua = UIColor(a)
+        let ub = UIColor(b)
+        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+        ua.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        ub.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        return Color(
+            red:   Double(ar + (br - ar) * t),
+            green: Double(ag + (bg - ag) * t),
+            blue:  Double(ab + (bb - ab) * t)
+        )
+    }
 
     // MARK: Palette library
 
