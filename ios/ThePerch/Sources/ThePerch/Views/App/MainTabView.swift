@@ -2,14 +2,28 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(\.perchPalette) private var palette
-
     @Environment(DashboardViewModel.self) var dashboardViewModel
+
     @State private var selectedTab: RootTab = Self.initialTab()
     @State private var isShowingSettings = false
-    @State private var isShowingCapture = false
     @State private var previousContentTab: RootTab = Self.initialTab()
     @State private var didHandleDebugLaunchRouting = false
+
+    // Compose flow state — all in one place so the custom bottom bar
+    // morph + AI card + toast can react to a single state machine.
+    @State private var composePhase: ComposePhase = .idle
+    @State private var composeDraftText: String = ""
+    @State private var composeHasPhoto: Bool = false
+    @State private var isPresentingCamera: Bool = false
     @State private var composeToastMessage: String?
+    @FocusState private var isComposeInputFocused: Bool
+
+    enum ComposePhase: Equatable {
+        case idle       // native tab bar visible, no compose UI
+        case composing  // morphed bar: section FAB + input pill (keyboard up)
+        case sending    // shimmer bar + "Reading…"
+        case ai         // AI response card floats above the input pill
+    }
 
     enum RootTab: String, Hashable {
         case today
@@ -32,6 +46,17 @@ struct MainTabView: View {
             case .health: "heart.fill"
             case .hub: "square.grid.2x2.fill"
             case .capture: "plus"
+            }
+        }
+
+        /// Outline SF Symbol used by the section-icon FAB during compose.
+        /// Filled weights are too heavy against liquid glass.
+        var dockSymbol: String {
+            switch self {
+            case .today:   "house"
+            case .health:  "heart"
+            case .hub:     "square.grid.2x2"
+            case .capture: "square.grid.2x2"
             }
         }
     }
@@ -59,49 +84,64 @@ struct MainTabView: View {
         // app re-tints atomically with the hour.
         let timeOfDay = PerchTimeOfDay.current
         let palette = PerchPalette.forTimeOfDay(timeOfDay)
+        let isComposing = composePhase != .idle
 
-        TabView(selection: $selectedTab) {
-            Tab(RootTab.today.title, systemImage: RootTab.today.systemImage, value: RootTab.today) {
-                TodayTab(onOpenProfile: presentSettings)
+        ZStack(alignment: .bottom) {
+            // ── Main content stack ──────────────────────────────────
+            // Native TabView — untouched in idle. When compose is
+            // active we hide its tab bar and blur the content so the
+            // custom morphed bar below can own the bottom slot.
+            TabView(selection: $selectedTab) {
+                Tab(RootTab.today.title, systemImage: RootTab.today.systemImage, value: RootTab.today) {
+                    TodayTab(onOpenProfile: presentSettings)
+                }
+
+                Tab(RootTab.health.title, systemImage: RootTab.health.systemImage, value: RootTab.health) {
+                    HealthTab(onOpenProfile: presentSettings)
+                }
+
+                Tab(RootTab.hub.title, systemImage: RootTab.hub.systemImage, value: RootTab.hub) {
+                    HubTab(onOpenProfile: presentSettings)
+                }
+
+                Tab(RootTab.capture.title, systemImage: RootTab.capture.systemImage, value: RootTab.capture, role: .search) {
+                    Color.clear
+                        .ignoresSafeArea()
+                }
             }
+            .tint(palette.kinetic)
+            .tabBarMinimizeBehavior(.onScrollDown)
+            .toolbar(isComposing ? .hidden : .visible, for: .tabBar)
+            .blur(radius: isComposing ? 6 : 0)
+            .disabled(isComposing)
+            .animation(.easeInOut(duration: 0.28), value: isComposing)
 
-            Tab(RootTab.health.title, systemImage: RootTab.health.systemImage, value: RootTab.health) {
-                HealthTab(onOpenProfile: presentSettings)
-            }
-
-            Tab(RootTab.hub.title, systemImage: RootTab.hub.systemImage, value: RootTab.hub) {
-                HubTab(onOpenProfile: presentSettings)
-            }
-
-            Tab(RootTab.capture.title, systemImage: RootTab.capture.systemImage, value: RootTab.capture, role: .search) {
-                Color.clear
-                    .ignoresSafeArea()
+            // ── Morphed compose bar overlay ─────────────────────────
+            // Lives only while composePhase != .idle. Section-icon
+            // glass FAB on the left replaces the nav; input pill on
+            // the right expands to take the remaining bottom width.
+            // AI response card floats above both when present.
+            if isComposing {
+                composeOverlay(palette: palette)
+                    .transition(.opacity)
             }
         }
-        .tint(palette.kinetic)
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .background(palette.bg.ignoresSafeArea())
         .environment(\.perchPalette, palette)
         .environment(\.perchTimeOfDay, timeOfDay)
         .sheet(isPresented: $isShowingSettings) {
             SettingsTab()
         }
-        .sheet(isPresented: $isShowingCapture) {
-            PerchComposeSheet { destination in
-                // Sheet dismisses first (via the binding reset), then the
-                // toast slides in from the top — the slight delay stops
-                // the two animations from stepping on each other.
-                isShowingCapture = false
-                Task {
-                    try? await Task.sleep(for: .milliseconds(250))
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
-                        composeToastMessage = "Added to \(destination)"
-                    }
-                    try? await Task.sleep(for: .milliseconds(2200))
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        composeToastMessage = nil
-                    }
+        .fullScreenCover(isPresented: $isPresentingCamera) {
+            PerchComposeCameraOverlay(
+                onCapture: {
+                    composeHasPhoto = true
+                    isPresentingCamera = false
+                },
+                onClose: {
+                    isPresentingCamera = false
                 }
-            }
+            )
         }
         .overlay(alignment: .top) {
             if let msg = composeToastMessage {
@@ -111,17 +151,23 @@ struct MainTabView: View {
                     .allowsHitTesting(false)
             }
         }
-        .onChange(of: selectedTab) { oldTab, newTab in
+        .onChange(of: selectedTab) { _, newTab in
             if newTab == .capture {
+                // Bounce the tab selection back to the previous content
+                // tab and open the compose overlay in its place. The
+                // section-FAB symbol follows `previousContentTab`.
                 selectedTab = previousContentTab
-                isShowingCapture = true
+                startComposing()
             } else {
                 previousContentTab = newTab
             }
         }
+        .onChange(of: composePhase) { _, new in
+            if new == .sending {
+                Task { await runMockSending() }
+            }
+        }
         .task(id: "main-tab-debug-routing") {
-            // Initial dashboard load is owned by ThePerchApp (auth-gated).
-            // Only handle debug-launch routing here so we don't double-fetch on launch.
             guard !didHandleDebugLaunchRouting else { return }
             didHandleDebugLaunchRouting = true
             if Self.debugLaunchesSettings {
@@ -129,19 +175,337 @@ struct MainTabView: View {
             }
         }
         .task(id: "main-tab-load-safety-net") {
-            // Defensive fallback: if MainTabView appears and the dashboard is
-            // still empty AND not currently loading, the auth-gated task in
-            // ThePerchApp didn't fire for some reason (timing race, debug
-            // bypass edge case, etc.). Trigger the load here.
-            //
-            // This is a no-op in the happy path because loadDashboard's
-            // completion leaves allRecords populated, so the guard returns
-            // immediately on re-entry. No duplicate fetch.
             guard dashboardViewModel.allRecords.isEmpty,
                   !dashboardViewModel.isLoading else { return }
             await dashboardViewModel.loadDashboard()
         }
     }
+
+    // MARK: - Compose overlay
+
+    @ViewBuilder
+    private func composeOverlay(palette: PerchPalette) -> some View {
+        VStack(spacing: 10) {
+            if composePhase == .ai {
+                composeAICard(palette: palette)
+                    .padding(.horizontal, 12)
+                    .transition(.asymmetric(
+                        insertion: .offset(y: 18).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+            }
+
+            HStack(spacing: 8) {
+                composeSectionFAB(palette: palette)
+                composeInputPill(palette: palette)
+            }
+            .padding(.horizontal, 10)
+        }
+        .padding(.bottom, 12)
+    }
+
+    /// The collapsed tab bar on the left — a glass square showing the
+    /// currently-active section's icon. Tap to cancel and return to idle.
+    @ViewBuilder
+    private func composeSectionFAB(palette: PerchPalette) -> some View {
+        Button {
+            collapseCompose()
+        } label: {
+            Image(systemName: previousContentTab.dockSymbol)
+                .font(.system(size: 20, weight: .regular))
+                .foregroundStyle(palette.ink)
+                .frame(width: 52, height: 52)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .transition(.scale(scale: 0.6).combined(with: .opacity))
+        .accessibilityLabel(Text("Close compose"))
+    }
+
+    /// Liquid-glass capsule holding camera · (optional photo thumb) ·
+    /// text field · send. Expands to fill the remaining bottom width.
+    @ViewBuilder
+    private func composeInputPill(palette: PerchPalette) -> some View {
+        HStack(spacing: 6) {
+            composeCameraButton(palette: palette)
+
+            if composeHasPhoto && composePhase != .sending {
+                composePhotoThumbnail
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            }
+
+            composeInputField(palette: palette)
+                .frame(maxWidth: .infinity)
+
+            composeSendButton(palette: palette)
+        }
+        .padding(6)
+        .frame(height: 52)
+        .glassEffect(.regular, in: Capsule())
+    }
+
+    @ViewBuilder
+    private func composeCameraButton(palette: PerchPalette) -> some View {
+        Button {
+            isPresentingCamera = true
+        } label: {
+            Image(systemName: "camera")
+                .font(.system(size: 18, weight: .regular))
+                .foregroundStyle(composePhase == .composing ? palette.ink : palette.faint)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(palette.ink.opacity(0.05)))
+        }
+        .buttonStyle(.plain)
+        .disabled(composePhase != .composing)
+        .accessibilityLabel(Text("Take photo"))
+    }
+
+    @ViewBuilder
+    private var composePhotoThumbnail: some View {
+        ZStack {
+            RadialGradient(
+                colors: [
+                    Color(red: 0.91, green: 0.69, blue: 0.44),
+                    Color(red: 0.54, green: 0.31, blue: 0.13),
+                    Color(red: 0.23, green: 0.12, blue: 0.04)
+                ],
+                center: .init(x: 0.35, y: 0.35),
+                startRadius: 0,
+                endRadius: 28
+            )
+            RadialGradient(
+                colors: [Color.black.opacity(0.7), .clear],
+                center: .init(x: 0.65, y: 0.70),
+                startRadius: 0,
+                endRadius: 18
+            )
+        }
+        .frame(width: 32, height: 32)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func composeInputField(palette: PerchPalette) -> some View {
+        switch composePhase {
+        case .sending:
+            HStack(spacing: 10) {
+                ComposeShimmerBar()
+                    .frame(maxWidth: .infinity)
+                Text("Reading…")
+                    .font(.system(size: 12.5, weight: .regular, design: .serif).italic())
+                    .foregroundStyle(palette.muted)
+            }
+        case .ai:
+            Text(composeHasPhoto ? "Photo · understood" : composeDraftText)
+                .font(.system(size: 14.5))
+                .foregroundStyle(palette.muted)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .composing, .idle:
+            TextField(
+                composeHasPhoto ? "Add a note…" : "Log a meal, a receipt, anything",
+                text: $composeDraftText,
+                axis: .horizontal
+            )
+            .font(.system(size: 14.5))
+            .foregroundStyle(palette.ink)
+            .tint(palette.kinetic)
+            .submitLabel(.send)
+            .focused($isComposeInputFocused)
+            .onSubmit(attemptSend)
+        }
+    }
+
+    private var canSend: Bool {
+        composePhase == .composing &&
+        (composeHasPhoto || !composeDraftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
+    @ViewBuilder
+    private func composeSendButton(palette: PerchPalette) -> some View {
+        Button(action: attemptSend) {
+            Image(systemName: "paperplane.fill")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(canSend
+                                 ? Color(red: 1.0, green: 0.973, blue: 0.925)
+                                 : palette.faint)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle().fill(canSend ? palette.kinetic : palette.ink.opacity(0.05))
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!canSend)
+        .animation(.easeInOut(duration: 0.2), value: canSend)
+        .accessibilityLabel(Text("Send"))
+    }
+
+    // MARK: - AI response card
+
+    @ViewBuilder
+    private func composeAICard(palette: PerchPalette) -> some View {
+        let ai = mockAI
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(palette.wellness)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(palette.wellness.opacity(0.22))
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("UNDERSTOOD · GOES TO \(ai.destination.uppercased())")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(palette.muted)
+
+                    Text(ai.title)
+                        .font(.system(size: 20, weight: .medium, design: .serif).italic())
+                        .foregroundStyle(palette.ink)
+                        .tracking(-0.3)
+                        .lineLimit(2)
+
+                    Text(ai.body)
+                        .font(.system(size: 13.5, weight: .regular, design: .serif))
+                        .foregroundStyle(palette.muted)
+                }
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+                        composePhase = .composing
+                    }
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(150))
+                        isComposeInputFocused = true
+                    }
+                } label: {
+                    Text("Edit")
+                        .font(.system(size: 14.5, weight: .medium))
+                        .foregroundStyle(palette.ink)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(palette.ink.opacity(0.08))
+                        )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    acceptAI(ai)
+                } label: {
+                    Text("Accept")
+                        .font(.system(size: 14.5, weight: .semibold))
+                        .foregroundStyle(Color(red: 1.0, green: 0.973, blue: 0.925))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(palette.kinetic)
+                        )
+                        .shadow(color: palette.kinetic.opacity(0.35), radius: 10, x: 0, y: 5)
+                }
+                .buttonStyle(.plain)
+                .layoutPriority(1.4)
+            }
+        }
+        .padding(18)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+    }
+
+    // MARK: - Mock AI + state transitions
+
+    /// Canned AI response for v1. Photo → Nutrition, text → Travel.
+    /// Swap for a real LLM call without changing the view shape.
+    private var mockAI: AIResult {
+        if composeHasPhoto {
+            return AIResult(
+                title: "One pastel de nata",
+                body: "~250 cal · 5g P · 25g C · 14g F",
+                destination: "Nutrition"
+            )
+        } else {
+            return AIResult(
+                title: "Flight to Porto · BA 1234",
+                body: "Fri, 10 Apr · 07:45 LGW → 10:30 OPO",
+                destination: "Travel"
+            )
+        }
+    }
+
+    struct AIResult: Equatable {
+        let title: String
+        let body: String
+        let destination: String
+    }
+
+    private func startComposing() {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+            composePhase = .composing
+        }
+        // Slight delay gives the keyboard animation room to align with
+        // the bar expansion — avoids the "bar jumps" look.
+        Task {
+            try? await Task.sleep(for: .milliseconds(320))
+            isComposeInputFocused = true
+        }
+    }
+
+    private func collapseCompose() {
+        isComposeInputFocused = false
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+            composePhase = .idle
+            composeDraftText = ""
+            composeHasPhoto = false
+        }
+    }
+
+    private func attemptSend() {
+        guard canSend else { return }
+        isComposeInputFocused = false
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+            composePhase = .sending
+        }
+    }
+
+    private func runMockSending() async {
+        try? await Task.sleep(for: .milliseconds(1600))
+        guard composePhase == .sending else { return }
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+            composePhase = .ai
+        }
+    }
+
+    private func acceptAI(_ ai: AIResult) {
+        let destination = ai.destination
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+            composePhase = .idle
+            composeDraftText = ""
+            composeHasPhoto = false
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+                composeToastMessage = "Added to \(destination)"
+            }
+            try? await Task.sleep(for: .milliseconds(2200))
+            withAnimation(.easeOut(duration: 0.3)) {
+                composeToastMessage = nil
+            }
+        }
+    }
+
+    // MARK: - Debug routing
 
     private static var debugLaunchesSettings: Bool {
         #if DEBUG
@@ -548,360 +912,6 @@ private struct QuickNoteInputSheet: View {
     }
 }
 
-// MARK: - PerchComposeSheet
-//
-// The + tab opens this as a sheet. Bottom tab bar is untouched —
-// iOS handles the dim + overlay the same way it did for CaptureSheet.
-//
-// The compose flow runs a small state machine inside the sheet:
-//
-//   composing  →  user types / attaches photo / taps send
-//   camera     →  full-screen mock viewfinder (present in production)
-//   sending    →  shimmer bar + "Reading…" while the LLM "thinks"
-//   ai         →  AI response card appears above the input, with
-//                 Edit (back to composing) + Accept (confirm + toast)
-//
-// Sheet detent grows when the AI card needs room; collapses back on
-// Edit. Accept fires `onAccept(destination)` so the parent can flash
-// a "Added to {destination}" toast after dismissal.
-//
-// AI routing is stubbed for v1. Photo → Nutrition ("One pastel de
-// nata"), text → Travel ("Flight to Porto · BA 1234") — matches the
-// handoff's canned examples. Wire the real LLM call when ready;
-// the view shape stays the same.
-
-struct PerchComposeSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.perchPalette) private var palette
-
-    /// Fires when the user taps Accept on the AI response. Parent is
-    /// expected to dismiss the sheet (binding reset) + surface a toast.
-    let onAccept: (String) -> Void
-
-    @State private var phase: Phase = .composing
-    @State private var draftText: String = ""
-    @State private var hasPhoto: Bool = false
-    @State private var detent: PresentationDetent = .height(Self.composeDetent)
-    @State private var isPresentingCamera: Bool = false
-    @FocusState private var isInputFocused: Bool
-
-    private static let composeDetent: CGFloat = 180
-    private static let aiDetent: CGFloat = 380
-
-    enum Phase: Equatable { case composing, sending, ai }
-
-    /// Stubbed AI response. Photo → Nutrition, text → Travel — matches
-    /// the handoff's demo copy.
-    struct AIResult: Equatable {
-        let title: String
-        let body: String
-        let destination: String
-    }
-
-    private var mockAI: AIResult {
-        if hasPhoto {
-            return AIResult(
-                title: "One pastel de nata",
-                body: "~250 cal · 5g P · 25g C · 14g F",
-                destination: "Nutrition"
-            )
-        } else {
-            return AIResult(
-                title: "Flight to Porto · BA 1234",
-                body: "Fri, 10 Apr · 07:45 LGW → 10:30 OPO",
-                destination: "Travel"
-            )
-        }
-    }
-
-    private var canSend: Bool {
-        phase == .composing &&
-        (hasPhoto || !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-    }
-
-    var body: some View {
-        VStack(spacing: 14) {
-            if phase == .ai {
-                aiResponseCard
-                    .padding(.horizontal, 16)
-                    .transition(.asymmetric(
-                        insertion: .offset(y: 18).combined(with: .opacity),
-                        removal: .opacity
-                    ))
-            }
-
-            Spacer(minLength: 0)
-
-            inputCapsule
-                .padding(.horizontal, 12)
-                .padding(.bottom, 10)
-        }
-        .padding(.top, 20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(palette.bg)
-        .presentationDetents([.height(Self.composeDetent), .height(Self.aiDetent)], selection: $detent)
-        .presentationDragIndicator(.visible)
-        .presentationBackground(palette.bg)
-        .fullScreenCover(isPresented: $isPresentingCamera) {
-            PerchComposeCameraOverlay(
-                onCapture: {
-                    hasPhoto = true
-                    isPresentingCamera = false
-                },
-                onClose: {
-                    isPresentingCamera = false
-                }
-            )
-        }
-        .animation(.spring(response: 0.42, dampingFraction: 0.88), value: phase)
-        .onChange(of: phase) { _, new in
-            // Drive sheet height from phase.
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
-                detent = new == .ai ? .height(Self.aiDetent) : .height(Self.composeDetent)
-            }
-            if new == .sending {
-                Task { await runMockSending() }
-            }
-        }
-        .task {
-            // Auto-focus the text field once the sheet is onscreen.
-            try? await Task.sleep(for: .milliseconds(320))
-            isInputFocused = true
-        }
-    }
-
-    // MARK: Input capsule
-
-    @ViewBuilder
-    private var inputCapsule: some View {
-        HStack(spacing: 6) {
-            cameraButton
-
-            if hasPhoto && phase != .sending {
-                photoThumbnail
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
-            }
-
-            inputField
-                .frame(maxWidth: .infinity)
-
-            sendButton
-        }
-        .padding(6)
-        .frame(height: 52)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            Capsule()
-                .strokeBorder(palette.ink.opacity(0.08), lineWidth: 0.5)
-        )
-    }
-
-    @ViewBuilder
-    private var cameraButton: some View {
-        Button {
-            isPresentingCamera = true
-        } label: {
-            Image(systemName: "camera")
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(phase == .composing ? palette.ink : palette.faint)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(palette.ink.opacity(0.06)))
-        }
-        .buttonStyle(.plain)
-        .disabled(phase != .composing)
-        .accessibilityLabel(Text("Take photo"))
-    }
-
-    @ViewBuilder
-    private var photoThumbnail: some View {
-        ZStack {
-            RadialGradient(
-                colors: [
-                    Color(red: 0.91, green: 0.69, blue: 0.44),
-                    Color(red: 0.54, green: 0.31, blue: 0.13),
-                    Color(red: 0.23, green: 0.12, blue: 0.04)
-                ],
-                center: .init(x: 0.35, y: 0.35),
-                startRadius: 0,
-                endRadius: 28
-            )
-            RadialGradient(
-                colors: [Color.black.opacity(0.7), .clear],
-                center: .init(x: 0.65, y: 0.70),
-                startRadius: 0,
-                endRadius: 18
-            )
-        }
-        .frame(width: 32, height: 32)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(palette.ink.opacity(0.1), lineWidth: 1)
-        )
-    }
-
-    @ViewBuilder
-    private var inputField: some View {
-        switch phase {
-        case .sending:
-            HStack(spacing: 10) {
-                ComposeShimmerBar()
-                    .frame(maxWidth: .infinity)
-                Text("Reading…")
-                    .font(.system(size: 12.5, weight: .regular, design: .serif).italic())
-                    .foregroundStyle(palette.muted)
-            }
-        case .ai:
-            Text(hasPhoto ? "Photo · understood" : draftText)
-                .font(.system(size: 14.5))
-                .foregroundStyle(palette.muted)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        case .composing:
-            TextField(
-                hasPhoto ? "Add a note…" : "Log a meal, a receipt, anything…",
-                text: $draftText,
-                axis: .horizontal
-            )
-            .font(.system(size: 14.5))
-            .foregroundStyle(palette.ink)
-            .tint(palette.kinetic)
-            .submitLabel(.send)
-            .focused($isInputFocused)
-            .onSubmit(attemptSend)
-        }
-    }
-
-    @ViewBuilder
-    private var sendButton: some View {
-        Button(action: attemptSend) {
-            Image(systemName: "paperplane.fill")
-                .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(canSend
-                                 ? Color(red: 1.0, green: 0.973, blue: 0.925)
-                                 : palette.faint)
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle().fill(canSend ? palette.kinetic : palette.ink.opacity(0.06))
-                )
-        }
-        .buttonStyle(.plain)
-        .disabled(!canSend)
-        .animation(.easeInOut(duration: 0.2), value: canSend)
-        .accessibilityLabel(Text("Send"))
-    }
-
-    // MARK: AI response card
-
-    @ViewBuilder
-    private var aiResponseCard: some View {
-        let ai = mockAI
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(palette.wellness)
-                    .frame(width: 32, height: 32)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(palette.wellness.opacity(0.22))
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("UNDERSTOOD · GOES TO \(ai.destination.uppercased())")
-                        .font(.system(size: 10.5, weight: .semibold))
-                        .tracking(1.2)
-                        .foregroundStyle(palette.muted)
-
-                    Text(ai.title)
-                        .font(.system(size: 20, weight: .medium, design: .serif).italic())
-                        .foregroundStyle(palette.ink)
-                        .tracking(-0.3)
-                        .lineLimit(2)
-
-                    Text(ai.body)
-                        .font(.system(size: 13.5, weight: .regular, design: .serif))
-                        .foregroundStyle(palette.muted)
-                }
-                Spacer(minLength: 0)
-            }
-
-            HStack(spacing: 8) {
-                Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
-                        phase = .composing
-                    }
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(150))
-                        isInputFocused = true
-                    }
-                } label: {
-                    Text("Edit")
-                        .font(.system(size: 14.5, weight: .medium))
-                        .foregroundStyle(palette.ink)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(palette.ink.opacity(0.06))
-                        )
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    acceptAI(ai)
-                } label: {
-                    Text("Accept")
-                        .font(.system(size: 14.5, weight: .semibold))
-                        .foregroundStyle(Color(red: 1.0, green: 0.973, blue: 0.925))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(palette.kinetic)
-                        )
-                        .shadow(color: palette.kinetic.opacity(0.32), radius: 10, x: 0, y: 5)
-                }
-                .buttonStyle(.plain)
-                .layoutPriority(1.4)
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(palette.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .strokeBorder(palette.ink.opacity(0.06), lineWidth: 0.5)
-        )
-        .shadow(color: palette.ink.opacity(0.06), radius: 12, x: 0, y: 4)
-    }
-
-    // MARK: State transitions
-
-    private func attemptSend() {
-        guard canSend else { return }
-        withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
-            phase = .sending
-        }
-    }
-
-    private func runMockSending() async {
-        try? await Task.sleep(for: .milliseconds(1600))
-        guard phase == .sending else { return }
-        withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
-            phase = .ai
-        }
-    }
-
-    private func acceptAI(_ ai: AIResult) {
-        onAccept(ai.destination)
-    }
-}
 
 // MARK: - Compose shimmer bar
 
