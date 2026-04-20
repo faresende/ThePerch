@@ -44,14 +44,15 @@ if !isConfigured {
                     }
 
                 } else if authViewModel.isRestoringSession {
-                    // Step 2: Configured but waiting for session restoration to finish.
-                    VStack(spacing: PerchTheme.Spacing.medium) {
-                        Image(systemName: "bird.fill")
-                            .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                            .foregroundColor(PerchTheme.accent)
-                        ProgressView()
-                            .tint(PerchTheme.accent)
-                    }
+                    // Step 2: Configured but waiting for session restoration.
+                    //
+                    // Renders the same composition as the native launch
+                    // storyboard (bone bg + Perch01 + notification badge +
+                    // wordmark) so the handoff from the launch screen into
+                    // the app is seamless — no flash of a separate loading
+                    // view with spinner. Once the session resolves, this
+                    // swaps to MainTabView directly.
+                    LaunchContinuationView()
 
                 } else if bypassAuthForDebug || (authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery) {
                     // Step 3: Authenticated, show the main app.
@@ -104,6 +105,54 @@ if !isConfigured {
                     await authViewModel.handleIncomingURL(url)
                 }
             }
+        }
+    }
+}
+
+// MARK: - LaunchContinuationView
+//
+// SwiftUI recreation of LaunchScreen.storyboard. Shown during
+// session restoration so the handoff from the native launch screen
+// into the app is visually invisible — same bone bg, same Perch01
+// at 220pt, same notification badge, same wordmark, same offset.
+//
+// Centering math mirrors the storyboard: bird + 22pt gap + 44pt
+// wordmark = 286pt group, centered in the screen with a -33pt
+// offset (half of `gap + wordmark.height`) to sit just above the
+// geometric middle.
+
+private struct LaunchContinuationView: View {
+    var body: some View {
+        ZStack {
+            Color("LaunchBG").ignoresSafeArea()
+
+            VStack(spacing: 22) {
+                Image("perch-bird-hero")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 220, height: 220)
+                    .overlay(alignment: .topTrailing) {
+                        // Notification badge: 34pt bone ring around a
+                        // 20pt terracotta dot. Same placement as the
+                        // storyboard (top: 28, trailing: 18).
+                        ZStack {
+                            Circle()
+                                .fill(Color("LaunchBG"))
+                                .frame(width: 34, height: 34)
+                            Circle()
+                                .fill(Color(red: 0.882, green: 0.290, blue: 0.208)) // #E14A35
+                                .frame(width: 20, height: 20)
+                        }
+                        .padding(.top, 28)
+                        .padding(.trailing, 18)
+                    }
+
+                Image("launch-wordmark")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 224, height: 44)
+            }
+            .offset(y: -33)
         }
     }
 }
