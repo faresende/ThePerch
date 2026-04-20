@@ -763,16 +763,24 @@ struct CaptureHistoryView: View {
             .onSubmit(of: .search) {
                 submitDraft()
             }
+            // Swap the search field's leading magnifying glass for a
+            // tappable camera button. SwiftUI's `.searchable` doesn't
+            // expose the UISearchBar, so a tiny introspection helper
+            // walks up the UIKit hierarchy to find it and installs a
+            // UIButton as the searchTextField's leftView.
+            .background(
+                SearchBarLeadingButtonConfigurator(
+                    systemImage: "camera",
+                    tint: UIColor(palette.kinetic)
+                ) {
+                    isPresentingPhotoPicker = true
+                }
+            )
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
-                    // Photo attach: native PhotosPicker sheet for now.
-                    // Custom photo-keyboard replacement is a follow-up.
-                    Button {
-                        isPresentingPhotoPicker = true
-                    } label: {
-                        Image(systemName: "photo")
-                    }
-
+                    // Camera lives inside the search field now (as the
+                    // leading icon), so the keyboard toolbar only needs
+                    // the Send button on the trailing side.
                     Spacer()
 
                     Button {
@@ -826,4 +834,145 @@ private struct CaptureHistoryItem: Identifiable {
     let destination: String
     let systemImage: String
     let agoLabel: String
+}
+
+// MARK: - SearchBarLeadingButtonConfigurator
+//
+// SwiftUI's `.searchable` creates a UISearchBar internally but doesn't
+// expose it for customisation — the magnifying glass on the leading
+// side is baked in. We need a tappable camera icon in that slot to
+// open the photo picker (per design spec).
+//
+// Workaround: a zero-sized representable that walks up the UIKit
+// responder chain to find the UINavigationController hosting our
+// SwiftUI NavigationStack, reaches into its `navigationItem
+// .searchController?.searchBar`, and replaces the searchTextField's
+// `leftView` with a UIButton that fires the provided action.
+//
+// `leftView`/`leftViewMode` are standard UITextField properties, so
+// the swap is well-supported even though the reach-in isn't.
+
+private struct SearchBarLeadingButtonConfigurator: UIViewControllerRepresentable {
+    let systemImage: String
+    let tint: UIColor
+    let action: () -> Void
+
+    func makeUIViewController(context: Context) -> LeadingButtonHostController {
+        LeadingButtonHostController(
+            systemImage: systemImage,
+            tint: tint,
+            action: action
+        )
+    }
+
+    func updateUIViewController(_ uiViewController: LeadingButtonHostController, context: Context) {
+        uiViewController.systemImage = systemImage
+        uiViewController.tint = tint
+        uiViewController.action = action
+        uiViewController.configureSearchBarIfNeeded()
+    }
+
+    /// Hosts the (empty) UIView background and owns the installation
+    /// logic. Retrying from viewWillAppear covers the window where the
+    /// NavigationStack's UISearchBar isn't attached yet.
+    final class LeadingButtonHostController: UIViewController {
+        fileprivate var systemImage: String
+        fileprivate var tint: UIColor
+        fileprivate var action: () -> Void
+        private var installed: Bool = false
+        private var cameraButton: UIButton?
+
+        init(systemImage: String, tint: UIColor, action: @escaping () -> Void) {
+            self.systemImage = systemImage
+            self.tint = tint
+            self.action = action
+            super.init(nibName: nil, bundle: nil)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
+
+        override func viewDidLoad() {
+            super.viewDidLoad()
+            view.isUserInteractionEnabled = false
+            view.backgroundColor = .clear
+        }
+
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            configureSearchBarIfNeeded()
+        }
+
+        override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            configureSearchBarIfNeeded()
+        }
+
+        fileprivate func configureSearchBarIfNeeded() {
+            guard let searchBar = findSearchBar() else {
+                // Retry on the next runloop tick — NavigationStack may
+                // still be installing its searchController.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                    self?.configureSearchBarIfNeeded()
+                }
+                return
+            }
+            install(on: searchBar)
+        }
+
+        /// Walk up the controller hierarchy to locate the navigation
+        /// controller that owns the searchable UISearchBar.
+        private func findSearchBar() -> UISearchBar? {
+            var current: UIViewController? = self
+            while let vc = current {
+                // Direct navigation controller.
+                if let nav = vc as? UINavigationController {
+                    if let bar = nav.topViewController?.navigationItem.searchController?.searchBar {
+                        return bar
+                    }
+                }
+                // Parent has a search controller.
+                if let bar = vc.navigationItem.searchController?.searchBar {
+                    return bar
+                }
+                current = vc.parent
+            }
+            return nil
+        }
+
+        private func install(on searchBar: UISearchBar) {
+            // Re-install if systemImage or tint changed (e.g. palette
+            // flipped time-of-day). Idempotent otherwise.
+            if installed,
+               let existing = cameraButton,
+               existing.image(for: .normal)?.description == UIImage(systemName: systemImage)?.description,
+               existing.tintColor == tint {
+                return
+            }
+
+            let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
+            let image = UIImage(systemName: systemImage, withConfiguration: config)
+
+            let button: UIButton
+            if let existing = cameraButton {
+                button = existing
+            } else {
+                button = UIButton(type: .system)
+                button.translatesAutoresizingMaskIntoConstraints = false
+                button.addAction(UIAction { [weak self] _ in
+                    self?.action()
+                }, for: .touchUpInside)
+                cameraButton = button
+            }
+
+            button.setImage(image, for: .normal)
+            button.tintColor = tint
+            button.frame = CGRect(x: 0, y: 0, width: 24, height: 24)
+
+            searchBar.searchTextField.leftView = button
+            searchBar.searchTextField.leftViewMode = .always
+
+            installed = true
+        }
+    }
 }
