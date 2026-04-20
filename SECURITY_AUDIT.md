@@ -52,8 +52,8 @@ Also done, no commit required:
 ### Critical (required before treating the repo as "safe")
 
 1. **Rotate the Google API keys** (already done per your last message, listed for the record):
-   - `REDACTED-google-api-key` (goplaces)
-   - `REDACTED-google-api-key` (nano-banana-pro)
+   - `AIzaSyBhirp...96GWyGL0` (goplaces, redacted, see `/tmp/secrets-audit.md`)
+   - `AIzaSyCduQ...fXEY4GU` (nano-banana-pro, redacted, see `/tmp/secrets-audit.md`)
 2. **Rotate the Telegram bot token** (also done per your message).
 3. **Generate a new Supabase service-role key** in Supabase Dashboard, Settings, API. Paste it into `scripts/.env` in the `SUPABASE_SERVICE_ROLE_KEY` line (the file already has `REPLACE_ME_NEW_SERVICE_ROLE_KEY_FROM_DASHBOARD` waiting for it).
 4. **Paste your Karakeep API token** into `ios/ThePerch/Sources/ThePerch/Config/Secrets.xcconfig` in the `KARAKEEP_TOKEN` line (currently `REPLACE_ME_KARAKEEP_TOKEN`).
