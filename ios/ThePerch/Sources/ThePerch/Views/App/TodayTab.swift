@@ -9,7 +9,6 @@ import AVKit
 struct TodayTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = HomeViewModel()
-    @State private var searchText = ""
     // Default to `true` so cards are visible from the first render. The
     // previous default of `false` + a `.onAppear` flip was unreliable —
     // SwiftUI's AttributeGraph could finish a render pass before .onAppear
@@ -47,10 +46,6 @@ struct TodayTab: View {
 
                 // 2. Padded feed column.
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.cardStack) {
-                    // Search bar — sits directly under the hero with 14pt top padding.
-                    TodaySearchBar(text: $searchText)
-                        .padding(.top, 14)
-
                     // Error banner (when present).
                     if let loadError = viewModel.loadError ?? dashboardViewModel.error?.errorDescription {
                         ErrorBanner(
@@ -64,9 +59,7 @@ struct TodayTab: View {
                     }
 
                     // 3. Content state routing.
-                    if !searchText.isEmpty {
-                        SearchView(searchText: $searchText, records: records, deliveries: deliveries)
-                    } else if dashboardViewModel.isLoading && records.isEmpty {
+                    if dashboardViewModel.isLoading && records.isEmpty {
                         SkeletonCardsSection(count: 3)
                     } else if records.isEmpty && deliveries.isEmpty {
                         EmptyStateView(
@@ -407,6 +400,18 @@ final class PerchLoopingVideoView: UIView {
         // Configure player layer
         playerLayer.videoGravity = .resizeAspectFill
         layer.addSublayer(playerLayer)
+
+        // Coexist with other audio: iOS's default audio session category is
+        // `.soloAmbient`, which interrupts ongoing playback (podcasts, music)
+        // the moment an AVPlayer starts — even when muted. `.ambient` with
+        // `.mixWithOthers` tells iOS this app is non-primary audio, so the
+        // user's podcast keeps playing. The player is muted anyway; this
+        // just stops us from *claiming* the audio session.
+        try? AVAudioSession.sharedInstance().setCategory(
+            .ambient,
+            mode: .default,
+            options: [.mixWithOthers]
+        )
 
         // Load video data from asset catalog
         if let dataAsset = NSDataAsset(name: assetName) {
