@@ -129,7 +129,7 @@ struct EventCard: View {
                 start: Date.now.addingTimeInterval(3600),
                 end: Date.now.addingTimeInterval(5400),
                 location: "Google Meet",
-                agentNotes: "Remind Fabio to share the API docs with the team"
+                agentNotes: "Remind Fábio to share the API docs with the team"
             )
         )
 

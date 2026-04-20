@@ -1146,10 +1146,10 @@ enum PerchTimeOfDay: Sendable {
     /// is deliberately question-tagged.
     var greeting: String {
         switch self {
-        case .sunrise: return "Good morning,\nFabio."
-        case .midday:  return "Afternoon,\nFabio."
-        case .dusk:    return "Evening,\nFabio."
-        case .night:   return "Still up,\nFabio?"
+        case .sunrise: return "Good morning, Fábio."
+        case .midday:  return "Afternoon, Fábio."
+        case .dusk:    return "Evening, Fábio."
+        case .night:   return "Still up, Fábio?"
         }
     }
 

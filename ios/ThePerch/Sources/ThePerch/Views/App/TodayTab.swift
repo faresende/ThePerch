@@ -197,45 +197,43 @@ struct TodayHero: View {
             )
             .allowsHitTesting(false)
 
-            // Layer 3 — greeting block, bottom-left (22pt insets).
-            HStack(alignment: .bottom, spacing: 10) {
-                // Perch-bird mascot illustration (Perch01) — replaces the
-                // earlier Canvas/Path composition with the commissioned art.
-                Image("perch-bird-small")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 28, height: 28)
-                    .padding(.bottom, 8)
-                    .accessibilityHidden(true)
+            // Layer 3 — greeting block, bottom-left.
+            //
+            // Aligned to 18pt (PerchTheme.Spacing.screenHorizontal) so the
+            // greeting's left edge sits on the same vertical line as every
+            // card below it. Trailing matches so short greetings like
+            // "Afternoon, Fábio." stay on a single line at 34pt.
+            VStack(alignment: .leading, spacing: 10) {
+                Text(greeting)
+                    .font(PerchTheme.Font.greeting)
+                    .foregroundColor(palette.heroText)
+                    .tracking(-0.5)
+                    .lineSpacing(-8) // → effective 1.02 line-height at 34pt
+                    // Stacked shadows: a wide soft halo for lift, a tighter
+                    // shadow for hard-edge legibility on the busy
+                    // illustration. Upping both opacity+radius makes the
+                    // text read cleanly on the brightest midday palette.
+                    .shadow(color: palette.scrimDark.opacity(0.9), radius: 14, x: 0, y: 3)
+                    .shadow(color: palette.scrimDark.opacity(0.75), radius: 3, x: 0, y: 1)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(greeting)
-                        .font(PerchTheme.Font.greeting)
-                        .foregroundColor(palette.heroText)
-                        .tracking(-0.5)
-                        .lineSpacing(-8) // → effective 1.02 line-height at 34pt
-                        .shadow(color: palette.scrimDark.opacity(0.6), radius: 10, x: 0, y: 2)
-                        .shadow(color: palette.scrimDark.opacity(0.4), radius: 1, x: 0, y: 1)
+                HStack(spacing: 8) {
+                    Text(dateString)
+                        .font(.system(size: 11))
+                        .tracking(1.4)
+                        .foregroundColor(palette.heroText.opacity(0.82))
+                        .shadow(color: palette.scrimDark.opacity(0.8), radius: 5, x: 0, y: 2)
+                        .shadow(color: palette.scrimDark.opacity(0.6), radius: 1, x: 0, y: 1)
 
-                    HStack(spacing: 8) {
-                        Text(dateString)
-                            .font(.system(size: 11))
-                            .tracking(1.4)
-                            .foregroundColor(palette.heroText.opacity(0.78))
-                            .shadow(color: palette.scrimDark.opacity(0.5), radius: 3, x: 0, y: 1)
-
-                        if isShowingCached {
-                            ProgressView()
-                                .controlSize(.mini)
-                                .tint(palette.heroText.opacity(0.85))
-                                .transition(.opacity)
-                        }
+                    if isShowingCached {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .tint(palette.heroText.opacity(0.85))
+                            .transition(.opacity)
                     }
                 }
-                Spacer(minLength: 0)
             }
-            .padding(.leading, 22)
-            .padding(.trailing, 22)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
             .padding(.bottom, 34)
 
             // Layer 4 — avatar, top-right.
