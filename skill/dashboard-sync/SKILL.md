@@ -1,4 +1,6 @@
-# Dashboard Sync
+# Dashboard Sync ⚠️ See [perch-supabase](../perch-supabase/SKILL.md) first
+
+> **Foundation**: The Perch skill ecosystem is built on a shared Supabase backend. Read [perch-supabase](../perch-supabase/SKILL.md) before working with any Perch skill to understand the schema, RLS policies, and service role setup.
 
 Persists structured data to a Supabase cloud database for the native iOS Perch dashboard. Agents use this skill to save measurements, deliveries, events, statuses, and other records that the app displays in real-time. Also tracks agent health and token usage across the team.
 
