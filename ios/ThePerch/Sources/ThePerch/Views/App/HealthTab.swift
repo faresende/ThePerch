@@ -304,12 +304,12 @@ private struct ReadinessRing: View {
 
             VStack(spacing: 4) {
                 Text("\(value)")
-                    .font(.system(size: 36, weight: .medium, design: .serif))
+                    .font(.system(size: 36, weight: .semibold, design: .serif))
                     .monospacedDigit()
                     .foregroundStyle(palette.ink)
                     .tracking(-1)
                 Text("READY")
-                    .font(.system(size: 9.5))
+                    .font(.system(size: 9.5, weight: .semibold))
                     .tracking(1.6)
                     .foregroundStyle(palette.muted)
             }
@@ -335,24 +335,27 @@ private struct OverviewTrendRow: View {
     let model: Model
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
+            // Fixed label column so the sparklines align between rows.
             Text(model.label)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(palette.ink)
-                .frame(width: 90, alignment: .leading)
+                .frame(width: 78, alignment: .leading)
 
-            PerchSpark(points: model.points, size: CGSize(width: 86, height: 22))
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Spark flexes to fill the middle of the row.
+            PerchSpark(points: model.points)
+                .frame(maxWidth: .infinity)
 
+            // Current + delta right-align and hug their content.
             Text(model.current)
-                .font(.system(size: 15, weight: .regular, design: .serif))
+                .font(.system(size: 15, weight: .medium, design: .serif))
                 .monospacedDigit()
                 .foregroundStyle(palette.ink)
 
             Text(model.delta)
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .foregroundStyle(palette.good)
-                .frame(width: 44, alignment: .trailing)
+                .frame(width: 38, alignment: .trailing)
         }
         .padding(.vertical, 10)
     }
@@ -1052,8 +1055,11 @@ struct SectionTitle: View {
                         .foregroundStyle(palette.muted)
                         .textCase(.uppercase)
                 }
+                // SF serif (New York) is a touch lighter than Fraunces at
+                // the same nominal weight. Bumping to .medium brings the
+                // editorial title closer to the design's Fraunces 500.
                 Text(title)
-                    .font(.system(size: 28, weight: .regular, design: .serif).italic())
+                    .font(.system(size: 28, weight: .medium, design: .serif).italic())
                     .foregroundStyle(palette.ink)
                     .tracking(-0.5)
                     .lineSpacing(-2) // → ~1.1 line-height
@@ -1119,8 +1125,15 @@ struct PerchNum: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
+            // .semibold for larger numerics (≥26pt) matches Fraunces 500
+            // weight; smaller values stay .medium so inline metrics don't
+            // feel clunky.
             Text(value)
-                .font(.system(size: size, weight: .medium, design: .serif))
+                .font(.system(
+                    size: size,
+                    weight: size >= 26 ? .semibold : .medium,
+                    design: .serif
+                ))
                 .monospacedDigit()
                 .foregroundStyle(palette.ink)
                 .tracking(size > 28 ? -0.8 : -0.3)
@@ -1136,6 +1149,12 @@ struct PerchNum: View {
 /// Card wrapper — 22pt radius, 20pt padding, palette card surface.
 /// `tone: .dim` swaps to `palette.cardDim` for subordinate sub-panels
 /// (used e.g. by the Travel FlightStrip inside its parent trip card).
+///
+/// IMPORTANT: content is wrapped in a VStack so multiple top-level
+/// children are treated as a single block. Without this, a ViewBuilder
+/// returning a TupleView causes `.background()` to be applied per-child
+/// — every row renders its own card, which was the "broken trend card"
+/// bug in the first pass.
 struct PerchSectionCard<Content: View>: View {
     @Environment(\.perchPalette) private var palette
 
@@ -1152,13 +1171,15 @@ struct PerchSectionCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(padding)
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(tone == .dim ? palette.cardDim : palette.card)
-            )
+        VStack(alignment: .leading, spacing: 0) {
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(padding)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(tone == .dim ? palette.cardDim : palette.card)
+        )
     }
 }
 
@@ -1235,27 +1256,33 @@ struct PerchStageStepper: View {
 }
 
 /// Tiny polyline sparkline. Fits in a row beside a label + value.
-/// Normalises the incoming series to its own min/max for maximum
-/// visual variation; the point here is "does this trend up or down",
-/// not absolute scale.
+/// Width flexes to fill the HStack cell; height is fixed at 22pt.
+/// Normalises the incoming series to its own min/max so the line
+/// reads "trend up or down", not absolute scale.
 struct PerchSpark: View {
     @Environment(\.perchPalette) private var palette
 
     let points: [Double]
-    var size: CGSize = CGSize(width: 86, height: 22)
+    var height: CGFloat = 22
     var color: Color? = nil
 
     var body: some View {
-        Canvas { ctx, _ in
+        Canvas { ctx, size in
             guard points.count >= 2 else { return }
             let lo = points.min() ?? 0
             let hi = points.max() ?? 1
             let range = (hi - lo) == 0 ? 1 : (hi - lo)
 
+            // Inset the stroke by half the line width so end-points
+            // aren't clipped by the frame edges.
+            let pad: CGFloat = 1.5
+            let w = size.width - pad * 2
+            let h = size.height - pad * 2
+
             var path = Path()
             for (i, v) in points.enumerated() {
-                let x = CGFloat(i) / CGFloat(points.count - 1) * size.width
-                let y = size.height - CGFloat((v - lo) / range) * size.height
+                let x = pad + CGFloat(i) / CGFloat(points.count - 1) * w
+                let y = pad + h - CGFloat((v - lo) / range) * h
                 if i == 0 {
                     path.move(to: CGPoint(x: x, y: y))
                 } else {
@@ -1269,7 +1296,7 @@ struct PerchSpark: View {
                 style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
             )
         }
-        .frame(width: size.width, height: size.height)
+        .frame(height: height)
     }
 }
 
