@@ -11,61 +11,56 @@ struct SettingsTab: View {
     @State private var showChangeBackend = false
     @State private var editableSections: [Section] = []
     @State private var isSavingSections = false
-    @State private var selectedAdminSection: AdminSubSection? = nil
-
-    enum AdminSubSection: String, CaseIterable, Identifiable {
-        var id: String { rawValue }
-        case integrations = "Integrations"
-        case debug = "Debug & Advanced"
-    }
 
     var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
 
+    var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+    }
+
+    /// Human-readable backend mode label.
+    private var backendModeLabel: String {
+        KeychainService.shared.load()?.backendMode == .managedCloud
+            ? "ThePerch Cloud"
+            : "Self-hosted (Supabase)"
+    }
+
+    // MARK: - Body
+    //
+    // Stock iOS Form with grouped Sections. No custom cards, no custom
+    // typography — the system decides row height, padding, and type. The
+    // only palette-driven colour left is the global `.tint()` inherited
+    // from MainTabView (palette.kinetic), which paints toggles, chevrons,
+    // and navigation-link accents consistently with the rest of the app.
+    //
+    // The Tabs section stays in edit-mode so reorder handles are always
+    // visible next to each row's toggle. Other sections don't participate
+    // in edit mode so they render untouched.
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                    LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                        // User profile section
-                        profileSection
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
-                        // Preferences section
-                        preferencesSection
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
-                        // Section management — toggle visibility and reorder
-                        sectionManagementSection
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
-                        // Admin tools
-                        adminToolsSection
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
-                        // Backend section
-                        backendSection
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-                            .sheet(isPresented: $showChangeBackend) {
-                                OnboardingView {
-                                    showChangeBackend = false
-                                }
-                            }
-
-                        // About section
-                        aboutSection
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
-                        // Sign out button
-                        signOutSection
-                            .padding(.horizontal, PerchTheme.Spacing.large)
-
-                        Spacer()
-                            .frame(height: PerchTheme.Spacing.xLarge)
-                    }
-                }
+            Form {
+                profileSection
+                preferencesSection
+                tabsSection
+                adminToolsSection
+                backendSection
+                aboutSection
+                signOutSection
+            }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .environment(\.editMode, .constant(.active))
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showChangeBackend) {
+                OnboardingView { showChangeBackend = false }
+            }
             .onAppear {
                 editableSections = dashboardViewModel.sections
                     .filter { $0.slug != "legal" }
@@ -74,270 +69,109 @@ struct SettingsTab: View {
         }
     }
 
-    // MARK: - Profile Section
+    // MARK: - Sections
+
+    // Note on `SwiftUI.Section`: the app has its own `Section` data model
+    // (tab visibility / ordering), so plain `Section` resolves to that
+    // type. All Form-layout sections below qualify the SwiftUI view
+    // explicitly.
 
     private var profileSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-            Text("Profile")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
-
-            CardContainer {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-                    HStack {
-                        Text("Display Name")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
-                        Spacer()
-                        Text(authViewModel.displayName.isEmpty ? "Not set" : authViewModel.displayName)
-                            .font(PerchTheme.Font.body)
-                            .fontWeight(.medium)
-                            .foregroundColor(PerchTheme.textPrimary)
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Text("Email")
-                            .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textTertiary)
-                        Spacer()
-                        Text(authViewModel.email.isEmpty ? "Not set" : authViewModel.email)
-                            .font(PerchTheme.Font.body)
-                            .fontWeight(.medium)
-                            .foregroundColor(PerchTheme.textPrimary)
-                    }
-                }
-            }
+        SwiftUI.Section("Profile") {
+            LabeledContent("Display Name", value: authViewModel.displayName.isEmpty ? "Not set" : authViewModel.displayName)
+            LabeledContent("Email", value: authViewModel.email.isEmpty ? "Not set" : authViewModel.email)
         }
     }
-
-    // MARK: - Preferences Section
 
     private var preferencesSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            Text("Preferences")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
-
-            CardContainer {
-                VStack(spacing: 0) {
-                    HStack {
-                        Text("Dark Mode")
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
-
-                        Spacer()
-
-                        Toggle("", isOn: $darkModeEnabled)
-                    }
-                    .padding(PerchTheme.Spacing.small)
-                }
-            }
+        SwiftUI.Section("Preferences") {
+            Toggle("Dark Mode", isOn: $darkModeEnabled)
         }
     }
 
-    // MARK: - Section Management
-
-    private var sectionManagementSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-            HStack {
-                Text("Tabs")
-                    .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
-                Spacer()
-                if isSavingSections {
-                    ProgressView().scaleEffect(0.8)
-                }
-            }
-
-            Text("Toggle tabs on/off or drag to reorder.")
-                .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
-
-            CardContainer {
-                List {
-                    ForEach($editableSections) { $section in
-                        HStack(spacing: PerchTheme.Spacing.medium) {
-                            Text(section.displayName)
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textPrimary)
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { section.isVisible },
-                                set: { newValue in
-                                    section.isVisible = newValue
-                                    Task { await saveSections() }
-                                }
-                            ))
-                                .labelsHidden()
-                                .tint(PerchTheme.accent)
-                        }
-                        .listRowBackground(Color.clear)
-                    }
-                    .onMove { from, to in
-                        editableSections.move(fromOffsets: from, toOffset: to)
+    private var tabsSection: some View {
+        SwiftUI.Section {
+            ForEach($editableSections) { $section in
+                Toggle(section.displayName, isOn: Binding(
+                    get: { section.isVisible },
+                    set: { newValue in
+                        section.isVisible = newValue
                         Task { await saveSections() }
                     }
-                }
-                .listStyle(.plain)
-                .frame(height: CGFloat(editableSections.count) * 52)
-                .environment(\.editMode, .constant(.active))
+                ))
             }
+            .onMove { from, to in
+                editableSections.move(fromOffsets: from, toOffset: to)
+                Task { await saveSections() }
+            }
+        } header: {
+            HStack {
+                Text("Tabs")
+                Spacer()
+                if isSavingSections {
+                    ProgressView().controlSize(.mini)
+                }
+            }
+        } footer: {
+            Text("Toggle tabs on/off or drag to reorder.")
         }
     }
-
-    // MARK: - Admin Tools Section
 
     private var adminToolsSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            Text("Admin Tools")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
-
-            CardContainer {
-                VStack(spacing: 0) {
-                    AdminToolRow(
-                        icon: "link.circle.fill",
-                        title: "Integrations",
-                        subtitle: "Manage connected services and API keys"
-                    ) {
-                        selectedAdminSection = .integrations
-                    }
-
-                    Divider()
-                        .padding(.leading, 52)
-
-                    AdminToolRow(
-                        icon: "ant.fill",
-                        title: "Debug & Advanced",
-                        subtitle: "Gateway status, agents, crons, costs"
-                    ) {
-                        selectedAdminSection = .debug
-                    }
-                }
+        SwiftUI.Section("Admin Tools") {
+            NavigationLink {
+                IntegrationsView()
+            } label: {
+                Label("Integrations", systemImage: "link")
             }
-            .sheet(item: $selectedAdminSection) { section in
-                NavigationStack {
-                    switch section {
-                    case .integrations:
-                        IntegrationsView()
-                    case .debug:
-                        DebugAdminView()
-                    }
-                }
+
+            NavigationLink {
+                DebugAdminView()
+            } label: {
+                Label("Debug & Advanced", systemImage: "ant")
             }
         }
     }
-
-    // MARK: - Backend Section
 
     private var backendSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            Text("Backend")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
-
-            CardContainer {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Mode")
-                                .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
-                            Text(KeychainService.shared.load()?.backendMode == .managedCloud ? "ThePerch Cloud" : "Self-hosted (Supabase)")
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textPrimary)
-                        }
-                        Spacer()
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(PerchTheme.success)
-                    }
-
-                    Divider().padding(.vertical, PerchTheme.Spacing.xSmall)
-
-                    Button {
-                        showChangeBackend = true
-                    } label: {
-                        HStack {
-                            Text("Change backend")
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.error)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(PerchTheme.textTertiary)
-                        }
-                    }
+        SwiftUI.Section("Backend") {
+            LabeledContent("Mode") {
+                HStack(spacing: 6) {
+                    Text(backendModeLabel)
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.footnote)
                 }
+            }
+
+            Button("Change Backend", role: .destructive) {
+                showChangeBackend = true
             }
         }
     }
-
-    // MARK: - About Section
 
     private var aboutSection: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            Text("About")
-                .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
-
-            CardContainer {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-                    HStack {
-                        Text("App Version")
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
-
-                        Spacer()
-
-                        Text(appVersion)
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
-                    }
-
-                    Divider()
-                        .padding(.vertical, PerchTheme.Spacing.xSmall)
-
-                    HStack {
-                        Text("Build")
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
-
-                        Spacer()
-
-                        Text("1")
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
-                    }
-                }
-            }
+        SwiftUI.Section("About") {
+            LabeledContent("App Version", value: appVersion)
+            LabeledContent("Build", value: buildNumber)
         }
     }
 
-    // MARK: - Sign Out
-
     private var signOutSection: some View {
-        Button(action: { handleSignOut() }) {
-            ZStack {
-                RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                    .fill(PerchTheme.error.opacity(0.1))
-
-                HStack(spacing: PerchTheme.Spacing.small) {
+        SwiftUI.Section {
+            Button(role: .destructive) {
+                handleSignOut()
+            } label: {
+                HStack {
                     if isSigningOut {
-                        ProgressView()
-                            .tint(PerchTheme.error)
+                        ProgressView().controlSize(.small)
                     }
-
                     Text("Sign Out")
-                        .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.error)
+                    Spacer()
                 }
             }
+            .disabled(isSigningOut)
         }
-        .frame(height: 50)
-        .disabled(isSigningOut)
-        .opacity(isSigningOut ? 0.6 : 1)
     }
 
     private func handleSignOut() {
@@ -356,46 +190,6 @@ struct SettingsTab: View {
         }
         await dashboardViewModel.reorderSections(updated)
         isSavingSections = false
-    }
-}
-
-// ProfileField reused from SettingsView.swift
-
-// MARK: - Admin Tool Row
-
-private struct AdminToolRow: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: PerchTheme.Spacing.medium) {
-                Image(systemName: icon)
-                    .font(PerchTheme.Font.icon(PerchTheme.Icon.large))
-                    .foregroundColor(PerchTheme.accent)
-                    .frame(width: 32)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textPrimary)
-
-                    Text(subtitle)
-                        .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(PerchTheme.textTertiary)
-            }
-            .padding(PerchTheme.Spacing.small)
-        }
-        .buttonStyle(.plain)
     }
 }
 
