@@ -666,7 +666,10 @@ struct CaptureHistoryView: View {
     let onSubmit: (CaptureDraft) -> Void
 
     @State private var draftText: String = ""
-    @State private var draftPhoto: UIImage?
+    /// Multiple photos accumulate as the user taps thumbnails in the
+    /// photo keyboard — each selection appends. Remove individual
+    /// photos via the X on each tile in the floating strip.
+    @State private var draftPhotos: [UIImage] = []
 
     /// Mocked history until captures persist to the backend. Each row
     /// shows what the user previously sent — tap to re-add.
@@ -742,16 +745,23 @@ struct CaptureHistoryView: View {
             // so the thumbnails read as floating out of the compose
             // bar rather than sticking at the top of the screen.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if draftPhoto != nil {
+                if !draftPhotos.isEmpty {
                     CaptureAttachmentStrip(
-                        photos: [draftPhoto].compactMap { $0 },
+                        photos: draftPhotos,
                         palette: palette,
-                        onRemove: { _ in draftPhoto = nil }
+                        onRemove: { idx in
+                            draftPhotos.remove(at: idx)
+                        }
                     )
+                    // 56pt bottom padding lifts the strip well clear
+                    // of the bottom search bar. The safeAreaInset
+                    // default anchors content flush against the bar,
+                    // which is why they were overlapping.
+                    .padding(.bottom, 56)
                     .transition(.opacity.combined(with: .offset(y: 12)))
                 }
             }
-            .animation(.spring(response: 0.42, dampingFraction: 0.82), value: draftPhoto != nil)
+            .animation(.spring(response: 0.42, dampingFraction: 0.82), value: draftPhotos.count)
             .searchable(
                 text: $draftText,
                 prompt: "Log a meal, a receipt, anything"
@@ -760,25 +770,22 @@ struct CaptureHistoryView: View {
                 submitDraft()
             }
             // Swap the search field's leading magnifying glass for a
-            // tappable camera button. SwiftUI's `.searchable` doesn't
-            // expose the UISearchBar, so a tiny introspection helper
-            // walks up the UIKit hierarchy to find it and installs a
-            // UIButton as the searchTextField's leftView.
-            // Install the camera-icon leading button + custom photo
-            // keyboard (PerchPhotoKeyboardView). See SearchBarInputController
-            // for how the UIKit reach-in works. Passes the attached
-            // photo down so a tappable thumbnail + X renders inline
-            // on the search field's right side.
+            // tappable camera button + install the photo-grid keyboard.
+            // attachedPhoto: pass the most-recent pick so the
+            // controller can mirror state (mainly for the photo keyboard
+            // to know what's current).
             .background(
                 SearchBarInputController(
                     systemImage: "camera",
                     tint: UIColor(palette.kinetic),
-                    attachedPhoto: draftPhoto,
+                    attachedPhoto: draftPhotos.last,
                     onPhotoSelected: { image in
-                        draftPhoto = image
+                        // Append rather than replace — user can stack
+                        // multiple photos into one compose.
+                        draftPhotos.append(image)
                     },
                     onPhotoRemoved: {
-                        draftPhoto = nil
+                        draftPhotos.removeAll()
                     }
                 )
             )
@@ -802,14 +809,17 @@ struct CaptureHistoryView: View {
     }
 
     private var canSubmit: Bool {
-        !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draftPhoto != nil
+        !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !draftPhotos.isEmpty
     }
 
     private func submitDraft() {
         guard canSubmit else { return }
-        let draft = CaptureDraft(text: draftText, photo: draftPhoto)
+        // CaptureDraft is still single-photo for v1. The first photo
+        // in the stack is sent; additional photos drop on the floor
+        // until the draft/routing pipeline supports arrays.
+        let draft = CaptureDraft(text: draftText, photo: draftPhotos.first)
         draftText = ""
-        draftPhoto = nil
+        draftPhotos = []
         onSubmit(draft)
     }
 }
@@ -842,16 +852,25 @@ private struct CaptureAttachmentStrip: View {
     let onRemove: (Int) -> Void
 
     private static let tileSize: CGFloat = 72
-    private static let rotation: Double = -8 // degrees; negative = tilt left-down
+    private static let rotation: Double = -35 // degrees; user spec
+    private static let stepX: CGFloat = 52    // per-tile leading offset
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        // ZStack with explicit per-tile offsets so the tilted tiles
+        // don't collapse on top of each other (SwiftUI's HStack
+        // measures pre-rotation bounds, which made the 35° tiles
+        // bunch tight in earlier attempts). Each new tile shifts
+        // `stepX` pts to the right and lifts in front of the last
+        // via zIndex.
+        ZStack(alignment: .topLeading) {
             ForEach(Array(photos.enumerated()), id: \.offset) { idx, photo in
                 tile(photo: photo, index: idx)
+                    .offset(x: CGFloat(idx) * Self.stepX, y: 0)
+                    .zIndex(Double(idx))
             }
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
+        .frame(height: Self.tileSize + 16, alignment: .topLeading)
+        .padding(.leading, 24)
         .padding(.top, 14)
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -870,10 +889,10 @@ private struct CaptureAttachmentStrip: View {
                         .stroke(palette.card, lineWidth: 4)
                 )
                 .shadow(color: palette.ink.opacity(0.18), radius: 6, x: 0, y: 3)
-                .rotationEffect(.degrees(Self.rotation), anchor: .center)
 
-            // X sits in the tile's top-right CORNER — upright,
-            // counter-rotated so it doesn't tilt with the tile.
+            // X sits in the tile's top-right CORNER. Lives inside the
+            // same rotated group as the image so it tilts together —
+            // reads as one unit.
             Button {
                 onRemove(index)
             } label: {
@@ -888,10 +907,7 @@ private struct CaptureAttachmentStrip: View {
             .offset(x: 8, y: -8)
             .accessibilityLabel("Remove photo")
         }
-        // Stack-to-the-right visual when multiple tiles exist: each
-        // subsequent tile leans a touch more + sits slightly lower,
-        // which reads as a little "scatter" across the strip.
-        .padding(.leading, CGFloat(index) * 4)
+        .rotationEffect(.degrees(Self.rotation), anchor: .center)
     }
 }
 
