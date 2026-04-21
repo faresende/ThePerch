@@ -4,7 +4,7 @@
 -- Hardening migration written as part of the 2026-04-20 security audit. Do
 -- NOT run automatically. Apply with:
 --
---   supabase db push --project-ref cgmaotzmeoiueyzlchaz
+--   supabase db push --project-ref <YOUR-PROJECT-REF>
 --
 -- Review the diff before applying.
 --

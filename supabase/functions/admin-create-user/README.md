@@ -46,7 +46,7 @@ verify_jwt = true
 
 You need the UUID of the Supabase Auth user that Claudinho signs in as. To find it:
 
-1. Open the Supabase Dashboard for project `cgmaotzmeoiueyzlchaz`.
+1. Open the Supabase Dashboard for your project.
 2. Go to **Authentication → Users**.
 3. Find Claudinho's row (or whichever account you use for server-to-server admin calls).
 4. Copy the value in the **UID** column (it is a UUID v4 string like `ab12cd34-5678-90ef-1234-567890abcdef`).

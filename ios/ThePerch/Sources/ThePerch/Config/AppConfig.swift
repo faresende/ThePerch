@@ -3,11 +3,11 @@ import Foundation
 /// Configuration for the application, including Supabase credentials.
 struct AppConfig {
     static let shared = AppConfig()
-    static let defaultUserID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     /// Project URLs are not secrets (they're visible in any network trace),
     /// so they may remain as string literals. Keys are never hardcoded.
-    static let legacySelfHostedURLString = "https://cgmaotzmeoiueyzlchaz.supabase.co"
+    /// The managed-cloud URL below is the ThePerch Cloud tier; users of the
+    /// self-hosted tier provide their own URL via the onboarding flow.
     static let managedCloudURLString = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
 
     /// Managed-tier publishable key. Sourced at build time from

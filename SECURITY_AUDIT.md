@@ -59,19 +59,19 @@ Also done, no commit required:
 4. **Paste your Karakeep API token** into `ios/ThePerch/Sources/ThePerch/Config/Secrets.xcconfig` in the `KARAKEEP_TOKEN` line (currently `REPLACE_ME_KARAKEEP_TOKEN`).
 5. **Apply the DB hardening migration**:
    ```sh
-   supabase db push --project-ref cgmaotzmeoiueyzlchaz
+   supabase db push --project-ref <YOUR-PROJECT-REF>
    ```
    Review `supabase/migrations/20260420230000_security_hardening.sql` before applying. After applying, re-run the Supabase advisor from the dashboard to confirm all WARNings resolved.
 6. **Enable Leaked Password Protection**: Supabase Dashboard, Authentication, Settings, enable "Leaked Password Protection" (HaveIBeenPwned integration).
 7. **Set admin-create-user secrets** (once you have Claudinho's UUID from Authentication, Users):
    ```sh
-   supabase secrets set --project-ref cgmaotzmeoiueyzlchaz \
+   supabase secrets set --project-ref <YOUR-PROJECT-REF> \
      ADMIN_USER_UUIDS="<claudinho-uuid>"
    ```
    Verify that `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are already set (they are used by the other edge functions).
 8. **Deploy the new edge function**:
    ```sh
-   supabase functions deploy admin-create-user --project-ref cgmaotzmeoiueyzlchaz
+   supabase functions deploy admin-create-user --project-ref <YOUR-PROJECT-REF>
    ```
 9. **Run the history scrub** after you are sure you want to rewrite history. First rescue any stash you want to keep:
    ```sh
