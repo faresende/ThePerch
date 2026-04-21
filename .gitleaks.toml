@@ -1,0 +1,24 @@
+# .gitleaks.toml
+#
+# Custom gitleaks config. Extends the default rules and adds path-level
+# exclusions for files that intentionally contain patterns gitleaks treats
+# as credential-like (commit-SHA lists, docs archive, etc.).
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Paths gitleaks should skip entirely"
+paths = [
+    # The allowlist file itself — contains commit SHAs that look like
+    # generic-api-key to the detector.
+    '''\.gitleaksignore$''',
+    # This config file (self-reference for completeness).
+    '''\.gitleaks\.toml$''',
+    # Internal/historical docs that intentionally reference old values
+    # as scrub targets or in incident narratives.
+    '''docs/archive/''',
+    # Personal-data staging area (gitignored in practice but in case it ever
+    # gets scanned locally).
+    '''supabase/personal-data/''',
+]
