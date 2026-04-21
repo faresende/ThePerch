@@ -1,0 +1,29 @@
+# .gitleaksignore
+#
+# Known false positives from the 2026-04-20 security audit. Each fingerprint
+# is <commit-sha>:<file>:<rule-id>:<line>. gitleaks uses exact matching, so
+# the SHA must match the commit in current history. If history is rewritten,
+# update the SHAs accordingly.
+#
+# All entries below are benign strings that trigger gitleaks' generic
+# detectors. Documented in SECURITY_AUDIT.md.
+
+# GETTING_STARTED.md docs placeholder: `SUPABASE_SERVICE_ROLE_KEY=eyJ...`
+# (ellipsis truncation, not a real key).
+70ef510aa8f5eadf4deea7b38351f51a489bdaca:GETTING_STARTED.md:generic-api-key:62
+74608f1a00b7c9f88013672426240ac38b52d468:GETTING_STARTED.md:generic-api-key:62
+
+# OnboardingView.swift TextField placeholder: `placeholder: "eyJ..."`
+# Displayed as UI hint text, not a real key.
+70ef510aa8f5eadf4deea7b38351f51a489bdaca:ios/ThePerch/Sources/ThePerch/Views/Sections/OnboardingView.swift:generic-api-key:238
+9cc9025cdea9881c49663ca7db44a3e18a88524b:ios/ThePerch/Sources/ThePerch/Views/Sections/OnboardingView.swift:generic-api-key:238
+
+# ShareExtensionTests.swift test fixture: `testKey = "test-anon-key-12345"`.
+# Unit-test constant, never a real credential.
+70ef510aa8f5eadf4deea7b38351f51a489bdaca:ios/ThePerchShare/ShareExtensionTests.swift:generic-api-key:28
+74608f1a00b7c9f88013672426240ac38b52d468:ios/ThePerchShare/ShareExtensionTests.swift:generic-api-key:28
+
+# AppConfig.swift Supabase publishable key constant.
+# Publishable keys are designed to ship in client binaries; not a real leak.
+beb4becc1f0822a4f9c8d2f6c57b676ceb844fa8:ios/ThePerch/Sources/ThePerch/Config/AppConfig.swift:generic-api-key:10
+f69b317eda9f649b28df38b8dda9e22ccfc8cee6:ios/ThePerch/Sources/ThePerch/Config/AppConfig.swift:generic-api-key:10
