@@ -25,7 +25,7 @@ Five commits, readable in order:
 I found a real Supabase **service role key** hardcoded in `scripts/orders_autopilot_ingest_fastmail.py` (line 24):
 
 ```
-sb_secret_***REDACTED***
+sb_secret_*** (redacted — see the affected file in pre-rewrite history)
 ```
 
 I replaced it in the current file with `os.environ.get(...)`. **But the key is still in your git history** (every commit before `12ba9e5`). If you make the repo public, anyone can fetch the full history and extract it.
