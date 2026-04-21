@@ -6,7 +6,7 @@ This document summarizes the audit that followed the 2026-04-20 incident. It lis
 
 On 2026-04-20 two keys leaked into a public GitHub repository:
 
-1. A Supabase service-role key (prefix `sb_secret_eJlrj...`, key name "default"), auto-revoked by Supabase within hours.
+1. A Supabase service-role key (prefix redacted, key name "default"), auto-revoked by Supabase within hours.
 2. An OpenAI API key (prefix `sk-proj-IG8cUzx...`), revoked by OpenAI on the same day.
 
 Exposure window for both was under 24 hours. Supabase API logs for that window showed normal iOS token-refresh traffic and the expected Python worker POSTs; no mass exports, no schema changes, no auth-table tampering.
@@ -17,7 +17,7 @@ This audit took a worst-case view anyway and cleaned the repository comprehensiv
 
 Full classification table in `/tmp/secrets-audit.md` (generated during the audit). Summary:
 
-- **The reported `sb_secret_eJlrj...` Supabase service-role key was not in this repository** (HEAD or history). It leaked from a different repository. Already revoked.
+- **The reported Supabase service-role key (prefix redacted) was not in this repository** (HEAD or history). It leaked from a different repository. Already revoked.
 - **Six live-HEAD secrets** in a single file, `supabase/003_bookmarks.sql`, all introduced by commit `021118d` ("Pre-improvement snapshot", 2026-03-07):
   - OpenAI project key (revoked)
   - Two Google API keys (`goplaces`, `nano-banana-pro`)
