@@ -28,6 +28,7 @@ import {
   ShipmentRecord,
 } from './orders-store';
 import {
+  registerTrackingNumbers,
   pollTrackingNumbers,
   normalizeCarrierForTracker,
   pollSingleShipment,
@@ -312,20 +313,39 @@ export async function pollShipments(userId: string): Promise<{
     return { updated: 0, errors: [] };
   }
 
-  // Register all tracking numbers first (17track requires this)
-  const toRegister = undelivered.map(s => ({
-    number: s.tracking_number,
-    carrier: s.carrier ? normalizeCarrierForTracker(s.carrier) : 'unknown',
-  }));
+  // Filter out malformed tracking numbers before sending to 17track.
+  // A malformed entry in the batch (e.g. "7197712620 / 001959496839433548"
+  // from a multi-carrier email) rejects the whole request with -18010013.
+  const isValidTrackingNumber = (n: string | null | undefined): n is string =>
+    typeof n === 'string'
+    && n.length >= 6
+    && n.length <= 40
+    && !/[\s,/\\]/.test(n);
+
+  // Register all tracking numbers first (17track requires this before it
+  // will return tracking info). Registration is idempotent — 17track
+  // silently skips numbers already on the account.
+  const toRegister = undelivered
+    .filter(s => isValidTrackingNumber(s.tracking_number))
+    .map(s => ({
+      number: s.tracking_number,
+      ...(s.carrier ? { carrier: normalizeCarrierForTracker(s.carrier) || undefined } : {}),
+    }));
+
+  if (toRegister.length === 0) {
+    return { updated: 0, errors: ['no valid tracking numbers to poll'] };
+  }
 
   try {
-    await pollTrackingNumbers(SEVENTEEN_TRACK_API_KEY, toRegister.map(t => t.number));
+    await registerTrackingNumbers(SEVENTEEN_TRACK_API_KEY, toRegister);
   } catch (err) {
     return { updated: 0, errors: [(err as Error).message] };
   }
 
-  // Poll for all
-  const trackingNumbers = undelivered.map(s => s.tracking_number);
+  // Poll for all (same filter as register).
+  const trackingNumbers = undelivered
+    .map(s => s.tracking_number)
+    .filter(isValidTrackingNumber);
   const results: TrackerResponse[] = [];
 
   try {
