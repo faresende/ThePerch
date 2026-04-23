@@ -2,14 +2,14 @@
 
 **A personal life dashboard for iOS, driven by your own agents.**
 
-The Perch is a native iOS app that shows your daily life at a glance — sleep and health, upcoming events, packages in transit, meals, workouts, bookmarks, anything you decide to feed it — pulled from a Supabase backend you own. Any coding agent (OpenClaw, Claude Code, plain scripts) can write data into it.
+The Perch is a native iOS app that shows your day at a glance (sleep, health, upcoming events, packages in transit, meals, workouts, bookmarks, whatever you want to feed it) from a Supabase backend you own. Any coding agent you trust (OpenClaw, Claude Code, a cron'd bash script) can write into it. If you don't trust any of them, this probably isn't for you.
 
 | | |
 |---|---|
-| **Status** | Personal project, opening up for others to try |
+| **Status** | Personal project, now opening up for others to try. Expect dust. |
 | **Platforms** | iOS 17+ (iPhone, widgets, Live Activities) |
-| **Backend** | Supabase (self-hosted on their free tier — you own it) |
-| **Data-writer agents** | Any — OpenClaw, Claude Code, or your own scripts |
+| **Backend** | Supabase on their free tier. You own it, you run it, it's your problem. |
+| **Data-writer agents** | Whatever you've got: OpenClaw, Claude Code, your own scripts, a clever intern |
 
 ---
 
@@ -17,11 +17,11 @@ The Perch is a native iOS app that shows your daily life at a glance — sleep a
 
 The Perch is a good fit if you:
 - want a **private** life dashboard you fully control,
-- are comfortable **running your own Supabase project** (the free tier is enough),
-- have (or want) a **coding agent** that can send data to that Supabase,
-- want to mix and match what the dashboard shows — you **pick only the skills you want**.
+- are comfortable **running your own Supabase project** (free tier is plenty),
+- have (or want) a **coding agent** that can write to it,
+- want to pick and choose what shows up. **You install only the skills you want.**
 
-It is **not** a good fit if you want a polished commercial app you can install from the App Store today. That might come later.
+It's **not** a good fit if you want a polished App Store app you can install today. That might come later. Today this is "clone it and run Xcode." If that sentence made you twitch, bookmark the repo and check back in six months.
 
 ---
 
@@ -33,12 +33,12 @@ Your agent           Your Supabase             The Perch (iOS)
                         orders, shipments)          Live Activities
 ```
 
-1. You run a Supabase project — the free tier works.
-2. You install the iOS app on your phone (build from source today; TestFlight later).
-3. You pick which **skills** you want (health? bookmarks? deliveries?) and drop them into your agent runtime.
-4. Your agent writes data. Your iOS app reads it and shows it.
+1. You spin up a Supabase project. Free tier is fine.
+2. You install the iOS app on your phone (build from source today, TestFlight later).
+3. You pick which **skills** you want (health, bookmarks, deliveries, etc.) and drop them into your agent runtime.
+4. Your agent writes data. Your app reads it. That's the whole loop.
 
-Nothing leaves your Supabase — there's no The-Perch server. You're the host.
+There is no The-Perch server. Your data sits in your Supabase. I can't see it and neither can anyone else. That's not a marketing claim, it's just that I never built the server that would let me.
 
 ---
 
@@ -46,30 +46,30 @@ Nothing leaves your Supabase — there's no The-Perch server. You're the host.
 
 | If you want to... | Read this |
 |---|---|
-| Understand the whole picture and get it running | [SHARE.md](./SHARE.md) |
-| Hand setup off to your coding agent | [AGENT_BOOTSTRAP.md](./AGENT_BOOTSTRAP.md) |
+| Understand the whole thing and get it running | [SHARE.md](./SHARE.md) |
+| Hand the setup to your coding agent | [AGENT_BOOTSTRAP.md](./AGENT_BOOTSTRAP.md) |
 | See what a finished install looks like | [GETTING_STARTED.md](./GETTING_STARTED.md) |
 
 ---
 
 ## The skill ecosystem
 
-Each skill is a self-contained directory under [`skill/`](./skill) that describes one feature — the Supabase contract, how to wire a data source in, and how to install it into OpenClaw, Claude Code, or use its scripts directly. Pick only what you need.
+Each skill is a self-contained directory under [`skill/`](./skill) that covers one feature: the Supabase contract, how to wire a data source, and how to install it into OpenClaw, Claude Code, or just run the scripts directly. Install only what you want. Nobody needs all ten on day one.
 
 | Skill | What it powers | Needs |
 |---|---|---|
-| [`perch-supabase`](./skill/perch-supabase) | **Foundation** — schema, RLS, auth | Supabase project |
-| [`perch-ios`](./skill/perch-ios) | **The iOS app itself** — architecture, build, theme | macOS + Xcode |
-| [`dashboard-sync`](./skill/dashboard-sync) | Core tool: `dashboard_push`, `dashboard_query`, `dashboard_heartbeat` | Service role key |
-| [`perch-bookmarks`](./skill/perch-bookmarks) | Link saving + tagging | — |
-| [`perch-calendar`](./skill/perch-calendar) | Calendar events → Supabase | Any ICS/CalDAV source (reference: `icalBuddy` on macOS) |
-| [`perch-health`](./skill/perch-health) | Sleep, HRV, body metrics | Any sleep source (reference: Oura Ring API) |
-| [`perch-nutrition`](./skill/perch-nutrition) | Meals + macros | Any meal tracker |
-| [`perch-orders`](./skill/perch-orders) | Commerce emails → tracked orders | Any JMAP/IMAP email source (reference: Fastmail JMAP) |
-| [`perch-deliveries`](./skill/perch-deliveries) | Orders tab + Home Deliveries + Live Activities | — |
-| [`perch-workouts`](./skill/perch-workouts) | Pull/push/legs log | — |
+| [`perch-supabase`](./skill/perch-supabase) | **Foundation.** Schema, RLS, auth. | Supabase project |
+| [`perch-ios`](./skill/perch-ios) | **The iOS app itself.** Architecture, build, theme. | macOS + Xcode |
+| [`dashboard-sync`](./skill/dashboard-sync) | Core tool: `dashboard_push`, `dashboard_query`, `dashboard_heartbeat`. | Service role key |
+| [`perch-bookmarks`](./skill/perch-bookmarks) | Link saving + tagging. | nothing extra |
+| [`perch-calendar`](./skill/perch-calendar) | Calendar events into Supabase. | any ICS/CalDAV source. I use `icalBuddy` on macOS because it's ugly and it works. |
+| [`perch-health`](./skill/perch-health) | Sleep, HRV, body metrics. | any sleep source. I use the Oura Ring API. |
+| [`perch-nutrition`](./skill/perch-nutrition) | Meals + macros. | any meal tracker |
+| [`perch-orders`](./skill/perch-orders) | Commerce emails into tracked orders. | any JMAP/IMAP source. I use Fastmail JMAP. Gmail works too, I just refuse. |
+| [`perch-deliveries`](./skill/perch-deliveries) | Orders tab, Home Deliveries, Live Activities. | nothing extra |
+| [`perch-workouts`](./skill/perch-workouts) | Pull/push/legs log. | nothing extra |
 
-All skills share the same Supabase contract. You can start with `perch-supabase` + `perch-ios` + one feature skill, and add more later.
+All skills share the same Supabase contract. A reasonable starting shape is `perch-supabase` + `perch-ios` + one feature skill. Add more whenever. You're not being graded.
 
 ---
 
@@ -83,24 +83,24 @@ ThePerch
 ├── backend/             Self-host backend guide
 ├── web/                 Supporting web assets
 ├── scripts/             Reference helper scripts
-├── docs/                Guides and archived historical design docs
-└── README.md            ← you are here
+├── docs/                Guides, and some archaeology from earlier design passes
+└── README.md            (you are here)
 ```
 
 ---
 
 ## Status and expectations
 
-This was built for one person. Opening it up is an experiment. Expect:
+I built this for myself. Opening it up is an experiment. Expect:
 
-- Rough edges, especially outside the golden path the author actually uses.
-- Docs that still assume some familiarity with Supabase, iOS, and coding agents.
-- No support guarantee. Issues and PRs welcome once the repo is public.
+- Rough edges, especially outside the golden path I actually use day to day.
+- Docs that assume some comfort with Supabase, iOS, and coding agents. "What's a JWT" is a question I can't answer for you in a README.
+- No support guarantee. Issues and PRs are welcome once the repo is public. DMs are not.
 
-If something's broken or confusing, the most useful thing you can do is open an issue describing what you tried and where it fell over.
+If something's broken or confusing, the most useful thing you can do is open an issue describing what you tried and where it fell over. "It doesn't work" is not a bug report, it's a haiku.
 
 ---
 
 ## License
 
-TBD — a permissive open-source license will be added before the repo goes public.
+[MIT](./LICENSE). Fork it, remix it, ship it. Attribution is nice but not required. Making money off a renamed clone is legal, just a bit sad.

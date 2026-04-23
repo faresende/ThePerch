@@ -45,6 +45,10 @@ Use `SKILL.md` as a prompt you give to any LLM via their tool-use API, and call 
 
 - Node 18+ and npm (for the TypeScript tools)
 
+## Bare-clone gotcha
+
+`cli.js` starts with a `#!/usr/bin/env node` shebang but the repo doesn't preserve the executable bit. On a fresh clone you'll need to either `chmod +x skill/dashboard-sync/cli.js` or always invoke it via `node cli.js <cmd>`. Either works.
+
 ## What this skill writes
 
 - Writes go to **dashboard_records + records + agents + token_usage** with `category=(all — this is the generic writer)` and `type` in `(all)`.
