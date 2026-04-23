@@ -14,6 +14,27 @@ interface EmailSignals {
 }
 
 /**
+ * Senders whose emails are never tangible-goods orders even when they contain
+ * order/total keywords. Food delivery, ride-hailing, meal subscriptions, etc.
+ * Match is substring on the lowercased sender email. Kept small and specific;
+ * a 10X pass should replace this with a proper allowlist/blocklist table.
+ */
+const NON_GOODS_SENDERS: string[] = [
+  'uber.com', 'ubereats.com', 'uber-receipts', 'uber receipts',
+  'glovo', 'deliveroo', 'just-eat', 'justeat', 'doordash', 'grubhub',
+  'bolt-food', 'boltfood', 'freenow',
+  'lyft.com',
+  'sendcloud', 'loox.io',
+  // Stripe / billing / receipts platforms; real orders come from the merchant, not the processor.
+  'stripe.com',
+];
+
+function isNonGoodsSender(senderEmail: string): boolean {
+  const s = senderEmail.toLowerCase();
+  return NON_GOODS_SENDERS.some(pat => s.includes(pat));
+}
+
+/**
  * Classifies an email body as purchase or shipping type.
  */
 export function classifyEmail(
@@ -21,6 +42,9 @@ export function classifyEmail(
   body: string,
   senderEmail: string,
 ): { type: EmailType; confidence: number } {
+  if (isNonGoodsSender(senderEmail)) {
+    return { type: 'other', confidence: 1 };
+  }
   const text = `${subject} ${body}`.toLowerCase();
   const signals = analyzeSignals(text, senderEmail.toLowerCase());
 
@@ -281,14 +305,43 @@ function normalizeMerchant(name: string): string {
 }
 
 function extractOrderNumber(subject: string, body: string): string | null {
-  // Try subject first
-  for (const pattern of [
-    /order[#\s]*([A-Z0-9]{6,20})/i,
-    /order\s+([0-9]{8,})/i,
-    /[#\s]([A-Z0-9]{8,})/i,
-  ]) {
-    const m = subject.match(pattern) || body.match(pattern);
-    if (m) return m[1].toUpperCase();
+  // Strip obvious HTML attributes before regex so we don't match things like
+  // cellpadding="0" or style="..." as order numbers. Cheap and effective.
+  const strip = (s: string) =>
+    s
+      .replace(/cellpadding\s*=\s*["']?[^"'>\s]*/gi, '')
+      .replace(/cellspacing\s*=\s*["']?[^"'>\s]*/gi, '')
+      .replace(/bgcolor\s*=\s*["']?[^"'>\s]*/gi, '')
+      .replace(/class\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/style\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/<[^>]+>/g, ' ');
+  const subj = strip(subject);
+  const bod = strip(body);
+
+  // Patterns in order of specificity. Require `#` or explicit "order number" to
+  // appear so we don't scoop up unrelated uppercase tokens.
+  const patterns: RegExp[] = [
+    // "Order #AB-12345678"
+    /order\s*#\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
+    // "order number: AB-12345678"
+    /order\s+number\s*[:#]\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
+    // "order no. 12345678"
+    /order\s+no\.?\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
+    // Amazon-style "order 123-1234567-1234567"
+    /order\s+(\d{3}-\d{7}-\d{7})/i,
+    // "#ORD-12345678" (must start with an alpha prefix to avoid catching random tokens)
+    /#([A-Z]{2,}[A-Z0-9-]{3,24})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const m = subj.match(pattern) || bod.match(pattern);
+    if (m && m[1]) {
+      const v = m[1].toUpperCase();
+      // Reject common HTML/CSS tokens that slip through.
+      if (!/^(CELLPADDING|CELLSPACING|BGCOLOR|BORDER|ALIGN|VALIGN|WIDTH|HEIGHT|FONT|COLOR|STYLE|CLASS|UTF|HTML|BODY|TABLE|DIV|SPAN)$/.test(v)) {
+        return v;
+      }
+    }
   }
   return null;
 }

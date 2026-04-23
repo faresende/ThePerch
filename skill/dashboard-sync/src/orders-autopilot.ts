@@ -426,28 +426,23 @@ async function pushCommerceRecord(
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 /**
- * Get user ID from sender email, falling back to the `PERCH_USER_ID` environment
- * variable when no users row matches. Set `PERCH_USER_ID` to your own Supabase
- * auth.users UUID so the autopilot has a sensible default owner.
+ * Resolve the user this email belongs to.
+ *
+ * In the current single-user deployment, `PERCH_USER_ID` is authoritative —
+ * every inbound email belongs to the installed user. A future multi-tenant
+ * deployment should reintroduce a sender → user lookup here (the previous
+ * `users.email` query was removed because the `public.users` table does not
+ * carry an email column; ownership is managed via `auth.users`).
+ *
+ * The `senderEmail` argument is retained for a future multi-tenant path and
+ * for logging, but is not consulted today.
  */
-async function getUserIdFromEmail(senderEmail: string): Promise<string> {
-  const fallbackUserId = process.env.PERCH_USER_ID;
-
-  const { data, error } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', senderEmail.toLowerCase())
-    .maybeSingle();
-
-  if (error) {
-    console.warn(`[orders-autopilot] User lookup failed for ${senderEmail}:`, error.message);
-  }
-
-  const resolved = data?.id || fallbackUserId;
+async function getUserIdFromEmail(_senderEmail: string): Promise<string> {
+  const resolved = process.env.PERCH_USER_ID;
   if (!resolved) {
     throw new Error(
-      'orders-autopilot: no user match and PERCH_USER_ID is not set. ' +
-      'Either add a users row with the sender email or export PERCH_USER_ID.'
+      'orders-autopilot: PERCH_USER_ID is not set. Export it in your agent env '
+      + 'or source it from ~/.openclaw/secrets/perch.env before running.'
     );
   }
   return resolved;
