@@ -81,8 +81,10 @@ VALUES
   (owner_id, 'health',     'Health',     1, true,  '{"agent": "health"}'::jsonb),
   (owner_id, 'deliveries', 'Deliveries', 2, true,  '{"agent": "deliveries"}'::jsonb),
   (owner_id, 'calendar',   'Calendar',   3, true,  '{"agent": "calendar"}'::jsonb),
-  (owner_id, 'bookmarks',  'Bookmarks',  4, false, '{"agent": "assistant"}'::jsonb),
-  (owner_id, 'admin',      'Admin',      5, false, '{"tabs": ["agents", "token_usage"]}'::jsonb)
+  (owner_id, 'bookmarks',  'Bookmarks',  4, false, '{"agent": "assistant"}'::jsonb)
+  -- NOTE: `admin` and `legal` sections were dropped on 2026-04-23. Admin
+  -- functionality now lives inline under DebugAdminView in SettingsTab;
+  -- legal was never surfaced as a section in the current iOS layout.
 ON CONFLICT (user_id, slug) DO UPDATE SET
   display_name = EXCLUDED.display_name,
   sort_order   = EXCLUDED.sort_order,
