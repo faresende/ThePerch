@@ -35,7 +35,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, time, timedelta
 from typing import Iterable
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
@@ -120,99 +120,153 @@ def _run_icalbuddy() -> str:
 
 
 def _parse_icalbuddy(raw_output: str) -> list[RawEvent]:
-    """Parse icalBuddy's output into RawEvent records.
+    """Parse icalBuddy's sentinel-delimited output into RawEvent records.
 
-    Each event begins with a bold title line (which icalBuddy emits with a
-    leading "* " or "• " by default; we suppress that via -b '' above). The
-    rest of the event's properties follow on indented lines. Multiple events
-    are separated by blank lines.
+    Shape observed on real output (macOS icalBuddy 1.10+):
+      TITLE~~~key1: value1~~~key2: value2 (may span\n newlines)~~~DATE at TIME - TIME\n
+      NEXT_TITLE~~~...
 
-    We keep this defensive — icalBuddy's output format has drifted across
-    versions — so any unparseable block becomes a RawEvent with best-effort
-    fields rather than an exception.
+    Each event is one logical record terminated by a newline whose next
+    character is a non-whitespace event-title start. Notes fields may embed
+    literal newlines indented with whitespace, so we split on `\\n(?=\\S)`
+    rather than `\\n\\n` to keep those notes attached to their event.
+
+    The last `~~~`-delimited chunk is always the date/time range; the first
+    is always the title; middle chunks are `key: value` property lines.
+
+    Events can appear more than once when the same iCloud entry is synced to
+    multiple calendars — we dedupe by (title, last-field) after parsing.
     """
     events: list[RawEvent] = []
-    blocks = [b for b in raw_output.split("\n\n") if b.strip()]
-    for block in blocks:
-        lines = [ln for ln in block.splitlines() if ln.strip()]
-        if not lines:
+    seen: set[tuple[str, str]] = set()
+
+    # Event boundary: each event's last `~~~`-delimited field is always the
+    # date-time range, e.g. "23 Apr 2026 at 09:30 - 11:00" or "24 Apr 2026"
+    # for all-day events. We anchor parsing on that suffix because line-based
+    # splitting is fragile — some calendars wrap a location/notes field onto
+    # an unindented continuation line that contains its own `~~~` (the date
+    # range lives on the same wrapped line).
+    end_re = re.compile(
+        r"~~~(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}"
+        r"(?:\s+at\s+\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?)?)\s*(?:\n|$)"
+    )
+    pos = 0
+    blocks: list[tuple[str, str]] = []  # (body_without_final_separator, time_str)
+    for m in end_re.finditer(raw_output):
+        body = raw_output[pos:m.start()].strip()
+        time_str = m.group(1).strip()
+        if body:
+            blocks.append((body, time_str))
+        pos = m.end()
+
+    for body, time_str in blocks:
+        if not body.strip():
             continue
-        # First non-indented line is the title.
-        title_line = lines[0].strip()
-        title = title_line.strip()
-        props = {}
-        for ln in lines[1:]:
-            # Typical prop lines: "    location: Room 3B"
-            s = ln.strip()
-            if not s:
-                continue
-            # Match 'key: value' defensively.
-            m = re.match(r"([a-z ]+?)\s*:\s*(.*)$", s, re.I)
+        parts = body.split("~~~")
+        # parts = [title, prop1?, prop2?, ...] — the trailing date is already
+        # captured by the end_re split; we don't include it here.
+        if not parts:
+            continue
+
+        title = parts[0].strip()
+        prop_parts = parts[1:]
+
+        dedup_key = (title, time_str)
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+
+        props: dict[str, str] = {}
+        for chunk in prop_parts:
+            # "key: value" where value may span embedded \n lines. Strip
+            # leading/trailing whitespace on the joined value.
+            first_line, _, rest = chunk.partition("\n")
+            m = re.match(r"\s*([a-z ]+?)\s*:\s*(.*)$", first_line, re.I)
             if m:
                 key = m.group(1).strip().lower()
                 value = m.group(2).strip()
-                props[key] = value
-            else:
-                # No key — append to 'notes' if we have room.
-                props["notes"] = (props.get("notes", "") + "\n" + s).strip()
+                if rest:
+                    # Re-join continuation lines with single newlines, dropping
+                    # the leading indent icalBuddy adds.
+                    cont = "\n".join(ln.strip() for ln in rest.splitlines() if ln.strip())
+                    value = f"{value}\n{cont}" if cont else value
+                props[key] = value.strip()
 
         events.append(RawEvent(
             title=title,
-            start_str=(props.get("start") or props.get("starts") or props.get("time") or ""),
-            end_str=(props.get("end") or props.get("ends")),
+            start_str=time_str,
+            end_str=None,  # embedded in start_str as "HH:MM - HH:MM"
             location=props.get("location"),
             notes=props.get("notes"),
             calendar_name=props.get("calendar") or props.get("calendar name"),
-            all_day="all-day" in (props.get("time") or "") or "all-day" in title.lower(),
+            all_day=("all-day" in time_str.lower()) or ("all day" in time_str.lower()),
         ))
     return events
 
 
 # ─── Timestamp coercion ────────────────────────────────────────────────────
 
-# Accept a few icalBuddy output shapes.
-_DATE_PATTERNS = [
-    # "2026-04-22 at 09:00"
-    (re.compile(r"(\d{4}-\d{2}-\d{2})\s+at\s+(\d{2}:\d{2}(?::\d{2})?)"), "%Y-%m-%d %H:%M"),
-    # "Wednesday, April 22, 2026 at 09:00"
-    (re.compile(r"(\w+,\s+\w+\s+\d{1,2},\s+\d{4})\s+at\s+(\d{2}:\d{2}(?::\d{2})?)"), "%A, %B %d, %Y %H:%M"),
-    # "today at 09:00" / "tomorrow at 09:00"
-    (re.compile(r"(today|tomorrow)\s+at\s+(\d{2}:\d{2}(?::\d{2})?)", re.I), "TOKEN"),
-]
+# icalBuddy's actual output format is `DD MMM YYYY at HH:MM - HH:MM`, with
+# the month as a three-letter English abbreviation. Examples observed:
+#   "23 Apr 2026 at 09:30 - 11:00"
+#   "23 Apr 2026 at 10:00 - 11:00"
+#   "24 Apr 2026 at 09:00 - 10:00"
+# All-day events come out as "23 Apr 2026" (no time range).
+#
+# We parse [start, end] as a tuple so callers can emit both ends to
+# dashboard_records.
+_RANGE_RE = re.compile(
+    r"""
+    ^\s*
+    (?P<day>\d{1,2})\s+
+    (?P<month>[A-Za-z]{3,9})\s+
+    (?P<year>\d{4})
+    (?:
+        \s+at\s+
+        (?P<start>\d{1,2}:\d{2})
+        (?:\s*-\s*(?P<end>\d{1,2}:\d{2}))?
+    )?
+    \s*$
+    """,
+    re.VERBOSE,
+)
 
 
-def _parse_wallclock(s: str, default_day: date | None = None) -> datetime | None:
-    """Best-effort wall-clock parsing. Returns a tz-aware datetime in USER_TZ."""
+def _parse_range(s: str) -> tuple[datetime | None, datetime | None, bool]:
+    """Parse "23 Apr 2026 at 09:30 - 11:00" into (start, end, all_day).
+
+    Returns (None, None, False) if the string doesn't match. Timestamps are
+    tz-aware in USER_TZ. When no end is provided, returns (start, None, False).
+    For date-only inputs, returns (midnight, midnight+1d, True).
+    """
     if not s:
-        return None
-    s = s.strip()
-
-    # Simple HH:MM — combine with default_day.
-    m = re.match(r"^(\d{2}:\d{2}(?::\d{2})?)$", s)
-    if m and default_day:
-        t = datetime.strptime(m.group(1), "%H:%M" if m.group(1).count(":") == 1 else "%H:%M:%S").time()
-        return datetime.combine(default_day, t, tzinfo=USER_TZ)
-
-    for pat, fmt in _DATE_PATTERNS:
-        m = pat.search(s)
-        if not m:
-            continue
-        if fmt == "TOKEN":
-            day_token = m.group(1).lower()
-            today = datetime.now(USER_TZ).date()
-            day = today if day_token == "today" else today + timedelta(days=1)
-            t = datetime.strptime(m.group(2), "%H:%M" if m.group(2).count(":") == 1 else "%H:%M:%S").time()
-            return datetime.combine(day, t, tzinfo=USER_TZ)
+        return None, None, False
+    m = _RANGE_RE.match(s.strip())
+    if not m:
+        return None, None, False
+    try:
+        day_dt = datetime.strptime(f"{m['day']} {m['month']} {m['year']}", "%d %b %Y").date()
+    except ValueError:
         try:
-            if "," in fmt:
-                # Month-name format has weekday + month spelled out.
-                dt = datetime.strptime(f"{m.group(1)} {m.group(2)}", fmt)
-            else:
-                dt = datetime.strptime(f"{m.group(1)} {m.group(2)}", fmt)
-            return dt.replace(tzinfo=USER_TZ)
+            day_dt = datetime.strptime(f"{m['day']} {m['month']} {m['year']}", "%d %B %Y").date()
         except ValueError:
-            continue
-    return None
+            return None, None, False
+
+    if not m["start"]:
+        start = datetime.combine(day_dt, time(0, 0), tzinfo=USER_TZ)
+        end = start + timedelta(days=1)
+        return start, end, True
+
+    start_t = datetime.strptime(m["start"], "%H:%M").time()
+    start = datetime.combine(day_dt, start_t, tzinfo=USER_TZ)
+    end: datetime | None = None
+    if m["end"]:
+        end_t = datetime.strptime(m["end"], "%H:%M").time()
+        end = datetime.combine(day_dt, end_t, tzinfo=USER_TZ)
+        # If the event crosses midnight (end < start), push end to next day.
+        if end <= start:
+            end = end + timedelta(days=1)
+    return start, end, False
 
 
 def _iso(dt: datetime) -> str:
@@ -331,21 +385,20 @@ def _should_include(ev: RawEvent) -> bool:
 
 def _events_to_records(raws: Iterable[RawEvent]) -> list[tuple[str, dict]]:
     out: list[tuple[str, dict]] = []
-    today = datetime.now(USER_TZ).date()
     for ev in raws:
         if not _should_include(ev):
             continue
-        start_dt = _parse_wallclock(ev.start_str, default_day=today)
-        end_dt = _parse_wallclock(ev.end_str or "", default_day=today)
+        start_dt, end_dt, all_day = _parse_range(ev.start_str)
         data = {
             "start_time": _iso(start_dt) if start_dt else None,
             "end_time": _iso(end_dt) if end_dt else None,
             "location": ev.location,
             "notes": ev.notes,
             "calendar_name": ev.calendar_name,
-            "all_day": bool(ev.all_day),
+            "all_day": bool(all_day or ev.all_day),
         }
-        # Drop keys with None to keep the JSON lean.
+        # Drop keys with None/empty-string to keep the JSON lean. Note: we
+        # intentionally keep `all_day=False` so the iOS decoder always sees it.
         data = {k: v for k, v in data.items() if v not in (None, "")}
         if not data.get("start_time"):
             # Don't ship events we couldn't place on a timeline.
