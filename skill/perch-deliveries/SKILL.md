@@ -125,7 +125,7 @@ Attributes are defined in `PerchSharedKit/DeliveryActivityAttributes.swift` and 
 
 - Supabase project with `orders`, `shipments`, and `dashboard_records` tables available
 - Fastmail JMAP credentials for automatic email ingestion
-- Orders autopilot script configured at `/Users/faresende/.openclaw/workspace/ThePerch/scripts/orders_autopilot_ingest_fastmail.py`
+- Orders autopilot script configured at `<REPO>/scripts/orders_autopilot_ingest_fastmail.py`
 - Optional 17track credentials if live carrier polling is enabled
 
 ### Step-by-step

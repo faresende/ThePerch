@@ -36,7 +36,7 @@ Expected output:
 
 ```cron
 # Run every 30 minutes
-0,30 * * * * cd /Users/faresende/.openclaw/workspace/ThePerch && python3 scripts/orders_autopilot_ingest_fastmail.py >> ~/.openclaw/logs/orders.log 2>&1
+0,30 * * * * cd <REPO> && python3 scripts/orders_autopilot_ingest_fastmail.py >> ~/.openclaw/logs/orders.log 2>&1
 ```
 
 ## Troubleshooting

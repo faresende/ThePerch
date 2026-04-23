@@ -118,12 +118,12 @@ python3 scripts/orders_autopilot_ingest_fastmail.py --limit 30
 
 ```cron
 # Every hour at :00 and :30
-0,30 * * * * cd /Users/faresende/.openclaw/workspace && python3 scripts/orders_autopilot_ingest_fastmail.py >> logs/orders.log 2>&1
+0,30 * * * * cd <YOUR_OPENCLAW_WORKSPACE> && python3 scripts/orders_autopilot_ingest_fastmail.py >> logs/orders.log 2>&1
 ```
 
 ### Environment
 
-The script reads Fastmail JMAP credentials from `~/.openclaw/workspace/sandbox/fastmail-jmap/jmap_client.py`. Supabase uses a hardcoded service role key (not env var based — review before deploying).
+The script reads Fastmail JMAP credentials from `~/.openclaw/workspace/sandbox/fastmail-jmap/jmap_client.py`. Supabase credentials come from SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars; fail-fast when missing. See the script's header for the full list.
 
 ## Adding a New Merchant
 

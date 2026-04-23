@@ -5,7 +5,7 @@
 Migrate `scripts/orders_autopilot_ingest_fastmail.py` (at the repo root) into `skill/perch-orders/scripts/ingest.py` with the following changes. None of this should happen during infrastructure cleanup; it's a dedicated pass.
 
 1. **`agent_id`:** replace the hardcoded `'claudinho'` with `PERCH_AGENT_ID` env var, defaulting to `orders-autopilot`.
-2. **JMAP client:** drop the `sys.path` hack that imports from `~/.openclaw/workspace/sandbox/fastmail-jmap/jmap_client`. Swap to the [`jmapc`](https://pypi.org/project/jmapc/) PyPI package. Add `jmapc` to a `requirements.txt` next to the script.
+2. **JMAP client:** drop the `sys.path` hack that imports from `<YOUR_OPENCLAW_WORKSPACE>/sandbox/fastmail-jmap/jmap_client`. Swap to the [`jmapc`](https://pypi.org/project/jmapc/) PyPI package. Add `jmapc` to a `requirements.txt` next to the script.
 3. **Fastmail token:** expose via env var. Recommended name: `FASTMAIL_JMAP_TOKEN` (or provider-neutral `PERCH_JMAP_TOKEN`).
 4. **Mailbox IDs:** replace the hardcoded `['P7V', 'P-F']` with `PERCH_JMAP_MAILBOX_IDS` env var, CSV. Document how to discover mailbox IDs in the README (one paragraph is enough; a JMAP `Mailbox/get` call with the account ID does it).
 5. **`EXCLUDE_SENDERS` and carrier list:** leave hardcoded as sensible defaults. Call out in `skill/perch-orders/scripts/README.md` that they're fork-to-taste. No env var needed; editing Python is fair game for a reference script.
