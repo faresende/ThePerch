@@ -3,6 +3,8 @@ import Foundation
 /// Determines which home cards to show and in what order, based on current time of day.
 /// See HOME_REDESIGN.md Part 1.2 for the full priority specification.
 enum HomeCardType: CaseIterable, Hashable {
+    case dailyBriefing
+    case workoutHint
     case healthSummary
     case calendarToday
     case calendarTomorrow
@@ -34,15 +36,19 @@ enum HomeCardOrdering {
 
     /// Returns the ordered list of card types for the current time of day.
     static func orderedCards(for period: TimePeriod = .current) -> [HomeCardType] {
+        // Daily briefing + workout hint always sit at the very top when
+        // they're present. The card's own empty-state prevents visual
+        // clutter on days BioChecha hasn't written one yet.
+        let preamble: [HomeCardType] = [.dailyBriefing, .workoutHint]
         switch period {
         case .morning:
-            return [.healthSummary, .medications, .calendarToday, .weather, .deliveries, .nutrition, .calendarTomorrow, .emailSummary]
+            return preamble + [.healthSummary, .medications, .calendarToday, .weather, .deliveries, .nutrition, .calendarTomorrow, .emailSummary]
         case .afternoon:
-            return [.calendarToday, .nutrition, .deliveries, .healthSummary, .emailSummary]
+            return preamble + [.calendarToday, .nutrition, .deliveries, .healthSummary, .emailSummary]
         case .evening:
-            return [.nutrition, .calendarTomorrow, .deliveries, .healthSummary]
+            return preamble + [.nutrition, .calendarTomorrow, .deliveries, .healthSummary]
         case .night:
-            return [.calendarTomorrow, .healthSummary, .nutrition]
+            return preamble + [.calendarTomorrow, .healthSummary, .nutrition]
         }
     }
 

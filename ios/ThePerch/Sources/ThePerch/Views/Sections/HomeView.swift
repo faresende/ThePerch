@@ -257,6 +257,10 @@ struct HomeView: View {
     @ViewBuilder
     private func homeCard(for cardType: HomeCardType, compactHealth: Bool) -> some View {
         switch cardType {
+        case .dailyBriefing:
+            DailyBriefingCard(record: dashboardViewModel.latestDailyBriefing)
+        case .workoutHint:
+            WorkoutHintCard(record: dashboardViewModel.latestWorkoutHint)
         case .healthSummary:
             HealthSummaryHomeCard(records: viewModel.records, compact: compactHealth)
         case .calendarToday:

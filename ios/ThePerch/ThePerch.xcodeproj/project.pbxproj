@@ -31,6 +31,9 @@
 		35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */; };
 		35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */; };
 		35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */; };
+		WHC0002WHC0002WHC0002WHC0002 /* WorkoutHintCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WHC0001WHC0001WHC0001WHC0001 /* WorkoutHintCard.swift */; };
+		DBFC0002DBFC0002DBFC0002DBFC /* DailyBriefingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBFC0001DBFC0001DBFC0001DBFC /* DailyBriefingCard.swift */; };
+		ARCARD0002ARCARD0002ARCARD0 /* AgentRunsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */; };
 		35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543612F52411F00204F77 /* CardContainer.swift */; };
 		35F5437D2F52411F00204F77 /* ThePerchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5437A2F52411F00204F77 /* ThePerchApp.swift */; };
 		35F543802F52411F00204F77 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436E2F52411F00204F77 /* CalendarView.swift */; };
@@ -42,6 +45,8 @@
 		35F543862F52411F00204F77 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543492F52411F00204F77 /* AppConfig.swift */; };
 		FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC0FFEE000000010000B001 /* SecretsLoader.swift */; };
 		35F543872F52411F00204F77 /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434C2F52411F00204F77 /* Agent.swift */; };
+		DBF0002DBF0002DBF0002DBF0002 /* DailyBriefing.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF0001DBF0001DBF0001DBF0001 /* DailyBriefing.swift */; };
+		ARUN0002ARUN0002ARUN0002 /* AgentRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */; };
 		35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435E2F52411F00204F77 /* MainTabView.swift */; };
 		35F5438B2F52411F00204F77 /* HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543702F52411F00204F77 /* HealthView.swift */; };
 		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
@@ -219,6 +224,9 @@
 		35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentStatusCard.swift; sourceTree = "<group>"; };
 		35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCard.swift; sourceTree = "<group>"; };
 		35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCard.swift; sourceTree = "<group>"; };
+		WHC0001WHC0001WHC0001WHC0001 /* WorkoutHintCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHintCard.swift; sourceTree = "<group>"; };
+		DBFC0001DBFC0001DBFC0001DBFC /* DailyBriefingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefingCard.swift; sourceTree = "<group>"; };
+		ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRunsCard.swift; sourceTree = "<group>"; };
 		35F542E32F522B6D00204F77 /* ThePerch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThePerch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35F543492F52411F00204F77 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		FFC0FFEE000000010000B001 /* SecretsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsLoader.swift; sourceTree = "<group>"; };
@@ -226,6 +234,8 @@
 		FFC0FFEE000000010000A001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		FFC0FFEE000000010000A002 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		35F5434C2F52411F00204F77 /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
+		DBF0001DBF0001DBF0001DBF0001 /* DailyBriefing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBriefing.swift; sourceTree = "<group>"; };
+		ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRun.swift; sourceTree = "<group>"; };
 		35F5434D2F52411F00204F77 /* DataPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloads.swift; sourceTree = "<group>"; };
 		35F5434E2F52411F00204F77 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		35F5434F2F52411F00204F77 /* Record.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Record.swift; sourceTree = "<group>"; };
@@ -461,6 +471,8 @@
 			isa = PBXGroup;
 			children = (
 				35F5434C2F52411F00204F77 /* Agent.swift */,
+		DBF0001DBF0001DBF0001DBF0001 /* DailyBriefing.swift */,
+		ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */,
 				35F5434D2F52411F00204F77 /* DataPayloads.swift */,
 				35F5434E2F52411F00204F77 /* JSONValue.swift */,
 				ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */,
@@ -542,6 +554,9 @@
 				ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */,
 				DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */,
 				35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */,
+		WHC0001WHC0001WHC0001WHC0001 /* WorkoutHintCard.swift */,
+		DBFC0001DBFC0001DBFC0001DBFC /* DailyBriefingCard.swift */,
+		ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */,
 				35F543602F52411F00204F77 /* BookmarkCard.swift */,
 				PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */,
 				35F543612F52411F00204F77 /* CardContainer.swift */,
@@ -1086,6 +1101,8 @@
 				35F543862F52411F00204F77 /* AppConfig.swift in Sources */,
 				FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */,
 				35F543872F52411F00204F77 /* Agent.swift in Sources */,
+		DBF0002DBF0002DBF0002DBF0002 /* DailyBriefing.swift in Sources */,
+		ARUN0002ARUN0002ARUN0002 /* AgentRun.swift in Sources */,
 				ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */,
 		REVW0002REVW0002REVW0002 /* ReviewItem.swift in Sources */,
 				NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */,
@@ -1093,6 +1110,9 @@
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
 				ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */,
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
+		WHC0002WHC0002WHC0002WHC0002 /* WorkoutHintCard.swift in Sources */,
+		DBFC0002DBFC0002DBFC0002DBFC /* DailyBriefingCard.swift in Sources */,
+		ARCARD0002ARCARD0002ARCARD0 /* AgentRunsCard.swift in Sources */,
 				ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */,
 				35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */,
 				35F5438B2F52411F00204F77 /* HealthView.swift in Sources */,

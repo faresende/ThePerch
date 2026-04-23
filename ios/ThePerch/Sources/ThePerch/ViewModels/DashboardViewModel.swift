@@ -36,6 +36,23 @@ final class DashboardViewModel {
     private(set) var trackedOrders: [OrderWithShipments] = []
     private(set) var trackedDeliveries: [DeliveryData] = []
 
+    /// Most recent BioChecha daily briefing (health category, display_hint =
+    /// daily_briefing). The iOS Today card renders this. Nil = BioChecha
+    /// hasn't written one yet for today.
+    var latestDailyBriefing: Record? {
+        healthRecords
+            .filter { $0.displayHint == .dailyBriefing }
+            .max(by: { $0.createdAt < $1.createdAt })
+    }
+
+    /// Most recent BioChecha workout hint (suggested pull/push/legs/rest
+    /// based on last-7-days analysis). Same shape pattern.
+    var latestWorkoutHint: Record? {
+        healthRecords
+            .filter { $0.displayHint == .workoutHint }
+            .max(by: { $0.createdAt < $1.createdAt })
+    }
+
     /// Dynamic per-slug record lookup. Use this for any section slug not covered above.
     /// e.g. `recordsBySlug["finance"]` returns all records with category == "finance"
     private(set) var recordsBySlug: [String: [Record]] = [:]

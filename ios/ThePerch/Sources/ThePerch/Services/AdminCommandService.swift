@@ -1,4 +1,6 @@
 import Foundation
+import PostgREST
+import Supabase
 
 // MARK: - AdminCommandService
 
@@ -137,6 +139,45 @@ final class AdminCommandService {
             print("[AdminCommandService] Failed to fetch command status: \(error)")
             return nil
         }
+    }
+
+    // MARK: - Agent Runs (observability)
+
+    private let agentRunsDecoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
+    /// Fetch the most recent agent_runs rows (across all agents). Powers the
+    /// observability surface in DebugAdminView — one row per pipeline firing,
+    /// ok/error/partial/timeout status, summary + optional error detail.
+    ///
+    /// The server-side `agent_runs_latest` view pre-dedupes to one row per
+    /// (agent_id, run_type). This function reads from the raw table so the
+    /// admin view can show history, not just the latest.
+    func fetchRecentAgentRuns(limit: Int = 100) async throws -> [AgentRun] {
+        let result = try await supabaseService.databaseClient
+            .from("agent_runs")
+            .select()
+            .order("started_at", ascending: false)
+            .limit(limit)
+            .execute()
+
+        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
+        var runs: [AgentRun] = []
+        runs.reserveCapacity(rawArray.count)
+        for item in rawArray {
+            do {
+                let data = try JSONSerialization.data(withJSONObject: item)
+                runs.append(try agentRunsDecoder.decode(AgentRun.self, from: data))
+            } catch {
+                #if DEBUG
+                print("[AdminCommandService] Dropping malformed agent_run: \(error)")
+                #endif
+            }
+        }
+        return runs
     }
 }
 

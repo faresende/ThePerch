@@ -65,6 +65,9 @@ struct WidgetRouter: View {
             timelineView
         case .mealLog:
             EmptyView() // Handled by NutritionSegment directly
+        case .dailyBriefing, .workoutHint:
+            // Home-tab–only cards; WidgetRouter renders widget-style surfaces.
+            EmptyView()
         case .unknown:
             EmptyView()
         }
