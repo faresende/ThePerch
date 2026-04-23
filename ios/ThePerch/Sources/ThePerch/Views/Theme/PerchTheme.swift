@@ -200,40 +200,64 @@ struct PerchTheme {
     // MARK: - Typography
 
     enum Font {
-        /// 40pt — tab page headers
-        static let largeTitle = SwiftUI.Font.system(size: 40, weight: .bold)
-        /// 34pt — large hero numbers, page titles
-        static let display = SwiftUI.Font.system(size: 34, weight: .bold)
-        /// 24pt — section titles
-        static let title = SwiftUI.Font.system(size: 24, weight: .semibold)
-        /// 18pt — card titles, emphasis
-        static let heading = SwiftUI.Font.system(size: 18, weight: .semibold)
-        /// 15pt — regular text
-        static let body = SwiftUI.Font.system(size: 15, weight: .regular)
-        /// 13pt — metadata, labels
-        static let caption = SwiftUI.Font.system(size: 13, weight: .regular)
-        /// 11pt — footnotes, timestamps
-        static let micro = SwiftUI.Font.system(size: 11, weight: .regular)
-        /// 12pt — uppercase card section labels
-        static let cardEyebrow = SwiftUI.Font.system(size: 12, weight: .semibold)
-
-        // Numeric variants — .rounded design for data displays
-        static let largeTitleNumeric = SwiftUI.Font.system(size: 40, weight: .bold, design: .rounded)
-        static let displayNumeric = SwiftUI.Font.system(size: 34, weight: .bold, design: .rounded)
-        static let titleNumeric = SwiftUI.Font.system(size: 24, weight: .bold, design: .rounded)
-        static let headingNumeric = SwiftUI.Font.system(size: 18, weight: .bold, design: .rounded)
-        static let bodyNumeric = SwiftUI.Font.system(size: 15, weight: .semibold, design: .rounded)
-        static let captionNumeric = SwiftUI.Font.system(size: 13, weight: .semibold, design: .rounded)
-        static let microNumeric = SwiftUI.Font.system(size: 11, weight: .semibold, design: .rounded)
-
-        // Icon variant — use for SF Symbol sizing (passes through PerchTheme.Icon constants)
-        static func icon(_ size: CGFloat) -> SwiftUI.Font {
-            SwiftUI.Font.system(size: size)
+        /// Maps our typographic tiers onto SwiftUI's semantic `TextStyle`
+        /// values. Using a semantic style is what unlocks Dynamic Type
+        /// scaling; `SwiftUI.Font.system(size:)` without a style is
+        /// pixel-fixed. At the default (xxxLarge) text size each tier
+        /// lands within a couple of points of its prior hand-picked size;
+        /// above that the whole UI scales with the user's accessibility
+        /// setting.
+        ///
+        /// Prior pixel targets shown in comments for reference; they're
+        /// no longer load-bearing.
+        private static func scaled(
+            _ style: SwiftUI.Font.TextStyle,
+            weight: SwiftUI.Font.Weight,
+            design: SwiftUI.Font.Design = .default
+        ) -> SwiftUI.Font {
+            SwiftUI.Font.system(style, design: design).weight(weight)
         }
 
-        // Monospaced variants — for code/data displays
-        static let captionMono = SwiftUI.Font.system(size: 13, weight: .medium, design: .monospaced)
-        static let microMono = SwiftUI.Font.system(size: 11, weight: .regular, design: .monospaced)
+        /// Prior 40pt — tab page headers.
+        static let largeTitle = scaled(.largeTitle, weight: .bold)
+        /// Prior 34pt — large hero numbers, page titles.
+        static let display = scaled(.largeTitle, weight: .bold)
+        /// Prior 24pt — section titles.
+        static let title = scaled(.title2, weight: .semibold)
+        /// Prior 18pt — card titles, emphasis.
+        static let heading = scaled(.headline, weight: .semibold)
+        /// Prior 15pt — regular text.
+        static let body = scaled(.body, weight: .regular)
+        /// Prior 13pt — metadata, labels.
+        static let caption = scaled(.footnote, weight: .regular)
+        /// Prior 11pt — footnotes, timestamps.
+        static let micro = scaled(.caption2, weight: .regular)
+        /// Prior 12pt — uppercase card section labels.
+        static let cardEyebrow = scaled(.caption, weight: .semibold)
+
+        // Numeric variants — .rounded design for data displays.
+        static let largeTitleNumeric = scaled(.largeTitle, weight: .bold, design: .rounded)
+        static let displayNumeric    = scaled(.largeTitle, weight: .bold, design: .rounded)
+        static let titleNumeric      = scaled(.title2, weight: .bold, design: .rounded)
+        static let headingNumeric    = scaled(.headline, weight: .bold, design: .rounded)
+        static let bodyNumeric       = scaled(.body, weight: .semibold, design: .rounded)
+        static let captionNumeric    = scaled(.footnote, weight: .semibold, design: .rounded)
+        static let microNumeric      = scaled(.caption2, weight: .semibold, design: .rounded)
+
+        /// Icon variant for SF Symbols. Scales modestly with Dynamic Type
+        /// but doesn't follow body scaling (icons that grow to .largeTitle
+        /// at XXL accessibility blow out card layouts).
+        ///
+        /// The `size` argument is kept for call-site compatibility but is
+        /// no longer load-bearing — all icon sizes resolve to a single
+        /// semantic style that scales in sensible steps.
+        static func icon(_ size: CGFloat) -> SwiftUI.Font {
+            SwiftUI.Font.system(.title3).weight(.regular)
+        }
+
+        // Monospaced variants — for code/data displays.
+        static let captionMono = scaled(.footnote, weight: .medium, design: .monospaced)
+        static let microMono   = scaled(.caption2, weight: .regular, design: .monospaced)
     }
 
     // MARK: - Spacing
