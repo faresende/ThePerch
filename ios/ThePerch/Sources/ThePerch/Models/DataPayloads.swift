@@ -660,6 +660,11 @@ struct WorkoutSessionData: Codable {
     let maxHr: Int?
     let exercises: [WorkoutExercise]
     let progressiveOverload: [OverloadStatus]?
+    /// Rotation bucket. One of `pull | push | legs | rest | mixed | other`.
+    /// Backfilled from `muscle_groups` for historical rows by the
+    /// 20260423 workout backfill. New writes should set this explicitly.
+    /// Optional so records from before the backfill still decode.
+    let workoutType: WorkoutRotation?
 
     enum CodingKeys: String, CodingKey {
         case sessionNumber = "session_number"
@@ -671,6 +676,18 @@ struct WorkoutSessionData: Codable {
         case maxHr = "max_hr"
         case exercises
         case progressiveOverload = "progressive_overload"
+        case workoutType = "workout_type"
+    }
+
+    /// Canonical rotation type. Falls back to `.other` for unknown strings
+    /// (e.g., "Traditional Strength Training" from Apple Watch exports).
+    enum WorkoutRotation: String, Codable, Sendable {
+        case pull, push, legs, rest, mixed, other
+
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = WorkoutRotation(rawValue: raw.lowercased()) ?? .other
+        }
     }
 
     var dateParsed: Date? {
