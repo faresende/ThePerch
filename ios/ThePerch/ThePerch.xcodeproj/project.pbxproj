@@ -84,6 +84,8 @@
 		6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */; };
 		A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */; };
 		734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */; };
+		DEEP0002DEEP0002DEEP0002 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEEP0001DEEP0001DEEP0001 /* DeepLinkRouter.swift */; };
+		DEEP0004DEEP0004DEEP0004 /* DeepLinkState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEEP0003DEEP0003DEEP0003 /* DeepLinkState.swift */; };
 		7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */; };
 		822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */; };
 		8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */; };
@@ -257,6 +259,8 @@
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOfDayAtmosphere.swift; sourceTree = "<group>"; };
 		4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KarakeepService.swift; sourceTree = "<group>"; };
+		DEEP0001DEEP0001DEEP0001 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
+		DEEP0003DEEP0003DEEP0003 /* DeepLinkState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkState.swift; sourceTree = "<group>"; };
 		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		49B954EE98DF57B9774F8D30 /* SearchView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		4A2CBEA125F2BF3482151382 /* TodayTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayTab.swift; sourceTree = "<group>"; };
@@ -820,6 +824,8 @@
 			isa = PBXGroup;
 			children = (
 				4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */,
+		DEEP0001DEEP0001DEEP0001 /* DeepLinkRouter.swift */,
+				DEEP0003DEEP0003DEEP0003 /* DeepLinkState.swift */,
 			);
 			name = Services;
 			path = Services;
@@ -1185,6 +1191,8 @@
 				3429EDFA0796555E65E3D6B9 /* HubTab.swift in Sources */,
 				7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */,
 				734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */,
+		DEEP0002DEEP0002DEEP0002 /* DeepLinkRouter.swift in Sources */,
+				DEEP0004DEEP0004DEEP0004 /* DeepLinkState.swift in Sources */,
 				1B755C70FCA165202C6C7A83 /* BookmarksViewModel.swift in Sources */,
 				D7E24467C07447F6175D7FD8 /* GlassTabBar.swift in Sources */,
 				F5445DCE2E590BC759DACA34 /* NewCardStyle.swift in Sources */,

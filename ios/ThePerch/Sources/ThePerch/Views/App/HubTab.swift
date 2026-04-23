@@ -12,6 +12,7 @@ private struct HubTimelineEntry: Identifiable {
 /// Uses a top segmented picker + paged content, mirroring HealthTab layout.
 struct HubTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(DeepLinkState.self) private var deepLinkState
     @State private var travelViewModel = TravelViewModel()
     @State private var selectedSegment: HubSegment = Self.initialSegment()
 
@@ -107,6 +108,30 @@ struct HubTab: View {
         .onAppear {
             if !dashboardViewModel.travelRecords.isEmpty {
                 travelViewModel.records = dashboardViewModel.travelRecords
+            }
+        }
+        .onChange(of: deepLinkState.pendingDestination) { _, dest in
+            guard let dest else { return }
+            // Hub-scoped destinations land here after MainTabView switches tab.
+            // Any leaf destination (orders/bookmarks/etc.) is consumed once a
+            // nested view takes over; for `.hub(subsection?)` we consume here.
+            switch dest {
+            case .hub(let sub):
+                if let sub, let seg = HubSegment(rawValue: sub.rawValue) {
+                    selectedSegment = seg
+                }
+                deepLinkState.consume()
+            case .orders:
+                selectedSegment = .orders
+                // OrdersView consumes to pick up the review-items flag.
+            case .bookmarks:
+                selectedSegment = .bookmarks
+                // BookmarksView can read and consume the source sub-tab.
+            case .calendar:
+                selectedSegment = .calendar
+                deepLinkState.consume()
+            default:
+                break
             }
         }
     }

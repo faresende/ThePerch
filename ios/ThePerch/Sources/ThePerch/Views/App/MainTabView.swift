@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(DeepLinkState.self) private var deepLinkState
     @State private var selectedTab: RootTab = Self.initialTab()
     @State private var isShowingSettings = false
     @State private var isShowingCapture = false
@@ -94,6 +95,31 @@ struct MainTabView: View {
             if Self.debugLaunchesSettings {
                 isShowingSettings = true
             }
+        }
+        .onChange(of: deepLinkState.pendingDestination) { _, dest in
+            guard let dest else { return }
+            handleDeepLink(dest)
+        }
+    }
+
+    /// Route a deep-link destination. For top-level-only destinations, we
+    /// both switch tab AND consume. For Hub-scoped destinations we switch
+    /// tab but leave the state set — HubTab / nested views consume after
+    /// they've routed their sub-selection.
+    private func handleDeepLink(_ destination: DeepLinkDestination) {
+        switch destination {
+        case .today:
+            selectedTab = .today
+            deepLinkState.consume()
+        case .health:
+            selectedTab = .health
+            deepLinkState.consume()
+        case .hub, .orders, .bookmarks, .calendar:
+            selectedTab = .hub
+            // HubTab + the nested view for this destination consume.
+        case .capture:
+            isShowingCapture = true
+            deepLinkState.consume()
         }
     }
 

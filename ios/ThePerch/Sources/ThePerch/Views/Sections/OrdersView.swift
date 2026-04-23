@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct OrdersView: View {
+    @Environment(DeepLinkState.self) private var deepLinkState
     @State private var viewModel = OrdersViewModel()
     @State private var cardsAppeared = false
     @State private var showingReviewItems = false
@@ -55,6 +56,20 @@ struct OrdersView: View {
         }
         .sheet(isPresented: $showingReviewItems) {
             ReviewItemsView(viewModel: viewModel)
+        }
+        .onChange(of: deepLinkState.pendingDestination) { _, dest in
+            // Hand-off from HubTab: open the review-items sheet when the
+            // inbound deep link says so (theperch://orders?review=1).
+            if case .orders(let openReview) = dest, openReview {
+                Task {
+                    await viewModel.loadOrders()
+                    showingReviewItems = true
+                }
+                deepLinkState.consume()
+            } else if case .orders = dest {
+                // Plain theperch://orders — nothing more to do here.
+                deepLinkState.consume()
+            }
         }
     }
 

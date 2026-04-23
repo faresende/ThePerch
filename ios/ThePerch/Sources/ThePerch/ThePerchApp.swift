@@ -7,6 +7,7 @@ struct ThePerchApp: App {
     @State private var authViewModel = AuthViewModel()
     @State private var dashboardViewModel = DashboardViewModel()
     @State private var networkMonitor = NetworkMonitor.shared
+    @State private var deepLinkState = DeepLinkState()
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -59,7 +60,11 @@ struct ThePerchApp: App {
                         .environment(authViewModel)
                         .environment(dashboardViewModel)
                         .environment(networkMonitor)
+                        .environment(deepLinkState)
                         .preferredColorScheme(darkModeEnabled ? .dark : nil)
+                        .onOpenURL { url in
+                            deepLinkState.handle(url: url)
+                        }
                         .onChange(of: scenePhase) { oldPhase, newPhase in
                             if newPhase == .active && oldPhase != .active {
                                 Task {

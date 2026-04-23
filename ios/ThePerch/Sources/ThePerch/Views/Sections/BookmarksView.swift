@@ -5,6 +5,7 @@ import SwiftUI
 /// Paperless tab reads records from DashboardViewModel (single-fetch architecture).
 struct BookmarksView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(DeepLinkState.self) private var deepLinkState
 
     @State private var viewModel = BookmarksViewModel()
     @State private var selectedTab: BookmarkSource = .karakeep
@@ -250,6 +251,17 @@ struct BookmarksView: View {
             // Load Karakeep bookmarks when the view first appears
             if !viewModel.hasLoaded {
                 Task { await viewModel.loadBookmarks() }
+            }
+        }
+        .onChange(of: deepLinkState.pendingDestination) { _, dest in
+            // Hand-off from HubTab: theperch://bookmarks?source=karakeep|paperless
+            // maps the source onto the segment. We accept destination-less
+            // bookmarks (no source) as "leave the default in place".
+            if case .bookmarks(let source) = dest {
+                if let raw = source?.rawValue, let s = BookmarkSource(rawValue: raw) {
+                    selectedTab = s
+                }
+                deepLinkState.consume()
             }
         }
     }
