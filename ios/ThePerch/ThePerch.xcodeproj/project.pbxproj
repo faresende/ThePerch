@@ -19,6 +19,7 @@
 		26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */; };
 		2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C887520E395213A3CA8757C /* TravelViewModel.swift */; };
 		2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD77E48492FF01406E3C35 /* TravelView.swift */; };
+		REVW0004REVW0004REVW0004 /* ReviewItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVW0003REVW0003REVW0003 /* ReviewItemsView.swift */; };
 		3429EDFA0796555E65E3D6B9 /* HubTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82518FC23E55607E3C495A66 /* HubTab.swift */; };
 		353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */; };
 		353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */; };
@@ -141,6 +142,7 @@
 		NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */; };
 		ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */; };
 		ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */; };
+		REVW0002REVW0002REVW0002 /* ReviewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVW0001REVW0001REVW0001 /* ReviewItem.swift */; };
 		ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */; };
 		ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */; };
 		ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */; };
@@ -292,6 +294,7 @@
 		CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTomorrowCard.swift; sourceTree = "<group>"; };
 		CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		D2FD77E48492FF01406E3C35 /* TravelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelView.swift; sourceTree = "<group>"; };
+		REVW0003REVW0003REVW0003 /* ReviewItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewItemsView.swift; sourceTree = "<group>"; };
 		D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryActivityAttributes.swift; path = PerchSharedKit/DeliveryActivityAttributes.swift; sourceTree = "<group>"; };
 		DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCompletionOverlay.swift; sourceTree = "<group>"; };
 		DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchQuickGlanceWidget.swift; path = ThePerchWidgets/PerchQuickGlanceWidget.swift; sourceTree = "<group>"; };
@@ -328,6 +331,7 @@
 		NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCard.swift; sourceTree = "<group>"; };
 		ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModels.swift; sourceTree = "<group>"; };
+		REVW0001REVW0001REVW0001 /* ReviewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewItem.swift; sourceTree = "<group>"; };
 		ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersService.swift; sourceTree = "<group>"; };
 		ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersViewModel.swift; sourceTree = "<group>"; };
 		ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersView.swift; sourceTree = "<group>"; };
@@ -458,6 +462,7 @@
 				35F5434D2F52411F00204F77 /* DataPayloads.swift */,
 				35F5434E2F52411F00204F77 /* JSONValue.swift */,
 				ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */,
+		REVW0001REVW0001REVW0001 /* ReviewItem.swift */,
 				NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */,
 				35F5434F2F52411F00204F77 /* Record.swift */,
 				35F543502F52411F00204F77 /* Section.swift */,
@@ -586,6 +591,7 @@
 				NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */,
 				9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */,
 				D2FD77E48492FF01406E3C35 /* TravelView.swift */,
+		REVW0003REVW0003REVW0003 /* ReviewItemsView.swift */,
 				35F543712F52411F00204F77 /* HomeView.swift */,
 			);
 			path = Sections;
@@ -1079,6 +1085,7 @@
 				FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */,
 				35F543872F52411F00204F77 /* Agent.swift in Sources */,
 				ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */,
+		REVW0002REVW0002REVW0002 /* ReviewItem.swift in Sources */,
 				NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */,
 				35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */,
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
@@ -1090,6 +1097,7 @@
 				5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */,
 				36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */,
 				2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */,
+		REVW0004REVW0004REVW0004 /* ReviewItemsView.swift in Sources */,
 				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
 				35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */,
 				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,

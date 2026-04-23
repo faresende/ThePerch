@@ -3,6 +3,7 @@ import SwiftUI
 struct OrdersView: View {
     @State private var viewModel = OrdersViewModel()
     @State private var cardsAppeared = false
+    @State private var showingReviewItems = false
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -15,6 +16,11 @@ struct OrdersView: View {
                     SectionHeader(title: "Orders", freshnessKey: "deliveries")
                         .padding(.horizontal, PerchTheme.Spacing.large)
                         .padding(.top, PerchTheme.Spacing.medium)
+
+                    if !vm.reviewItems.isEmpty {
+                        reviewItemsPill(count: vm.reviewItems.count)
+                            .padding(.horizontal, PerchTheme.Spacing.large)
+                    }
 
                     if let error = vm.error {
                         ErrorBanner(
@@ -47,6 +53,43 @@ struct OrdersView: View {
             guard vm.orders.isEmpty else { return }
             await vm.loadOrders()
         }
+        .sheet(isPresented: $showingReviewItems) {
+            ReviewItemsView(viewModel: viewModel)
+        }
+    }
+
+    /// Pill showing the count of unresolved review items. Taps open the
+    /// sheet. Hidden when count is zero, so the UI stays clean when there's
+    /// nothing to do.
+    @ViewBuilder
+    private func reviewItemsPill(count: Int) -> some View {
+        Button {
+            showingReviewItems = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text(count == 1 ? "1 item needs review" : "\(count) items need review")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+                    .imageScale(.small)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.orange.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.orange.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens a list of orders that couldn't be auto-matched.")
     }
 
     @ViewBuilder

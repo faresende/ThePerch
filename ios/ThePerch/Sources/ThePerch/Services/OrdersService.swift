@@ -235,6 +235,58 @@ final class OrdersService {
             throw OrdersServiceError.updateFailed(error.localizedDescription)
         }
     }
+
+    // MARK: - Review items
+
+    private let reviewItemDecoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
+    /// Fetch all unresolved review items (most recent first). The orders
+    /// autopilot writes these when it can't match a shipment email to an
+    /// order, or can't extract a tracking number from a shipping
+    /// notification. Users resolve them via `resolveReviewItem`.
+    func fetchUnresolvedReviewItems() async throws -> [ReviewItem] {
+        let result = try await supabaseService.databaseClient
+            .from("review_items")
+            .select()
+            .is("resolved_at", value: nil)
+            .order("created_at", ascending: false)
+            .execute()
+
+        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
+        var items: [ReviewItem] = []
+        items.reserveCapacity(rawArray.count)
+        for item in rawArray {
+            do {
+                let data = try JSONSerialization.data(withJSONObject: item)
+                items.append(try reviewItemDecoder.decode(ReviewItem.self, from: data))
+            } catch {
+                #if DEBUG
+                print("[OrdersService] Dropping malformed review item: \(error)")
+                #endif
+            }
+        }
+        return items
+    }
+
+    /// Soft-dismiss a review item by stamping resolved_at. Never hard-
+    /// deletes; the audit trail stays in Supabase.
+    func resolveReviewItem(id: UUID) async throws {
+        struct Patch: Encodable { let resolved_at: String }
+        let patch = Patch(resolved_at: ISO8601DateFormatter().string(from: Date()))
+        do {
+            try await supabaseService.databaseClient
+                .from("review_items")
+                .update(patch)
+                .eq("id", value: id.uuidString)
+                .execute()
+        } catch {
+            throw OrdersServiceError.updateFailed(error.localizedDescription)
+        }
+    }
 }
 
 // MARK: - Errors

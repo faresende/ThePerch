@@ -5,6 +5,7 @@ import Observation
 @MainActor
 final class OrdersViewModel {
     var orders: [OrderWithShipments] = []
+    var reviewItems: [ReviewItem] = []
     var isLoading = false
     var error: String?
 
@@ -23,10 +24,37 @@ final class OrdersViewModel {
         error = nil
         defer { isLoading = false }
 
+        // Fetch orders and review items concurrently. A review-items error
+        // shouldn't block the orders list from rendering, so we tolerate it.
+        async let ordersResult = ordersService.fetchOrders(forceRefresh: forceRefresh)
+        async let reviewResult = ordersService.fetchUnresolvedReviewItems()
+
         do {
-            orders = try await ordersService.fetchOrders(forceRefresh: forceRefresh)
+            orders = try await ordersResult
         } catch {
             self.error = error.localizedDescription
+        }
+
+        do {
+            reviewItems = try await reviewResult
+        } catch {
+            // Silent — review items are a secondary surface. Log for debug.
+            #if DEBUG
+            print("[OrdersViewModel] review items fetch failed: \(error)")
+            #endif
+        }
+    }
+
+    /// Soft-dismiss a review item. Optimistically removes from the list;
+    /// on failure, reloads to reconcile with the server.
+    func resolveReviewItem(_ item: ReviewItem) async {
+        reviewItems.removeAll { $0.id == item.id }
+        do {
+            try await ordersService.resolveReviewItem(id: item.id)
+        } catch {
+            self.error = "Couldn't resolve review item: \(error.localizedDescription)"
+            // Reconcile to reveal the stale one if the server rejected the update.
+            await loadOrders(forceRefresh: false)
         }
     }
 
