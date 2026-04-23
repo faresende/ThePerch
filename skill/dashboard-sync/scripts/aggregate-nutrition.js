@@ -68,15 +68,38 @@ const TZ = process.env.PERCH_TZ || 'Europe/Lisbon';
 const USER_ID = process.env.PERCH_USER_ID;
 const AGENT_ID = 'nutrition-aggregator';
 
-// Conservative defaults. The audit surfaced HealthViewModel pinning
-// 2800/180/386/110 — we use a close but more reasonable-average set that
-// applies until the user provisions nutrition_targets.
-const DEFAULT_TARGETS = {
-  calories: 2800,
-  protein: 180,
-  carbs: 320,
-  fat: 90,
+// Profile-aware targets. The user's preferences can look like:
+//   {
+//     "nutrition_targets": {
+//       "profiles": {
+//         "training": { "calories": 2900, "protein": 190, "carbs": 350, "fat": 80 },
+//         "pilates":  { "calories": 2700, "protein": 190, "carbs": 305, "fat": 80 },
+//         "rest":     { "calories": 2500, "protein": 190, "carbs": 255, "fat": 80 }
+//       },
+//       "rules": [
+//         { "if_event_contains": ["gym","training","pull","push","legs"], "profile": "training" },
+//         { "if_event_contains": ["pilates"], "profile": "pilates" }
+//       ],
+//       "default_profile": "rest"
+//     }
+//   }
+//
+// For back-compat, a flat {calories, protein, carbs, fat} object at the root
+// of nutrition_targets is still treated as a fixed target set (no calendar
+// lookup, same behavior as before).
+const DEFAULT_TARGETS_BY_PROFILE = {
+  training: { calories: 2900, protein: 190, carbs: 350, fat: 80 },
+  pilates:  { calories: 2700, protein: 190, carbs: 305, fat: 80 },
+  rest:     { calories: 2500, protein: 190, carbs: 255, fat: 80 },
 };
+const DEFAULT_RULES = [
+  { if_event_contains: ['gym', 'training', 'workout', 'pull day', 'push day', 'legs day', 'crossfit', 'weights', 'lift'], profile: 'training' },
+  { if_event_contains: ['pilates', 'yoga', 'stretch'], profile: 'pilates' },
+];
+const DEFAULT_PROFILE = 'rest';
+// Legacy flat default used only if user preferences look like the old flat
+// shape AND are incomplete. Kept for safety; not exposed as a profile.
+const LEGACY_FLAT_DEFAULTS = { calories: 2800, protein: 180, carbs: 320, fat: 90 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -136,22 +159,91 @@ async function loadTargets() {
     .maybeSingle();
   if (error) {
     console.error(`aggregate-nutrition: users lookup failed: ${error.message}`);
-    return { targets: DEFAULT_TARGETS, source: 'defaults-on-error' };
+    return resolveProfileFallback('defaults-on-error');
   }
-  const t = data?.preferences?.nutrition_targets;
-  if (!t || typeof t !== 'object') {
-    return { targets: DEFAULT_TARGETS, source: 'defaults' };
+
+  const nt = data?.preferences?.nutrition_targets;
+
+  // Back-compat: flat {calories,protein,carbs,fat} at root → treat as fixed.
+  if (nt && typeof nt === 'object' && typeof nt.calories === 'number' && !nt.profiles) {
+    const n = (x, d) => (Number.isFinite(+x) ? +x : d);
+    return {
+      targets: {
+        calories: n(nt.calories, LEGACY_FLAT_DEFAULTS.calories),
+        protein: n(nt.protein, LEGACY_FLAT_DEFAULTS.protein),
+        carbs: n(nt.carbs, LEGACY_FLAT_DEFAULTS.carbs),
+        fat: n(nt.fat, LEGACY_FLAT_DEFAULTS.fat),
+      },
+      source: 'user-prefs-flat',
+      profile: 'flat',
+      matchedEvent: null,
+    };
   }
+
+  // Profile-aware path.
+  const profiles = (nt && typeof nt === 'object' && nt.profiles && typeof nt.profiles === 'object')
+    ? nt.profiles
+    : DEFAULT_TARGETS_BY_PROFILE;
+  const rules = Array.isArray(nt?.rules) ? nt.rules : DEFAULT_RULES;
+  const defaultProfile = (typeof nt?.default_profile === 'string' && nt.default_profile in profiles)
+    ? nt.default_profile
+    : DEFAULT_PROFILE;
+
+  const { profile, matchedEvent } = await pickProfileForToday(rules, profiles, defaultProfile);
+  const raw = profiles[profile] ?? DEFAULT_TARGETS_BY_PROFILE[profile] ?? LEGACY_FLAT_DEFAULTS;
   const n = (x, d) => (Number.isFinite(+x) ? +x : d);
   return {
     targets: {
-      calories: n(t.calories, DEFAULT_TARGETS.calories),
-      protein: n(t.protein, DEFAULT_TARGETS.protein),
-      carbs: n(t.carbs, DEFAULT_TARGETS.carbs),
-      fat: n(t.fat, DEFAULT_TARGETS.fat),
+      calories: n(raw.calories, LEGACY_FLAT_DEFAULTS.calories),
+      protein: n(raw.protein, LEGACY_FLAT_DEFAULTS.protein),
+      carbs: n(raw.carbs, LEGACY_FLAT_DEFAULTS.carbs),
+      fat: n(raw.fat, LEGACY_FLAT_DEFAULTS.fat),
     },
-    source: 'user-prefs',
+    source: nt ? 'user-prefs-profile' : 'defaults-profile',
+    profile,
+    matchedEvent,
   };
+}
+
+function resolveProfileFallback(source) {
+  return {
+    targets: { ...DEFAULT_TARGETS_BY_PROFILE[DEFAULT_PROFILE] },
+    source,
+    profile: DEFAULT_PROFILE,
+    matchedEvent: null,
+  };
+}
+
+async function pickProfileForToday(rules, profiles, defaultProfile) {
+  const [startUtc, endUtc] = todayUtcBounds();
+  // Read today's calendar events from dashboard_records (populated by
+  // calendar_dashboard_sync.py). Match each event title against the rules
+  // in order; first match wins. Fall back to defaultProfile.
+  const { data, error } = await supabase
+    .from('dashboard_records')
+    .select('title, data, created_at')
+    .eq('user_id', USER_ID)
+    .eq('category', 'calendar')
+    .eq('type', 'event')
+    .gte('created_at', startUtc)
+    .lt('created_at', endUtc);
+  if (error) {
+    console.error(`aggregate-nutrition: calendar lookup failed: ${error.message}`);
+    return { profile: defaultProfile, matchedEvent: null };
+  }
+  const events = data || [];
+  for (const rule of rules) {
+    const needles = (rule.if_event_contains || []).map(s => String(s).toLowerCase());
+    const profileName = rule.profile;
+    if (!profileName || !(profileName in profiles || profileName in DEFAULT_TARGETS_BY_PROFILE)) continue;
+    for (const ev of events) {
+      const hay = `${ev.title || ''} ${(ev.data && (ev.data.notes || ev.data.location)) || ''}`.toLowerCase();
+      if (needles.some(n => hay.includes(n))) {
+        return { profile: profileName, matchedEvent: ev.title || '(untitled)' };
+      }
+    }
+  }
+  return { profile: defaultProfile, matchedEvent: null };
 }
 
 async function loadTodaysMeals() {
@@ -187,7 +279,7 @@ function sumMeals(meals) {
   return totals;
 }
 
-async function upsertProgressSummary({ date, targets, totals, mealsCount }) {
+async function upsertProgressSummary({ date, targets, totals, mealsCount, profile, matchedEvent }) {
   const remaining = {
     calories: targets.calories - totals.calories,
     protein: targets.protein - totals.protein,
@@ -239,6 +331,8 @@ async function upsertProgressSummary({ date, targets, totals, mealsCount }) {
       remaining_carbs_g: r1(remaining.carbs),
       remaining_fat_g: r1(remaining.fat),
       meals_logged: mealsCount,
+      profile: profile || null,
+      matched_event: matchedEvent || null,
       aggregated_at: new Date().toISOString(),
     },
   };
@@ -308,15 +402,19 @@ async function startRun() {
   const runId = await startRun();
   try {
     const date = todayISODate();
-    const { targets, source: targetsSource } = await loadTargets();
+    const { targets, source: targetsSource, profile, matchedEvent } = await loadTargets();
     const meals = await loadTodaysMeals();
     const totals = sumMeals(meals);
-    const upsert = await upsertProgressSummary({ date, targets, totals, mealsCount: meals.length });
+    const upsert = await upsertProgressSummary({
+      date, targets, totals, mealsCount: meals.length, profile, matchedEvent,
+    });
 
     const summary = {
       date,
       meals_logged: meals.length,
       consumed_calories: Math.round(totals.calories),
+      profile,
+      matched_event: matchedEvent,
       targets_source: targetsSource,
       action: upsert.action,
       progress_summary_id: upsert.id,
