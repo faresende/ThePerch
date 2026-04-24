@@ -3,16 +3,29 @@ import Foundation
 /// Configuration for the application, including Supabase credentials.
 struct AppConfig {
     static let shared = AppConfig()
-    static let defaultUserID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
-    static let legacySelfHostedURLString = "https://cgmaotzmeoiueyzlchaz.supabase.co"
+    /// Project URLs are not secrets (they're visible in any network trace),
+    /// so they may remain as string literals. Keys are never hardcoded.
+    /// The managed-cloud URL below is the ThePerch Cloud tier; users of the
+    /// self-hosted tier provide their own URL via the onboarding flow.
     static let managedCloudURLString = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
-    static let managedCloudAnonKey = "***REDACTED_SB_PUBLISHABLE***"
-    static let managedCloudConfiguration = AppConfiguration(
-        supabaseURL: managedCloudURLString,
-        supabaseAnonKey: managedCloudAnonKey,
-        backendMode: .managedCloud
-    )
+
+    /// Managed-tier publishable key. Sourced at build time from
+    /// `Secrets.xcconfig` → `Info.plist` → `SecretsLoader`. Safe to ship in
+    /// the binary (publishable keys are designed for client use), but
+    /// routed through the xcconfig pipeline so no credential literal lives
+    /// in source control.
+    static var managedCloudAnonKey: String {
+        SecretsLoader.value(for: .supabaseManagedAnonKey) ?? ""
+    }
+
+    static var managedCloudConfiguration: AppConfiguration {
+        AppConfiguration(
+            supabaseURL: managedCloudURLString,
+            supabaseAnonKey: managedCloudAnonKey,
+            backendMode: .managedCloud
+        )
+    }
 
     let supabaseURL: URL
     let supabaseAnonKey: String
