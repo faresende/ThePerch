@@ -138,7 +138,12 @@ struct TodayTab: View {
         case .nutrition:
             NutritionHomeCard(records: records)
         case .deliveries:
-            DeliveryHomeCard(deliveries: deliveries)
+            DeliveryHomeCard(
+                deliveries: deliveries,
+                onMarkDelivered: { orderId in
+                    Task { await dashboardViewModel.markOrderAsDelivered(orderId: orderId) }
+                }
+            )
         case .medications:
             MedicationsCard(records: records)
         case .weather:

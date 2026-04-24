@@ -566,47 +566,60 @@ struct WorkoutsSegment: View {
                 }
 
                 // ── Session card ──────────────────────────────────
-                PerchSectionCard {
-                    let session = latestSession
-                    let sessionNumber = session?.sessionNumber ?? 47
-                    let title = session?.muscleGroups.joined(separator: " · ").capitalized
-                        ?? "Chest · Triceps · Shoulders"
-                    let sets = session?.totalSets ?? 10
-                    let kcal = session?.activeCalories ?? 506
-                    let bpm = session?.avgHr ?? 127
-                    let duration = session?.durationMin.map { "\($0)m" } ?? "61m"
-                    let ago = session?.dateParsed.map { relativeAgo(from: $0) } ?? "14h ago"
+                // Wrapped in NavigationLink so tapping anywhere on the card
+                // pushes WorkoutView — the full list of past sessions with
+                // expand-in-place details per session.
+                NavigationLink {
+                    WorkoutView(dashboardViewModel: dashboardViewModel)
+                } label: {
+                    PerchSectionCard {
+                        let session = latestSession
+                        let sessionNumber = session?.sessionNumber ?? 47
+                        let title = session?.muscleGroups.joined(separator: " · ").capitalized
+                            ?? "Chest · Triceps · Shoulders"
+                        let sets = session?.totalSets ?? 10
+                        let kcal = session?.activeCalories ?? 506
+                        let bpm = session?.avgHr ?? 127
+                        let duration = session?.durationMin.map { "\($0)m" } ?? "61m"
+                        let ago = session?.dateParsed.map { relativeAgo(from: $0) } ?? "14h ago"
 
-                    HStack(alignment: .firstTextBaseline) {
-                        PerchKicker("Session \(sessionNumber) · \(ago)")
-                        Spacer()
-                        Text(duration)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(palette.muted)
+                        HStack(alignment: .firstTextBaseline) {
+                            PerchKicker("Session \(sessionNumber) · \(ago)")
+                            Spacer()
+                            HStack(spacing: 6) {
+                                Text(duration)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundStyle(palette.muted)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(palette.faint)
+                            }
+                        }
+                        .padding(.bottom, 6)
+
+                        Text(title)
+                            .font(.system(size: 21, weight: .medium, design: .serif).italic())
+                            .foregroundStyle(palette.ink)
+                            .tracking(-0.3)
+                            .padding(.bottom, 16)
+
+                        // Stats row with top + bottom hairlines.
+                        HStack(spacing: 10) {
+                            StatCell(value: "\(sets)", label: "SETS")
+                            StatCell(value: "\(kcal)", label: "KCAL")
+                            StatCell(value: "\(bpm)", label: "AVG BPM")
+                        }
+                        .padding(.vertical, 14)
+                        .overlay(alignment: .top) { PerchSoftDivider() }
+                        .overlay(alignment: .bottom) { PerchSoftDivider() }
+
+                        // Muscle figure with the session's load distribution.
+                        MuscleFigure(loads: muscleLoads(from: session))
+                            .padding(.horizontal, -4)
+                            .padding(.top, 14)
                     }
-                    .padding(.bottom, 6)
-
-                    Text(title)
-                        .font(.system(size: 21, weight: .medium, design: .serif).italic())
-                        .foregroundStyle(palette.ink)
-                        .tracking(-0.3)
-                        .padding(.bottom, 16)
-
-                    // Stats row with top + bottom hairlines.
-                    HStack(spacing: 10) {
-                        StatCell(value: "\(sets)", label: "SETS")
-                        StatCell(value: "\(kcal)", label: "KCAL")
-                        StatCell(value: "\(bpm)", label: "AVG BPM")
-                    }
-                    .padding(.vertical, 14)
-                    .overlay(alignment: .top) { PerchSoftDivider() }
-                    .overlay(alignment: .bottom) { PerchSoftDivider() }
-
-                    // Muscle figure with the session's load distribution.
-                    MuscleFigure(loads: muscleLoads(from: session))
-                        .padding(.horizontal, -4)
-                        .padding(.top, 14)
                 }
+                .buttonStyle(.plain)
 
                 // ── Top lifts ─────────────────────────────────────
                 PerchSectionCard {

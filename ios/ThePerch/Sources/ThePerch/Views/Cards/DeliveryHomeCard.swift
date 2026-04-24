@@ -7,6 +7,11 @@ import SwiftUI
 /// on the way.
 struct DeliveryHomeCard: View {
     let deliveries: [DeliveryData]
+    /// Fires when the user long-presses a delivery and taps "Mark as
+    /// delivered" in the resulting context menu. Receives the order id
+    /// from DeliveryData.orderId. Optional so existing call sites that
+    /// don't wire it stay compiling.
+    var onMarkDelivered: ((String) -> Void)? = nil
 
     private var activeDeliveries: [DeliveryData] {
         deliveries.filter { delivery in
@@ -48,6 +53,16 @@ struct DeliveryHomeCard: View {
                     VStack(spacing: 12) {
                         ForEach(activeDeliveries, id: \.orderId) { delivery in
                             deliverySubCard(delivery: delivery)
+                                .contextMenu {
+                                    if onMarkDelivered != nil {
+                                        Button {
+                                            PerchHaptics.success()
+                                            onMarkDelivered?(delivery.orderId)
+                                        } label: {
+                                            Label("Mark as delivered", systemImage: "checkmark.circle")
+                                        }
+                                    }
+                                }
                         }
                     }
                 }

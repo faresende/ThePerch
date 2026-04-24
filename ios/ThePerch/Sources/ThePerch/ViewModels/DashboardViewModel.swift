@@ -218,6 +218,45 @@ final class DashboardViewModel {
         _ = await eventKitTask
     }
 
+    /// Marks an order delivered by the user. Persists to Supabase and
+    /// optimistically updates local state so the Home deliveries card
+    /// drops the item immediately. `orderId` comes from
+    /// `DeliveryData.orderId` (a UUID string) so this is safe to call
+    /// from views that only hold the legacy delivery shape.
+    func markOrderAsDelivered(orderId: String) async {
+        guard let uuid = UUID(uuidString: orderId) else {
+#if DEBUG
+            print("[DashboardVM] markOrderAsDelivered: invalid orderId \(orderId)")
+#endif
+            return
+        }
+        do {
+            try await ordersService.markAsDelivered(orderId: uuid)
+            // Optimistic local update — drop from trackedDeliveries
+            // immediately so the Home card re-renders without waiting
+            // for the fetch round-trip.
+            if let index = trackedOrders.firstIndex(where: { $0.id == uuid }) {
+                let updated = trackedOrders[index]
+                self.trackedOrders[index] = updated  // force observer tick
+                self.trackedDeliveries = self.trackedOrders
+                    .filter { !$0.order.isManuallyDelivered || $0.id != uuid }
+                    .map(\.trackedDeliveryData)
+            }
+            // Then refresh the canonical state from the server.
+            async let refreshed = ordersService.fetchOrders(forceRefresh: true)
+            if let fresh = try? await refreshed {
+                self.trackedOrders = fresh
+                self.trackedDeliveries = fresh.map(\.trackedDeliveryData)
+                syncDeliveryLiveActivities()
+            }
+        } catch {
+#if DEBUG
+            print("[DashboardVM] markAsDelivered failed: \(error.localizedDescription)")
+#endif
+            self.error = .unknownError("Couldn't mark delivered: \(error.localizedDescription)")
+        }
+    }
+
     /// Pulls the device's upcoming calendar events via EventKit and merges
     /// them into `eventKitEvents`. Called from loadDashboard and safe to
     /// call again on refresh. Failures (permission denied, no calendars)
