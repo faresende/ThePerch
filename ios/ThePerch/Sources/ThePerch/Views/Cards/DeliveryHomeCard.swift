@@ -52,19 +52,7 @@ struct DeliveryHomeCard: View {
                 } else {
                     VStack(spacing: 12) {
                         ForEach(activeDeliveries, id: \.orderId) { delivery in
-                            Menu {
-                                Button {
-                                    PerchHaptics.success()
-                                    onMarkDelivered?(delivery.orderId)
-                                } label: {
-                                    Label("Mark as delivered", systemImage: "checkmark.circle")
-                                }
-                            } label: {
-                                deliverySubCard(delivery: delivery)
-                                    .contentShape(Rectangle())
-                            }
-                            .menuStyle(.borderlessButton)
-                            .buttonStyle(.plain)
+                            deliverySubCard(delivery: delivery)
                         }
                     }
                 }
@@ -121,6 +109,21 @@ struct DeliveryHomeCard: View {
             }
 
             Spacer(minLength: 6)
+
+            if onMarkDelivered != nil {
+                Button {
+                    PerchHaptics.success()
+                    onMarkDelivered?(delivery.orderId)
+                } label: {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 20, weight: .regular))
+                        .foregroundColor(palette.muted)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Mark \(delivery.items.map(\.name).joined(separator: ", ")) as delivered")
+            }
 
             TodayChip(
                 text: etaText(delivery.eta),
