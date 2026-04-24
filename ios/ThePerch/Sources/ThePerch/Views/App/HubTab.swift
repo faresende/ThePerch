@@ -206,11 +206,23 @@ private struct OrdersSectionContent: View {
                 )
             } else {
                 ForEach(active) { order in
-                    OrderCardV2(order: order, featured: order.id == active.first?.id)
+                    OrderCardV2(
+                        order: order,
+                        featured: order.id == active.first?.id,
+                        onMarkDelivered: { order in
+                            Task { await viewModel.markAsDelivered(order) }
+                        }
+                    )
                 }
 
                 ForEach(issues) { order in
-                    OrderCardV2(order: order, featured: false)
+                    OrderCardV2(
+                        order: order,
+                        featured: false,
+                        onMarkDelivered: { order in
+                            Task { await viewModel.markAsDelivered(order) }
+                        }
+                    )
                 }
 
                 if !viewModel.deliveredOrders.isEmpty {
@@ -274,6 +286,11 @@ private struct OrderCardV2: View {
 
     let order: OrderWithShipments
     let featured: Bool
+    /// Fires when the user taps the checkmark on the row footer. Receives
+    /// the canonical OrderWithShipments so the caller can hand it to the
+    /// appropriate service. Optional so existing call sites that don't
+    /// wire it stay compiling.
+    var onMarkDelivered: ((OrderWithShipments) -> Void)? = nil
 
     private var stageIndex: Int {
         // Map effective status → stepper index (0=Ordered, 1=Shipped,
@@ -341,12 +358,33 @@ private struct OrderCardV2: View {
 
             PerchSoftDivider()
 
-            HStack {
+            HStack(spacing: 12) {
                 Text(trackingText)
                     .font(.system(size: 11.5, design: .monospaced))
                     .tracking(0.2)
                     .foregroundStyle(palette.muted)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Spacer()
+
+                // Mark-as-delivered affordance. Only shown for orders
+                // that aren't already delivered, and only when a callback
+                // is wired. Small dedicated tap target for reliability.
+                if onMarkDelivered != nil, order.effectiveStatus != "delivered" {
+                    Button {
+                        PerchHaptics.success()
+                        onMarkDelivered?(order)
+                    } label: {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundStyle(palette.wellness)
+                            .frame(width: 32, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Mark order \(order.order.orderNumber) as delivered")
+                }
+
                 if let shipment = order.primaryShipment,
                    let url = shipment.resolvedTrackingURL {
                     Button {

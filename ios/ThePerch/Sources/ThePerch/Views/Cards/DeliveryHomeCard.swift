@@ -7,11 +7,6 @@ import SwiftUI
 /// on the way.
 struct DeliveryHomeCard: View {
     let deliveries: [DeliveryData]
-    /// Fires when the user taps a delivery and picks "Mark as delivered"
-    /// from the inline menu. Receives the order id from
-    /// DeliveryData.orderId. Optional so existing call sites that don't
-    /// wire it stay compiling.
-    var onMarkDelivered: ((String) -> Void)? = nil
 
     private var activeDeliveries: [DeliveryData] {
         deliveries.filter { delivery in
@@ -109,21 +104,6 @@ struct DeliveryHomeCard: View {
             }
 
             Spacer(minLength: 6)
-
-            if onMarkDelivered != nil {
-                Button {
-                    PerchHaptics.success()
-                    onMarkDelivered?(delivery.orderId)
-                } label: {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundColor(palette.muted)
-                        .frame(width: 36, height: 36)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Mark \(delivery.items.map(\.name).joined(separator: ", ")) as delivered")
-            }
 
             TodayChip(
                 text: etaText(delivery.eta),
