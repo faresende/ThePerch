@@ -103,23 +103,43 @@ struct NutritionTargets: Sendable, Equatable {
         let dateString = PerchFormatters.isoDate.string(from: date)
         var targets = NutritionTargets()
 
-        let caloriesTarget = records
-            .compactMap { record -> (Record, MeasurementData)? in
-                guard let measurement = record.asMeasurement(), measurement.metric == "daily_calories" else {
-                    return nil
-                }
-                return (record, measurement)
+        // Primary source: BioChecha's progress_summary record for today. Has
+        // `target_calories` computed from the day type (training/pilates/rest)
+        // plus the matched calendar event, so it's the authoritative target.
+        let progressSummaryTarget: Double? = records
+            .filter { $0.type.rawValue == "progress_summary" }
+            .filter { record in
+                record.data.objectValue?["date"]?.stringValue == dateString
             }
-            .filter { sample in
-                sample.1.context == dateString || sample.1.timestamp.map { calendar.isDate($0, inSameDayAs: date) } == true
-            }
-            .sorted { $0.0.updatedAt > $1.0.updatedAt }
+            .sorted { $0.updatedAt > $1.updatedAt }
             .first?
-            .1
-            .target
+            .data
+            .objectValue?["target_calories"]?
+            .numberValue
 
-        if let caloriesTarget, caloriesTarget > 0 {
-            targets.calories = caloriesTarget
+        if let progressSummaryTarget, progressSummaryTarget > 0 {
+            targets.calories = progressSummaryTarget
+        } else {
+            // Fallback to legacy `daily_calories` measurement records. Kept so
+            // environments still writing to the old path don't regress.
+            let legacyTarget = records
+                .compactMap { record -> (Record, MeasurementData)? in
+                    guard let measurement = record.asMeasurement(), measurement.metric == "daily_calories" else {
+                        return nil
+                    }
+                    return (record, measurement)
+                }
+                .filter { sample in
+                    sample.1.context == dateString || sample.1.timestamp.map { calendar.isDate($0, inSameDayAs: date) } == true
+                }
+                .sorted { $0.0.updatedAt > $1.0.updatedAt }
+                .first?
+                .1
+                .target
+
+            if let legacyTarget, legacyTarget > 0 {
+                targets.calories = legacyTarget
+            }
         }
 
         let macros = records
