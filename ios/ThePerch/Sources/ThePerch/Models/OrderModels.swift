@@ -7,7 +7,6 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
     let total: Decimal?
     let currency: String
     let status: String
-    let sourceEmailId: String
     let confidence: Double
     let createdAt: Date
     /// Set by the user to mark an order delivered when automated tracking cannot confirm it.
@@ -17,17 +16,50 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
     /// True when the user has manually overridden this order's status to delivered.
     var isManuallyDelivered: Bool { manualDeliveredAt != nil }
 
+    // Columns were renamed during the Apr 2026 orders-schema cleanup:
+    //   merchant          → merchant_name
+    //   total             → total_amount
+    //   confidence        → confidence_score
+    //   source_email_id   → source_email_ids (array, now read by backend only)
+    // The Swift property names are kept stable so views don't change.
     enum CodingKeys: String, CodingKey {
         case id
-        case merchant
+        case merchant = "merchant_name"
         case orderNumber = "order_number"
-        case total
+        case total = "total_amount"
         case currency
         case status
-        case sourceEmailId = "source_email_id"
-        case confidence
+        case confidence = "confidence_score"
         case createdAt = "created_at"
         case manualDeliveredAt = "manual_delivered_at"
+    }
+}
+
+// Custom decoding lives in an extension so the synthesized memberwise
+// initializer on Order stays available for previews and test fixtures.
+extension Order {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try c.decode(UUID.self, forKey: .id)
+        let merchant = (try c.decodeIfPresent(String.self, forKey: .merchant)) ?? "Unknown merchant"
+        let orderNumber = (try c.decodeIfPresent(String.self, forKey: .orderNumber)) ?? ""
+        let total = try c.decodeIfPresent(Decimal.self, forKey: .total)
+        let currency = (try c.decodeIfPresent(String.self, forKey: .currency)) ?? ""
+        let status = (try c.decodeIfPresent(String.self, forKey: .status)) ?? "unknown"
+        let confidence = (try c.decodeIfPresent(Double.self, forKey: .confidence)) ?? 0
+        let createdAt = try c.decode(Date.self, forKey: .createdAt)
+        let manualDeliveredAt = try c.decodeIfPresent(Date.self, forKey: .manualDeliveredAt)
+        self.init(
+            id: id,
+            merchant: merchant,
+            orderNumber: orderNumber,
+            total: total,
+            currency: currency,
+            status: status,
+            confidence: confidence,
+            createdAt: createdAt,
+            manualDeliveredAt: manualDeliveredAt
+        )
     }
 }
 

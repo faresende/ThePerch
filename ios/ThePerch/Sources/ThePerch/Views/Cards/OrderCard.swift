@@ -517,7 +517,6 @@ private enum TimelineStepState {
         total: Decimal(string: "129.99"),
         currency: "USD",
         status: "shipped",
-        sourceEmailId: "email_123",
         confidence: 0.92,
         createdAt: .now,
         manualDeliveredAt: nil
@@ -529,7 +528,6 @@ private enum TimelineStepState {
         total: Decimal(string: "59.99"),
         currency: "EUR",
         status: "shipped",
-        sourceEmailId: "email_456",
         confidence: 0.85,
         createdAt: .now,
         manualDeliveredAt: .now

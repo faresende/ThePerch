@@ -128,7 +128,6 @@ final class OrdersService {
                     total: Decimal(string: "89.00"),
                     currency: "EUR",
                     status: "in_transit",
-                    sourceEmailId: "mock_penworld",
                     confidence: 0.99,
                     createdAt: now.addingTimeInterval(-86_400 * 5),
                     manualDeliveredAt: nil
@@ -153,7 +152,6 @@ final class OrdersService {
                     total: Decimal(string: "114.97"),
                     currency: "EUR",
                     status: "shipped",
-                    sourceEmailId: "mock_bodyfit",
                     confidence: 0.98,
                     createdAt: now.addingTimeInterval(-86_400 * 3),
                     manualDeliveredAt: nil
@@ -178,7 +176,6 @@ final class OrdersService {
                     total: Decimal(string: "42.99"),
                     currency: "EUR",
                     status: "delivered",
-                    sourceEmailId: "mock_amazon",
                     confidence: 0.96,
                     createdAt: now.addingTimeInterval(-86_400 * 16),
                     manualDeliveredAt: now.addingTimeInterval(-86_400 * 12)
