@@ -331,6 +331,10 @@ private struct DebugAdminView: View {
                 agentsSection
                     .padding(.horizontal, PerchTheme.Spacing.large)
 
+                // Recent pipeline runs (from agent_runs)
+                AgentRunsCard()
+                    .padding(.horizontal, PerchTheme.Spacing.large)
+
                 // Upcoming crons
                 if !viewModel.cronRecords.isEmpty {
                     upcomingCronsSection

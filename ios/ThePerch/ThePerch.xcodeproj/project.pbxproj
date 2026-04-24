@@ -36,6 +36,8 @@
 		35F5437F2F52411F00204F77 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436C2F52411F00204F77 /* AdminView.swift */; };
 		35F543802F52411F00204F77 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436E2F52411F00204F77 /* CalendarView.swift */; };
 		35F543812F52411F00204F77 /* Record.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434F2F52411F00204F77 /* Record.swift */; };
+		ARUN0002ARUN0002ARUN0002 /* AgentRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */; };
+		ARCARD0002ARCARD0002ARCARD0 /* AgentRunsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */; };
 		35F543822F52411F00204F77 /* ChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543622F52411F00204F77 /* ChartCard.swift */; };
 		35F543832F52411F00204F77 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434E2F52411F00204F77 /* JSONValue.swift */; };
 		35F543842F52411F00204F77 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435A2F52411F00204F77 /* DashboardViewModel.swift */; };
@@ -228,6 +230,8 @@
 		35F5434D2F52411F00204F77 /* DataPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloads.swift; sourceTree = "<group>"; };
 		35F5434E2F52411F00204F77 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		35F5434F2F52411F00204F77 /* Record.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Record.swift; sourceTree = "<group>"; };
+		ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRun.swift; sourceTree = "<group>"; };
+		ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRunsCard.swift; sourceTree = "<group>"; };
 		35F543502F52411F00204F77 /* Section.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Section.swift; sourceTree = "<group>"; };
 		35F543512F52411F00204F77 /* TokenUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenUsage.swift; sourceTree = "<group>"; };
 		35F543522F52411F00204F77 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
@@ -457,6 +461,7 @@
 			isa = PBXGroup;
 			children = (
 				35F5434C2F52411F00204F77 /* Agent.swift */,
+				ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */,
 				35F5434D2F52411F00204F77 /* DataPayloads.swift */,
 				35F5434E2F52411F00204F77 /* JSONValue.swift */,
 				ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */,
@@ -533,6 +538,7 @@
 				E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */,
 				353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */,
 				35E8ADAC2F5B270A00BAC8FE /* AgentStatusCard.swift */,
+				ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */,
 				35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */,
 				ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */,
 				DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */,
@@ -1082,6 +1088,8 @@
 				FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */,
 				FFC0FFEE000000010000B004 /* CloudDefaults.swift in Sources */,
 				35F543872F52411F00204F77 /* Agent.swift in Sources */,
+				ARUN0002ARUN0002ARUN0002 /* AgentRun.swift in Sources */,
+				ARCARD0002ARCARD0002ARCARD0 /* AgentRunsCard.swift in Sources */,
 				ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */,
 				NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */,
 				35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */,
