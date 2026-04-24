@@ -54,9 +54,19 @@ struct CalendarView: View {
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
     private var events: [EventData] {
-        records
-            .compactMap { record in record.asEvent() }
-            .sorted { lhs, rhs in lhs.start < rhs.start }
+        let supabaseEvents = records.compactMap { $0.asEvent() }
+        let deviceEvents = dashboardViewModel.eventKitEvents
+        // Union + dedupe by (title, start-minute). EventKit wins on ties
+        // since it's live from the phone's calendar.
+        var seen = Set<String>()
+        var merged: [EventData] = []
+        for event in deviceEvents + supabaseEvents {
+            let key = "\(event.title)|\(Int(event.start.timeIntervalSince1970 / 60))"
+            if seen.insert(key).inserted {
+                merged.append(event)
+            }
+        }
+        return merged.sorted { $0.start < $1.start }
     }
 
     private var travelTrips: [TripData] {

@@ -4,16 +4,36 @@ import SwiftUI
 /// Filters EventData where start date is tomorrow.
 struct CalendarTomorrowCard: View {
     let records: [Record]
+    /// Live EventKit events merged with records. Optional so this card
+    /// still renders where it's called without eventKitEvents.
+    var eventKitEvents: [EventData] = []
     @Environment(\.perchPalette) private var palette
 
-    private var tomorrowEvents: [(record: Record, event: EventData)] {
-        records.compactMap { record -> (Record, EventData)? in
+    private struct IdentifiedEvent: Identifiable {
+        let id: String
+        let event: EventData
+    }
+
+    private var tomorrowEvents: [IdentifiedEvent] {
+        let supabaseEvents: [IdentifiedEvent] = records.compactMap { record in
             guard record.category == .calendar,
                   record.type == .event,
                   let event = record.asEvent(),
                   Calendar.current.isDateInTomorrow(event.start) else { return nil }
-            return (record, event)
-        }.sorted { $0.1.start < $1.1.start }
+            return IdentifiedEvent(id: record.id.uuidString, event: event)
+        }
+        let deviceEvents: [IdentifiedEvent] = eventKitEvents
+            .filter { Calendar.current.isDateInTomorrow($0.start) }
+            .map { IdentifiedEvent(id: "ek-\($0.title)|\(Int($0.start.timeIntervalSince1970))", event: $0) }
+        var seen = Set<String>()
+        var merged: [IdentifiedEvent] = []
+        for ie in deviceEvents + supabaseEvents {
+            let dedupeKey = "\(ie.event.title)|\(Int(ie.event.start.timeIntervalSince1970 / 60))"
+            if seen.insert(dedupeKey).inserted {
+                merged.append(ie)
+            }
+        }
+        return merged.sorted { $0.event.start < $1.event.start }
     }
 
     var body: some View {
@@ -33,7 +53,7 @@ struct CalendarTomorrowCard: View {
                         .padding(.vertical, 4)
                 } else {
                     VStack(spacing: 12) {
-                        ForEach(Array(tomorrowEvents.prefix(3).enumerated()), id: \.element.record.id) { _, item in
+                        ForEach(Array(tomorrowEvents.prefix(3).enumerated()), id: \.element.id) { _, item in
                             compactEventRow(event: item.event)
                         }
 

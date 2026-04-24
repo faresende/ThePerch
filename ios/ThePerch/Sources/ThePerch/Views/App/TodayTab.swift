@@ -132,9 +132,9 @@ struct TodayTab: View {
         case .healthSummary:
             HealthSummaryHomeCard(records: records, compact: compactHealth)
         case .calendarToday:
-            CalendarTodayCard(records: records)
+            CalendarTodayCard(records: records, eventKitEvents: dashboardViewModel.eventKitEvents)
         case .calendarTomorrow:
-            CalendarTomorrowCard(records: records)
+            CalendarTomorrowCard(records: records, eventKitEvents: dashboardViewModel.eventKitEvents)
         case .nutrition:
             NutritionHomeCard(records: records)
         case .deliveries:

@@ -5,6 +5,15 @@ import SwiftUI
 /// Filters EventData where start date is today.
 struct CalendarTodayCard: View {
     let records: [Record]
+    /// Live EventKit events from the device. Merged with `records` below
+    /// so the card works even when the Mac-side calendar cron is down.
+    var eventKitEvents: [EventData] = []
+
+    /// Stable-id wrapper so ForEach can identify events from either source.
+    private struct IdentifiedEvent: Identifiable {
+        let id: String
+        let event: EventData
+    }
 
     static func pastRelativeLabel(minutesAgo: Int) -> String {
         if minutesAgo < 60 {
@@ -16,21 +25,34 @@ struct CalendarTodayCard: View {
     @State private var now = Date.now
     @AppStorage("card_compact_calendar") private var isCompact = false
 
-    private var todayEvents: [(record: Record, event: EventData)] {
-        records.compactMap { record -> (Record, EventData)? in
+    private var todayEvents: [IdentifiedEvent] {
+        let supabaseEvents: [IdentifiedEvent] = records.compactMap { record in
             guard record.category == .calendar,
                   record.type == .event,
                   let event = record.asEvent(),
                   Calendar.current.isDateInToday(event.start) else { return nil }
-            return (record, event)
-        }.sorted { $0.1.start < $1.1.start }
+            return IdentifiedEvent(id: record.id.uuidString, event: event)
+        }
+        let deviceEvents: [IdentifiedEvent] = eventKitEvents
+            .filter { Calendar.current.isDateInToday($0.start) }
+            .map { IdentifiedEvent(id: "ek-\($0.title)|\(Int($0.start.timeIntervalSince1970))", event: $0) }
+        // Dedupe by (title, start-minute); device wins on ties.
+        var seen = Set<String>()
+        var merged: [IdentifiedEvent] = []
+        for ie in deviceEvents + supabaseEvents {
+            let dedupeKey = "\(ie.event.title)|\(Int(ie.event.start.timeIntervalSince1970 / 60))"
+            if seen.insert(dedupeKey).inserted {
+                merged.append(ie)
+            }
+        }
+        return merged.sorted { $0.event.start < $1.event.start }
     }
 
-    private var upcomingEvents: [(record: Record, event: EventData)] {
+    private var upcomingEvents: [IdentifiedEvent] {
         todayEvents.filter { $0.event.end >= now }
     }
 
-    private var pastEvents: [(record: Record, event: EventData)] {
+    private var pastEvents: [IdentifiedEvent] {
         todayEvents.filter { $0.event.end < now }
     }
 
@@ -61,7 +83,7 @@ struct CalendarTodayCard: View {
                     emptyStateIllustration
                 } else {
                     VStack(spacing: 12) {
-                        ForEach(Array(upcomingEvents.prefix(5).enumerated()), id: \.element.record.id) { index, item in
+                        ForEach(Array(upcomingEvents.prefix(5).enumerated()), id: \.element.id) { index, item in
                             eventRow(event: item.event, isNext: index == 0)
                         }
 
@@ -72,7 +94,7 @@ struct CalendarTodayCard: View {
                                 .padding(.vertical, 2)
                         }
 
-                        ForEach(Array(pastEvents.suffix(2).enumerated()), id: \.element.record.id) { _, item in
+                        ForEach(Array(pastEvents.suffix(2).enumerated()), id: \.element.id) { _, item in
                             pastEventRow(event: item.event)
                         }
 

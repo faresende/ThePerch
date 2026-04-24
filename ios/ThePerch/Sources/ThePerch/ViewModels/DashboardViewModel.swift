@@ -36,6 +36,19 @@ final class DashboardViewModel {
     private(set) var trackedOrders: [OrderWithShipments] = []
     private(set) var trackedDeliveries: [DeliveryData] = []
 
+    /// Events read live from the device's Calendar via EventKit. Separate
+    /// from `calendarRecords` (which is agent-populated via Mac cron) so
+    /// the UI can merge both sources — iPhone-first, agents-second — and
+    /// the UI keeps working on days the Mac cron is down.
+    private(set) var eventKitEvents: [EventData] = []
+    private(set) var eventKitPermissionStatus: EventKitPermissionStatus = .unknown
+
+    enum EventKitPermissionStatus: Sendable {
+        case unknown
+        case granted
+        case denied
+    }
+
     /// Dynamic per-slug record lookup. Use this for any section slug not covered above.
     /// e.g. `recordsBySlug["finance"]` returns all records with category == "finance"
     private(set) var recordsBySlug: [String: [Record]] = [:]
@@ -191,6 +204,38 @@ final class DashboardViewModel {
 #if DEBUG
             print("[DashboardVM] fetchOrders threw: \(err)")
 #endif
+        }
+
+        // Load EventKit events in parallel with the Supabase pulls. Prompts
+        // for Calendar permission on first call; treated as optional so a
+        // denial doesn't break the rest of the dashboard.
+        await loadEventKitEvents()
+    }
+
+    /// Pulls the device's upcoming calendar events via EventKit and merges
+    /// them into `eventKitEvents`. Called from loadDashboard and safe to
+    /// call again on refresh. Failures (permission denied, no calendars)
+    /// are non-fatal — the app still renders the Supabase-sourced
+    /// `calendarRecords` on their own.
+    func loadEventKitEvents() async {
+        do {
+            let events = try await EventKitService.shared.fetchUpcomingEvents(days: 14)
+            self.eventKitEvents = events.map { ekEvent in
+                EventData(
+                    title: ekEvent.title,
+                    start: ekEvent.startDate,
+                    end: ekEvent.endDate,
+                    location: ekEvent.location,
+                    agentNotes: nil
+                )
+            }
+            self.eventKitPermissionStatus = .granted
+        } catch {
+#if DEBUG
+            print("[DashboardVM] EventKit fetch failed: \(error.localizedDescription)")
+#endif
+            self.eventKitEvents = []
+            self.eventKitPermissionStatus = .denied
         }
     }
 
