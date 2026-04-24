@@ -126,10 +126,7 @@ struct HealthOverviewSegment: View {
 
     /// Uppercase short weekday + date, e.g. "MON · APR 20".
     private var todayKicker: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEE · MMM d"
-        return f.string(from: Date.now).uppercased()
+        PerchFormatters.agendaKicker.string(from: Date.now).uppercased()
     }
 
     /// "Apr 14 – 20" for the 7-day trend card.
@@ -137,9 +134,7 @@ struct HealthOverviewSegment: View {
         let cal = Calendar.current
         let now = Date.now
         let weekAgo = cal.date(byAdding: .day, value: -6, to: now) ?? now
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "MMM d"
+        let f = PerchFormatters.shortDateUK
         return "\(f.string(from: weekAgo)) – \(f.string(from: now))"
     }
 
@@ -764,10 +759,7 @@ struct NutritionSegment: View {
     }
 
     private var todayKicker: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "'TODAY' · MMM d"
-        return f.string(from: Date.now).uppercased()
+        PerchFormatters.todayKicker.string(from: Date.now).uppercased()
     }
 
     /// Phrase that reads the day by consumed-to-target ratio.
@@ -1063,10 +1055,7 @@ private struct NutritionMealRow: View {
     let meal: MealRecord
 
     private var timeString: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "HH:mm"
-        return f.string(from: meal.mealTime)
+        PerchFormatters.time24h.string(from: meal.mealTime)
     }
 
     var body: some View {

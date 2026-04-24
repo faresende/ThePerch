@@ -143,10 +143,7 @@ struct DeliveryHomeCard: View {
         let cal = Calendar.current
         if cal.isDateInToday(date) { return "Today" }
         if cal.isDateInTomorrow(date) { return "Tomorrow" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEE"
-        return f.string(from: date)
+        return PerchFormatters.shortWeekdayUK.string(from: date)
     }
 
 }

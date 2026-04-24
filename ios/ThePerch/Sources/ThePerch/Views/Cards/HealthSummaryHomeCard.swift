@@ -101,11 +101,7 @@ struct HealthSummaryHomeCard: View {
     /// "5:42 am" freshness stamp derived from most recent measurement.
     private var freshnessText: String {
         guard let date = latestUpdate else { return "—" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "h:mm a"
-        f.amSymbol = "am"
-        f.pmSymbol = "pm"
+        let f = PerchFormatters.healthFreshness
         return f.string(from: date)
     }
 

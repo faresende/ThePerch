@@ -276,9 +276,7 @@ private struct OrderCardV2: View {
     }
 
     private var etaText: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "MMM d"
+        let f = PerchFormatters.shortDateUK
         let date = order.displayDate
         if order.effectiveStatus == "delivered" {
             return "Arrived \(f.string(from: date))"
@@ -613,10 +611,7 @@ private struct CalendarSectionContent: View {
     }
 
     private var kicker: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEE · MMM d"
-        return f.string(from: selectedDate).uppercased()
+        PerchFormatters.agendaKicker.string(from: selectedDate).uppercased()
     }
 
     private var title: String {
@@ -629,10 +624,7 @@ private struct CalendarSectionContent: View {
 
     private var nextEventAside: String? {
         guard let upcoming = dayEvents.first(where: { $0.start > Date.now }) else { return nil }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "HH:mm"
-        return "Next at\n\(f.string(from: upcoming.start))"
+        return "Next at\n\(PerchFormatters.time24h.string(from: upcoming.start))"
     }
 
     private func words(_ n: Int) -> String {
@@ -694,10 +686,7 @@ private struct PerchDayChip: View {
     let action: () -> Void
 
     private var dayLetter: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEEEE"
-        return f.string(from: date)
+        PerchFormatters.dayLetter.string(from: date)
     }
 
     private var dayNumber: String {
@@ -759,10 +748,7 @@ private struct CalendarAgenda: View {
     let isToday: Bool
 
     private var nowLabel: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "HH:mm"
-        return "NOW · \(f.string(from: Date.now))"
+        "NOW · \(PerchFormatters.time24h.string(from: Date.now))"
     }
 
     /// Index at which the NOW ruler should be inserted. Equal to the index
@@ -834,17 +820,11 @@ private struct CalendarEventRow: View {
     }
 
     private var startStr: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "HH:mm"
-        return f.string(from: event.start)
+        PerchFormatters.time24h.string(from: event.start)
     }
 
     private var endStr: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "HH:mm"
-        return f.string(from: event.end)
+        PerchFormatters.time24h.string(from: event.end)
     }
 
     var body: some View {
@@ -967,9 +947,7 @@ private struct TravelSectionContent: View {
     }
 
     private func tripAside(_ trip: TripData) -> String? {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEE MMM d"
+        let f = PerchFormatters.shortWeekdayDate
 
         var parts: [String] = []
         if let start = trip.startDateParsed {
@@ -988,9 +966,7 @@ private struct TripHeroCard: View {
 
     private var dateRange: String {
         guard let start = trip.startDateParsed, let end = trip.endDateParsed else { return "—" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "MMM d"
+        let f = PerchFormatters.shortDateUK
         return "\(f.string(from: start)) – \(f.string(from: end))"
     }
 
@@ -1105,10 +1081,7 @@ private struct TripTimeline: View {
 
     private var grouped: [(label: String, items: [HubTimelineEntry])] {
         let groups = Dictionary(grouping: entries) { e -> String in
-            let f = DateFormatter()
-            f.locale = Locale(identifier: "en_GB")
-            f.dateFormat = "EEE · MMM d"
-            return f.string(from: e.sortDate)
+            PerchFormatters.agendaKicker.string(from: e.sortDate)
         }
         return groups.keys
             .sorted { k1, k2 in
@@ -1190,10 +1163,7 @@ private struct TripFlightStrip: View {
 
     private func time(_ date: Date?) -> String {
         guard let date else { return "—" }
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "HH:mm"
-        return f.string(from: date)
+        return PerchFormatters.time24h.string(from: date)
     }
 
     var body: some View {
@@ -1288,17 +1258,12 @@ private struct TripPointStrip: View {
     }
 
     private var sub: String {
+        let f = PerchFormatters.time24h
         if let dep = segment.departure, let arr = segment.arrival {
-            let f = DateFormatter()
-            f.locale = Locale(identifier: "en_GB")
-            f.dateFormat = "HH:mm"
             return "\(f.string(from: dep)) – \(f.string(from: arr))"
         }
         if let addr = segment.address { return addr }
         if let check = segment.checkIn {
-            let f = DateFormatter()
-            f.locale = Locale(identifier: "en_GB")
-            f.dateFormat = "HH:mm"
             return "Check-in \(f.string(from: check))"
         }
         return record.title

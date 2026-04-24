@@ -116,10 +116,7 @@ struct CalendarTodayCard: View {
 
     /// "TUE, 7 APR" — card eyebrow suffix.
     private var todayDateString: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEE, d MMM"
-        return f.string(from: Date.now).uppercased()
+        PerchFormatters.cardEyebrowDate.string(from: Date.now).uppercased()
     }
 
     @ViewBuilder

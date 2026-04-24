@@ -78,6 +78,66 @@ enum PerchFormatters {
         return f
     }()
 
+    /// "M", "T", "W" — single-letter day abbreviation.
+    static let dayLetter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEEE"
+        return f
+    }()
+
+    /// "SUN · MAR 8" — agenda kicker style (fixed en_GB format, uppercased
+    /// at call site when needed). Used on the Hub Calendar section and
+    /// other UK-style kickers.
+    static let agendaKicker: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE · MMM d"
+        return f
+    }()
+
+    /// "Mon" — short weekday only (en_GB).
+    static let shortWeekdayUK: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE"
+        return f
+    }()
+
+    /// "Mar 8" (en_GB) — used by travel/order aside labels.
+    static let shortDateUK: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    /// "TODAY · MAR 8" — literal TODAY + month + day (en_GB), uppercased
+    /// at call site.
+    static let todayKicker: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "'TODAY' · MMM d"
+        return f
+    }()
+
+    /// "h:mm am/pm" (en_GB, lowercase am/pm) — health-freshness label.
+    static let healthFreshness: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "h:mm a"
+        f.amSymbol = "am"
+        f.pmSymbol = "pm"
+        return f
+    }()
+
+    /// "Tue, 7 Apr" — calendar-card eyebrow (en_GB), uppercased at call site.
+    static let cardEyebrowDate: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE, d MMM"
+        return f
+    }()
+
     /// ISO 8601 formatter
     static let iso8601: ISO8601DateFormatter = {
         ISO8601DateFormatter()
