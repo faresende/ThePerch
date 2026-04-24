@@ -64,6 +64,7 @@
 		35F5439F2F52411F00204F77 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435D2F52411F00204F77 /* AuthView.swift */; };
 		35F543A02F52411F00204F77 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543692F52411F00204F77 /* MockData.swift */; };
 		FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC0FFEE000000010000B001 /* SecretsLoader.swift */; };
+		FFC0FFEE000000010000B004 /* CloudDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC0FFEE000000010000B003 /* CloudDefaults.swift */; };
 		35F543A62F52449100204F77 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A52F52449100204F77 /* Auth */; };
 		35F543A82F52449100204F77 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A72F52449100204F77 /* Functions */; };
 		35F543AA2F52449100204F77 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A92F52449100204F77 /* PostgREST */; };
@@ -220,6 +221,7 @@
 		35F542E32F522B6D00204F77 /* ThePerch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThePerch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35F543492F52411F00204F77 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		FFC0FFEE000000010000B001 /* SecretsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsLoader.swift; sourceTree = "<group>"; };
+		FFC0FFEE000000010000B003 /* CloudDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudDefaults.swift; sourceTree = "<group>"; };
 		FFC0FFEE000000010000A001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		FFC0FFEE000000010000A002 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		35F5434C2F52411F00204F77 /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
@@ -443,6 +445,7 @@
 			isa = PBXGroup;
 			children = (
 				35F543492F52411F00204F77 /* AppConfig.swift */,
+				FFC0FFEE000000010000B003 /* CloudDefaults.swift */,
 				FFC0FFEE000000010000B001 /* SecretsLoader.swift */,
 				FFC0FFEE000000010000A001 /* Secrets.xcconfig */,
 				FFC0FFEE000000010000A002 /* Secrets.example.xcconfig */,
@@ -1077,6 +1080,7 @@
 				35F543852F52411F00204F77 /* Section.swift in Sources */,
 				35F543862F52411F00204F77 /* AppConfig.swift in Sources */,
 				FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */,
+				FFC0FFEE000000010000B004 /* CloudDefaults.swift in Sources */,
 				35F543872F52411F00204F77 /* Agent.swift in Sources */,
 				ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */,
 				NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */,

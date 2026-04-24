@@ -12,17 +12,14 @@ enum SecretsLoader {
 
     /// Keys must match the INFOPLIST entries in `ios/ThePerch/Info.plist`
     /// which are themselves sourced from `Config/Secrets.xcconfig`.
+    ///
+    /// Only your *own* Supabase project credentials flow through here.
+    /// The optional managed-cloud tier is handled by `CloudDefaults.swift`.
     enum Key: String {
         /// Self-hosted / personal Supabase project URL.
         case supabaseURL            = "SUPABASE_URL"
         /// Publishable / anon key for the self-hosted Supabase project.
-        /// Named ANON_KEY for backward compatibility with the legacy
-        /// `Secrets.plist` pipeline in `AppConfig`.
         case supabaseAnonKey        = "SUPABASE_ANON_KEY"
-        /// Managed-tier Supabase project URL (ThePerch Cloud).
-        case supabaseManagedURL     = "SUPABASE_MANAGED_URL"
-        /// Managed-tier publishable key.
-        case supabaseManagedAnonKey = "SUPABASE_MANAGED_ANON_KEY"
         /// Karakeep API token for direct bookmark fetching.
         case karakeepToken          = "KARAKEEP_TOKEN"
     }

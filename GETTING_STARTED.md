@@ -95,25 +95,35 @@ If it works, you'll see the `agents` table in Supabase update with a new `last_h
 
 When we're ready to work on the app in Xcode:
 
-1. Open `ios/ThePerch/` in Xcode
+1. Open `ios/ThePerch/ThePerch.xcodeproj` in Xcode
 2. The Swift Package Manager dependencies will resolve automatically
-3. Create `ios/ThePerch/Sources/ThePerch/Config/Secrets.plist`:
+3. Configure credentials. Two options:
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>SUPABASE_URL</key>
-    <string>https://your-project.supabase.co</string>
-    <key>SUPABASE_ANON_KEY</key>
-    <string>eyJ...</string>
-</dict>
-</plist>
-```
+   **Option A — build-time (recommended for regular use):**
+   Copy the template and fill in your own Supabase project details:
+   ```bash
+   cp ios/ThePerch/Sources/ThePerch/Config/Secrets.example.xcconfig \
+      ios/ThePerch/Sources/ThePerch/Config/Secrets.xcconfig
+   ```
+   Open `Secrets.xcconfig` and replace the `YOUR_*` placeholders with:
+   - `SUPABASE_URL` — from Supabase Dashboard → Settings → API
+   - `SUPABASE_ANON_KEY` — the publishable / anon key (safe to ship in clients)
+   - `KARAKEEP_TOKEN` — only if you use the Bookmarks tab
 
-4. Add `Secrets.plist` to your `.gitignore` (it contains your API key)
-5. Build and run on your iPhone or simulator
+   `Secrets.xcconfig` is gitignored; your keys never leave your machine.
+
+   **Option B — runtime (zero-config first launch):**
+   Leave `Secrets.xcconfig` as placeholders. The app detects the
+   unconfigured state and routes to `OnboardingView`, which asks for
+   your URL + anon key and stores them in the iOS Keychain.
+
+4. Build and run on your iPhone or simulator.
+
+> **Note:** `Config/CloudDefaults.swift` has `defaultManagedCloudAnonKey = ""`
+> by default. It's a hook for a future shared "cloud tier" where friends
+> could sign into your Supabase without configuring their own. Most
+> self-hosters should leave this empty and let each user bring their own
+> backend via Option A or B above.
 
 ---
 

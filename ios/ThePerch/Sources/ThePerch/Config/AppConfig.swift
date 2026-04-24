@@ -8,15 +8,15 @@ struct AppConfig {
     /// so they may remain as string literals. Keys are never hardcoded.
     /// The managed-cloud URL below is the ThePerch Cloud tier; users of the
     /// self-hosted tier provide their own URL via the onboarding flow.
-    static let managedCloudURLString = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
+    static let managedCloudURLString = CloudDefaults.defaultManagedCloudURL
 
-    /// Managed-tier publishable key. Sourced at build time from
-    /// `Secrets.xcconfig` → `Info.plist` → `SecretsLoader`. Safe to ship in
-    /// the binary (publishable keys are designed for client use), but
-    /// routed through the xcconfig pipeline so no credential literal lives
-    /// in source control.
+    /// Managed-tier publishable key. Sourced from `CloudDefaults.swift`,
+    /// which is committed to the repo. Empty by default — populated only
+    /// if a forker wants to ship a functional public cloud tier. See
+    /// `CloudDefaults.swift` for the rationale on why this is safe to
+    /// commit when filled in.
     static var managedCloudAnonKey: String {
-        SecretsLoader.value(for: .supabaseManagedAnonKey) ?? ""
+        CloudDefaults.defaultManagedCloudAnonKey
     }
 
     static var managedCloudConfiguration: AppConfiguration {

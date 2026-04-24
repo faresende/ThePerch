@@ -39,10 +39,6 @@
 	<string>$(SUPABASE_URL)</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
-	<key>SUPABASE_MANAGED_URL</key>
-	<string>$(SUPABASE_MANAGED_URL)</string>
-	<key>SUPABASE_MANAGED_ANON_KEY</key>
-	<string>$(SUPABASE_MANAGED_ANON_KEY)</string>
 	<key>KARAKEEP_TOKEN</key>
 	<string>$(KARAKEEP_TOKEN)</string>
 </dict>
