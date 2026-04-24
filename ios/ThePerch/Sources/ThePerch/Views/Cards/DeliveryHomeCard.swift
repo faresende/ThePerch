@@ -55,14 +55,16 @@ struct DeliveryHomeCard: View {
                 } else {
                     VStack(spacing: 12) {
                         ForEach(activeDeliveries, id: \.orderId) { delivery in
-                            deliverySubCard(delivery: delivery)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    guard onMarkDelivered != nil else { return }
-                                    PerchHaptics.light()
-                                    pendingMarkDeliveryOrderId = delivery.orderId
-                                    pendingMarkDeliveryTitle = delivery.items.map(\.name).joined(separator: ", ")
-                                }
+                            Button {
+                                guard onMarkDelivered != nil else { return }
+                                PerchHaptics.light()
+                                pendingMarkDeliveryOrderId = delivery.orderId
+                                pendingMarkDeliveryTitle = delivery.items.map(\.name).joined(separator: ", ")
+                            } label: {
+                                deliverySubCard(delivery: delivery)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
