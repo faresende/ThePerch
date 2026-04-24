@@ -53,14 +53,13 @@ struct DeliveryHomeCard: View {
                     VStack(spacing: 12) {
                         ForEach(activeDeliveries, id: \.orderId) { delivery in
                             deliverySubCard(delivery: delivery)
+                                .contentShape(Rectangle())
                                 .contextMenu {
-                                    if onMarkDelivered != nil {
-                                        Button {
-                                            PerchHaptics.success()
-                                            onMarkDelivered?(delivery.orderId)
-                                        } label: {
-                                            Label("Mark as delivered", systemImage: "checkmark.circle")
-                                        }
+                                    Button {
+                                        PerchHaptics.success()
+                                        onMarkDelivered?(delivery.orderId)
+                                    } label: {
+                                        Label("Mark as delivered", systemImage: "checkmark.circle")
                                     }
                                 }
                         }

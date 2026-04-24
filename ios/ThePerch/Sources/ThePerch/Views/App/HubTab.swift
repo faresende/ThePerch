@@ -164,6 +164,7 @@ struct HubTab: View {
 /// orders →" footer link for now.
 private struct OrdersSectionContent: View {
     @Environment(\.perchPalette) private var palette
+    @Environment(DashboardViewModel.self) private var dashboardViewModel
     @State private var viewModel = OrdersViewModel()
 
     private var active: [OrderWithShipments] { viewModel.activeOrders }
@@ -232,9 +233,20 @@ private struct OrdersSectionContent: View {
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 20)
+        // Hydrate from DashboardViewModel's already-fetched trackedOrders
+        // instead of firing a fresh network call on first mount. Was the
+        // main cause of the 1-2s first-tap lag when switching to the
+        // Orders chip. Falls back to the VM's own loadOrders only if the
+        // dashboard hasn't populated them yet (unlikely in practice).
         .task {
-            guard viewModel.orders.isEmpty else { return }
-            await viewModel.loadOrders()
+            if !dashboardViewModel.trackedOrders.isEmpty {
+                viewModel.orders = dashboardViewModel.trackedOrders
+            } else if viewModel.orders.isEmpty {
+                await viewModel.loadOrders()
+            }
+        }
+        .onChange(of: dashboardViewModel.trackedOrders) { _, new in
+            viewModel.orders = new
         }
     }
 
