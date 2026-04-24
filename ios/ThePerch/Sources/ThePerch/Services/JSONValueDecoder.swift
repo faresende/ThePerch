@@ -296,6 +296,19 @@ private let iso8601FormatterNoFrac: ISO8601DateFormatter = {
     return f
 }()
 
+/// Final fallback for ISO-shaped strings that omit a timezone suffix
+/// ("2026-04-24T00:00:00"). Some producers (e.g. the Oura pipeline
+/// writing sleep_duration midnight stamps) do this. We treat those as
+/// local-time wall clocks rather than dropping the whole record.
+private let iso8601FormatterNaive: DateFormatter = {
+    let f = DateFormatter()
+    f.calendar = Calendar(identifier: .iso8601)
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = .current
+    f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    return f
+}()
+
 /// Decodes a value, handling special types (Date, URL, Data, Decimal) that don't
 /// natively decode from JSONValue, then falling back to the standard Decoder protocol.
 private func decodeValue<T: Decodable>(_ type: T.Type, from value: JSONValue, codingPath: [CodingKey]) throws -> T {
@@ -309,7 +322,9 @@ private func decodeValue<T: Decodable>(_ type: T.Type, from value: JSONValue, co
     // Date: parse from ISO8601 string (matches .iso8601 decoding strategy)
     if type == Date.self {
         if case .string(let str) = value {
-            if let date = iso8601Formatter.date(from: str) ?? iso8601FormatterNoFrac.date(from: str) {
+            if let date = iso8601Formatter.date(from: str)
+                ?? iso8601FormatterNoFrac.date(from: str)
+                ?? iso8601FormatterNaive.date(from: str) {
                 guard let decodedDate = date as? T else {
                     throw DecodingError.typeMismatch(T.self, .init(
                         codingPath: codingPath,
