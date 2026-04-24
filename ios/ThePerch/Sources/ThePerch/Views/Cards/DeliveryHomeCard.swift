@@ -7,14 +7,11 @@ import SwiftUI
 /// on the way.
 struct DeliveryHomeCard: View {
     let deliveries: [DeliveryData]
-    /// Fires when the user taps a delivery and selects "Mark as delivered"
-    /// from the confirmation dialog. Receives the order id from
+    /// Fires when the user taps a delivery and picks "Mark as delivered"
+    /// from the inline menu. Receives the order id from
     /// DeliveryData.orderId. Optional so existing call sites that don't
     /// wire it stay compiling.
     var onMarkDelivered: ((String) -> Void)? = nil
-
-    @State private var pendingMarkDeliveryOrderId: String? = nil
-    @State private var pendingMarkDeliveryTitle: String = ""
 
     private var activeDeliveries: [DeliveryData] {
         deliveries.filter { delivery in
@@ -55,38 +52,22 @@ struct DeliveryHomeCard: View {
                 } else {
                     VStack(spacing: 12) {
                         ForEach(activeDeliveries, id: \.orderId) { delivery in
-                            Button {
-                                guard onMarkDelivered != nil else { return }
-                                PerchHaptics.light()
-                                pendingMarkDeliveryOrderId = delivery.orderId
-                                pendingMarkDeliveryTitle = delivery.items.map(\.name).joined(separator: ", ")
+                            Menu {
+                                Button {
+                                    PerchHaptics.success()
+                                    onMarkDelivered?(delivery.orderId)
+                                } label: {
+                                    Label("Mark as delivered", systemImage: "checkmark.circle")
+                                }
                             } label: {
                                 deliverySubCard(delivery: delivery)
                                     .contentShape(Rectangle())
                             }
+                            .menuStyle(.borderlessButton)
                             .buttonStyle(.plain)
                         }
                     }
                 }
-            }
-        }
-        .confirmationDialog(
-            pendingMarkDeliveryTitle.isEmpty ? "Delivery options" : pendingMarkDeliveryTitle,
-            isPresented: Binding(
-                get: { pendingMarkDeliveryOrderId != nil },
-                set: { if !$0 { pendingMarkDeliveryOrderId = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Mark as delivered") {
-                if let orderId = pendingMarkDeliveryOrderId {
-                    PerchHaptics.success()
-                    onMarkDelivered?(orderId)
-                }
-                pendingMarkDeliveryOrderId = nil
-            }
-            Button("Cancel", role: .cancel) {
-                pendingMarkDeliveryOrderId = nil
             }
         }
     }
