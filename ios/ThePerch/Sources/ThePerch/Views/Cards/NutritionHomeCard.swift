@@ -28,39 +28,55 @@ struct NutritionHomeCard: View {
         return PerchFormatters.isoDate.string(from: .now)
     }
 
-    private var caloriesData: MeasurementData? {
-        let caloriesRecords = records
-            .filter { $0.asMeasurement()?.metric == "daily_calories" }
+    /// Meal records matching the displayed date (today, or yesterday when
+    /// `isMorning`). Summing these directly decouples the card from the
+    /// `nutrition-aggregator` cron that writes `daily_calories` measurement
+    /// records — when that cron is broken or lagging, the card still
+    /// reflects what's actually logged.
+    private var displayedMeals: [MealRecord] {
+        records
+            .filter { $0.category == .nutrition && $0.type == .meal }
+            .map(MealRecord.init(from:))
+            .filter { meal in
+                PerchFormatters.isoDate.string(from: meal.mealTime) == dateString
+            }
+    }
 
-        // Try exact date match first (always pick most recently updated)
-        let exactMatches = caloriesRecords.filter { $0.asMeasurement()?.context == dateString }
-        if !exactMatches.isEmpty {
-            return exactMatches.sorted(by: { $0.updatedAt > $1.updatedAt }).first?.asMeasurement()
+    private var referenceDate: Date {
+        if isMorning {
+            return Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now
         }
+        return .now
+    }
 
-        // For today (afternoon), fall back to most recent
-        if !isMorning {
-            return caloriesRecords
-                .sorted(by: { $0.updatedAt > $1.updatedAt })
-                .first?.asMeasurement()
-        }
-
-        return nil
+    /// Targets sourced via NutritionTargets.resolved (progress_summary →
+    /// legacy daily_calories fallback → hardcoded default).
+    private var targets: NutritionTargets {
+        NutritionTargets.resolved(for: referenceDate, records: records)
     }
 
     private var macrosData: MacrosData? {
-        records
-            .filter { $0.asMacros()?.date == dateString }
-            .sorted { $0.updatedAt > $1.updatedAt }
-            .first?.asMacros()
+        guard !displayedMeals.isEmpty else { return nil }
+        return MacrosData(
+            protein: displayedMeals.reduce(0) { $0 + $1.protein },
+            proteinTarget: targets.protein,
+            carbs: displayedMeals.reduce(0) { $0 + $1.carbs },
+            carbsTarget: targets.carbs,
+            fat: displayedMeals.reduce(0) { $0 + $1.fat },
+            fatTarget: targets.fat,
+            date: dateString
+        )
     }
 
     private var hasData: Bool {
-        caloriesData != nil || macrosData != nil
+        !displayedMeals.isEmpty || target > 0
     }
 
-    private var consumed: Double { caloriesData?.value ?? 0 }
-    private var target: Double { caloriesData?.target ?? 0 }
+    private var consumed: Double {
+        displayedMeals.reduce(0) { $0 + $1.calories }
+    }
+
+    private var target: Double { targets.calories }
     private var progress: Double {
         guard target > 0 else { return 0 }
         return min(consumed / target, 1.5)

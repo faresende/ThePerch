@@ -106,8 +106,12 @@ struct NutritionTargets: Sendable, Equatable {
         // Primary source: BioChecha's progress_summary record for today. Has
         // `target_calories` computed from the day type (training/pilates/rest)
         // plus the matched calendar event, so it's the authoritative target.
+        //
+        // RecordType doesn't have a .progressSummary case — the enum falls
+        // back to .unknown for those rows — so we filter on display_hint
+        // (macros_bar) which those records set reliably.
         let progressSummaryTarget: Double? = records
-            .filter { $0.type.rawValue == "progress_summary" }
+            .filter { $0.displayHint == .macrosBar }
             .filter { record in
                 record.data.objectValue?["date"]?.stringValue == dateString
             }

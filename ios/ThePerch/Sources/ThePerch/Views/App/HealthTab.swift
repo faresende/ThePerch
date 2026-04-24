@@ -144,14 +144,19 @@ struct HealthOverviewSegment: View {
     }
 
     var body: some View {
-        // Real-data pulls. Defaults match the handoff mocks so the
-        // screen reads as designed before the full Oura pipeline is wired.
+        // Real-data pulls against Oura records. Defaults match the handoff
+        // mocks so the screen doesn't look broken while waiting for the
+        // first sync of a given metric.
         let sleepHours = latest("sleep_duration") ?? 7.20
         let hrv = latest("avg_sleep_hrv") ?? 58
         let rhr = latest("lowest_sleep_hr") ?? 52
-        // Readiness + recovery aren't in chartMetricOrder yet; mocked.
-        let readiness = 82
-        let recoveryPct = 74
+        // Readiness drives both the recovery ring and the "readiness" number.
+        // Falls back to the mock value only when no record exists at all.
+        let readiness = Int(latest("readiness_score") ?? 82)
+        let recoveryPct = readiness
+        // Deep-sleep-vs-average delta still mocked — needs a rolling-baseline
+        // calculation that isn't wired yet. Left as mock until the trend
+        // pipeline lands.
         let deepSleepDeltaMin = 12
 
         ScrollView {
