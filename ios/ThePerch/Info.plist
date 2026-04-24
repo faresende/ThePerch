@@ -24,6 +24,14 @@
 	<string>The Perch lets you attach photos from your library to meals, receipts, and other items you log.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>The Perch uses the camera so you can snap meals, receipts, and boarding passes directly from the compose bar.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>The Perch reads your calendar to show today's and upcoming events on the dashboard.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>The Perch reads your calendar to show today's and upcoming events on the dashboard.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>The Perch surfaces your reminders alongside your events.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>The Perch surfaces your reminders alongside your events.</string>
 
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
