@@ -407,7 +407,12 @@ struct WorkoutsSegment: View {
     @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var viewModel = HealthViewModel()
-    @State private var showWorkoutsDetail = false
+    /// Which session is currently expanded in the feed (by session record id).
+    /// Nil means all sessions are collapsed (summary view).
+    @State private var expandedSessionId: UUID?
+    /// How many sessions to render in the feed. Starts at 5 and grows in
+    /// chunks of 5 as the user scrolls to the last visible card.
+    @State private var visibleSessionCount: Int = 5
 
     private var workoutRecords: [(Record, WorkoutSessionData)] {
         let records = viewModel.records.compactMap { r -> (Record, WorkoutSessionData)? in
@@ -423,6 +428,13 @@ struct WorkoutsSegment: View {
 
     private var latestSession: WorkoutSessionData? {
         workoutRecords.first?.1
+    }
+
+    /// Labeled projection of `workoutRecords` for use in the in-page
+    /// session feed. Same ordering (most recent first); different call
+    /// sites just read cleaner with named fields.
+    private var sessionFeed: [(record: Record, session: WorkoutSessionData)] {
+        workoutRecords.map { (record: $0.0, session: $0.1) }
     }
 
     /// Build a 14-week × 7-day intensity matrix (0 = rest, 1–4 = level).
@@ -486,7 +498,6 @@ struct WorkoutsSegment: View {
     var body: some View {
         let heatmap = heatmapData()
 
-        NavigationStack {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 SectionTitle(
@@ -562,68 +573,6 @@ struct WorkoutsSegment: View {
                     }
                 }
 
-                // ── Session card ──────────────────────────────────
-                // Tap anywhere on the card to push WorkoutView (full list
-                // of past sessions with expand-in-place details). Uses
-                // onTapGesture + navigationDestination instead of
-                // NavigationLink so SwiftUI doesn't apply button-label
-                // tint to the card's content (which would mute the
-                // typography).
-                PerchSectionCard {
-                    let session = latestSession
-                    let sessionNumber = session?.sessionNumber ?? 47
-                    let title = session?.muscleGroups.joined(separator: " · ").capitalized
-                        ?? "Chest · Triceps · Shoulders"
-                    let sets = session?.totalSets ?? 10
-                    let kcal = session?.activeCalories ?? 506
-                    let bpm = session?.avgHr ?? 127
-                    let duration = session?.durationMin.map { "\($0)m" } ?? "61m"
-                    let ago = session?.dateParsed.map { relativeAgo(from: $0) } ?? "14h ago"
-
-                    HStack(alignment: .firstTextBaseline) {
-                        PerchKicker("Session \(sessionNumber) · \(ago)")
-                        Spacer()
-                        HStack(spacing: 6) {
-                            Text(duration)
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(palette.muted)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(palette.faint)
-                        }
-                    }
-                    .padding(.bottom, 6)
-
-                    Text(title)
-                        .font(.system(size: 21, weight: .medium, design: .serif).italic())
-                        .foregroundStyle(palette.ink)
-                        .tracking(-0.3)
-                        .padding(.bottom, 16)
-
-                    // Stats row with top + bottom hairlines.
-                    HStack(spacing: 10) {
-                        StatCell(value: "\(sets)", label: "SETS")
-                        StatCell(value: "\(kcal)", label: "KCAL")
-                        StatCell(value: "\(bpm)", label: "AVG BPM")
-                    }
-                    .padding(.vertical, 14)
-                    .overlay(alignment: .top) { PerchSoftDivider() }
-                    .overlay(alignment: .bottom) { PerchSoftDivider() }
-
-                    // Muscle figure with the session's load distribution.
-                    MuscleFigure(loads: muscleLoads(from: session))
-                        .padding(.horizontal, -4)
-                        .padding(.top, 14)
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    PerchHaptics.light()
-                    showWorkoutsDetail = true
-                }
-                .navigationDestination(isPresented: $showWorkoutsDetail) {
-                    WorkoutView(dashboardViewModel: dashboardViewModel)
-                }
-
                 // ── Top lifts ─────────────────────────────────────
                 PerchSectionCard {
                     PerchKicker("Top lifts")
@@ -634,6 +583,33 @@ struct WorkoutsSegment: View {
                         TopLiftRow(name: lift.name, sets: lift.sets, best: lift.best)
                         if i < lifts.count - 1 {
                             PerchSoftDivider()
+                        }
+                    }
+                }
+
+                // ── Session feed ──────────────────────────────────
+                // Stacked list of past sessions, tap to expand in place.
+                // Flat hierarchy — no nav push. Initially shows 5; more
+                // load automatically when the user scrolls to the last.
+                if !sessionFeed.isEmpty {
+                    let visible = Array(sessionFeed.prefix(visibleSessionCount))
+                    ForEach(Array(visible.enumerated()), id: \.element.record.id) { index, item in
+                        let isExpanded = expandedSessionId == item.record.id
+                        Button {
+                            PerchHaptics.light()
+                            PerchMotion.withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                expandedSessionId = isExpanded ? nil : item.record.id
+                            }
+                        } label: {
+                            WorkoutSessionFeedCard(session: item.session, isExpanded: isExpanded)
+                        }
+                        .buttonStyle(.plain)
+                        .onAppear {
+                            // Auto-load more when the last visible card
+                            // comes on screen.
+                            if index == visible.count - 1, visibleSessionCount < sessionFeed.count {
+                                visibleSessionCount = min(visibleSessionCount + 5, sessionFeed.count)
+                            }
                         }
                     }
                 }
@@ -657,7 +633,6 @@ struct WorkoutsSegment: View {
                 viewModel.records = dashboardViewModel.healthRecords
             }
         }
-        } // NavigationStack
     }
 
     // MARK: - Derived helpers
