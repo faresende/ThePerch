@@ -582,8 +582,21 @@ private struct CalendarSectionContent: View {
 
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
+    /// Merges Supabase-sourced calendar records with live EventKit events
+    /// (deduped by title + start-minute; device wins on ties). Matches the
+    /// behavior of CalendarView + the home calendar cards.
     private var events: [EventData] {
-        records.compactMap { $0.asEvent() }.sorted { $0.start < $1.start }
+        let supabaseEvents = records.compactMap { $0.asEvent() }
+        let deviceEvents = dashboardViewModel.eventKitEvents
+        var seen = Set<String>()
+        var merged: [EventData] = []
+        for event in deviceEvents + supabaseEvents {
+            let key = "\(event.title)|\(Int(event.start.timeIntervalSince1970 / 60))"
+            if seen.insert(key).inserted {
+                merged.append(event)
+            }
+        }
+        return merged.sorted { $0.start < $1.start }
     }
 
     private var dayEvents: [EventData] {
