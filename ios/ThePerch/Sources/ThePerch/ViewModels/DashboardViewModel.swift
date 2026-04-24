@@ -101,6 +101,13 @@ final class DashboardViewModel {
     /// Loads cached data from disk immediately, then fetches fresh data from network.
     /// Views show cached data instantly (0ms perceived load), then update when fresh data arrives.
     func loadDashboard(forceRefresh: Bool = false) async {
+        // Kick off EventKit immediately — it's a local fetch (~100ms when
+        // permission is granted) and shouldn't wait on the Supabase pulls.
+        // Running it in parallel here means by the time the Supabase awaits
+        // resolve, eventKitEvents is already populated, so the calendar
+        // surfaces render in one pass instead of flashing empty → filled.
+        async let eventKitTask: Void = loadEventKitEvents()
+
         // Step 1: Load cached data instantly (synchronous disk read)
         let hadCachedData = loadCachedData()
 
@@ -206,10 +213,9 @@ final class DashboardViewModel {
 #endif
         }
 
-        // Load EventKit events in parallel with the Supabase pulls. Prompts
-        // for Calendar permission on first call; treated as optional so a
-        // denial doesn't break the rest of the dashboard.
-        await loadEventKitEvents()
+        // Make sure the EventKit fetch we kicked off at the top has
+        // completed before loadDashboard returns.
+        _ = await eventKitTask
     }
 
     /// Pulls the device's upcoming calendar events via EventKit and merges

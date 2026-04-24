@@ -765,33 +765,51 @@ private struct CalendarAgenda: View {
         return "NOW · \(f.string(from: Date.now))"
     }
 
+    /// Index at which the NOW ruler should be inserted. Equal to the index
+    /// of the first event whose start is after now (all-day events — which
+    /// started at 00:00 — are ordered before and so sit above the ruler).
+    /// Returns nil when today has no future events to precede; the caller
+    /// renders the ruler at the end in that case.
+    private var nowInsertIndex: Int? {
+        guard isToday else { return nil }
+        let now = Date.now
+        return events.firstIndex(where: { $0.start > now })
+    }
+
+    @ViewBuilder
+    private var nowRuler: some View {
+        HStack(spacing: 6) {
+            Text(nowLabel)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .tracking(0.4)
+                .foregroundStyle(palette.kinetic)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 1)
+                .background(palette.card)
+            Rectangle()
+                .fill(palette.kinetic)
+                .frame(height: 1)
+                .opacity(0.8)
+        }
+        .padding(.vertical, 6)
+    }
+
     var body: some View {
         PerchSectionCard(padding: 18) {
             ForEach(Array(events.enumerated()), id: \.offset) { i, event in
+                if i == nowInsertIndex { nowRuler }
                 CalendarEventRow(event: event)
                 if i < events.count - 1 {
                     PerchSoftDivider()
                 }
             }
 
-            if isToday {
-                // Thin dashed "now" line rendered inside the card at its
-                // natural position in the row flow — placed after the
-                // first past event as a visual cue.
-                HStack(spacing: 6) {
-                    Text(nowLabel)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .tracking(0.4)
-                        .foregroundStyle(palette.kinetic)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
-                        .background(palette.card)
-                    Rectangle()
-                        .fill(palette.kinetic)
-                        .frame(height: 1)
-                        .opacity(0.8)
-                }
-                .padding(.top, 4)
+            // If NOW falls after every event on today's timeline (e.g. the
+            // last meeting wrapped up already), trail the ruler at the
+            // bottom. Only show when there's at least one event so an empty
+            // day doesn't get a naked ruler.
+            if isToday, nowInsertIndex == nil, !events.isEmpty {
+                nowRuler
             }
         }
     }
@@ -803,6 +821,17 @@ private struct CalendarEventRow: View {
     let event: EventData
 
     private var isPast: Bool { event.end < Date.now }
+
+    /// True when the event spans (effectively) the full day — starts at
+    /// midnight and runs at least 23 hours. Catches both EventKit all-day
+    /// events (00:00 → 23:59:59) and multi-day spans on the current day.
+    private var isAllDay: Bool {
+        let cal = Calendar.current
+        let startOfDay = cal.startOfDay(for: event.start)
+        let startsAtMidnight = cal.isDate(event.start, equalTo: startOfDay, toGranularity: .minute)
+        let duration = event.end.timeIntervalSince(event.start)
+        return startsAtMidnight && duration >= 23 * 3600
+    }
 
     private var startStr: String {
         let f = DateFormatter()
@@ -821,14 +850,25 @@ private struct CalendarEventRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(startStr)
-                    .font(.system(size: 11, design: .monospaced))
-                    .tracking(0.2)
-                    .foregroundStyle(palette.muted)
-                Text(endStr)
-                    .font(.system(size: 10, design: .monospaced))
-                    .tracking(0.2)
-                    .foregroundStyle(palette.faint)
+                if isAllDay {
+                    Text("ALL")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .tracking(0.4)
+                        .foregroundStyle(palette.muted)
+                    Text("DAY")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .tracking(0.4)
+                        .foregroundStyle(palette.faint)
+                } else {
+                    Text(startStr)
+                        .font(.system(size: 11, design: .monospaced))
+                        .tracking(0.2)
+                        .foregroundStyle(palette.muted)
+                    Text(endStr)
+                        .font(.system(size: 10, design: .monospaced))
+                        .tracking(0.2)
+                        .foregroundStyle(palette.faint)
+                }
             }
             .frame(width: 48, alignment: .leading)
 
