@@ -53,6 +53,7 @@ export interface ShipmentRecord {
   order_id: string;
   tracking_number: string;
   carrier: string | null;
+  tracking_url: string | null;
   seventeen_track_id: string | null;
   status: ShipmentStatus;
   latest_checkpoint: string | null;
@@ -62,6 +63,36 @@ export interface ShipmentRecord {
   confidence_score: number;
   created_at?: string;
   updated_at?: string;
+}
+
+/**
+ * Generate a carrier-specific tracking URL for known carriers.
+ * Returns null for unknown/unsupported carriers (client falls back to 17track).
+ */
+export function carrierTrackingURL(carrier: string | null, trackingNumber: string): string | null {
+  if (!carrier || !trackingNumber) return null;
+  const c = carrier.toUpperCase();
+
+  if (c.includes('FEDEX') || c.includes('FEDERAL EXPRESS'))
+    return `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`;
+  if (c.includes('DHL'))
+    return `https://www.dhl.com/pt-en/home/tracking.html?tracking-id=${trackingNumber}&submit=1`;
+  if (c.includes('UPS'))
+    return `https://www.ups.com/track?trackNums=${trackingNumber}`;
+  if (c.includes('CTT') || c.includes('CORREIOS'))
+    return `https://www.ctt.pt/track-and-trace?trackingId=${trackingNumber}`;
+  if (c.includes('USPS'))
+    return `https://www.usps.com/tracking/${trackingNumber}`;
+  if (c.includes('DPD'))
+    return `https://tracking.dpd.de/status/en_US/parcel/${trackingNumber}`;
+  if (c.includes('GLS'))
+    return `https://gls-group.eu/EN/track-and-trace?match=${trackingNumber}`;
+  if (c.includes('POST.NL') || c.includes('POSTNL'))
+    return `https://postnl.nl/tracktrace/${trackingNumber}/NL`;
+  if (c.includes('SENDCLOUD'))
+    return `https://tracking.sendcloud.sc/forward/${trackingNumber}`;
+
+  return null;
 }
 
 export interface ReviewItemRecord {
@@ -102,16 +133,24 @@ export async function upsertOrder(order: OrderRecord): Promise<{ id: string; isN
   }
 
   const now = new Date().toISOString();
-  const record = {
+  const baseRecord = {
     ...order,
     updated_at: now,
     created_at: existing ? undefined : now,
   };
 
   if (existing) {
+    // Update path: strip null/undefined fields so a re-classification with
+    // a missing value (e.g. order_number couldn't be re-extracted from a
+    // sibling email) doesn't clobber a perfectly good earlier value.
+    // Insert path keeps nulls — those are intentional empty fields.
+    const updateRecord: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(baseRecord)) {
+      if (value !== null && value !== undefined) updateRecord[key] = value;
+    }
     const { data, error } = await supabase
       .from('orders')
-      .update(record)
+      .update(updateRecord)
       .eq('id', existing.id)
       .select('id')
       .single();
@@ -121,7 +160,7 @@ export async function upsertOrder(order: OrderRecord): Promise<{ id: string; isN
   } else {
     const { data, error } = await supabase
       .from('orders')
-      .insert([record])
+      .insert([baseRecord])
       .select('id')
       .single();
 

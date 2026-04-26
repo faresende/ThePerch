@@ -330,6 +330,10 @@ private struct OrderCardV2: View {
 
     var body: some View {
         PerchSectionCard(padding: featured ? 22 : 18) {
+            // Header: vendor name (kicker) on the left, freshness on the
+            // right. The "Order #X from Y" italic line we used to render
+            // here was redundant with the kicker — order number now lives
+            // only in the footer next to the tracking row.
             HStack(alignment: .firstTextBaseline) {
                 PerchKicker(order.order.merchant.uppercased())
                 Spacer()
@@ -337,16 +341,10 @@ private struct OrderCardV2: View {
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(palette.muted)
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 6)
 
-            Text(itemsSummary(order))
-                .font(.system(size: featured ? 22 : 18, weight: .medium, design: .serif).italic())
-                .foregroundStyle(palette.ink)
-                .tracking(-0.3)
-                .lineLimit(3)
-                .padding(.bottom, 6)
-
-            PerchNum(priceText, size: featured ? 22 : 18)
+            // Total price as the headline number (big italic serif).
+            PerchNum(priceText, size: featured ? 30 : 24)
                 .padding(.bottom, 18)
 
             PerchStageStepper(

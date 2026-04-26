@@ -49,8 +49,20 @@ export function classifyEmail(
   if (isNonGoodsSender(senderEmail)) {
     return { type: 'other', confidence: 1 };
   }
+  const lowerSender = senderEmail.toLowerCase();
+
+  // Subject takes priority: a clear "order ... confirmed" / "thanks for
+  // your order" in the subject means PURCHASE confirmation regardless of
+  // what's in the body. This catches cases like Hardgraft where the
+  // order-confirmation email also embeds a tracking number — body
+  // shipping signals would otherwise win and route to shipping.
+  const subjectSignals = analyzeSignals(subject.toLowerCase(), lowerSender);
+  if (subjectSignals.isPurchase && subjectSignals.purchaseScore >= 0.85) {
+    return { type: 'purchase_confirmation', confidence: Math.min(subjectSignals.confidence, 1) };
+  }
+
   const text = `${subject} ${body}`.toLowerCase();
-  const signals = analyzeSignals(text, senderEmail.toLowerCase());
+  const signals = analyzeSignals(text, lowerSender);
 
   if (signals.isPurchase && signals.isShipping) {
     // Both signals — compare RAW summed scores so ties are rare. Order
@@ -425,29 +437,43 @@ function extractOrderNumber(subject: string, body: string): string | null {
   const subj = strip(subject);
   const bod = strip(body);
 
-  // Patterns in order of specificity. Require `#` or explicit "order number" to
-  // appear so we don't scoop up unrelated uppercase tokens.
+  // Patterns in order of specificity. The earlier patterns fire when a
+  // "#" or "order number"/"order no" anchor is present; the later ones
+  // are more permissive and run only if those miss.
   const patterns: RegExp[] = [
     // "Order #AB-12345678"
     /order\s*#\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
     // "order number: AB-12345678"
-    /order\s+number\s*[:#]\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
+    /order\s+number\s*[:#]?\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
     // "order no. 12345678"
     /order\s+no\.?\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
     // Amazon-style "order 123-1234567-1234567"
     /order\s+(\d{3}-\d{7}-\d{7})/i,
+    // "order HGMC20117325" / "order ABC-12345" — bare token after "order"
+    // (no # required). Restricted to merchant-style prefixes (≥2 letters,
+    // ≥1 digit somewhere) so we don't scoop "order details" or "order
+    // confirmation".
+    /order\s+([A-Z]{2,}[A-Z0-9-]*[0-9][A-Z0-9-]*)/,
+    // "Order 1723 confirmed" — pure-numeric Shopify-style. Constrained
+    // to "order <digits> confirmed" so common phrases don't match.
+    /order\s+(\d{3,8})\s+confirmed/i,
     // "#ORD-12345678" (must start with an alpha prefix to avoid catching random tokens)
     /#([A-Z]{2,}[A-Z0-9-]{3,24})/i,
   ];
+
+  // Tokens we should never accept as an order number — common HTML/CSS
+  // attributes + pure 6-char hex colors that slip through `#XYZ` patterns.
+  const isHtmlJunk = (v: string) =>
+    /^(CELLPADDING|CELLSPACING|BGCOLOR|BORDER|ALIGN|VALIGN|WIDTH|HEIGHT|FONT|COLOR|STYLE|CLASS|UTF|HTML|BODY|TABLE|DIV|SPAN|HEADER|FOOTER)$/.test(v) ||
+    /^[0-9A-F]{3}$/.test(v) ||
+    /^[0-9A-F]{6}$/.test(v) ||
+    /^[0-9A-F]{8}$/.test(v);
 
   for (const pattern of patterns) {
     const m = subj.match(pattern) || bod.match(pattern);
     if (m && m[1]) {
       const v = m[1].toUpperCase();
-      // Reject common HTML/CSS tokens that slip through.
-      if (!/^(CELLPADDING|CELLSPACING|BGCOLOR|BORDER|ALIGN|VALIGN|WIDTH|HEIGHT|FONT|COLOR|STYLE|CLASS|UTF|HTML|BODY|TABLE|DIV|SPAN)$/.test(v)) {
-        return v;
-      }
+      if (!isHtmlJunk(v)) return v;
     }
   }
   return null;
@@ -494,25 +520,81 @@ function inferCarrier(trackingNumber: string | null, body: string, sender: strin
 }
 
 interface AmountResult { amount: number | null; currency: string }
-function extractTotal(body: string): AmountResult {
-  const currencyMap: Array<{ pattern: RegExp; currency: string }> = [
-    { pattern: /€\s*([0-9]{1,3}(?:[.,][0-9]{2})?)/, currency: 'EUR' },
-    { pattern: /£\s*([0-9]{1,3}(?:[.,][0-9]{2})?)/, currency: 'GBP' },
-    { pattern: /\$\s*([0-9]{1,3}(?:[.,][0-9]{2})?)/, currency: 'USD' },
-    { pattern: /USD\s*([0-9]{1,3}(?:[.,][0-9]{2})?)/i, currency: 'USD' },
-    { pattern: /EUR\s*([0-9]{1,3}(?:[.,][0-9]{2})?)/i, currency: 'EUR' },
-    { pattern: /GBP\s*([0-9]{1,3}(?:[.,][0-9]{2})?)/i, currency: 'GBP' },
-  ];
 
-  for (const { pattern, currency } of currencyMap) {
-    const m = body.match(pattern);
-    if (m) {
-      const amount = parseFloat(m[1].replace(',', '.'));
-      if (!isNaN(amount) && amount > 0) return { amount, currency };
+/**
+ * Extract the order total from the body. Strategy in priority order:
+ *   1. Anchored "(grand|order|sub)? total[: ]" + amount — the most
+ *      reliable signal. Picks the LAST anchored match (some emails
+ *      list "subtotal" first then "total" later).
+ *   2. Largest currency-amount in the body. Order totals are almost
+ *      always the largest number on the page (line items < total).
+ *   3. First currency-amount as a last resort (legacy behavior).
+ *
+ * Previously the function returned the FIRST currency-amount it found,
+ * which is usually a single line item, not the order total. Multiple
+ * merchants (Vulkit, Body&Fit, Matador) were storing the wrong number.
+ */
+function extractTotal(body: string): AmountResult {
+  // Currency tokens we recognize, mapped to a canonical 3-letter code.
+  const currencySymbol: Record<string, string> = {
+    '€': 'EUR', '£': 'GBP', '$': 'USD',
+    'eur': 'EUR', 'gbp': 'GBP', 'usd': 'USD',
+  };
+
+  // Match an amount + currency in either "$12.34" or "12,34 EUR" shape.
+  // Capture: 1=symbol-or-code, 2=number-when-symbol-prefixed, 3=number-suffix-currency
+  const amountRe = /(?:([€£$])\s*([0-9]{1,5}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{2})?)|([0-9]{1,5}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{2})?)\s*(EUR|GBP|USD)\b)/gi;
+
+  function parseAmount(numStr: string): number | null {
+    // Handle European thousand separators: "1.234,56" or "1 234,56"
+    let normalized = numStr.replace(/\s/g, '');
+    const lastComma = normalized.lastIndexOf(',');
+    const lastDot = normalized.lastIndexOf('.');
+    if (lastComma > lastDot) {
+      // Comma is the decimal separator — strip dots, swap comma for dot
+      normalized = normalized.replace(/\./g, '').replace(',', '.');
+    } else if (lastDot > lastComma) {
+      // Dot is the decimal separator — strip commas
+      normalized = normalized.replace(/,/g, '');
     }
+    const n = parseFloat(normalized);
+    return !isNaN(n) && n > 0 ? n : null;
   }
 
-  return { amount: null, currency: 'USD' };
+  // Collect every (amount, currency) pair in the body.
+  const matches: Array<{ amount: number; currency: string; index: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = amountRe.exec(body)) !== null) {
+    const sym = (m[1] || m[4] || '').toLowerCase();
+    const num = m[2] || m[3] || '';
+    const amount = parseAmount(num);
+    if (amount === null) continue;
+    const currency = currencySymbol[sym] || 'USD';
+    matches.push({ amount, currency, index: m.index });
+  }
+  if (matches.length === 0) return { amount: null, currency: 'USD' };
+
+  // Strategy 1: anchored-total — find the rightmost "Total..." label and
+  // pick the next amount within ~120 chars after it.
+  const anchorRe = /(?:grand\s+total|order\s+total|total\s+(?:price|amount|due|paid)|^total\b|\btotal\b)\s*[:\s]*/gi;
+  let lastAnchor = -1;
+  let am: RegExpExecArray | null;
+  while ((am = anchorRe.exec(body)) !== null) {
+    // Skip "subtotal" — we want the FINAL total. anchorRe doesn't match
+    // "subtotal" because of `\btotal\b`, but be defensive.
+    const before = body.slice(Math.max(0, am.index - 4), am.index).toLowerCase();
+    if (before.endsWith('sub')) continue;
+    lastAnchor = am.index + am[0].length;
+  }
+  if (lastAnchor >= 0) {
+    const after = matches.find(x => x.index >= lastAnchor && x.index < lastAnchor + 120);
+    if (after) return { amount: after.amount, currency: after.currency };
+  }
+
+  // Strategy 2: largest amount in the body. Heuristic but very reliable
+  // since totals beat line items in practice.
+  const largest = matches.reduce((a, b) => (b.amount > a.amount ? b : a));
+  return { amount: largest.amount, currency: largest.currency };
 }
 
 function extractOrderDate(body: string): Date | null {
