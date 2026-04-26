@@ -21,6 +21,7 @@
  */
 
 import { supabase } from './supabase';
+import { normalizeMerchant } from './email-classifier';
 
 export interface LearnedSender {
   id: string;
@@ -62,13 +63,15 @@ export function senderDomainStem(senderEmail: string): string | null {
 }
 
 /**
- * Lowercase, alphanumeric-only version of a merchant name. Mirrors the
- * `normalizeMerchant` logic in email-classifier.ts so a learned mapping
- * lines up with the existing `orders.normalized_merchant` column.
+ * Lowercase, alphanumeric-only, accent-folded version of a merchant
+ * name. Re-exports `normalizeMerchant` from email-classifier so a
+ * learned mapping lines up EXACTLY with the
+ * `orders.normalized_merchant` column — including accent-folding
+ * ("Glashütte" → "glashutte" not "glashtte"). Drift between callers
+ * re-creates the dupe-orders / unmatched-shipment bug we caught with
+ * the FedEx 513453603758 cross-ref.
  */
-export function normalizeMerchantName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-}
+export const normalizeMerchantName = normalizeMerchant;
 
 /**
  * Look up a learned (sender → merchant) mapping for this user. Returns

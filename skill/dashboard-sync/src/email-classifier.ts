@@ -702,8 +702,12 @@ export function extractShipmentFields(
  *   "Apple Receipts" -> "Apple"
  *   "Vulkit Support" -> "Vulkit"
  * Returns null if the cleaned name is empty or generic-only.
+ *
+ * Exported for the jmap cross-reference path (orders-autopilot's
+ * findSourceMerchantFromTracking calls it on the From: display name
+ * of search-result emails).
  */
-function cleanDisplayName(name: string): string | null {
+export function cleanDisplayName(name: string): string | null {
   if (!name) return null;
   // Strip parens / quotes wrapping
   let s = name.replace(/["“”']/g, '').trim();
@@ -809,6 +813,13 @@ export function inferMerchantNameWithSource(
  * routing can reuse it without duplicating the data. Add a row here
  * whenever a new merchant ends up classified as "other" or stored
  * under a wrong name in the orders table.
+ *
+ * The canonicalFromKnown step uses these to normalise variant
+ * spellings the LLM / display name might produce (e.g. "NOMOS Store"
+ * + "NOMOS Glashütte" + "NOMOS" all collapsing to one canonical form).
+ * Without canonicalisation a single merchant can produce 2–3 separate
+ * orders rows for what's really the same purchase + its shipping
+ * notification.
  */
 const KNOWN_MERCHANTS: Record<string, string> = {
   'amazon': 'Amazon',
@@ -844,6 +855,13 @@ const KNOWN_MERCHANTS: Record<string, string> = {
   'nextsense': 'NextSense',
   'loveandtogether': 'Love&Together',
   'mrporter': 'MR PORTER',
+  // Added 2026-04-26 after the FedEx/DPD cross-reference run
+  // surfaced "NOMOS Store" / "NOMOS Glashütte" / "NOMOS" as separate
+  // orders, and Aesop being canonicalised inconsistently.
+  'nomos': 'NOMOS Glashütte',
+  'nomosglashutte': 'NOMOS Glashütte',
+  'nomosstore': 'NOMOS Glashütte',
+  'aesop': 'Aesop',
 };
 
 /**
@@ -974,8 +992,25 @@ function inferMerchantName(sender: string, subject: string, body: string, displa
   return inferMerchantNameInner(sender, subject, body, displayName).name;
 }
 
-function normalizeMerchant(name: string): string {
+/**
+ * Lowercase + alphanum-only merchant key used to dedupe orders across
+ * shipping / re-classification passes. Accented characters are folded
+ * to their ASCII base (ü → u, ç → c, é → e) BEFORE stripping non-
+ * alphanumerics, so "NOMOS Glashütte" normalises to "nomosglashutte"
+ * — same as a hypothetical "NOMOS Glashutte" without the umlaut.
+ *
+ * Without the NFD-fold step, the Unicode ü is treated as
+ * non-alphanumeric and stripped entirely — caught in the wild as
+ * "nomosglashtte" missing the U, which broke shipment-to-order
+ * matching for the FedEx tracking on the Nomos order.
+ *
+ * Exported so orders-autopilot + OrdersService normalise identically;
+ * any drift between callers re-creates the dupe-orders problem.
+ */
+export function normalizeMerchant(name: string): string {
   return name
+    .normalize('NFD')                       // decompose: ü → u + combining-diaeresis
+    .replace(/[̀-ͯ]/g, '')        // strip combining marks
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
     .trim();
@@ -1085,6 +1120,30 @@ function inferCarrier(trackingNumber: string | null, body: string, sender: strin
   const lowerBody = body.toLowerCase();
   const lowerSender = sender.toLowerCase();
 
+  // SENDER WINS over tracking-number heuristics. The sender is the
+  // authoritative carrier — `correosexpress.com` is unambiguously
+  // Correos, no matter what the tracking-number digit pattern looks
+  // like. Caught in the wild: the Correos shipment for tracking
+  // 9317861133610319 was being labeled "Generic" because the
+  // numeric-tracking branch fired before the sender check.
+  if (lowerSender.includes('correosexpress')) return 'Correos Express';
+  if (lowerSender.includes('correos'))        return 'Correos';
+  if (lowerSender.includes('ctt.pt'))          return 'CTT';
+  if (lowerSender.includes('dhl.'))            return 'DHL';
+  if (lowerSender.includes('ups.com'))         return 'UPS';
+  if (lowerSender.includes('fedex.com'))       return 'FedEx';
+  if (lowerSender.includes('usps.com'))        return 'USPS';
+  if (lowerSender.includes('royalmail.com'))   return 'Royal Mail';
+  if (lowerSender.includes('postnl.nl') || lowerSender.includes('post.nl')) return 'PostNL';
+  if (lowerSender.includes('gls-group') || lowerSender.includes('gls-pakket')) return 'GLS';
+  if (lowerSender.includes('dpd.'))            return 'DPD';
+  if (lowerSender.includes('colissimo'))       return 'Colissimo';
+  if (lowerSender.includes('laposte.fr'))      return 'La Poste';
+  if (lowerSender.includes('mondialrelay'))    return 'Mondial Relay';
+  if (lowerSender.includes('inpost'))          return 'InPost';
+  if (lowerSender.includes('chronopost'))      return 'Chronopost';
+  if (lowerSender.includes('tnt.com'))         return 'TNT';
+
   if (trackingNumber) {
     if (trackingNumber.startsWith('1Z')) return 'UPS';
     if (/^94/.test(trackingNumber)) return 'FedEx';
@@ -1093,11 +1152,19 @@ function inferCarrier(trackingNumber: string | null, body: string, sender: strin
     if (/^[0-9]{12,22}$/.test(trackingNumber)) return 'Generic';
   }
 
-  if (lowerBody.includes('ups') || lowerSender.includes('ups')) return 'UPS';
-  if (lowerBody.includes('fedex') || lowerSender.includes('fedex')) return 'FedEx';
-  if (lowerBody.includes('dhl') || lowerSender.includes('dhl')) return 'DHL';
-  if (lowerBody.includes('usps') || lowerSender.includes('usps')) return 'USPS';
-  if (lowerBody.includes('royal mail') || lowerSender.includes('royalmail')) return 'Royal Mail';
+  // Body-text fallback when sender + tracking-number both miss.
+  if (lowerBody.includes('correos express'))   return 'Correos Express';
+  if (lowerBody.includes('correos'))            return 'Correos';
+  if (lowerBody.includes('ctt'))                return 'CTT';
+  if (lowerBody.includes('ups'))                return 'UPS';
+  if (lowerBody.includes('fedex'))              return 'FedEx';
+  if (lowerBody.includes('dhl'))                return 'DHL';
+  if (lowerBody.includes('usps'))               return 'USPS';
+  if (lowerBody.includes('royal mail'))         return 'Royal Mail';
+  if (lowerBody.includes('postnl') || lowerBody.includes('post nl')) return 'PostNL';
+  if (lowerBody.includes('gls'))                return 'GLS';
+  if (lowerBody.includes('dpd'))                return 'DPD';
+  if (lowerBody.includes('colissimo'))          return 'Colissimo';
 
   return null;
 }

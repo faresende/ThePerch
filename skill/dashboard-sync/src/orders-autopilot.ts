@@ -14,8 +14,11 @@ import {
   extractShipmentFields,
   senderIsCarrier,
   inferMerchantNameFromBody,
+  cleanDisplayName,
+  normalizeMerchant,
   EmailType,
 } from './email-classifier';
+import { searchEmailsByText, EmailMeta } from './jmap-search';
 import {
   upsertOrder,
   upsertShipment,
@@ -326,7 +329,7 @@ async function handlePurchaseConfirmation(
   const fields = {
     ...regexFields,
     merchantName: mergedMerchantName,
-    normalizedMerchant: mergedMerchantName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+    normalizedMerchant: normalizeMerchant(mergedMerchantName),
     orderNumber: mergedOrderNumber,
     totalAmount: mergedTotal,
     currency: mergedCurrency,
@@ -472,22 +475,34 @@ async function handleShippingNotification(
   // hardgraft.com and we want merchant = "Hardgraft".
   //
   // For carrier senders (Correos, DHL, UPS, …), the sender IS the
-  // carrier — useless for matching. The actual merchant is buried in
-  // the body ("Tu pedido de Amazon va en camino…"). Recover it by
-  // scanning the body against the alphanum-normalized known-merchants
-  // list. Caught in the wild: a Correos email about an Amazon shipment
-  // creating a "Correos" order with no total. With body-merchant
-  // recovery, the same email links to the user's Amazon order instead.
+  // carrier — useless for matching. We try TWO things in order:
+  //   1. CROSS-REFERENCE: search the inbox for the tracking number;
+  //      the originating order-confirmation email almost always
+  //      mentions it. THAT email's sender is the actual merchant.
+  //      This is the most reliable signal — a Correos email may
+  //      mention "Amazon" in body boilerplate even when the order
+  //      is from Nomos.
+  //   2. BODY RECOVERY: scan the carrier email's body against the
+  //      KNOWN_MERCHANTS list. Used when cross-reference returns
+  //      nothing (token throttled, search miss, etc.).
   let merchantName: string;
   const senderEmailLower = (email.senderEmail || sender).toLowerCase();
   if (senderIsCarrier(senderEmailLower)) {
-    // Carrier sender — don't trust the sender field; recover from body.
-    const bodyMerchant = inferMerchantNameFromBody(email.body);
-    merchantName = bodyMerchant ?? extractOrderFields(email.subject, email.body, sender, id).merchantName;
+    const xref = await findSourceMerchantFromTracking(fields.trackingNumber, id);
+    if (xref) {
+      merchantName = xref.merchant;
+      // Log to STDERR (not STDOUT) so the cli's JSON response on
+      // STDOUT stays parseable. console.info goes to stdout in Node.
+      console.error(`[orders-autopilot] cross-reference found merchant '${xref.merchant}' for tracking ${fields.trackingNumber} via email ${xref.sourceEmailId}`);
+    } else {
+      // Cross-reference miss — fall back to body recovery.
+      const bodyMerchant = inferMerchantNameFromBody(email.body);
+      merchantName = bodyMerchant ?? extractOrderFields(email.subject, email.body, sender, id).merchantName;
+    }
   } else {
     merchantName = extractOrderFields(email.subject, email.body, sender, id).merchantName;
   }
-  const normalizedMerchant = merchantName?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
+  const normalizedMerchant = merchantName ? normalizeMerchant(merchantName) : '';
 
   let orderId: string | null = null;
   if (normalizedMerchant) {
@@ -585,6 +600,61 @@ async function handleShippingNotification(
     detail: `Linked tracking ${fields.trackingNumber} to order`,
     confidence: baseConfidence,
   };
+}
+
+// ─── Tracking → originating-merchant cross-reference ──────────────────────
+
+/**
+ * Given a tracking number from a carrier email, search the inbox for
+ * OTHER emails (not the carrier email itself, not other carrier
+ * emails) that mention the same tracking number. The first
+ * non-carrier hit is almost always the merchant's order-confirmation
+ * email — the sender field of THAT email is the most reliable signal
+ * for which merchant the shipment actually belongs to.
+ *
+ * Returns null on:
+ *   - JMAP token unavailable / search call failed (best-effort)
+ *   - No non-carrier emails found mentioning the tracking number
+ *   - Candidates exist but none yield a usable merchant via the
+ *     known-list / cleanDisplayName paths
+ *
+ * Caught-in-the-wild motivating example: a Correos shipping email
+ * with body text mentioning "Amazon" was creating an Amazon shipment,
+ * but searching the inbox for the tracking number found a Nomos
+ * order-confirmation email — the actual merchant was Nomos. Without
+ * cross-reference we'd have silently mislabeled the merchant forever.
+ */
+async function findSourceMerchantFromTracking(
+  trackingNumber: string,
+  excludeEmailId: string,
+): Promise<{ merchant: string; sourceEmailId: string; source: 'known_domain' | 'sender_name' } | null> {
+  if (!trackingNumber || trackingNumber.length < 6) return null;
+  const candidates = await searchEmailsByText(trackingNumber, 8);
+
+  for (const c of candidates) {
+    if (c.id === excludeEmailId) continue;
+    if (senderIsCarrier(c.fromEmail)) continue;
+
+    // 1. Try the alphanum-normalized known-list match against the
+    //    sender's email + display name. Catches "Hardgraft", "Body&Fit",
+    //    "Matador" etc. — the merchants we already curate.
+    const senderJoined = `${c.fromEmail} ${c.fromName}`;
+    const known = inferMerchantNameFromBody(senderJoined);
+    if (known) {
+      return { merchant: known, sourceEmailId: c.id, source: 'known_domain' };
+    }
+
+    // 2. Fall back to the cleaned sender display name. Strips
+    //    "Customer Service" / "Support" / etc. suffixes. Returns a
+    //    plausible merchant name even when the merchant isn't on the
+    //    hardcoded list (e.g. Nomos, Aesop in the wild).
+    const cleaned = cleanDisplayName(c.fromName);
+    if (cleaned) {
+      return { merchant: cleaned, sourceEmailId: c.id, source: 'sender_name' };
+    }
+  }
+
+  return null;
 }
 
 // ─── Telemetry helper ──────────────────────────────────────────────────────
