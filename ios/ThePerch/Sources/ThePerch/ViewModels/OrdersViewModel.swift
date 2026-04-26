@@ -5,8 +5,13 @@ import Observation
 @MainActor
 final class OrdersViewModel {
     var orders: [OrderWithShipments] = []
+    var reviewItems: [ReviewItem] = []
     var isLoading = false
     var error: String?
+
+    /// Set of review-item ids currently being resolved (so the row can
+    /// show a spinner / disable buttons during the network roundtrip).
+    var resolvingReviewIds: Set<UUID> = []
 
     private let ordersService: OrdersService
 
@@ -24,9 +29,57 @@ final class OrdersViewModel {
         defer { isLoading = false }
 
         do {
-            orders = try await ordersService.fetchOrders(forceRefresh: forceRefresh)
+            // Fetch orders + review queue in parallel — the review
+            // section shows up at the bottom of the same screen, so
+            // there's no point blocking one on the other.
+            async let ordersTask = ordersService.fetchOrders(forceRefresh: forceRefresh)
+            async let reviewTask = ordersService.fetchUnresolvedReviewItems()
+            orders = try await ordersTask
+            // Review-queue fetch failures shouldn't kill the orders
+            // load — fall back to "no review items" silently.
+            do {
+                reviewItems = try await reviewTask
+            } catch {
+#if DEBUG
+                print("[OrdersViewModel] fetchUnresolvedReviewItems failed: \(error)")
+#endif
+                reviewItems = []
+            }
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+
+    // MARK: - Review queue actions
+
+    /// User tapped "Add as order" on a review-queue row. Creates the
+    /// order, writes the (sender → merchant) learned mapping, and
+    /// removes the row from the queue.
+    func confirmReviewItem(_ item: ReviewItem) async {
+        resolvingReviewIds.insert(item.id)
+        defer { resolvingReviewIds.remove(item.id) }
+        do {
+            _ = try await ordersService.confirmReviewItemAsOrder(item)
+            // Reload everything — the new order should appear in Active
+            // and the review item should drop off the queue.
+            await loadOrders(forceRefresh: true)
+        } catch {
+            self.error = "Couldn't add as order: \(error.localizedDescription)"
+        }
+    }
+
+    /// User tapped "Not an order" on a review-queue row. Just marks
+    /// the row resolved — no learned-senders write (deferred per spec).
+    func dismissReviewItem(_ item: ReviewItem) async {
+        resolvingReviewIds.insert(item.id)
+        defer { resolvingReviewIds.remove(item.id) }
+        do {
+            try await ordersService.dismissReviewItem(item)
+            // Optimistic local removal — avoids a full reload just to
+            // drop one row.
+            reviewItems.removeAll { $0.id == item.id }
+        } catch {
+            self.error = "Couldn't dismiss: \(error.localizedDescription)"
         }
     }
 

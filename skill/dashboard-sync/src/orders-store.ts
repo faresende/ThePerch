@@ -107,6 +107,18 @@ export interface ReviewItemRecord {
   resolved_at?: string | null;
   created_at?: string;
   updated_at?: string;
+
+  // Source-of-truth columns added 2026-04-26 so the iOS review queue
+  // can render rows and take action without parsing `reason` text.
+  // All optional — existing rows pre-migration have these as null.
+  source_email_id?: string | null;
+  source_subject?: string | null;
+  source_sender_email?: string | null;
+  source_sender_name?: string | null;
+  suggested_merchant?: string | null;
+  suggested_order_number?: string | null;
+  suggested_total_amount?: number | null;
+  suggested_currency?: string | null;
 }
 
 // ─── Order helpers ─────────────────────────────────────────────────────────

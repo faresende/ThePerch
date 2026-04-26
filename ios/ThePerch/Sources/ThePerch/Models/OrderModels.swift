@@ -116,6 +116,72 @@ struct Shipment: Identifiable, Codable, Sendable, Equatable {
     }
 }
 
+/// A row in `public.review_items` — an email the autopilot couldn't
+/// confidently classify (or a shipment it couldn't match to an order).
+/// Surfaced at the bottom of the Orders tab for the user to confirm or
+/// dismiss; resolution feeds the `learned_senders` table so future
+/// emails from the same sender skip the queue.
+struct ReviewItem: Identifiable, Codable, Sendable, Equatable {
+    let id: UUID
+    let userId: UUID
+    let type: String
+    let reason: String
+    let suggestedAction: String?
+    let confidenceScore: Double
+    let resolvedAt: Date?
+    let createdAt: Date
+
+    // Source-of-truth fields populated by orders-autopilot.ts when the
+    // review item is created. Older rows (pre-migration 20260426) have
+    // these as nil — UI falls back to the `reason` text in that case.
+    let sourceEmailId: String?
+    let sourceSubject: String?
+    let sourceSenderEmail: String?
+    let sourceSenderName: String?
+    let suggestedMerchant: String?
+    let suggestedOrderNumber: String?
+    let suggestedTotalAmount: Decimal?
+    let suggestedCurrency: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case type
+        case reason
+        case suggestedAction = "suggested_action"
+        case confidenceScore = "confidence_score"
+        case resolvedAt = "resolved_at"
+        case createdAt = "created_at"
+        case sourceEmailId = "source_email_id"
+        case sourceSubject = "source_subject"
+        case sourceSenderEmail = "source_sender_email"
+        case sourceSenderName = "source_sender_name"
+        case suggestedMerchant = "suggested_merchant"
+        case suggestedOrderNumber = "suggested_order_number"
+        case suggestedTotalAmount = "suggested_total_amount"
+        case suggestedCurrency = "suggested_currency"
+    }
+
+    /// Best-effort merchant label for list rendering. Prefers the
+    /// autopilot's structured guess; falls back to the From: display
+    /// name; falls back to the bare sender domain stem; "Unknown" only
+    /// when we have nothing.
+    var displayMerchant: String {
+        if let m = suggestedMerchant?.trimmingCharacters(in: .whitespacesAndNewlines), !m.isEmpty { return m }
+        if let n = sourceSenderName?.trimmingCharacters(in: .whitespacesAndNewlines), !n.isEmpty { return n }
+        if let s = sourceSenderEmail, let at = s.firstIndex(of: "@") {
+            let host = String(s[s.index(after: at)...])
+            let stem = host.split(separator: ".").first.map(String.init) ?? host
+            return stem.prefix(1).uppercased() + stem.dropFirst()
+        }
+        return "Unknown sender"
+    }
+
+    var displaySubject: String {
+        sourceSubject?.trimmingCharacters(in: .whitespacesAndNewlines) ?? reason
+    }
+}
+
 struct OrderWithShipments: Identifiable, Sendable, Equatable {
     let order: Order
     let shipments: [Shipment]

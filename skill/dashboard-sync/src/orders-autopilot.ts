@@ -185,6 +185,19 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
             reason: `Ambiguous classification (regex confidence ${confidence.toFixed(2)}${llm ? `, LLM said ${llm.is_purchase_confirmation ? 'purchase' : 'not purchase'} @ ${llm.confidence.toFixed(2)}` : ', LLM unreachable'}): "${subject.slice(0, 80)}" from ${senderEmail}`,
             suggested_action: 'Review manually — classifier unsure if this is an order',
             confidence_score: confidence,
+
+            // Structured fields the iOS review queue uses to render rows
+            // and pre-fill the "Confirm as order" form. The autopilot's
+            // best guesses (LLM-extracted if available, otherwise
+            // sender-display-name as a fallback merchant).
+            source_email_id: id,
+            source_subject: subject?.slice(0, 500) ?? null,
+            source_sender_email: senderEmail,
+            source_sender_name: senderName || null,
+            suggested_merchant: llm?.merchant_name ?? senderName ?? null,
+            suggested_order_number: llm?.order_number ?? null,
+            suggested_total_amount: typeof llm?.total_amount === 'number' ? llm.total_amount : null,
+            suggested_currency: llm?.currency ?? null,
           });
           telemetry.related_review_item_id = reviewId;
           await writeTelemetry(telemetry, 'created_review_item', `Queued for review (confidence ${confidence.toFixed(2)})`);
@@ -382,6 +395,12 @@ async function handleShippingNotification(
 
   if (!fields.trackingNumber) {
     // No tracking number found — create a review item instead
+    const reviewSenderEmail = (email.senderEmail
+      || (sender.match(/<([^>]+)>/)?.[1])
+      || sender).trim().toLowerCase();
+    const reviewSenderName = (email.senderName
+      || (sender.match(/^([^<]+)</)?.[1])
+      || '').trim();
     const reviewId = await createReviewItem({
       user_id: await getUserIdFromEmail(sender),
       type: 'orphan_shipment',
@@ -390,6 +409,10 @@ async function handleShippingNotification(
       reason: `Shipping notification email from ${sender} but no tracking number could be extracted`,
       suggested_action: 'Review the email and manually add tracking number if valid',
       confidence_score: baseConfidence * 0.5,
+      source_email_id: id,
+      source_subject: email.subject?.slice(0, 500) ?? null,
+      source_sender_email: reviewSenderEmail,
+      source_sender_name: reviewSenderName || null,
     });
 
     tel.related_review_item_id = reviewId;
@@ -446,6 +469,12 @@ async function handleShippingNotification(
 
   if (!orderId) {
     // Could not find matching order — create review item
+    const reviewSenderEmail = (email.senderEmail
+      || (sender.match(/<([^>]+)>/)?.[1])
+      || sender).trim().toLowerCase();
+    const reviewSenderName = (email.senderName
+      || (sender.match(/^([^<]+)</)?.[1])
+      || '').trim();
     const reviewId = await createReviewItem({
       user_id: userId,
       type: 'shipment_no_order',
@@ -454,6 +483,11 @@ async function handleShippingNotification(
       reason: `Shipment with tracking ${fields.trackingNumber} (${fields.carrier || 'unknown carrier'}) could not be matched to any order`,
       suggested_action: 'Link this shipment to the correct order or mark as standalone',
       confidence_score: baseConfidence * 0.6,
+      source_email_id: id,
+      source_subject: email.subject?.slice(0, 500) ?? null,
+      source_sender_email: reviewSenderEmail,
+      source_sender_name: reviewSenderName || null,
+      suggested_merchant: merchantName,
     });
 
     tel.related_review_item_id = reviewId;

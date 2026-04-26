@@ -1,11 +1,67 @@
 # Order Review Queue UI — Design
 
-**Date:** 2026-04-24
-**Status:** Spec only. Implementation deferred to a focused next session.
+**Date:** 2026-04-24 (initial), revised 2026-04-26
+**Status:** v1 implemented at the bottom of the Orders tab. Settings sub-screen + inline edit form deferred to a follow-up.
 **Related work:**
 - `2026-04-21-orders-pipeline-hardening-design.md` — the underlying autopilot pipeline.
 - `supabase/migrations/20260424000000_learned_senders.sql` — the table this UI writes to.
-- `skill/dashboard-sync/src/learned-senders.ts` — the read/write helpers the iOS layer will call indirectly through the autopilot.
+- `supabase/migrations/20260426000001_review_items_source_columns.sql` — adds the source_email_id / suggested_* columns the UI reads.
+- `skill/dashboard-sync/src/learned-senders.ts` — the read/write helpers the iOS layer calls indirectly through `OrdersService.confirmReviewItemAsOrder`.
+
+## 2026-04-26 revision — moved from Settings to the bottom of the Orders tab
+
+The original spec (below) put the queue under Settings → Order Autopilot. After implementing the underlying pieces (telemetry, multilingual, fixture tests), the user pushed back on placement: the queue **is** part of the orders mental model, and burying it in Settings means it gets ignored. Revised placement:
+
+```
+Orders tab
+├── Active (N)          [existing]
+├── Issues (M)          [existing — hidden when empty]
+├── Delivered (K)       [existing — collapsed by default]
+└── Needs review (R)    [NEW — hidden when empty]
+    └── inline rows with [Add as order] [Not an order] buttons
+```
+
+The full per-row inline edit form (with editable Merchant / Order # / Total fields, undo toast, "Confirm & Teach" wording) from the original spec is deferred. v1 ships with the simpler two-button row described under the new "Implemented v1" section.
+
+**Settings → Order Autopilot is deferred.** When it lands, it will host only the inverse list ("Taught senders" management — revoking learned mappings).
+
+---
+
+## Implemented v1 (2026-04-26)
+
+The minimum surface that lets the user resolve queue items without leaving the Orders tab.
+
+### Row layout
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ ⚡ AMERICAN EXPRESS                            2h ago   │
+│ FABIO, review details for your upcoming trip            │
+│ americanexpress@welcome.americanexpress.com             │
+│                                                         │
+│                  [Not an order]   [✓ Add as order]      │
+└─────────────────────────────────────────────────────────┘
+```
+
+- **Kicker** = `displayMerchant` from `ReviewItem` (suggested_merchant ?? sender_name ?? domain stem).
+- **Subject** = `displaySubject` (source_subject if present, otherwise the autopilot's free-form `reason`).
+- **Sender email** = `source_sender_email` when present, hidden otherwise.
+- **Add as order** (kinetic-tinted): calls `OrdersService.confirmReviewItemAsOrder` → INSERTs an order using `suggested_merchant` / `suggested_order_number` / `suggested_total_amount` / `suggested_currency` (autopilot's best guesses, prefilled from the LLM verdict when one was made), upserts a `learned_senders` row, then resolves the review item.
+- **Not an order** (muted pill): just calls `dismissReviewItem` → marks `resolved_at = now()`. No `learned_senders` write in v1.
+- **Resolution UX**: a `ProgressView` replaces both buttons while the network roundtrip is in flight; on completion the row drops out of the list (optimistic local removal for dismiss; full reload for confirm so the new order appears in Active).
+
+### What v1 deliberately doesn't do
+
+- No inline editing of merchant / order # / total — if the autopilot's guesses are wrong, the user has to confirm the order and edit it in the orders tab afterwards (and we don't yet have an order-edit UI either, so realistically: live with the autopilot's best guess for now).
+- No undo toast — once resolved, it's resolved. The autopilot's next email from that sender will be auto-classified via the `learned_senders` row, so a misclick on "Add as order" creates one stub order that's easy to delete.
+- No "Taught senders" reverse list yet.
+- No badge on the tab bar / no notification when N grows.
+
+These are the v2 additions the original spec covers; they land when v1 has surfaced enough usage to know which of them actually matter.
+
+---
+
+## Original spec (2026-04-24) — preserved below for reference
 
 ## Context
 

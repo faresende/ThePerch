@@ -106,9 +106,165 @@ struct OrdersView: View {
                     onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
                     onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
                 )
+
+                // Bottom-of-tab review queue — emails the autopilot
+                // couldn't classify with confidence (Tier 2 LLM said
+                // "not purchase" or was uncertain). Hidden when empty.
+                // Each row has inline Confirm / Dismiss buttons that
+                // teach the system via `learned_senders`.
+                if !viewModel.reviewItems.isEmpty {
+                    ReviewQueueSection(
+                        items: viewModel.reviewItems,
+                        resolvingIds: viewModel.resolvingReviewIds,
+                        onConfirm: { item in Task { await viewModel.confirmReviewItem(item) } },
+                        onDismiss: { item in Task { await viewModel.dismissReviewItem(item) } }
+                    )
+                }
             }
             .padding(.horizontal, PerchTheme.Spacing.large)
         }
+    }
+}
+
+// MARK: - Review Queue Section
+
+/// Section at the bottom of the Orders tab listing emails the autopilot
+/// couldn't classify with confidence. Each row shows the email subject,
+/// sender, and inline Confirm / Dismiss buttons. Resolution writes to
+/// `learned_senders` so future emails from the same sender skip the
+/// queue (see autopilot Tier-3 design doc).
+struct ReviewQueueSection: View {
+    @Environment(\.perchPalette) private var palette
+
+    let items: [ReviewItem]
+    let resolvingIds: Set<UUID>
+    let onConfirm: (ReviewItem) -> Void
+    let onDismiss: (ReviewItem) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
+            OrdersSectionHeader(
+                title: "Needs review",
+                subtitle: "Ambiguous emails the autopilot couldn't confidently classify. Confirm or dismiss to teach the system.",
+                icon: "questionmark.circle.fill",
+                tint: palette.kinetic,
+                count: items.count
+            )
+
+            VStack(spacing: PerchTheme.Spacing.small) {
+                ForEach(items) { item in
+                    ReviewQueueRow(
+                        item: item,
+                        isResolving: resolvingIds.contains(item.id),
+                        onConfirm: { onConfirm(item) },
+                        onDismiss: { onDismiss(item) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct ReviewQueueRow: View {
+    @Environment(\.perchPalette) private var palette
+
+    let item: ReviewItem
+    let isResolving: Bool
+    let onConfirm: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
+            // Top: merchant guess (kicker-style) on the left, freshness
+            // on the right.
+            HStack(alignment: .firstTextBaseline) {
+                Text(item.displayMerchant)
+                    .font(.system(size: 13, weight: .semibold))
+                    .tracking(0.6)
+                    .textCase(.uppercase)
+                    .foregroundColor(palette.muted)
+                    .lineLimit(1)
+                Spacer(minLength: PerchTheme.Spacing.small)
+                Text(relativeTime)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(palette.faint)
+            }
+
+            // Middle: subject (the most useful preview a user can scan).
+            Text(item.displaySubject)
+                .font(.system(size: 15, weight: .regular, design: .serif).italic())
+                .foregroundColor(palette.ink)
+                .lineLimit(2)
+
+            // Sender email small + muted, only when available.
+            if let s = item.sourceSenderEmail, !s.isEmpty {
+                Text(s)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(palette.faint)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            // Bottom: action row. Spinner replaces both buttons while
+            // a resolution is in flight.
+            HStack(spacing: PerchTheme.Spacing.small) {
+                Spacer()
+                if isResolving {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .tint(palette.kinetic)
+                } else {
+                    Button(action: onDismiss) {
+                        Text("Not an order")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(palette.muted)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(palette.line.opacity(0.55))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Dismiss \(item.displayMerchant)")
+
+                    Button(action: onConfirm) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("Add as order")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(palette.kinetic)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Add \(item.displayMerchant) as order")
+                }
+            }
+            .padding(.top, PerchTheme.Spacing.xxxSmall)
+        }
+        .padding(PerchTheme.Card.padding)
+        .background(
+            RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
+                .fill(palette.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
+                .stroke(palette.line.opacity(0.6), lineWidth: 1)
+        )
+    }
+
+    private var relativeTime: String {
+        let interval = Date.now.timeIntervalSince(item.createdAt)
+        let minutes = Int(interval / 60)
+        if minutes < 1 { return "just now" }
+        if minutes < 60 { return "\(minutes)m ago" }
+        let hours = minutes / 60
+        if hours < 24 { return "\(hours)h ago" }
+        let days = hours / 24
+        return "\(days)d ago"
     }
 }
 

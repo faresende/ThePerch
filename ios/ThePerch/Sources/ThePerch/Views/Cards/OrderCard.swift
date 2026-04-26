@@ -129,19 +129,23 @@ struct OrderCard: View {
                 )
 
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
-                // Merchant alone is the heading. The "Order #X" caption line
-                // we used to render between the merchant and total was
-                // visually noisy and redundant with the order number that
-                // shows up in the shipment row + accessibility summary.
-                // Card now reads as: merchant → total → status, top-down.
+                // Linen-spec hierarchy: merchant is the editorial hero
+                // (large serif italic, ink-colored), total sits quietly
+                // underneath in a small muted mono. Color carries weight,
+                // so the previous kinetic-orange total visually
+                // dominated the dark-ink merchant heading even though
+                // the merchant was technically the bigger font; flipping
+                // the colors + bumping the size puts the merchant first.
                 Text(model.order.merchant)
-                    .font(PerchTheme.Font.heading)
+                    .font(.system(size: 22, weight: .semibold, design: .serif).italic())
                     .foregroundColor(palette.ink)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .allowsTightening(true)
 
                 Text(totalText)
-                    .font(PerchTheme.Font.bodyNumeric)
-                    .foregroundColor(palette.kinetic)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundColor(palette.muted)
             }
 
             Spacer(minLength: 0)
