@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// A single row in the review queue — a `review_items` record the
 /// autopilot wasn't confident about. Used by both the Hub's inline
@@ -160,11 +161,20 @@ struct ReviewItemCard: View {
                 }
             }
 
-            // Source email deep-link — Fastmail web URL
+            // Source email deep-link — try the Fastmail iOS app first
+            // via Universal Links; fall back to Safari only when the
+            // app isn't installed / doesn't claim the URL. (SwiftUI's
+            // Link respects Universal Links in theory but iOS sometimes
+            // routes to Safari anyway depending on activation context.
+            // Going through UIApplication.open with
+            // universalLinksOnly: true forces the system to try the app
+            // first and ONLY fall back to the browser on a clean miss.)
             if let eid = item.sourceEmailId,
                !eid.isEmpty,
                let url = fastmailURL(for: eid) {
-                Link(destination: url) {
+                Button {
+                    openInFastmail(url)
+                } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "envelope")
                             .font(.system(size: 11, weight: .medium))
@@ -175,6 +185,7 @@ struct ReviewItemCard: View {
                     }
                     .foregroundStyle(palette.kinetic)
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -202,7 +213,27 @@ struct ReviewItemCard: View {
     private func fastmailURL(for emailId: String) -> URL? {
         // Fastmail's web inbox accepts JMAP email IDs prefixed with
         // a dot. Tested against `https://app.fastmail.com/mail/Inbox/.<id>`.
+        // The same URL is registered as a Universal Link by the
+        // Fastmail iOS app, so opening it via UIApplication with
+        // `.universalLinksOnly: true` deep-links into the app when
+        // installed (instead of Safari).
         URL(string: "https://app.fastmail.com/mail/Inbox/.\(emailId)")
+    }
+
+    /// Open a Fastmail web URL preferring the iOS app via Universal
+    /// Links. Falls back to the system browser when the app isn't
+    /// installed or doesn't claim the URL. Has-to-await behaviour is
+    /// the same either way; user just sees Safari open instead of
+    /// the app on the fallback path.
+    private func openInFastmail(_ url: URL) {
+        UIApplication.shared.open(url, options: [.universalLinksOnly: true]) { opened in
+            if !opened {
+                // App not installed / didn't claim → open in browser.
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(url)
+                }
+            }
+        }
     }
 
     private func formatCurrency(_ amount: Decimal, code: String) -> String {
