@@ -8,20 +8,40 @@
 
 import { ShipmentStatus } from './orders-store';
 
-const BASE_URL = 'https://api.17track.net';
+// 17track renamed the API root from /v2 to /track/v2 (and current v2.2).
+// Override via SEVENTEEN_TRACK_BASE_URL if 17track changes it again.
+const BASE_URL = process.env.SEVENTEEN_TRACK_BASE_URL || 'https://api.17track.net/track/v2.2';
 
-// 17track status code mapping → our ShipmentStatus
-const STATUS_MAP: Record<number, ShipmentStatus> = {
-  0:  'unknown',       // Not found / no info
-  10: 'label_created', // Label created
-  20: 'in_transit',    // In transit
-  30: 'in_transit',    // Arrived at carrier facility
-  40: 'in_transit',    // Departed from carrier facility
-  50: 'out_for_delivery', // Out for delivery
-  60: 'delivered',     // Delivered
-  70: 'exception',      // Exception / Failed delivery
-  80: 'exception',      // Returned
-  90: 'exception',      // Discarded
+// 17track v2.2 status mapping. The API now returns a string status in
+// latest_status.status (not a numeric code). Values observed in the wild:
+//   NotFound, InfoReceived, InTransit, Expired, AvailableForPickup,
+//   OutForDelivery, DeliveryFailure, Delivered, Exception, NotFoundAfter10Days
+const STATUS_MAP: Record<string, ShipmentStatus> = {
+  NotFound: 'unknown',
+  InfoReceived: 'label_created',
+  InTransit: 'in_transit',
+  Expired: 'exception',
+  AvailableForPickup: 'out_for_delivery',
+  OutForDelivery: 'out_for_delivery',
+  DeliveryFailure: 'exception',
+  Delivered: 'delivered',
+  Exception: 'exception',
+  NotFoundAfter10Days: 'unknown',
+};
+
+// Legacy numeric-code map, kept so older callers (or legacy responses via
+// SEVENTEEN_TRACK_BASE_URL override) still work if we ever hit them.
+const LEGACY_CODE_MAP: Record<number, ShipmentStatus> = {
+  0:  'unknown',
+  10: 'label_created',
+  20: 'in_transit',
+  30: 'in_transit',
+  40: 'in_transit',
+  50: 'out_for_delivery',
+  60: 'delivered',
+  70: 'exception',
+  80: 'exception',
+  90: 'exception',
 };
 
 export interface TrackerEvent {
@@ -41,15 +61,24 @@ export interface TrackerResponse {
 }
 
 /**
- * Normalize 17track status code to our ShipmentStatus.
+ * Normalize 17track status (string or legacy numeric) to our ShipmentStatus.
  */
-function normalizeStatus(code: number): ShipmentStatus {
-  return STATUS_MAP[code] ?? 'unknown';
+function normalizeStatus(raw: string | number | undefined): ShipmentStatus {
+  if (raw === undefined || raw === null) return 'unknown';
+  if (typeof raw === 'number') return LEGACY_CODE_MAP[raw] ?? 'unknown';
+  return STATUS_MAP[raw] ?? 'unknown';
 }
 
 /**
- * Register tracking numbers with 17track.
- * Must be done before polling.
+ * Register tracking numbers with 17track v2.2.
+ *
+ * Endpoint: POST {BASE_URL}/register
+ * Body: bare JSON array — [{number, carrier?}, ...]
+ * Response: { code: 0, data: { accepted: [...], rejected: [{number, error: {code, message}}] } }
+ *
+ * 17track quietly accepts already-registered numbers (returns them under
+ * `rejected` with a "number already exists" error). This function treats
+ * that as success.
  */
 export async function registerTrackingNumbers(
   apiKey: string,
@@ -57,18 +86,18 @@ export async function registerTrackingNumbers(
 ): Promise<void> {
   if (trackingNumbers.length === 0) return;
 
-  const response = await fetch(`${BASE_URL}/v2/register`, {
+  const response = await fetch(`${BASE_URL}/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       '17token': apiKey,
     },
-    body: JSON.stringify({
-      data: trackingNumbers.map(t => ({
+    body: JSON.stringify(
+      trackingNumbers.map(t => ({
         number: t.number,
-        carrier: t.carrier || 'unknown',
+        ...(t.carrier ? { carrier: t.carrier } : {}),
       })),
-    }),
+    ),
   });
 
   if (!response.ok) {
@@ -78,8 +107,27 @@ export async function registerTrackingNumbers(
 }
 
 /**
- * Poll 17track for multiple tracking numbers.
- * Returns enriched tracker data.
+ * Poll 17track v2.2 for multiple tracking numbers.
+ *
+ * Endpoint: POST {BASE_URL}/gettrackinfo
+ * Body: bare JSON array — [{number, carrier?}, ...]
+ * Response shape (v2.2):
+ *   {
+ *     code: 0,
+ *     data: {
+ *       accepted: [{
+ *         number,
+ *         track_info: {
+ *           latest_status: { status, sub_status? },
+ *           latest_event: { time_iso, description?, location? },
+ *           time_metrics: { estimated_delivery_date? },
+ *           shipping_info: { shipper_address?, recipient_address? },
+ *           tracking: { providers: [{ provider: { name } }] }
+ *         }
+ *       }],
+ *       rejected: [...]
+ *     }
+ *   }
  */
 export async function pollTrackingNumbers(
   apiKey: string,
@@ -87,17 +135,13 @@ export async function pollTrackingNumbers(
 ): Promise<TrackerResponse[]> {
   if (trackingNumbers.length === 0) return [];
 
-  const response = await fetch(`${BASE_URL}/v2/getTrackings`, {
+  const response = await fetch(`${BASE_URL}/gettrackinfo`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       '17token': apiKey,
     },
-    body: JSON.stringify({
-      data: trackingNumbers.map(number => ({ number })),
-      page: 1,
-      pageSize: trackingNumbers.length,
-    }),
+    body: JSON.stringify(trackingNumbers.map(number => ({ number }))),
   });
 
   if (!response.ok) {
@@ -106,51 +150,58 @@ export async function pollTrackingNumbers(
   }
 
   const json = await response.json() as {
-    data?: Array<{
-      number: string;
-      carrier?: string;
-      status?: number;
-      lastEvent?: string;
-      lastLocation?: string;
-      firstEvent?: string;
-      firstLocation?: string;
-      acceptLanguage?: string;
-    }>;
+    code?: number;
+    message?: string;
+    data?: {
+      accepted?: Array<{
+        number: string;
+        track_info?: {
+          latest_status?: { status?: string; sub_status?: string };
+          latest_event?: { time_iso?: string; description?: string; location?: string };
+          time_metrics?: { estimated_delivery_date?: string };
+          tracking?: {
+            providers?: Array<{ provider?: { name?: string } }>;
+          };
+        };
+      }>;
+      rejected?: Array<{ number: string; error?: { code: number; message: string } }>;
+    };
+    // Legacy v2 error shape retained for back-compat.
     errno?: number;
     errmsg?: string;
   };
 
+  // v2.2 top-level code: 0 = ok, anything else = overall failure.
+  if (typeof json.code === 'number' && json.code !== 0 && json.code !== -2) {
+    throw new Error(`17track API error ${json.code}: ${json.message ?? 'no message'}`);
+  }
   if (json.errno) {
     throw new Error(`17track API error ${json.errno}: ${json.errmsg}`);
   }
 
   const results: TrackerResponse[] = [];
 
-  for (const item of json.data || []) {
-    const statusCode = item.status ?? 0;
-    const normalizedStatus = normalizeStatus(statusCode);
+  for (const item of json.data?.accepted ?? []) {
+    const info = item.track_info ?? {};
+    const status = normalizeStatus(info.latest_status?.status);
+    const ev = info.latest_event ?? {};
 
-    // Build latest checkpoint from last event
-    const latestCheckpoint = item.lastEvent
-      ? `${item.lastLocation ? `${item.lastLocation} — ` : ''}${item.lastEvent}`
+    const latestCheckpoint = ev.description
+      ? `${ev.location ? `${ev.location} — ` : ''}${ev.description}`
       : null;
 
-    // shipped_at from first event (earliest meaningful event)
-    let shippedAt: string | null = null;
-    if (item.firstEvent && item.firstLocation && statusCode >= 10) {
-      // First event after label creation is effectively when it shipped
-      shippedAt = item.firstEvent;
-    }
+    const deliveredAt = status === 'delivered'
+      ? (ev.time_iso || new Date().toISOString())
+      : null;
 
-    // delivered_at
-    const deliveredAt = normalizedStatus === 'delivered' ? (item.lastEvent || new Date().toISOString()) : null;
+    const carrier = info.tracking?.providers?.[0]?.provider?.name ?? 'unknown';
 
     results.push({
       tracking_number: item.number,
-      status: normalizedStatus,
-      carrier: item.carrier || 'unknown',
+      status,
+      carrier,
       latest_checkpoint: latestCheckpoint,
-      shipped_at: shippedAt,
+      shipped_at: null, // v2.2 doesn't expose a 'shipped_at' event directly
       delivered_at: deliveredAt,
       events: [],
     });

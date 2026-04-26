@@ -39,12 +39,35 @@ function isNonGoodsSender(senderEmail: string): boolean {
 }
 
 /**
+ * Optional metadata the listener can pass alongside subject/body/sender.
+ * `senderName` comes from the `From:` display name and is the cleanest
+ * source of merchant identity. `folders` is the list of mailbox / label
+ * names — used as a soft signal (e.g. "Paper Trail" tilts toward
+ * purchase, "Newsletters" away from it).
+ *
+ * `hasLearnedSender` — pre-fetched flag from the `learned_senders` table.
+ * The orders-autopilot looks up the sender BEFORE calling classifyEmail
+ * and passes true here when a row matches. A learned sender is one the
+ * user has explicitly resolved in the iOS review queue; future emails
+ * from the same address only need a moderate purchase signal (instead
+ * of the normal 0.8 threshold) to be classified as purchase. This lets
+ * the system pick up obvious-but-non-keyword purchase emails without
+ * requeueing the same merchant.
+ */
+export interface ClassifyMeta {
+  senderName?: string;
+  folders?: string[];
+  hasLearnedSender?: boolean;
+}
+
+/**
  * Classifies an email body as purchase or shipping type.
  */
 export function classifyEmail(
   subject: string,
   body: string,
   senderEmail: string,
+  meta: ClassifyMeta = {},
 ): { type: EmailType; confidence: number } {
   if (isNonGoodsSender(senderEmail)) {
     return { type: 'other', confidence: 1 };
@@ -63,6 +86,38 @@ export function classifyEmail(
 
   const text = `${subject} ${body}`.toLowerCase();
   const signals = analyzeSignals(text, lowerSender);
+
+  // Folder soft-signal: emails routed to a "receipts" / "paper trail" /
+  // "shopping" folder by the user's mail rules are very likely to be
+  // commerce. A user-defined sort is a stronger signal than any keyword.
+  // Tilts but doesn't gate (false positives still need to clear keyword
+  // threshold). Accent-insensitive substring match.
+  const folderHints = (meta.folders ?? []).map(f => f.toLowerCase());
+  const inCommerceFolder = folderHints.some(f =>
+    /paper.?trail|receipts?|shopping|orders?|purchases?|invoices?/i.test(f),
+  );
+  if (inCommerceFolder) {
+    signals.purchaseScore += 0.5;
+    signals.isPurchase = signals.purchaseScore >= 0.8;
+    signals.matchedKeywords.push('folder:commerce');
+  }
+  // Newsletters folder = strong negative signal.
+  if (folderHints.some(f => /newsletter|promo|marketing/i.test(f))) {
+    signals.purchaseScore = Math.max(0, signals.purchaseScore - 0.4);
+    signals.isPurchase = signals.purchaseScore >= 0.8;
+  }
+
+  // Learned-sender boost: if the user has previously resolved a review
+  // item for this sender, a moderate purchase signal is enough to
+  // classify as purchase. We don't unconditionally call it commerce
+  // (newsletters from a known merchant should still skip), but we lower
+  // the gate so weird-phrasing order emails ("Final reminder", "Payment
+  // received for #X") still land in orders. Threshold is 0.4 so at
+  // least one real purchase keyword has to fire.
+  if (meta.hasLearnedSender && signals.purchaseScore >= 0.4) {
+    signals.isPurchase = true;
+    signals.matchedKeywords.push('learned_sender');
+  }
 
   if (signals.isPurchase && signals.isShipping) {
     // Both signals — compare RAW summed scores so ties are rare. Order
@@ -246,14 +301,22 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
 
 /**
  * Extracts order fields from a purchase confirmation email.
+ *
+ * `learnedMerchantName` is an optional pre-resolved merchant name from
+ * the `learned_senders` table (Tier 3). When provided, it wins over
+ * every other inference path — the user explicitly taught us this
+ * mapping, so we never second-guess it.
  */
 export function extractOrderFields(
   subject: string,
   body: string,
   senderEmail: string,
   emailId: string,
+  displayName?: string,
+  learnedMerchantName?: string,
 ): {
   merchantName: string;
+  merchantSource: MerchantSource;
   normalizedMerchant: string;
   orderNumber: string | null;
   orderDate: Date | null;
@@ -263,9 +326,13 @@ export function extractOrderFields(
 } {
   const signals = analyzeSignals(`${subject} ${body}`.toLowerCase(), senderEmail.toLowerCase());
 
-  // Extract merchant name from sender
-  const senderDomain = senderEmail.split('@')[1]?.replace(/^www\./, '').split('.')[0] || 'Unknown';
-  const merchantName = inferMerchantName(senderEmail, subject, body) || senderDomain;
+  // Merchant resolution. Source is exposed so the caller can decide
+  // whether to invoke an LLM second-pass (only worth it for the weak
+  // `domainStem` last-resort branch).
+  const inferred = inferMerchantNameInner(senderEmail, subject, body, displayName, learnedMerchantName);
+  const merchantName = inferred.name
+    || prettifyDomain(senderEmail.split('@')[1]?.replace(/^www\./, '').split('.')[0] || 'Unknown');
+  const merchantSource = inferred.source ?? 'domainStem';
 
   // Extract order number
   const orderNumber = extractOrderNumber(subject, body);
@@ -278,6 +345,7 @@ export function extractOrderFields(
 
   return {
     merchantName,
+    merchantSource,
     normalizedMerchant: normalizeMerchant(merchantName),
     orderNumber,
     orderDate,
@@ -333,7 +401,128 @@ export function extractShipmentFields(
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function inferMerchantName(sender: string, subject: string, body: string): string | null {
+/**
+ * Strip generic suffixes from a display name to recover the merchant.
+ *   "Body&Fit Customer Service" -> "Body&Fit"
+ *   "Hardgraft Members Club" -> "Hardgraft"
+ *   "Apple Receipts" -> "Apple"
+ *   "Vulkit Support" -> "Vulkit"
+ * Returns null if the cleaned name is empty or generic-only.
+ */
+function cleanDisplayName(name: string): string | null {
+  if (!name) return null;
+  // Strip parens / quotes wrapping
+  let s = name.replace(/["“”']/g, '').trim();
+  // Strip trailing email-suffix-style noise: "[via Shopify]", "(do not reply)"
+  s = s.replace(/\s*\[[^\]]*\]\s*$/g, '').replace(/\s*\([^)]*\)\s*$/g, '').trim();
+
+  // Strip generic role suffixes (case-insensitive). Keep removing until
+  // none match — "Body&Fit Customer Service Team" should drop both.
+  const suffixes = [
+    'customer service', 'customer care', 'customer support',
+    'support team', 'support', 'sales team', 'sales',
+    'orders', 'order team', 'order desk',
+    'shop', 'store', 'shipping', 'shipping team',
+    'newsletter', 'marketing', 'team', 'members club',
+    'receipts', 'receipt', 'help', 'noreply', 'no reply',
+    'no-reply', 'do not reply', 'donotreply',
+    'autoreply', 'mailer', 'notifications?', 'updates?',
+  ];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const suffix of suffixes) {
+      const re = new RegExp(`[\\s,\\-—|]+${suffix}\\s*$`, 'i');
+      if (re.test(s)) {
+        s = s.replace(re, '').trim();
+        changed = true;
+      }
+    }
+  }
+
+  // Reject pure-generic results. If the name is just "noreply" / "team"
+  // / "do not reply" itself we can't trust it.
+  const lower = s.toLowerCase();
+  const genericOnly = new Set([
+    '', 'noreply', 'no reply', 'no-reply', 'donotreply', 'do not reply',
+    'team', 'support', 'orders', 'order', 'sales', 'shop', 'store',
+    'newsletter', 'mailer', 'autoreply', 'notification', 'notifications',
+  ]);
+  if (genericOnly.has(lower)) return null;
+  return s;
+}
+
+/**
+ * Pretty-print a domain stem into a plausible merchant name when no
+ * better source is available. Heuristic — not always right, but better
+ * than the bare lowercase domain.
+ *   "bodyandfit" -> "Body & Fit"
+ *   "mrporter"   -> "MR PORTER" (special-cased common pattern)
+ *   "apple"      -> "Apple"
+ *   "jacquesmariemage" -> "Jacquesmariemage" (untouched — too dense)
+ */
+function prettifyDomain(stem: string): string {
+  if (!stem) return stem;
+  let s = stem.toLowerCase();
+  // Common compound separators: "and", "the", "of", "for". Insert spaces.
+  s = s.replace(/(.)(and|the|of|for)(.)/gi, '$1 $2 $3');
+  // Title-case each word.
+  s = s.replace(/(^|\s)(\w)/g, (_m, sp, c) => sp + c.toUpperCase());
+  // "& and" → "&"; "And" between two words → "&" (visual cleanliness)
+  s = s.replace(/\bAnd\b/g, '&');
+  return s;
+}
+
+/**
+ * Source of the merchant name. Used by callers to decide whether to
+ * trust the regex result or invoke an LLM second pass.
+ *   `learnedSender` — user resolved a review_item with this sender→merchant
+ *                     mapping. Highest-trust source — never overridden.
+ *   `known`        — sender matched the hardcoded known-merchants list.
+ *                    Trustworthy.
+ *   `displayName`  — pulled from the From: header display name.
+ *                    Trustworthy.
+ *   `shopifyBody`  — Shopify-routed sender; recovered from body.
+ *                    Trustworthy when matched.
+ *   `subject`      — extracted from subject heuristic. OK.
+ *   `domainStem`   — last-resort prettify of the sender domain.
+ *                    Weakest — LLM can override.
+ *   `null`         — couldn't infer.
+ */
+export type MerchantSource =
+  | 'learnedSender'
+  | 'known'
+  | 'displayName'
+  | 'shopifyBody'
+  | 'subject'
+  | 'domainStem'
+  | null;
+
+export function inferMerchantNameWithSource(
+  sender: string,
+  subject: string,
+  body: string,
+  displayName?: string,
+  learnedMerchantName?: string,
+): { name: string | null; source: MerchantSource } {
+  const result = inferMerchantNameInner(sender, subject, body, displayName, learnedMerchantName);
+  return result;
+}
+
+function inferMerchantNameInner(
+  sender: string,
+  subject: string,
+  body: string,
+  displayName?: string,
+  learnedMerchantName?: string,
+): { name: string | null; source: MerchantSource } {
+  // -1. Learned-sender table wins over everything else. The user has
+  //     explicitly resolved a review item with this mapping; we never
+  //     override it with hardcoded lists, display names, body recovery,
+  //     or LLM output.
+  if (learnedMerchantName && learnedMerchantName.trim()) {
+    return { name: learnedMerchantName.trim(), source: 'learnedSender' };
+  }
   const known: Record<string, string> = {
     'amazon': 'Amazon',
     'amazon.com': 'Amazon',
@@ -371,37 +560,38 @@ function inferMerchantName(sender: string, subject: string, body: string): strin
   };
 
   const lower = sender.toLowerCase();
+
+  // 0. Known-merchant boost wins outright when sender matches.
   for (const [domain, name] of Object.entries(known)) {
-    if (lower.includes(domain)) return name;
+    if (lower.includes(domain)) return { name, source: 'known' };
   }
 
-  // Shopify-routed senders (`store+xyz@t.shopifyemail.com`) hide the real
-  // merchant from the sender field. Recover from the body in 3 ways
-  // (cheapest to most heuristic):
+  // 1. Display name from the From: header is usually the cleanest source.
+  //    Strip generic suffixes ("Customer Service", "Team", etc).
+  if (displayName) {
+    const cleaned = cleanDisplayName(displayName);
+    if (cleaned) return { name: cleaned, source: 'displayName' };
+  }
+
+  // 2. Shopify-routed senders (`store+xyz@t.shopifyemail.com`) hide the
+  //    real merchant from the sender field. Recover from the body in 3
+  //    ways (cheapest to most heuristic):
   if (lower.includes('shopifyemail')) {
-    // 1. Look for any known merchant domain in body URLs (most reliable —
-    //    Shopify confirmation emails always include `<merchant>.com/orders/`
-    //    or `<merchant>.eu/...` links).
     for (const [domain, name] of Object.entries(known)) {
-      if (body.toLowerCase().includes(domain)) return name;
+      if (body.toLowerCase().includes(domain)) return { name, source: 'known' };
     }
-    // 2. First non-trivial capitalized phrase after "Thank you for your
-    //    purchase" or "from ". Catches "Matador Equipment EU".
     const phraseMatch = body.match(
       /(?:thank you for your (?:purchase|order)!?\s*\*+\s*\n*\s*|from\s+)([A-Z][A-Za-z0-9][A-Za-z0-9 &.'-]{2,30})/,
     );
-    if (phraseMatch) return phraseMatch[1].trim();
-    // 3. <title>...</title> if HTML body, stripping any "Order #X — " prefix.
+    if (phraseMatch) return { name: phraseMatch[1].trim(), source: 'shopifyBody' };
     const headerMatch = body.match(/<title>([^<]+)<\/title>/i);
     if (headerMatch) {
       const cleaned = headerMatch[1].replace(/^order\s+#?\S+\s*[\-:|]\s*/i, '').trim();
-      if (cleaned && !/^order/i.test(cleaned)) return cleaned;
+      if (cleaned && !/^order/i.test(cleaned)) return { name: cleaned, source: 'shopifyBody' };
     }
   }
 
-  // Reject "subject extraction" when the leading word is a generic
-  // possessive or order keyword — better to fall through to the sender
-  // domain than save a junk name like "Your" or "Order".
+  // 3. Subject extraction (rejecting junk leads).
   const subjectMatch = subject.match(/^([A-Za-z][A-Za-z\s&'-]+?)\s/);
   if (subjectMatch) {
     const candidate = subjectMatch[1].trim();
@@ -410,10 +600,21 @@ function inferMerchantName(sender: string, subject: string, body: string): strin
       'your', 'order', 'thank', 'thanks', 'we', 'a', 'the', 'hi', 'hello',
       'welcome', 'confirmation', 'receipt', 'payment',
     ]);
-    if (!junkLeads.has(lowerCand)) return candidate;
+    if (!junkLeads.has(lowerCand)) return { name: candidate, source: 'subject' };
   }
 
-  return null;
+  // 4. Last resort: pretty-print the sender domain stem.
+  const domainStem = sender.split('@')[1]?.replace(/^www\./, '').split('.')[0];
+  if (domainStem && domainStem.length > 1) {
+    return { name: prettifyDomain(domainStem), source: 'domainStem' };
+  }
+
+  return { name: null, source: null };
+}
+
+/** Backward-compat wrapper: returns just the name. */
+function inferMerchantName(sender: string, subject: string, body: string, displayName?: string): string | null {
+  return inferMerchantNameInner(sender, subject, body, displayName).name;
 }
 
 function normalizeMerchant(name: string): string {

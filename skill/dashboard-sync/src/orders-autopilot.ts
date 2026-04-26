@@ -23,10 +23,18 @@ import {
   updateOrderStatus,
   updateShipmentFromTracker,
   deriveOrderStatusFromShipments,
+  carrierTrackingURL,
   OrderRecord,
   ShipmentRecord,
 } from './orders-store';
+import { extractWithLLM, LLMExtractedFields } from './llm-extractor';
 import {
+  lookupLearnedSender,
+  recordLearnedSender,
+  LearnedSenderMatch,
+} from './learned-senders';
+import {
+  registerTrackingNumbers,
   pollTrackingNumbers,
   normalizeCarrierForTracker,
   pollSingleShipment,
@@ -36,10 +44,13 @@ import {
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
 export interface EmailInput {
-  id: string;           // Gmail message ID
+  id: string;           // JMAP / Gmail message ID
   subject: string;
   body: string;         // Plain text body
-  sender: string;        // From address
+  sender: string;       // From address (legacy: "Name <email>" or just "email")
+  senderName?: string;  // Optional display name from `From:` header
+  senderEmail?: string; // Optional bare email when listener provides them split
+  folders?: string[];   // Optional list of folder/label names the email is in
   date: string;         // RFC 3339 date
 }
 
@@ -71,11 +82,73 @@ const SEVENTEEN_TRACK_API_KEY = process.env.SEVENTEEN_TRACK_API_KEY || '';
 export async function processEmail(email: EmailInput): Promise<ProcessEmailResult> {
   const { id, subject, body, sender, date } = email;
 
+  // Normalize sender into bare email + display name. Listener may pass
+  // them split (preferred), or a legacy "Name <email>" string, or just
+  // a bare address.
+  const senderEmail = (email.senderEmail
+    || (sender.match(/<([^>]+)>/)?.[1])
+    || sender).trim().toLowerCase();
+  const senderName = (email.senderName
+    || (sender.match(/^([^<]+)</)?.[1])
+    || '').trim();
+
   try {
+    // Tier 3 pre-fetch: consult the learned_senders table BEFORE
+    // classification. A hit here means the user has previously resolved
+    // a review_item with (sender → merchant), so we both:
+    //   1. Boost the purchase signal in classifyEmail (a learned sender
+    //      with even a moderate purchase score should land in orders),
+    //      and
+    //   2. Pin the merchant name to the user-taught value so neither the
+    //      hardcoded list nor the LLM can second-guess it.
+    // A miss is silent — caller falls back to keyword/LLM logic.
+    let learned: LearnedSenderMatch | null = null;
+    try {
+      const userId = await getUserIdFromEmail(senderEmail);
+      learned = await lookupLearnedSender(userId, senderEmail);
+    } catch (err) {
+      // Lookup is best-effort. PERCH_USER_ID may be missing in tests;
+      // don't break the pipeline over a learned-sender miss.
+      console.warn('[orders-autopilot] learned_senders lookup skipped:', (err as Error).message);
+    }
+
     // Step 1: Classify
-    const { type, confidence } = classifyEmail(subject, body, sender);
+    const { type, confidence } = classifyEmail(subject, body, senderEmail, {
+      senderName,
+      folders: email.folders ?? [],
+      hasLearnedSender: !!learned,
+    });
 
     if (type === 'other') {
+      // Tier 2 LLM second-pass: if there's meaningful commerce signal
+      // (confidence ≥ 0.4) we ask the LLM whether this is actually an
+      // order. The LLM is good at the long tail of phrasings keyword
+      // matching can't catch ("Your trip is booked", "Pre-order
+      // received", non-English subjects, etc.).
+      if (confidence >= 0.4) {
+        const llm = await extractWithLLM(subject, senderEmail, body);
+        if (llm && llm.is_purchase_confirmation && llm.confidence >= 0.6) {
+          // Promote to purchase path with LLM-provided fields.
+          return await handlePurchaseConfirmation(email, llm.confidence, llm, learned);
+        }
+        // LLM agrees it's not an order, OR LLM unreachable — but the
+        // ambiguity is real. Queue for review instead of silently
+        // dropping; the iOS review queue (Tier 3) will surface it.
+        try {
+          await createReviewItem({
+            user_id: await getUserIdFromEmail(senderEmail),
+            type: 'other',
+            related_order_id: null,
+            related_shipment_id: null,
+            reason: `Ambiguous classification (regex confidence ${confidence.toFixed(2)}${llm ? `, LLM said ${llm.is_purchase_confirmation ? 'purchase' : 'not purchase'} @ ${llm.confidence.toFixed(2)}` : ', LLM unreachable'}): "${subject.slice(0, 80)}" from ${senderEmail}`,
+            suggested_action: 'Review manually — classifier unsure if this is an order',
+            confidence_score: confidence,
+          });
+          return { success: true, type, action: 'created_review_item', detail: `Queued for review (confidence ${confidence.toFixed(2)})`, confidence };
+        } catch (e) {
+          // If review_item insert fails, fall through to the legacy skip.
+        }
+      }
       return {
         success: true,
         type,
@@ -87,7 +160,7 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
 
     // Step 2: Extract
     if (type === 'purchase_confirmation') {
-      return await handlePurchaseConfirmation(email, confidence);
+      return await handlePurchaseConfirmation(email, confidence, undefined, learned);
     } else if (type === 'shipping_notification') {
       return await handleShippingNotification(email, confidence);
     }
@@ -112,10 +185,83 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
 async function handlePurchaseConfirmation(
   email: EmailInput,
   baseConfidence: number,
+  preExtractedLLM?: LLMExtractedFields | null,
+  learned?: LearnedSenderMatch | null,
 ): Promise<ProcessEmailResult> {
   const { id, sender, date } = email;
 
-  const fields = extractOrderFields(email.subject, email.body, sender, id);
+  // Reuse the same email→display-name parsing as the top-level entry.
+  const senderEmail = (email.senderEmail
+    || (sender.match(/<([^>]+)>/)?.[1])
+    || sender).trim().toLowerCase();
+  const senderName = (email.senderName
+    || (sender.match(/^([^<]+)</)?.[1])
+    || '').trim();
+
+  const regexFields = extractOrderFields(
+    email.subject,
+    email.body,
+    senderEmail,
+    id,
+    senderName,
+    learned?.merchant_name,
+  );
+
+  // Decide whether we need the LLM. Cases:
+  //   a) the caller already ran it (Tier 1 said "other", LLM disagreed
+  //      → reuse those fields).
+  //   b) regex merchant came from the weak `domainStem` last-resort
+  //      branch — inferMerchantName couldn't find anything better than
+  //      the bare sender domain.
+  //   c) regex didn't find an order_number despite the strong "order
+  //      ... confirmed" signal that got us here.
+  // Critically, a `learnedSender` / `known` / `displayName` /
+  // `shopifyBody` / `subject` merchant resolution is trusted — we don't
+  // call the LLM just to second-guess them on the merchant axis. The
+  // LLM may still fire to recover an order_number in case (c), but the
+  // merge logic below pins the merchant when the source is high-trust.
+  const needsLLM = !preExtractedLLM
+    && (regexFields.merchantSource === 'domainStem'
+        || (!regexFields.orderNumber && /order/i.test(email.subject)));
+
+  let llm: LLMExtractedFields | null = preExtractedLLM ?? null;
+  if (needsLLM) {
+    llm = await extractWithLLM(email.subject, senderEmail, email.body);
+  }
+
+  // Merchant name lock: a learned-sender or hardcoded-known mapping is
+  // never overridden by the LLM. Both sources represent explicit
+  // ground-truth (user or engineering); LLM output is best-treated as a
+  // last-resort fallback for the weak `domainStem` path.
+  const merchantNameLocked =
+    regexFields.merchantSource === 'learnedSender'
+    || regexFields.merchantSource === 'known';
+
+  // Merge: LLM wins on disputes for merchant + order_number + total when
+  // it's confident. Regex wins otherwise (fast + cheap, already validated).
+  const mergedMerchantName = merchantNameLocked
+    ? regexFields.merchantName
+    : (llm && llm.confidence >= 0.6 && llm.merchant_name)
+        ? llm.merchant_name
+        : regexFields.merchantName;
+  const mergedOrderNumber = (llm && llm.confidence >= 0.6 && llm.order_number)
+    ? llm.order_number.replace(/^#/, '')
+    : regexFields.orderNumber;
+  const mergedTotal = (llm && llm.confidence >= 0.6 && typeof llm.total_amount === 'number')
+    ? llm.total_amount
+    : regexFields.totalAmount;
+  const mergedCurrency = (llm && llm.confidence >= 0.6 && llm.currency)
+    ? llm.currency
+    : regexFields.currency;
+
+  const fields = {
+    ...regexFields,
+    merchantName: mergedMerchantName,
+    normalizedMerchant: mergedMerchantName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+    orderNumber: mergedOrderNumber,
+    totalAmount: mergedTotal,
+    currency: mergedCurrency,
+  };
 
   if (!fields.merchantName || fields.merchantName === 'Unknown') {
     return {
@@ -250,6 +396,7 @@ async function handleShippingNotification(
     order_id: orderId,
     tracking_number: fields.trackingNumber,
     carrier: fields.carrier,
+    tracking_url: carrierTrackingURL(fields.carrier, fields.trackingNumber),
     seventeen_track_id: null,
     status: fields.status as any,
     latest_checkpoint: fields.status === 'in_transit' ? `Status: ${fields.status}` : null,
@@ -310,20 +457,39 @@ export async function pollShipments(userId: string): Promise<{
     return { updated: 0, errors: [] };
   }
 
-  // Register all tracking numbers first (17track requires this)
-  const toRegister = undelivered.map(s => ({
-    number: s.tracking_number,
-    carrier: s.carrier ? normalizeCarrierForTracker(s.carrier) : 'unknown',
-  }));
+  // Filter out malformed tracking numbers before sending to 17track.
+  // A malformed entry in the batch (e.g. "7197712620 / 001959496839433548"
+  // from a multi-carrier email) rejects the whole request with -18010013.
+  const isValidTrackingNumber = (n: string | null | undefined): n is string =>
+    typeof n === 'string'
+    && n.length >= 6
+    && n.length <= 40
+    && !/[\s,/\\]/.test(n);
+
+  // Register all tracking numbers first (17track requires this before it
+  // will return tracking info). Registration is idempotent — 17track
+  // silently skips numbers already on the account.
+  const toRegister = undelivered
+    .filter(s => isValidTrackingNumber(s.tracking_number))
+    .map(s => ({
+      number: s.tracking_number,
+      ...(s.carrier ? { carrier: normalizeCarrierForTracker(s.carrier) || undefined } : {}),
+    }));
+
+  if (toRegister.length === 0) {
+    return { updated: 0, errors: ['no valid tracking numbers to poll'] };
+  }
 
   try {
-    await pollTrackingNumbers(SEVENTEEN_TRACK_API_KEY, toRegister.map(t => t.number));
+    await registerTrackingNumbers(SEVENTEEN_TRACK_API_KEY, toRegister);
   } catch (err) {
     return { updated: 0, errors: [(err as Error).message] };
   }
 
-  // Poll for all
-  const trackingNumbers = undelivered.map(s => s.tracking_number);
+  // Poll for all (same filter as register).
+  const trackingNumbers = undelivered
+    .map(s => s.tracking_number)
+    .filter(isValidTrackingNumber);
   const results: TrackerResponse[] = [];
 
   try {
@@ -424,25 +590,73 @@ async function pushCommerceRecord(
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 /**
- * Get user ID from sender email.
- * Currently uses a simple lookup — in production this would query the users table.
+ * Resolve the user this email belongs to.
+ *
+ * In the current single-user deployment, `PERCH_USER_ID` is authoritative —
+ * every inbound email belongs to the installed user. A future multi-tenant
+ * deployment should reintroduce a sender → user lookup here (the previous
+ * `users.email` query was removed because the `public.users` table does not
+ * carry an email column; ownership is managed via `auth.users`).
+ *
+ * The `senderEmail` argument is retained for a future multi-tenant path and
+ * for logging, but is not consulted today.
  */
-async function getUserIdFromEmail(senderEmail: string): Promise<string> {
-  // FABIO_HARDCODED for now — in production this would be a proper user lookup
-  const FABIO_USER_ID = '00000000-0000-0000-0000-000000000000';
+async function getUserIdFromEmail(_senderEmail: string): Promise<string> {
+  const resolved = process.env.PERCH_USER_ID;
+  if (!resolved) {
+    throw new Error(
+      'orders-autopilot: PERCH_USER_ID is not set. Export it in your agent env '
+      + 'or source it from ~/.openclaw/secrets/perch.env before running.'
+    );
+  }
+  return resolved;
+}
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', senderEmail.toLowerCase())
-    .maybeSingle();
+// ─── Review-queue resolution (Tier 3 write-back) ───────────────────────────
 
+/**
+ * Called by the iOS review-queue UI (Settings → Order Review) when the
+ * user confirms a (sender → merchant) mapping for a queued review_item.
+ *
+ * Writes:
+ *   1. the sender→merchant mapping into `learned_senders` (so the next
+ *      email from this sender skips the review queue), and
+ *   2. (optional) creates / updates an order row from the user-confirmed
+ *      fields, and
+ *   3. resolves the source review_item.
+ *
+ * The order-row creation is the iOS-side responsibility for now — this
+ * function only handles the learned_senders write-back + review-item
+ * resolution. We expose the `recordLearnedSender` primitive directly so
+ * the iOS layer can opt into either step independently.
+ */
+export async function resolveReviewWithLearnedSender(args: {
+  userId: string;
+  reviewItemId: string;
+  senderEmail: string;
+  merchantName: string;
+  learnedFromEmailId?: string | null;
+}): Promise<{ learnedSenderId: string }> {
+  const learnedSenderId = await recordLearnedSender({
+    userId: args.userId,
+    senderEmail: args.senderEmail,
+    merchantName: args.merchantName,
+    learnedFromEmailId: args.learnedFromEmailId ?? null,
+    learnedFromReviewItemId: args.reviewItemId,
+  });
+
+  // Mark the review item resolved. Done inline here (instead of importing
+  // resolveReviewItem) so the autopilot owns the full transaction shape.
+  const { error } = await supabase
+    .from('review_items')
+    .update({ resolved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', args.reviewItemId)
+    .eq('user_id', args.userId);
   if (error) {
-    console.warn(`[orders-autopilot] User lookup failed for ${senderEmail}, using hardcoded Fabio:`, error.message);
-    return FABIO_USER_ID;
+    console.warn(`[orders-autopilot] failed to resolve review_item ${args.reviewItemId}: ${error.message}`);
   }
 
-  return data?.id || FABIO_USER_ID;
+  return { learnedSenderId };
 }
 
 // ─── Tool wrappers for OpenClaw ────────────────────────────────────────────
@@ -455,6 +669,8 @@ export const tools = {
   pollShipments: async (userId: string) => {
     return pollShipments(userId);
   },
+
+  resolveReviewWithLearnedSender,
 };
 
 export default tools;
