@@ -232,6 +232,9 @@ private struct OrdersSectionContent: View {
                             isExpanded: expandedOrderId == order.id,
                             onMarkDelivered: { order in
                                 Task { await viewModel.markAsDelivered(order) }
+                            },
+                            onUndoDelivered: { order in
+                                Task { await viewModel.undoDelivered(order) }
                             }
                         )
                     }
@@ -249,6 +252,9 @@ private struct OrdersSectionContent: View {
                             isExpanded: expandedOrderId == order.id,
                             onMarkDelivered: { order in
                                 Task { await viewModel.markAsDelivered(order) }
+                            },
+                            onUndoDelivered: { order in
+                                Task { await viewModel.undoDelivered(order) }
                             }
                         )
                     }
@@ -320,11 +326,19 @@ private struct OrderCardV2: View {
     /// (HubTab) so only one card is expanded at a time, mirroring
     /// the workout-card pattern.
     var isExpanded: Bool = false
-    /// Fires when the user taps the checkmark on the row footer. Receives
-    /// the canonical OrderWithShipments so the caller can hand it to the
-    /// appropriate service. Optional so existing call sites that don't
-    /// wire it stay compiling.
+    /// Fires from the long-press context menu's "Mark as Delivered"
+    /// action. Receives the canonical OrderWithShipments so the
+    /// caller can hand it to the appropriate service. Optional so
+    /// existing call sites that don't wire it stay compiling.
+    ///
+    /// (Was previously bound to a small checkmark icon in the footer
+    /// — removed because the icon was too easy to false-tap; users
+    /// were accidentally marking active orders delivered while
+    /// scrolling. Long-press is the iOS-idiomatic affordance and
+    /// requires deliberate intent.)
     var onMarkDelivered: ((OrderWithShipments) -> Void)? = nil
+    /// Long-press action to undo a manual delivery override.
+    var onUndoDelivered: ((OrderWithShipments) -> Void)? = nil
 
     private var stageIndex: Int {
         // Map effective status → stepper index (0=Ordered, 1=Shipped,
@@ -412,23 +426,9 @@ private struct OrderCardV2: View {
                     .truncationMode(.middle)
                 Spacer()
 
-                // Mark-as-delivered affordance. Only shown for orders
-                // that aren't already delivered, and only when a callback
-                // is wired. Small dedicated tap target for reliability.
-                if onMarkDelivered != nil, order.effectiveStatus != "delivered" {
-                    Button {
-                        PerchHaptics.success()
-                        onMarkDelivered?(order)
-                    } label: {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundStyle(palette.wellness)
-                            .frame(width: 32, height: 32)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Mark order \(order.order.orderNumber) as delivered")
-                }
+                // (Mark-as-delivered moved to long-press context menu —
+                // the inline checkmark icon was too easy to false-tap.
+                // See contextMenu modifier on the outer card body.)
 
                 if let shipment = order.primaryShipment,
                    let url = shipment.resolvedTrackingURL {
@@ -517,6 +517,28 @@ private struct OrderCardV2: View {
                 }
                 .padding(.top, 10)
                 .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        // Long-press menu: the safe way to mark an order delivered or
+        // undo a previous override. Replaces the inline checkmark icon
+        // that lived in the footer — that icon was too easy to
+        // false-tap (caught in the wild: 4 Amazon orders accidentally
+        // marked delivered while the user was scrolling).
+        .contextMenu {
+            if order.order.isManuallyDelivered {
+                if onUndoDelivered != nil {
+                    Button(role: .destructive) {
+                        onUndoDelivered?(order)
+                    } label: {
+                        Label("Undo Delivery Override", systemImage: "clock.arrow.circlepath")
+                    }
+                }
+            } else if onMarkDelivered != nil {
+                Button {
+                    onMarkDelivered?(order)
+                } label: {
+                    Label("Mark as Delivered", systemImage: "checkmark.circle.fill")
+                }
             }
         }
     }
