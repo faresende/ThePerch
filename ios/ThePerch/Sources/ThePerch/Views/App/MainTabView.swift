@@ -1205,8 +1205,10 @@ final class PerchPhotoKeyboardView: UIView {
         self.collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
 
         // Height of ≈280pt fits within the keyboard's own slot on
-        // most iPhones. Autoresizing lets it stretch horizontally.
-        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 280))
+        // most iPhones. Initial width is irrelevant because autoresizing
+        // (.flexibleWidth) immediately stretches us to the host's bounds —
+        // avoids the deprecated `UIScreen.main` accessor entirely.
+        super.init(frame: CGRect(x: 0, y: 0, width: 0, height: 280))
         autoresizingMask = [.flexibleWidth]
 
         capturePreviewLayer.videoGravity = .resizeAspectFill
@@ -1489,7 +1491,11 @@ extension PerchPhotoKeyboardView: UICollectionViewDataSource, UICollectionViewDe
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.photoReuseID, for: indexPath) as! PhotoCell
         if let asset = assets?.object(at: indexPath.item - 1) {
             let size = cellSize(at: indexPath)
-            let scale = UIScreen.main.scale
+            // `UIScreen.main.scale` was deprecated in iOS 26.0. Pull the
+            // display scale from the trait collection of the view we're
+            // already mounted in — that's the correct per-window scale
+            // and stays current across screen moves.
+            let scale = traitCollection.displayScale > 0 ? traitCollection.displayScale : 2.0
             let targetSize = CGSize(width: size.width * scale, height: size.height * scale)
             cell.configure(asset: asset, manager: imageManager, targetSize: targetSize)
         }

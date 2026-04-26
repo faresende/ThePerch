@@ -17,12 +17,16 @@ final class NutritionViewModel {
     private let pageSize = 7
     private var targetSourceRecords: [Record] = []
 
+    /// Default arguments are `nil` so we don't reference `@MainActor`
+    /// singletons from the (potentially nonisolated) caller's context.
+    /// The class itself is `@MainActor`, so the init body executes on
+    /// MainActor and can safely resolve the singletons there.
     init(
-        nutritionService: NutritionService = .shared,
-        supabaseService: SupabaseServiceProtocol = SupabaseService.shared
+        nutritionService: NutritionService? = nil,
+        supabaseService: SupabaseServiceProtocol? = nil
     ) {
-        self.nutritionService = nutritionService
-        self.supabaseService = supabaseService
+        self.nutritionService = nutritionService ?? .shared
+        self.supabaseService = supabaseService ?? SupabaseService.shared
     }
 
     func loadMeals(from records: [Record]) {
@@ -188,7 +192,12 @@ final class NutritionViewModel {
 
     var daySections: [NutritionDaySection] {
         let calendar = Calendar.current
-        let groupedMeals = Dictionary(grouping: meals.map(MealRecord.init(from:))) { meal in
+        // Spell out the closure (rather than `meals.map(MealRecord.init(from:))`)
+        // so Swift 6 inherits the enclosing MainActor isolation. The unapplied
+        // initializer reference gets inferred as nonisolated, which conflicts
+        // with `MealRecord.init(from:)` reading MainActor-isolated JSONValue
+        // accessors.
+        let groupedMeals = Dictionary(grouping: meals.map { MealRecord(from: $0) }) { meal in
             calendar.startOfDay(for: meal.mealTime)
         }
 

@@ -38,8 +38,11 @@ final class BookmarksViewModel {
 
     // MARK: - Initialization
 
-    init(karakeepService: KarakeepService = .shared) {
-        self.karakeepService = karakeepService
+    /// Default argument is `nil` so we don't reference the `@MainActor`
+    /// singleton from the caller's (potentially nonisolated) context.
+    /// The class is `@MainActor`, so the init body resolves it safely.
+    init(karakeepService: KarakeepService? = nil) {
+        self.karakeepService = karakeepService ?? .shared
     }
 
     // MARK: - Computed: All Tags

@@ -37,7 +37,10 @@ final class DeliveryLiveActivityManager {
         )
 
         if let existing {
-            await existing.update(using: state)
+            // ActivityKit's `update(using:)` was deprecated in iOS 16.2 in
+            // favour of `update(_:)`, which takes an ActivityContent value
+            // (the same shape we already pass to `Activity.request` below).
+            await existing.update(ActivityContent(state: state, staleDate: nil))
         } else {
             let attributes = DeliveryActivityAttributes(
                 orderId: delivery.orderId,

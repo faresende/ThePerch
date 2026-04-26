@@ -36,7 +36,11 @@ struct NutritionHomeCard: View {
     private var displayedMeals: [MealRecord] {
         records
             .filter { $0.category == .nutrition && $0.type == .meal }
-            .map(MealRecord.init(from:))
+            // Spell out the closure (rather than `.map(MealRecord.init(from:))`)
+            // so Swift 6 inherits this view's MainActor isolation; an unapplied
+            // initializer reference is inferred as nonisolated and trips the
+            // MainActor JSONValue accessors inside MealRecord.init.
+            .map { MealRecord(from: $0) }
             .filter { meal in
                 PerchFormatters.isoDate.string(from: meal.mealTime) == dateString
             }
@@ -330,12 +334,18 @@ struct NutritionHomeCard: View {
                 Spacer()
 
                 if let target {
-                    Text("\(Int(value))")
-                        .font(PerchTheme.Font.rowNumeric)
-                        .foregroundColor(palette.ink)
-                    + Text(" / \(Int(target))g")
-                        .font(PerchTheme.Font.rowNumeric)
-                        .foregroundColor(palette.muted)
+                    // Text(_:) `+` operator was deprecated in iOS 26 in
+                    // favour of string interpolation. We need two different
+                    // foreground colours on the two halves, so swap the
+                    // concatenation for a tight HStack — visually identical.
+                    HStack(spacing: 0) {
+                        Text("\(Int(value))")
+                            .font(PerchTheme.Font.rowNumeric)
+                            .foregroundColor(palette.ink)
+                        Text(" / \(Int(target))g")
+                            .font(PerchTheme.Font.rowNumeric)
+                            .foregroundColor(palette.muted)
+                    }
                 } else {
                     Text("\(Int(value))g")
                         .font(PerchTheme.Font.rowNumeric)

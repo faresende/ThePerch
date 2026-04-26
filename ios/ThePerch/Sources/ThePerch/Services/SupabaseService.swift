@@ -208,7 +208,10 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         authStateTask = Task { [weak self] in
             guard let self else { return }
             for await (event, session) in client.auth.authStateChanges {
-                await self.handleAuthStateChange(event, session: session)
+                // Task body inherits MainActor from the enclosing
+                // service, so the call to `handleAuthStateChange` is a
+                // straight invocation — no actor hop needed.
+                self.handleAuthStateChange(event, session: session)
             }
         }
     }
@@ -327,9 +330,12 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     // MARK: - Retry Logic
 
     /// Executes an async operation with exponential backoff retry (3 attempts).
+    /// The body inherits `@MainActor` isolation from the enclosing service so
+    /// callers can freely use MainActor-isolated state (e.g. cached decoders,
+    /// the SupabaseClient) without `@Sendable` capture gymnastics.
     private func withRetry<T>(
         operation: String,
-        body: @Sendable () async throws -> T
+        body: () async throws -> T
     ) async throws -> T {
         var lastError: Error?
         for attempt in 0..<maxRetries {
@@ -920,7 +926,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 
         self.recordsChannel = channel
 
-        await channel.subscribe()
+        try await channel.subscribeWithError()
 #if DEBUG
         print("[SupabaseService] Subscribed to dashboard_records realtime")
 #endif
@@ -933,10 +939,10 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 decoder.dateDecodingStrategy = .iso8601
                 if let data = try? JSONSerialization.data(withJSONObject: insertion.record),
                    let record = try? decoder.decode(Record.self, from: data) {
-                    await onChange(RealtimeRecordChange(action: .insert, record: record, oldId: nil))
+                    onChange(RealtimeRecordChange(action: .insert, record: record, oldId: nil))
                 } else {
                     // Even if decode fails, notify so UI can refresh
-                    await onChange(RealtimeRecordChange(action: .insert, record: nil, oldId: nil))
+                    onChange(RealtimeRecordChange(action: .insert, record: nil, oldId: nil))
                 }
             }
         }
@@ -950,9 +956,9 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 decoder.dateDecodingStrategy = .iso8601
                 if let data = try? JSONSerialization.data(withJSONObject: update.record),
                    let record = try? decoder.decode(Record.self, from: data) {
-                    await onChange(RealtimeRecordChange(action: .update, record: record, oldId: nil))
+                    onChange(RealtimeRecordChange(action: .update, record: record, oldId: nil))
                 } else {
-                    await onChange(RealtimeRecordChange(action: .update, record: nil, oldId: nil))
+                    onChange(RealtimeRecordChange(action: .update, record: nil, oldId: nil))
                 }
             }
         }
@@ -963,12 +969,15 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             for await deletion in deletions {
                 guard !Task.isCancelled else { break }
                 let oldId: UUID? = {
-                    if let idStr = deletion.oldRecord["id"] as? String {
+                    // `deletion.oldRecord` is `[String: AnyJSON]` — casting
+                    // straight to `String` always fails. Extract via
+                    // AnyJSON's stringValue accessor.
+                    if let idStr = deletion.oldRecord["id"]?.stringValue {
                         return UUID(uuidString: idStr)
                     }
                     return nil
                 }()
-                await onChange(RealtimeRecordChange(action: .delete, record: nil, oldId: oldId))
+                onChange(RealtimeRecordChange(action: .delete, record: nil, oldId: oldId))
             }
         }
         realtimeTasks.append(deleteTask)
@@ -990,7 +999,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 
         self.agentsChannel = channel
 
-        await channel.subscribe()
+        try await channel.subscribeWithError()
 #if DEBUG
         print("[SupabaseService] Subscribed to agents realtime")
 #endif
@@ -1001,7 +1010,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 let actionStr = String(describing: type(of: change)).lowercased()
                 let action: RealtimeAction = actionStr.contains("insert") ? .insert :
                     actionStr.contains("delete") ? .delete : .update
-                await onChange(action)
+                onChange(action)
             }
         }
         realtimeTasks.append(agentTask)
