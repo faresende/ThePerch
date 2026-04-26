@@ -12,6 +12,8 @@ import {
   classifyEmail,
   extractOrderFields,
   extractShipmentFields,
+  senderIsCarrier,
+  inferMerchantNameFromBody,
   EmailType,
 } from './email-classifier';
 import {
@@ -24,6 +26,7 @@ import {
   updateShipmentFromTracker,
   deriveOrderStatusFromShipments,
   carrierTrackingURL,
+  replaceOrderItems,
   OrderRecord,
   ShipmentRecord,
 } from './orders-store';
@@ -269,25 +272,19 @@ async function handlePurchaseConfirmation(
     learned?.merchant_name,
   );
 
-  // Decide whether we need the LLM. Cases:
-  //   a) the caller already ran it (Tier 1 said "other", LLM disagreed
-  //      → reuse those fields).
-  //   b) regex merchant came from the weak `domainStem` last-resort
-  //      branch — inferMerchantName couldn't find anything better than
-  //      the bare sender domain.
-  //   c) regex didn't find an order_number despite the strong "order
-  //      ... confirmed" signal that got us here.
-  // Critically, a `learnedSender` / `known` / `displayName` /
-  // `shopifyBody` / `subject` merchant resolution is trusted — we don't
-  // call the LLM just to second-guess them on the merchant axis. The
-  // LLM may still fire to recover an order_number in case (c), but the
-  // merge logic below pins the merchant when the source is high-trust.
-  const needsLLM = !preExtractedLLM
-    && (regexFields.merchantSource === 'domainStem'
-        || (!regexFields.orderNumber && /order/i.test(email.subject)));
-
+  // Tier 4 change: always call the LLM on every purchase confirmation,
+  // primarily to extract per-line ITEMS so the iOS card can render an
+  // expanded detail view ("1× Hardgraft Tasche bag · 1× leather strap").
+  // The LLM also opportunistically recovers merchant / order_number /
+  // total when the regex extractors missed them. Merchant resolution
+  // from the `learnedSender` / `known` paths is still locked below — we
+  // don't second-guess explicit ground-truth on that axis.
+  //
+  // Skip the call only when the upstream caller already ran it (e.g.
+  // the "other" → LLM-disagreed → promote-to-purchase path), in which
+  // case we already have a fields object plus items list to use.
   let llm: LLMExtractedFields | null = preExtractedLLM ?? null;
-  if (needsLLM) {
+  if (!preExtractedLLM) {
     tel.llm_called = true;
     llm = await extractWithLLM(email.subject, senderEmail, email.body);
     if (llm) {
@@ -362,6 +359,26 @@ async function handlePurchaseConfirmation(
 
   // Push to iOS via dashboard_records with category=commerce
   await pushCommerceRecord(orderId, 'order', fields, baseConfidence);
+
+  // Persist per-line items extracted by the LLM. No-op when items[] is
+  // empty (some orders have no extractable line items, e.g. a
+  // subscription renewal email with just a total). When the LLM
+  // returned items, replaceOrderItems wipes the previous list for
+  // this order and writes the new one — items don't have stable
+  // identity across re-extractions, so we keep one canonical list.
+  if (llm && Array.isArray(llm.items) && llm.items.length > 0) {
+    try {
+      await replaceOrderItems(orderId, llm.items.map(it => ({
+        name: it.name,
+        quantity: it.quantity,
+        unit_price: it.unit_price,
+        currency: it.currency ?? fields.currency,
+      })));
+    } catch (err) {
+      // Items are nice-to-have; never block order creation on them.
+      console.warn(`[orders-autopilot] persisting items failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
 
   tel.merchant_source = fields.merchantSource;
   tel.resolved_merchant = fields.merchantName;
@@ -448,8 +465,28 @@ async function handleShippingNotification(
     };
   }
 
-  // Try to link to an existing order via merchant
-  const merchantName = extractOrderFields(email.subject, email.body, sender, id).merchantName;
+  // Resolve merchant for the shipment-to-order link.
+  //
+  // For non-carrier senders, the sender's display-name / domain stem is
+  // a reliable merchant signal — a Hardgraft shipping email comes from
+  // hardgraft.com and we want merchant = "Hardgraft".
+  //
+  // For carrier senders (Correos, DHL, UPS, …), the sender IS the
+  // carrier — useless for matching. The actual merchant is buried in
+  // the body ("Tu pedido de Amazon va en camino…"). Recover it by
+  // scanning the body against the alphanum-normalized known-merchants
+  // list. Caught in the wild: a Correos email about an Amazon shipment
+  // creating a "Correos" order with no total. With body-merchant
+  // recovery, the same email links to the user's Amazon order instead.
+  let merchantName: string;
+  const senderEmailLower = (email.senderEmail || sender).toLowerCase();
+  if (senderIsCarrier(senderEmailLower)) {
+    // Carrier sender — don't trust the sender field; recover from body.
+    const bodyMerchant = inferMerchantNameFromBody(email.body);
+    merchantName = bodyMerchant ?? extractOrderFields(email.subject, email.body, sender, id).merchantName;
+  } else {
+    merchantName = extractOrderFields(email.subject, email.body, sender, id).merchantName;
+  }
   const normalizedMerchant = merchantName?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
 
   let orderId: string | null = null;

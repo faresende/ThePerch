@@ -330,21 +330,34 @@ private struct OrderCardV2: View {
 
     var body: some View {
         PerchSectionCard(padding: featured ? 22 : 18) {
-            // Header: vendor name (kicker) on the left, freshness on the
-            // right. The "Order #X from Y" italic line we used to render
-            // here was redundant with the kicker — order number now lives
-            // only in the footer next to the tracking row.
+            // Hierarchy: merchant is the editorial hero (big serif
+            // italic, ink color), total sits quietly underneath in
+            // small mono muted. Mirrors Cards/OrderCard.swift on the
+            // Orders tab so the visual treatment is consistent
+            // app-wide. Was previously a small kicker + big italic
+            // price, which read as "the price is the most important
+            // thing about this order" — wrong; the merchant is what
+            // the user thinks about first.
             HStack(alignment: .firstTextBaseline) {
-                PerchKicker(order.order.merchant.uppercased())
-                Spacer()
+                Text(order.order.merchant)
+                    .font(.system(size: featured ? 26 : 22, weight: .semibold, design: .serif).italic())
+                    .foregroundStyle(palette.ink)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .allowsTightening(true)
+                Spacer(minLength: 8)
                 Text(etaText)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(palette.muted)
             }
-            .padding(.bottom, 6)
+            .padding(.bottom, 4)
 
-            // Total price as the headline number (big italic serif).
-            PerchNum(priceText, size: featured ? 30 : 24)
+            // Total price now reads as supporting detail rather than
+            // headline. Keeps it visible (you do want to see it at a
+            // glance) but it no longer dominates the merchant name.
+            Text(priceText)
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundStyle(palette.muted)
                 .padding(.bottom, 18)
 
             PerchStageStepper(

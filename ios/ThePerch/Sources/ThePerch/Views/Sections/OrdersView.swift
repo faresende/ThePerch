@@ -5,6 +5,11 @@ struct OrdersView: View {
 
     @State private var viewModel = OrdersViewModel()
     @State private var cardsAppeared = false
+    /// ID of the order whose card is currently expanded (showing items
+    /// + order #). Only one expanded at a time; tapping a different
+    /// card collapses the previous one. Mirrors WorkoutView's
+    /// expandedSessionId pattern.
+    @State private var expandedOrderId: UUID?
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -51,6 +56,20 @@ struct OrdersView: View {
         }
     }
 
+    /// Toggle the expanded card. Tapping the already-expanded card
+    /// collapses it; tapping a different card moves the expansion
+    /// (only one card is expanded at any time). Spring animation
+    /// matches the workout-card pattern (response: 0.3, damping: 0.7).
+    private func toggleExpanded(_ order: OrderWithShipments) {
+        PerchMotion.withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            if expandedOrderId == order.id {
+                expandedOrderId = nil
+            } else {
+                expandedOrderId = order.id
+            }
+        }
+    }
+
     @ViewBuilder
     private var content: some View {
         if viewModel.isLoading && viewModel.orders.isEmpty {
@@ -81,6 +100,8 @@ struct OrdersView: View {
                     tint: palette.kinetic,
                     orders: viewModel.activeOrders,
                     cardsAppeared: cardsAppeared,
+                    expandedOrderId: expandedOrderId,
+                    onToggleExpanded: toggleExpanded,
                     onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
                     onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
                 )
@@ -94,6 +115,8 @@ struct OrdersView: View {
                         orders: viewModel.issueOrders,
                         cardsAppeared: cardsAppeared,
                         startIndex: viewModel.activeOrders.count,
+                        expandedOrderId: expandedOrderId,
+                        onToggleExpanded: toggleExpanded,
                         onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
                         onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
                     )
@@ -103,6 +126,8 @@ struct OrdersView: View {
                     orders: viewModel.deliveredOrders,
                     cardsAppeared: cardsAppeared,
                     startIndex: viewModel.activeOrders.count + viewModel.issueOrders.count,
+                    expandedOrderId: expandedOrderId,
+                    onToggleExpanded: toggleExpanded,
                     onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
                     onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
                 )
@@ -278,6 +303,11 @@ struct OrdersGroupSection: View {
     let orders: [OrderWithShipments]
     let cardsAppeared: Bool
     var startIndex: Int = 0
+    /// ID of the currently-expanded card (parent-owned, OrdersView).
+    /// nil when no card is expanded.
+    var expandedOrderId: UUID? = nil
+    /// Toggle handler — fires on tap of a card.
+    var onToggleExpanded: ((OrderWithShipments) -> Void)? = nil
     var onMarkDelivered: ((OrderWithShipments) -> Void)?
     var onUndoDelivered: ((OrderWithShipments) -> Void)?
 
@@ -299,12 +329,19 @@ struct OrdersGroupSection: View {
             } else {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     ForEach(Array(orders.enumerated()), id: \.element.id) { index, order in
-                        OrderCard(
-                            model: order,
-                            onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
-                            onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
-                        )
-                        .cardAppear(index: startIndex + index, appeared: cardsAppeared)
+                        Button {
+                            PerchHaptics.light()
+                            onToggleExpanded?(order)
+                        } label: {
+                            OrderCard(
+                                model: order,
+                                isExpanded: expandedOrderId == order.id,
+                                onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
+                                onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
+                            )
+                            .cardAppear(index: startIndex + index, appeared: cardsAppeared)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -329,9 +366,15 @@ struct DeliveredOrdersSection: View {
     let orders: [OrderWithShipments]
     let cardsAppeared: Bool
     var startIndex: Int = 0
+    /// Per-card item-list expansion (parent-owned). Same UUID-based
+    /// state model as OrdersGroupSection.
+    var expandedOrderId: UUID? = nil
+    var onToggleExpanded: ((OrderWithShipments) -> Void)? = nil
     var onMarkDelivered: ((OrderWithShipments) -> Void)?
     var onUndoDelivered: ((OrderWithShipments) -> Void)?
 
+    /// Section-level toggle: whether the entire delivered list is
+    /// shown. Distinct from per-card item-list expansion (above).
     @State private var isExpanded = false
 
     var body: some View {
@@ -376,12 +419,19 @@ struct DeliveredOrdersSection: View {
 
                                 VStack(spacing: PerchTheme.Spacing.medium) {
                                     ForEach(group.orders) { order in
-                                        OrderCard(
-                                            model: order,
-                                            onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
-                                            onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
-                                        )
-                                        .cardAppear(index: startIndex + displayIndex(for: order), appeared: cardsAppeared)
+                                        Button {
+                                            PerchHaptics.light()
+                                            onToggleExpanded?(order)
+                                        } label: {
+                                            OrderCard(
+                                                model: order,
+                                                isExpanded: expandedOrderId == order.id,
+                                                onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
+                                                onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
+                                            )
+                                            .cardAppear(index: startIndex + displayIndex(for: order), appeared: cardsAppeared)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }

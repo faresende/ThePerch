@@ -6,6 +6,10 @@ struct OrderCard: View {
     @Environment(\.openURL) private var openURL
 
     let model: OrderWithShipments
+    /// Whether the items section is expanded. Owned by the parent
+    /// (OrdersView) so only one card can be expanded at a time —
+    /// mirrors the workout-card pattern in WorkoutView.swift.
+    var isExpanded: Bool = false
     /// Called when the user long-presses and selects "Mark as Delivered".
     var onMarkDelivered: (() -> Void)?
     /// Called when the user long-presses and selects "Undo Delivery Override".
@@ -105,6 +109,20 @@ struct OrderCard: View {
                 .frame(height: 1)
 
             timeline
+
+            // Expanded section — items list + order metadata. Reveals
+            // when the parent flips `isExpanded` (workout-card pattern).
+            // Hidden entirely when there are no items to show, to avoid
+            // a useless empty section taking up vertical space.
+            if isExpanded && !model.items.isEmpty {
+                Rectangle()
+                    .fill(palette.line.opacity(0.5))
+                    .frame(height: 1)
+                    .padding(.top, 2)
+
+                expandedItemsSection
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
@@ -115,6 +133,70 @@ struct OrderCard: View {
                 contextMenuItems
             }
         }
+    }
+
+    /// Items list + per-line breakdown. Shown only when the card is
+    /// expanded. Each row is name on the left, qty × unit price on the
+    /// right. Mono pricing on the right keeps the column visually
+    /// aligned even with mixed-length names.
+    @ViewBuilder
+    private var expandedItemsSection: some View {
+        VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("ITEMS")
+                    .font(PerchTheme.Font.cardEyebrow)
+                    .foregroundColor(palette.muted)
+                Spacer()
+                Text("\(model.items.count)")
+                    .font(PerchTheme.Font.microNumeric)
+                    .foregroundColor(palette.faint)
+            }
+
+            VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
+                ForEach(model.items) { item in
+                    HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
+                        Text("\(item.displayQuantity)×")
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundColor(palette.muted)
+                            .frame(width: 28, alignment: .leading)
+
+                        Text(item.name)
+                            .font(.system(size: 14, weight: .regular, design: .serif).italic())
+                            .foregroundColor(palette.ink)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if !item.displayUnitPrice.isEmpty {
+                            Text(item.displayUnitPrice)
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundColor(palette.muted)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+
+            if !orderNumberDisplay.isEmpty {
+                HStack {
+                    Text("ORDER #")
+                        .font(.system(size: 10))
+                        .tracking(0.6)
+                        .foregroundColor(palette.faint)
+                    Text(orderNumberDisplay)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(palette.muted)
+                    Spacer()
+                }
+                .padding(.top, PerchTheme.Spacing.xxxSmall)
+            }
+        }
+    }
+
+    /// Order number formatted for the expanded view. Empty string when
+    /// the order has no captured number (e.g. user-confirmed review item).
+    private var orderNumberDisplay: String {
+        let n = model.order.orderNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        return n.isEmpty ? "" : "#\(n)"
     }
 
     private var header: some View {
@@ -157,6 +239,17 @@ struct OrderCard: View {
                     Text(statusDateText)
                         .font(PerchTheme.Font.micro)
                         .foregroundColor(palette.faint)
+                }
+
+                // Chevron is the discoverability hint that the card
+                // expands. Only shown when there are items to reveal —
+                // a card with no items has nothing to expand into.
+                if !model.items.isEmpty {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(palette.faint)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .padding(.top, 2)
                 }
             }
         }

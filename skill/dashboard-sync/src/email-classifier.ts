@@ -39,6 +39,60 @@ function isNonGoodsSender(senderEmail: string): boolean {
 }
 
 /**
+ * Carriers — postal services + couriers + tracking aggregators. An email
+ * from any of these is a SHIPPING NOTIFICATION by definition, never a
+ * fresh purchase confirmation, regardless of how many "your purchase"
+ * phrases appear in the body. Caught in the wild: a Correos email about
+ * an Amazon shipment landing as a $null "Correos" order.
+ *
+ * When the sender matches one of these, the classifier short-circuits
+ * to `shipping_notification` and the autopilot recovers the actual
+ * merchant from the body via the known-merchant list (so the shipment
+ * gets linked to e.g. the user's existing Amazon order, not stored
+ * under "Correos").
+ */
+const CARRIER_SENDERS: string[] = [
+  'correos',          // Spain / Portugal post
+  'ctt.pt',           // Portugal post (CTT)
+  'dhl.',             // DHL (matches dhl.com, dhl.de, etc.)
+  'ups.com',          // UPS
+  'fedex.com',        // FedEx
+  'usps.com',         // USPS
+  'royalmail.com',    // Royal Mail
+  'postnl.nl',        // PostNL
+  'post.nl',          // PostNL alt
+  'gls-group.eu',     // GLS
+  'dpd.com',          // DPD
+  'dpd.de',           // DPD DE
+  'gls-pakket',       // GLS pakket
+  'colissimo',        // Colissimo (FR)
+  'laposte.fr',       // La Poste FR
+  'mondialrelay',     // Mondial Relay
+  'inpost',           // InPost
+  'chronopost',       // Chronopost
+  'tnt.com',          // TNT
+  '17track',          // Aggregator
+  'aftership',        // Aggregator
+  'parcelsapp',       // Aggregator
+  'route.com',        // Tracking aggregator
+];
+
+function isCarrierSender(senderEmail: string): boolean {
+  const s = senderEmail.toLowerCase();
+  return CARRIER_SENDERS.some(pat => s.includes(pat));
+}
+
+/**
+ * Public test for "is the sender a carrier?". Exposed so the
+ * orders-autopilot's shipping-notification handler can branch on this
+ * to recover the actual merchant from the body instead of trusting
+ * the sender's display name (which would yield "Correos" / "DHL" etc.).
+ */
+export function senderIsCarrier(senderEmail: string): boolean {
+  return isCarrierSender(senderEmail);
+}
+
+/**
  * Optional metadata the listener can pass alongside subject/body/sender.
  * `senderName` comes from the `From:` display name and is the cleanest
  * source of merchant identity. `folders` is the list of mailbox / label
@@ -90,6 +144,18 @@ export function classifyEmail(
       purchaseScore: 0,
       shippingScore: 0,
       matchedKeywords: ['non_goods_sender'],
+    };
+  }
+  // Carriers always produce shipping notifications, never purchase
+  // confirmations, even when their body parrots "thanks for your
+  // purchase" boilerplate. Short-circuit before keyword scoring runs.
+  if (isCarrierSender(senderEmail)) {
+    return {
+      type: 'shipping_notification',
+      confidence: 0.95,
+      purchaseScore: 0,
+      shippingScore: 0.95,
+      matchedKeywords: ['carrier_sender'],
     };
   }
   const lowerSender = senderEmail.toLowerCase();
@@ -737,6 +803,69 @@ export function inferMerchantNameWithSource(
   return result;
 }
 
+/**
+ * Hardcoded sender-domain → canonical merchant-name list. Hoisted to
+ * module scope so the body-recovery helper used by carrier-email
+ * routing can reuse it without duplicating the data. Add a row here
+ * whenever a new merchant ends up classified as "other" or stored
+ * under a wrong name in the orders table.
+ */
+const KNOWN_MERCHANTS: Record<string, string> = {
+  'amazon': 'Amazon',
+  'amazon.com': 'Amazon',
+  'zara': 'Zara',
+  'nike': 'Nike',
+  'apple': 'Apple',
+  'bestbuy': 'Best Buy',
+  'ebay': 'eBay',
+  'aliexpress': 'AliExpress',
+  'shein': 'SHEIN',
+  'asics': 'ASICS',
+  'netaporter': 'Net-A-Porter',
+  'farfetch': 'Farfetch',
+  'ssense': 'Ssense',
+  'superdry': 'Superdry',
+  'uniqlo': 'UNIQLO',
+  'decathlon': 'Decathlon',
+  'mediamarkt': 'MediaMarkt',
+  'fnac': 'Fnac',
+  'worten': 'Worten',
+  'rackstore': 'RackStore',
+  // Apparel + EDC merchants Fábio orders from regularly
+  'hardgraft': 'Hardgraft',
+  'jacquesmariemage': 'Jacques Marie Mage',
+  'vulkit': 'Vulkit',
+  'bodyandfit': 'Body&Fit',
+  'matadorequipment': 'Matador',
+  'matadorup': 'Matador',
+  'vollebak': 'Vollebak',
+  'mukama': 'Mukama',
+  'lofree': 'Lofree',
+  'nextsense': 'NextSense',
+  'loveandtogether': 'Love&Together',
+  'mrporter': 'MR PORTER',
+};
+
+/**
+ * Recover a merchant name by scanning the email body for any of the
+ * KNOWN_MERCHANTS keys. Used when the sender field is unhelpful (e.g.
+ * a carrier email about an Amazon shipment — sender is Correos,
+ * merchant we want is Amazon).
+ *
+ * Body is alphanum-normalized and lowercased before substring match,
+ * so multi-word brand mentions ("Body & Fit", "Net-A-Porter") still
+ * hit their compact key. Returns the first match (KNOWN_MERCHANTS
+ * iteration order is insertion order).
+ */
+export function inferMerchantNameFromBody(body: string): string | null {
+  const norm = body.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!norm) return null;
+  for (const [key, name] of Object.entries(KNOWN_MERCHANTS)) {
+    if (norm.includes(key)) return name;
+  }
+  return null;
+}
+
 function inferMerchantNameInner(
   sender: string,
   subject: string,
@@ -751,41 +880,7 @@ function inferMerchantNameInner(
   if (learnedMerchantName && learnedMerchantName.trim()) {
     return { name: learnedMerchantName.trim(), source: 'learnedSender' };
   }
-  const known: Record<string, string> = {
-    'amazon': 'Amazon',
-    'amazon.com': 'Amazon',
-    'zara': 'Zara',
-    'nike': 'Nike',
-    'apple': 'Apple',
-    'bestbuy': 'Best Buy',
-    'ebay': 'eBay',
-    'aliexpress': 'AliExpress',
-    'shein': 'SHEIN',
-    'asics': 'ASICS',
-    'netaporter': 'Net-A-Porter',
-    'farfetch': 'Farfetch',
-    'ssense': 'Ssense',
-    'superdry': 'Superdry',
-    'uniqlo': 'UNIQLO',
-    'decathlon': 'Decathlon',
-    'mediamarkt': 'MediaMarkt',
-    'fnac': 'Fnac',
-    'worten': 'Worten',
-    'rackstore': 'RackStore',
-    // Apparel + EDC merchants Fábio orders from regularly
-    'hardgraft': 'Hardgraft',
-    'jacquesmariemage': 'Jacques Marie Mage',
-    'vulkit': 'Vulkit',
-    'bodyandfit': 'Body&Fit',
-    'matadorequipment': 'Matador',
-    'matadorup': 'Matador',
-    'vollebak': 'Vollebak',
-    'mukama': 'Mukama',
-    'lofree': 'Lofree',
-    'nextsense': 'NextSense',
-    'loveandtogether': 'Love&Together',
-    'mrporter': 'MR PORTER',
-  };
+  const known = KNOWN_MERCHANTS;
 
   const lower = sender.toLowerCase();
 

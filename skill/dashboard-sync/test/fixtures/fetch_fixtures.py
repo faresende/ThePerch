@@ -40,11 +40,18 @@ FIXTURES = [
      {'type': 'purchase_confirmation', 'merchant': 'Matador',
       'order_number': '1723'}),
 
-    # ─── rejections/ — should classify as 'other' (NOT a purchase) ────
+    # ─── rejections/ — should NOT classify as purchase_confirmation.
+    # 'other' = clean drop (no commerce signal at all, e.g. trip
+    # reminder).
+    # 'shipping_notification' = legitimately a shipping email but from
+    # a carrier (Correos, DHL, …) — should NEVER be a fresh purchase
+    # because the user hasn't bought anything from the carrier.
     ('StpNL9mnCSNc', 'rejections', 'amex-trip-reminder',
      {'type': 'other'}),
     ('StpNE-NH6_1V', 'rejections', 'elcorteingles-receipt',
      {'type': 'other'}),
+    ('StpN9xkaL6Gg', 'rejections', 'correos-express-shipping',
+     {'type': 'shipping_notification'}),
 ]
 
 ROOT = os.path.dirname(os.path.abspath(__file__))

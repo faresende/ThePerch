@@ -37,17 +37,25 @@ final class OrdersService {
         }
         #endif
 
+        // Fetch orders + shipments + items in parallel. Items extraction
+        // (Tier 4) is a per-line product list captured by the GPT-4o-mini
+        // pass at autopilot ingest time; on iOS we group by order_id and
+        // attach to the matching OrderWithShipments.
         async let ordersTask: [Order] = fetchOrdersTable()
         async let shipmentsTask: [Shipment] = fetchShipmentsTable()
+        async let itemsTask: [OrderItem] = fetchOrderItemsTable()
 
-        let (orders, shipments) = try await (ordersTask, shipmentsTask)
+        let (orders, shipments, items) = try await (ordersTask, shipmentsTask, itemsTask)
         let shipmentsByOrderId = Dictionary(grouping: shipments, by: \.orderId)
+        let itemsByOrderId = Dictionary(grouping: items, by: \.orderId)
 
         let merged = orders.map { order in
             OrderWithShipments(
                 order: order,
                 shipments: shipmentsByOrderId[order.id, default: []]
-                    .sorted { $0.createdAt > $1.createdAt }
+                    .sorted { $0.createdAt > $1.createdAt },
+                items: itemsByOrderId[order.id, default: []]
+                    .sorted { $0.position < $1.position }
             )
         }
 
@@ -55,6 +63,30 @@ final class OrdersService {
         return merged.sorted { lhs, rhs in
             sortDate(for: lhs) > sortDate(for: rhs)
         }
+    }
+
+    private func fetchOrderItemsTable() async throws -> [OrderItem] {
+        let result = try await supabaseService.databaseClient
+            .from("order_items")
+            .select()
+            .order("position", ascending: true)
+            .execute()
+        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
+        var items: [OrderItem] = []
+        items.reserveCapacity(rawArray.count)
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601
+        for item in rawArray {
+            do {
+                let data = try JSONSerialization.data(withJSONObject: item)
+                items.append(try dec.decode(OrderItem.self, from: data))
+            } catch {
+#if DEBUG
+                print("[OrdersService] Dropping malformed order_item: \(error)")
+#endif
+            }
+        }
+        return items
     }
 
     private func fetchOrdersTable() async throws -> [Order] {

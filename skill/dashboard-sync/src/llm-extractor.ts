@@ -1,23 +1,38 @@
 /**
  * llm-extractor.ts
  *
- * LLM-based fallback for the orders-autopilot pipeline. Used when the
- * keyword/regex classifier is uncertain — typically when:
- *   - Tier 1 returned merchant_name == prettifyDomain(senderDomain),
- *     i.e. nothing better than the bare sender domain.
- *   - subject signals "order ... confirmed" but no order_number was
- *     extracted by regex.
- *   - confidence is in the ambiguous 0.5–0.8 zone.
+ * LLM-based extraction for the orders-autopilot pipeline. Used to:
+ *   1. Decide is_purchase_confirmation when Tier-1 keyword scoring
+ *      returns "other" with non-zero signal (multilingual emails,
+ *      weird phrasings, etc.).
+ *   2. Recover merchant_name + order_number + total_amount when the
+ *      regex extractors return null for a "purchase_confirmation"
+ *      we're already committed to writing.
+ *   3. Extract per-line ITEMS (Tier 4) for every purchase
+ *      confirmation, so the iOS card can render an expanded view
+ *      with "1× Hardgraft Tasche bag · 1× leather strap" instead
+ *      of just the order total.
  *
- * Strategy: ask a small local model (Ollama qwen2.5:14b) for a strict
- * JSON object containing merchant_name, order_number, total_amount,
- * currency, and is_purchase_confirmation. If Ollama is unreachable or
- * returns garbage, fall back to Anthropic's Haiku tier (still cheap).
+ * Provider chain: GPT-4o-mini (primary, cloud, ~$0.001/email at our
+ * volume) → Ollama qwen2.5:14b (fallback, local, free). Anthropic
+ * Haiku was retired from this path on 2026-04-26 in favour of a
+ * single OpenAI provider with one local-model backup.
  *
- * Cost: Ollama is free + local. Anthropic fallback is ~$0.001/email at
- * Haiku rates. Both negligible for ~50 orders/month.
+ * Both providers return the same JSON shape (`LLMExtractedFields`).
+ * If both fail the caller falls back to whatever Tier-1 produced.
  */
 import http from 'node:http';
+
+export interface LLMExtractedItem {
+  /** Best-effort product name. Required. */
+  name: string;
+  /** Quantity purchased. Defaults to 1 when the email doesn't say. */
+  quantity: number;
+  /** Unit price (per item, NOT line total). Numeric, no currency symbol. Null when not extractable. */
+  unit_price: number | null;
+  /** ISO currency code. Falls back to the order's currency when null. */
+  currency: string | null;
+}
 
 export interface LLMExtractedFields {
   merchant_name: string | null;
@@ -25,14 +40,24 @@ export interface LLMExtractedFields {
   total_amount: number | null;
   currency: string | null;
   is_purchase_confirmation: boolean;
+  /** Per-line items extracted from the email body. Empty array when
+   *  the LLM can't see any items (e.g. body is just "your order is
+   *  confirmed" with no item list). */
+  items: LLMExtractedItem[];
   confidence: number; // 0..1
-  source: 'ollama' | 'anthropic' | 'failed';
+  source: 'openai' | 'ollama' | 'failed';
 }
 
+// ─── Config ───────────────────────────────────────────────────────────
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENAI_MODEL = process.env.OPENAI_ORDERS_MODEL || 'gpt-4o-mini';
 const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_ORDERS_MODEL || 'qwen2.5:14b';
 
-const SYSTEM_PROMPT = `You are an email parser. The user pastes the subject + body of an email; you reply with ONLY a single JSON object describing whether it's an order confirmation and, if so, the merchant + order details.
+// ─── Prompt ───────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are an email parser. The user pastes the subject + body of an email; you reply with ONLY a single JSON object describing whether it's an order confirmation and, if so, the merchant + order details + the items purchased.
 
 Reply schema (no prose, no markdown, no code fences):
 {
@@ -40,42 +65,209 @@ Reply schema (no prose, no markdown, no code fences):
   "order_number": string | null,     // Order/reference number. Strip leading "#". null if absent.
   "total_amount": number | null,     // The ORDER TOTAL (final amount paid), not a line item or subtotal. Numeric, no currency symbol. null if absent.
   "currency": string | null,         // 3-letter ISO code: "EUR" / "USD" / "GBP" / "BRL" / "JPY" etc. null if you can't tell.
-  "is_purchase_confirmation": boolean, // true ONLY for an ONLINE order confirmation where something will be SHIPPED OR DELIVERED to the recipient — i.e. a transaction that creates a future delivery to track. false for: shipping notices, marketing/newsletters, trip reminders, hotel reservations, airline check-in nudges, statement/billing summaries, and — importantly — IN-STORE / electronic receipts (a PDF/digital "fatura/factura" / "ticket de compra" / "documento digital" / "recibo eletrônico" sent after the user paid in-store, where there is no shipment).
+  "is_purchase_confirmation": boolean, // true ONLY for an ONLINE order confirmation where something will be SHIPPED OR DELIVERED to the recipient. false for: shipping notices, marketing/newsletters, trip reminders, hotel reservations, airline check-in nudges, statement/billing summaries, and IN-STORE / electronic receipts ("documento digital" / "fatura eletrônica" / "ticket de compra" with no shipment).
+  "items": [                         // Per-line items the user purchased. Empty array if you can't see line items in the body.
+    {
+      "name": string,                // Product name as it appears in the email. Strip SKU codes, sizes go in name only when meaningful.
+      "quantity": number,            // Defaults to 1 if not stated.
+      "unit_price": number | null,   // PER ITEM, not line total. null if absent.
+      "currency": string | null      // 3-letter ISO code, or null to inherit from the order's currency.
+    }
+  ],
   "confidence": number               // 0.0 to 1.0 — how sure you are about the above. 0.95+ = obvious, 0.5–0.7 = ambiguous, <0.4 = guess.
 }
 
 Rules:
 - ONLY output the JSON object. No explanation. No "Here is the result:".
 - For order_number, extract the merchant's order/reference number, not a tracking number.
-- If multiple amounts appear, the total is usually the largest and labeled "Total" / "Grand Total" / "Order Total".
+- If multiple amounts appear, the total is usually the largest and labeled "Total" / "Grand Total" / "Order Total" (or multilingual: "Total a Pagar" / "Importe Total" / "Gesamtbetrag" / "Totaalbedrag").
 - Trip/itinerary reminders look textually similar to order confirmations (totals, confirmation numbers, "non-refundable purchase" boilerplate). They are NOT purchase confirmations. Tell-tale signs: subject mentions "upcoming trip" / "your trip" / "review details", body mentions "itinerary" / "check-in" / "before your departure" / "manage your booking".
-- In-store digital receipts (Spain/Portugal/Brazil "documento digital" / "fatura eletrônica" / "factura electrónica" / "ticket de compra" / "recibo digital", or US "your receipt is ready" with no shipping context) are NOT order confirmations for our purposes — they're records of an already-completed in-person transaction with nothing to deliver. Tell-tale signs: very short body, a "download" link to a PDF, no shipping address, no items list, no expected delivery date, sender domain is the in-store retailer's mail-marketing host.
+- In-store digital receipts are NOT order confirmations for our purposes — they're records of an already-completed in-person transaction with nothing to deliver. Tell-tale signs: very short body, a "download" link to a PDF, no shipping address, no items list, no expected delivery date, sender domain is the in-store retailer's mail-marketing host.
+- If is_purchase_confirmation is false, set items: [].
 
 Examples (input → expected JSON output):
 
 EXAMPLE 1 — real online order confirmation (Body&Fit, Dutch):
 From: Body&Fit Customer Service <noreply@bodyandfit.com>
 Subject: Your Body&Fit order is confirmed!
-Body: Hi Fábio, thanks for your order BF1429199. Total: €114.97. We'll let you know when it ships.
-{"merchant_name":"Body&Fit","order_number":"BF1429199","total_amount":114.97,"currency":"EUR","is_purchase_confirmation":true,"confidence":0.97}
+Body: Hi Fábio, thanks for your order BF1429199.
+1× Whey Protein Isolate Vanilla 2.5kg — €54.99
+2× Creatine Monohydrate 500g — €19.99
+Total: €114.97. We'll let you know when it ships.
+{"merchant_name":"Body&Fit","order_number":"BF1429199","total_amount":114.97,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Whey Protein Isolate Vanilla 2.5kg","quantity":1,"unit_price":54.99,"currency":"EUR"},{"name":"Creatine Monohydrate 500g","quantity":2,"unit_price":19.99,"currency":"EUR"}],"confidence":0.97}
 
 EXAMPLE 2 — trip itinerary reminder (Amex, NOT an order):
 From: American Express <AmericanExpress@welcome.americanexpress.com>
 Subject: FABIO, review details for your upcoming trip
 Body: Your American Express booking #ZO-AX1042-37980 is coming up. Review your itinerary, manage your booking online. Hotel confirmation #: exp-2435832390. Average benefit value of $550. Cancellation policy: non-refundable.
-{"merchant_name":"American Express","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"confidence":0.96}
+{"merchant_name":"American Express","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"items":[],"confidence":0.96}
 
 EXAMPLE 3 — in-store digital receipt (El Corte Inglés, Portuguese, NOT an order):
 From: El Corte Inglés <elcorteingles@mc.elcorteingles.es>
 Subject: Envio de documento digital
 Body: O documento digital relativo à sua compra com o número 004014005292827202604264 já está disponível. DESCARREGAR. Muito obrigado pela sua confiança.
-{"merchant_name":"El Corte Inglés","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"confidence":0.92}
+{"merchant_name":"El Corte Inglés","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"items":[],"confidence":0.92}
 
-EXAMPLE 4 — real online order confirmation (Hardgraft, English with tracking):
+EXAMPLE 4 — real online order confirmation (Hardgraft):
 From: Hardgraft <hello@hardgraft.com>
 Subject: hardgraft order HGMC20117325 confirmed
-Body: Thanks for your order. Order total: €160.93. Tracking: 1Z999...
-{"merchant_name":"Hardgraft","order_number":"HGMC20117325","total_amount":160.93,"currency":"EUR","is_purchase_confirmation":true,"confidence":0.98}`;
+Body: Thanks for your order HGMC20117325.
+1× Tasche Camera Bag — €145.00
+1× Leather Wrist Strap — €15.93
+Order total: €160.93.
+{"merchant_name":"Hardgraft","order_number":"HGMC20117325","total_amount":160.93,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Tasche Camera Bag","quantity":1,"unit_price":145.00,"currency":"EUR"},{"name":"Leather Wrist Strap","quantity":1,"unit_price":15.93,"currency":"EUR"}],"confidence":0.98}`;
+
+/**
+ * Strip HTML/CSS scaffolding from an email body before handing it to
+ * the LLM. Real order confirmation emails are 80–95% CSS reset rules,
+ * Outlook/Yahoo boilerplate, and inlined styles — sending the raw HTML
+ * means the model spends its context window on `<style>` blocks and
+ * never sees the actual order content (caught in the wild: a 8639-char
+ * Hardgraft body with the items list buried after ~5000 chars of CSS).
+ *
+ * After stripping, the readable signal is typically <2000 chars, so we
+ * widen the body window to 8000 to make sure the items list, total,
+ * and order number all land in the prompt.
+ */
+function stripEmailHtml(body: string): string {
+  return body
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<!--\[if[^\]]*\]>[\s\S]*?<!\[endif\]-->/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function buildUserPrompt(subject: string, sender: string, body: string): string {
+  // Strip first, then trim. After HTML/CSS removal a typical order
+  // email is well under 2000 chars of actual readable content, so 8000
+  // is generous headroom that still keeps the prompt small.
+  const cleaned = stripEmailHtml(body).slice(0, 8000);
+  return `Email to classify:
+
+From: ${sender}
+Subject: ${subject}
+
+Body:
+${cleaned}`;
+}
+
+// ─── Parser ───────────────────────────────────────────────────────────
+
+function safeParse(raw: string): Partial<LLMExtractedFields> | null {
+  // Some models wrap JSON in code fences despite explicit instructions.
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Try to find the first {...} block.
+    const m = cleaned.match(/\{[\s\S]*\}/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch { /* fall through */ }
+    }
+    return null;
+  }
+}
+
+/**
+ * Coerce a raw `unknown` items array into a clean `LLMExtractedItem[]`.
+ * Drops malformed entries silently rather than failing the whole
+ * extraction. Defensive about quantity parsing because some models
+ * return strings instead of numbers.
+ */
+function coerceItems(raw: unknown, fallbackCurrency: string | null): LLMExtractedItem[] {
+  if (!Array.isArray(raw)) return [];
+  const items: LLMExtractedItem[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const r = item as Record<string, unknown>;
+    const name = typeof r.name === 'string' ? r.name.trim() : '';
+    if (!name) continue;
+    const quantity = typeof r.quantity === 'number'
+      ? r.quantity
+      : (typeof r.quantity === 'string' ? parseFloat(r.quantity) : NaN);
+    const unit_price = typeof r.unit_price === 'number'
+      ? r.unit_price
+      : (typeof r.unit_price === 'string' ? parseFloat(r.unit_price) : null);
+    items.push({
+      name,
+      quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+      unit_price: typeof unit_price === 'number' && Number.isFinite(unit_price) ? unit_price : null,
+      currency: typeof r.currency === 'string' && r.currency.trim()
+        ? r.currency.trim()
+        : fallbackCurrency,
+    });
+  }
+  return items;
+}
+
+function buildLLMResult(
+  parsed: Partial<LLMExtractedFields> & { items?: unknown },
+  source: LLMExtractedFields['source'],
+): LLMExtractedFields {
+  const currency = typeof parsed.currency === 'string' ? parsed.currency : null;
+  return {
+    merchant_name: typeof parsed.merchant_name === 'string' ? parsed.merchant_name : null,
+    order_number: typeof parsed.order_number === 'string' ? parsed.order_number : null,
+    total_amount: typeof parsed.total_amount === 'number' ? parsed.total_amount : null,
+    currency,
+    is_purchase_confirmation: !!parsed.is_purchase_confirmation,
+    items: coerceItems(parsed.items, currency),
+    confidence: typeof parsed.confidence === 'number'
+      ? Math.min(1, Math.max(0, parsed.confidence))
+      : 0.5,
+    source,
+  };
+}
+
+// ─── OpenAI provider (primary) ────────────────────────────────────────
+
+async function openaiRequest(userPrompt: string, timeoutMs: number): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' }, // guarantees valid JSON
+        temperature: 0.1,
+        max_tokens: 800,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`OpenAI HTTP ${res.status}: ${txt.slice(0, 200)}`);
+    }
+    const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const text = json.choices?.[0]?.message?.content || '';
+    if (!text) throw new Error('OpenAI returned empty content');
+    return text;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─── Ollama provider (fallback) ───────────────────────────────────────
 
 interface OllamaResponse {
   model: string;
@@ -83,16 +275,16 @@ interface OllamaResponse {
   done: boolean;
 }
 
-function ollamaRequest(prompt: string, timeoutMs: number): Promise<string> {
+function ollamaRequest(userPrompt: string, timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = new URL(`${OLLAMA_HOST}/api/generate`);
     const body = JSON.stringify({
       model: OLLAMA_MODEL,
-      prompt,
+      prompt: userPrompt,
       system: SYSTEM_PROMPT,
       format: 'json',
       stream: false,
-      options: { temperature: 0.1, num_predict: 400 },
+      options: { temperature: 0.1, num_predict: 800 },
     });
     const req = http.request(
       {
@@ -128,37 +320,12 @@ function ollamaRequest(prompt: string, timeoutMs: number): Promise<string> {
   });
 }
 
-function buildUserPrompt(subject: string, sender: string, body: string): string {
-  // Trim body to keep latency reasonable. The first 4000 chars almost
-  // always contain merchant + total + order number.
-  const trimmedBody = body.slice(0, 4000);
-  return `Email to classify:
-
-From: ${sender}
-Subject: ${subject}
-
-Body:
-${trimmedBody}`;
-}
-
-function safeParse(raw: string): Partial<LLMExtractedFields> | null {
-  // qwen sometimes wraps JSON in code fences despite format:'json'
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // Try to find the first {...} block
-    const m = cleaned.match(/\{[\s\S]*\}/);
-    if (m) {
-      try { return JSON.parse(m[0]); } catch { /* fall through */ }
-    }
-    return null;
-  }
-}
+// ─── Public API ───────────────────────────────────────────────────────
 
 /**
- * Run the LLM extractor over an email. Returns null if both providers
- * fail (caller falls back to whatever Tier 1 produced).
+ * Run the LLM extractor over an email. Tries OpenAI first (when
+ * OPENAI_API_KEY is set), then Ollama as fallback. Returns null when
+ * both providers fail (caller falls back to whatever Tier-1 produced).
  */
 export async function extractWithLLM(
   subject: string,
@@ -167,66 +334,29 @@ export async function extractWithLLM(
 ): Promise<LLMExtractedFields | null> {
   const userPrompt = buildUserPrompt(subject, sender, body);
 
-  // Try Ollama first.
+  // Primary: OpenAI GPT-4o-mini.
+  if (OPENAI_API_KEY) {
+    try {
+      const raw = await openaiRequest(userPrompt, 30_000);
+      const parsed = safeParse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return buildLLMResult(parsed, 'openai');
+      }
+    } catch (e) {
+      console.error(`[llm-extractor] OpenAI failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
+  // Fallback: Ollama local model.
   try {
     const raw = await ollamaRequest(userPrompt, 30_000);
     const parsed = safeParse(raw);
     if (parsed && typeof parsed === 'object') {
-      return {
-        merchant_name: typeof parsed.merchant_name === 'string' ? parsed.merchant_name : null,
-        order_number: typeof parsed.order_number === 'string' ? parsed.order_number : null,
-        total_amount: typeof parsed.total_amount === 'number' ? parsed.total_amount : null,
-        currency: typeof parsed.currency === 'string' ? parsed.currency : null,
-        is_purchase_confirmation: !!parsed.is_purchase_confirmation,
-        confidence: typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.5,
-        source: 'ollama',
-      };
+      return buildLLMResult(parsed, 'ollama');
     }
   } catch (e) {
-    // Log and try Anthropic fallback below
     console.error(`[llm-extractor] Ollama failed: ${e instanceof Error ? e.message : e}`);
   }
 
-  // Anthropic fallback. Only fires when ANTHROPIC_API_KEY is set AND
-  // Ollama failed; otherwise we return null and let the caller use Tier 1.
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-  try {
-    const body = JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: 400,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body,
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error(`[llm-extractor] Anthropic HTTP ${res.status}: ${txt.slice(0, 200)}`);
-      return null;
-    }
-    const json = await res.json() as { content?: Array<{ text?: string }> };
-    const text = json.content?.[0]?.text || '';
-    const parsed = safeParse(text);
-    if (!parsed) return null;
-    return {
-      merchant_name: typeof parsed.merchant_name === 'string' ? parsed.merchant_name : null,
-      order_number: typeof parsed.order_number === 'string' ? parsed.order_number : null,
-      total_amount: typeof parsed.total_amount === 'number' ? parsed.total_amount : null,
-      currency: typeof parsed.currency === 'string' ? parsed.currency : null,
-      is_purchase_confirmation: !!parsed.is_purchase_confirmation,
-      confidence: typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.5,
-      source: 'anthropic',
-    };
-  } catch (e) {
-    console.error(`[llm-extractor] Anthropic fallback failed: ${e instanceof Error ? e.message : e}`);
-    return null;
-  }
+  return null;
 }

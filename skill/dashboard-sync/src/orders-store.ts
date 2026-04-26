@@ -121,6 +121,75 @@ export interface ReviewItemRecord {
   suggested_currency?: string | null;
 }
 
+// ─── Order Items (Tier 4) ───────────────────────────────────────────────
+
+/** Per-line item on an order — what the user actually purchased. */
+export interface OrderItemRecord {
+  id?: string;
+  order_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number | null;
+  currency: string | null;
+  position: number;
+  raw_line?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Replace all items on an order with the new list. Used when re-running
+ * the LLM extractor against a re-classified email — we delete-then-insert
+ * rather than upsert because items don't have a stable identity (the
+ * LLM might rename "Tasche Camera Bag" to "Hardgraft Tasche" between
+ * runs and we'd rather have one canonical list than two near-duplicates).
+ *
+ * No-op when `items` is empty (some emails are real orders with no
+ * extractable line items — e.g. a subscription renewal — and we don't
+ * want to wipe a previously-extracted list in that case).
+ */
+export async function replaceOrderItems(
+  orderId: string,
+  items: Array<Omit<OrderItemRecord, 'id' | 'order_id' | 'created_at' | 'updated_at' | 'position'>>,
+): Promise<void> {
+  if (items.length === 0) return;
+
+  // Wipe previous items for this order; the LLM's latest run is the
+  // source of truth.
+  const { error: delError } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('order_id', orderId);
+  if (delError) throw new Error(`Failed to clear order_items: ${delError.message}`);
+
+  const now = new Date().toISOString();
+  const rows: OrderItemRecord[] = items.map((it, idx) => ({
+    order_id: orderId,
+    name: it.name,
+    quantity: it.quantity,
+    unit_price: it.unit_price,
+    currency: it.currency,
+    position: idx,
+    raw_line: it.raw_line ?? null,
+    created_at: now,
+    updated_at: now,
+  }));
+
+  const { error: insError } = await supabase.from('order_items').insert(rows);
+  if (insError) throw new Error(`Failed to insert order_items: ${insError.message}`);
+}
+
+/** Fetch all items for an order, in display order. */
+export async function getOrderItems(orderId: string): Promise<OrderItemRecord[]> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .select('*')
+    .eq('order_id', orderId)
+    .order('position', { ascending: true });
+  if (error) throw new Error(`Failed to get order_items: ${error.message}`);
+  return (data ?? []) as OrderItemRecord[];
+}
+
 // ─── Order helpers ─────────────────────────────────────────────────────────
 
 /**

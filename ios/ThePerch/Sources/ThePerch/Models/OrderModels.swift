@@ -182,11 +182,59 @@ struct ReviewItem: Identifiable, Codable, Sendable, Equatable {
     }
 }
 
+/// One line on an order — what was actually purchased.
+/// Backed by `public.order_items`, populated by GPT-4o-mini extraction
+/// in the orders-autopilot pipeline.
+struct OrderItem: Identifiable, Codable, Sendable, Equatable, Hashable {
+    let id: UUID
+    let orderId: UUID
+    let name: String
+    let quantity: Decimal
+    let unitPrice: Decimal?
+    let currency: String?
+    let position: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case orderId = "order_id"
+        case name
+        case quantity
+        case unitPrice = "unit_price"
+        case currency
+        case position
+    }
+
+    /// Pretty quantity — drops the `.0` on integer counts. "1" not "1.0".
+    var displayQuantity: String {
+        let n = NSDecimalNumber(decimal: quantity)
+        if n.doubleValue.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(n.intValue)
+        }
+        return n.stringValue
+    }
+
+    /// Formatted unit price respecting the currency. Empty when nil.
+    var displayUnitPrice: String {
+        guard let unitPrice else { return "" }
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = currency ?? "USD"
+        return f.string(from: NSDecimalNumber(decimal: unitPrice)) ?? ""
+    }
+}
+
 struct OrderWithShipments: Identifiable, Sendable, Equatable {
     let order: Order
     let shipments: [Shipment]
+    let items: [OrderItem]
 
     var id: UUID { order.id }
+
+    init(order: Order, shipments: [Shipment], items: [OrderItem] = []) {
+        self.order = order
+        self.shipments = shipments
+        self.items = items
+    }
 
     var primaryShipment: Shipment? {
         shipments.sorted { $0.createdAt > $1.createdAt }.first
