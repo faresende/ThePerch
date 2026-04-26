@@ -561,33 +561,67 @@ function inferMerchantNameInner(
 
   const lower = sender.toLowerCase();
 
+  // Canonicalize an arbitrary candidate string against the known list by
+  // alphanum-normalizing both sides and looking for a substring match.
+  // This catches "Matador Equipment EU" → "Matador" (display name has
+  // spaces; the known key is "matadorequipment") and "VULKIT" → "Vulkit"
+  // (case difference). Returns the canonical merchant name on hit.
+  const canonicalFromKnown = (candidate: string): string | null => {
+    const norm = candidate.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!norm) return null;
+    for (const [k, v] of Object.entries(known)) {
+      if (norm.includes(k)) return v;
+    }
+    return null;
+  };
+
   // 0. Known-merchant boost wins outright when sender matches.
   for (const [domain, name] of Object.entries(known)) {
     if (lower.includes(domain)) return { name, source: 'known' };
   }
 
   // 1. Display name from the From: header is usually the cleanest source.
-  //    Strip generic suffixes ("Customer Service", "Team", etc).
+  //    Strip generic suffixes ("Customer Service", "Team", etc), then try
+  //    to promote it to 'known' canonical form before falling back to the
+  //    raw cleaned string. This is what catches "Matador Equipment EU" →
+  //    "Matador" — the sender domain (`store+...@t.shopifyemail.com`)
+  //    can't match the hardcoded list, but the display name does.
   if (displayName) {
     const cleaned = cleanDisplayName(displayName);
-    if (cleaned) return { name: cleaned, source: 'displayName' };
+    if (cleaned) {
+      const canon = canonicalFromKnown(cleaned);
+      if (canon) return { name: canon, source: 'known' };
+      return { name: cleaned, source: 'displayName' };
+    }
   }
 
   // 2. Shopify-routed senders (`store+xyz@t.shopifyemail.com`) hide the
   //    real merchant from the sender field. Recover from the body in 3
-  //    ways (cheapest to most heuristic):
+  //    ways (cheapest to most heuristic). Body match is normalized so
+  //    multi-word brand mentions like "Matador Equipment" still hit a
+  //    "matadorequipment" key.
   if (lower.includes('shopifyemail')) {
+    const bodyNorm = body.toLowerCase().replace(/[^a-z0-9]/g, '');
     for (const [domain, name] of Object.entries(known)) {
-      if (body.toLowerCase().includes(domain)) return { name, source: 'known' };
+      if (bodyNorm.includes(domain)) return { name, source: 'known' };
     }
     const phraseMatch = body.match(
       /(?:thank you for your (?:purchase|order)!?\s*\*+\s*\n*\s*|from\s+)([A-Z][A-Za-z0-9][A-Za-z0-9 &.'-]{2,30})/,
     );
-    if (phraseMatch) return { name: phraseMatch[1].trim(), source: 'shopifyBody' };
+    if (phraseMatch) {
+      const cand = phraseMatch[1].trim();
+      const canon = canonicalFromKnown(cand);
+      if (canon) return { name: canon, source: 'known' };
+      return { name: cand, source: 'shopifyBody' };
+    }
     const headerMatch = body.match(/<title>([^<]+)<\/title>/i);
     if (headerMatch) {
       const cleaned = headerMatch[1].replace(/^order\s+#?\S+\s*[\-:|]\s*/i, '').trim();
-      if (cleaned && !/^order/i.test(cleaned)) return { name: cleaned, source: 'shopifyBody' };
+      if (cleaned && !/^order/i.test(cleaned)) {
+        const canon = canonicalFromKnown(cleaned);
+        if (canon) return { name: canon, source: 'known' };
+        return { name: cleaned, source: 'shopifyBody' };
+      }
     }
   }
 

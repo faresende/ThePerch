@@ -129,14 +129,15 @@ struct OrderCard: View {
                 )
 
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
+                // Merchant alone is the heading. The "Order #X" caption line
+                // we used to render between the merchant and total was
+                // visually noisy and redundant with the order number that
+                // shows up in the shipment row + accessibility summary.
+                // Card now reads as: merchant → total → status, top-down.
                 Text(model.order.merchant)
                     .font(PerchTheme.Font.heading)
                     .foregroundColor(palette.ink)
                     .lineLimit(2)
-
-                Text("Order \(model.order.orderNumber)")
-                    .font(PerchTheme.Font.captionMono)
-                    .foregroundColor(palette.muted)
 
                 Text(totalText)
                     .font(PerchTheme.Font.bodyNumeric)
