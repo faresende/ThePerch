@@ -321,9 +321,13 @@ private struct OrdersSectionContent: View {
         .padding(.bottom, 20)
         .sheet(isPresented: $showingPastOrders) {
             // Sheet-presents the full Orders surface (Active / Issues /
-            // Delivered / Needs review). Reload on dismiss so the Hub
-            // reflects any changes the user made (mark delivered, etc.).
-            OrdersView()
+            // Delivered / Needs review). Wrapped in a NavigationStack
+            // so we can hang an explicit X close button off the top
+            // toolbar — drag-to-dismiss alone is too easy to miss when
+            // the sheet's inner ScrollView is at the top of its
+            // content. Reload on dismiss so the Hub reflects any
+            // changes the user made (mark delivered, etc.).
+            PastOrdersSheet(onDismiss: { showingPastOrders = false })
                 .onDisappear { Task { await viewModel.loadOrders(forceRefresh: true) } }
         }
         // Hydrate from DashboardViewModel's already-fetched trackedOrders
@@ -649,6 +653,42 @@ private struct HubReviewQueueSection: View {
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Past Orders Sheet
+//
+// Modal wrapper around OrdersView used by the Hub's "Past orders →"
+// link. Adds an X close button in the top toolbar so users have an
+// obvious way out — swipe-to-dismiss alone is too easy to miss when
+// the inner ScrollView is at top.
+
+private struct PastOrdersSheet: View {
+    @Environment(\.perchPalette) private var palette
+
+    let onDismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            OrdersView()
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            PerchHaptics.light()
+                            onDismiss()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 22, weight: .regular))
+                                .foregroundStyle(palette.muted)
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                        .accessibilityLabel("Close past orders")
+                    }
+                }
+                .toolbarBackground(palette.bg, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
