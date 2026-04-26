@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.theperch.poll-shipments</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/faresende/.openclaw/scripts/poll-shipments.sh</string>
+    </array>
+
+    <!-- Run every 30 min. 17track free tier allows ~40 trackings/month
+         polled at our default cadence; this accumulates ~48 polls/day
+         × N undelivered shipments. With ~5 active shipments at a time
+         we're well under the per-month quota. -->
+    <key>StartInterval</key>
+    <integer>1800</integer>
+
+    <!-- Run once on load too, so a fresh LaunchAgent install doesn't
+         wait 30 min for first poll. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Don't start while the system is offline / asleep. -->
+    <key>KeepAlive</key>
+    <false/>
+
+    <!-- Plain stdout/stderr go to ~/.openclaw/logs/launchd-poll-shipments.{out,err}.log
+         The wrapper script also writes its own structured log to
+         ~/.openclaw/logs/poll-shipments.log; these files capture any
+         shell-level errors before the wrapper handles them. -->
+    <key>StandardOutPath</key>
+    <string>/Users/faresende/.openclaw/logs/launchd-poll-shipments.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/faresende/.openclaw/logs/launchd-poll-shipments.err.log</string>
+
+    <!-- Inherit the user's HOME and PATH; the wrapper script sources
+         perch.env explicitly. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/faresende</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>

@@ -170,6 +170,10 @@ private struct OrdersSectionContent: View {
     /// expanded. Mirrors the workout-card pattern: parent owns
     /// expansion state, only one card open at a time.
     @State private var expandedOrderId: UUID?
+    /// Modal sheet flag for the "Past orders →" drill-in. Presents
+    /// the full OrdersView (which has Active / Issues / Delivered /
+    /// Needs review sections) over the Hub.
+    @State private var showingPastOrders = false
 
     private var active: [OrderWithShipments] { viewModel.activeOrders }
     private var issues: [OrderWithShipments] { viewModel.issueOrders }
@@ -261,9 +265,24 @@ private struct OrdersSectionContent: View {
                     .buttonStyle(.plain)
                 }
 
+                // Inline review queue — emails the autopilot couldn't
+                // confidently classify. Lives at the bottom of the
+                // active orders list so the user sees pending decisions
+                // alongside their tracked stuff. Hidden when empty.
+                if !viewModel.reviewItems.isEmpty {
+                    HubReviewQueueSection(
+                        items: viewModel.reviewItems,
+                        resolvingIds: viewModel.resolvingReviewIds,
+                        onConfirm: { item in Task { await viewModel.confirmReviewItem(item) } },
+                        onDismiss: { item in Task { await viewModel.dismissReviewItem(item) } }
+                    )
+                    .padding(.top, 8)
+                }
+
                 if !viewModel.deliveredOrders.isEmpty {
                     Button {
-                        // Past-orders drill-in not yet wired; no-op for now.
+                        PerchHaptics.light()
+                        showingPastOrders = true
                     } label: {
                         Text("Past orders →")
                             .font(.system(size: 13))
@@ -281,6 +300,13 @@ private struct OrdersSectionContent: View {
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 20)
+        .sheet(isPresented: $showingPastOrders) {
+            // Sheet-presents the full Orders surface (Active / Issues /
+            // Delivered / Needs review). Reload on dismiss so the Hub
+            // reflects any changes the user made (mark delivered, etc.).
+            OrdersView()
+                .onDisappear { Task { await viewModel.loadOrders(forceRefresh: true) } }
+        }
         // Hydrate from DashboardViewModel's already-fetched trackedOrders
         // instead of firing a fresh network call on first mount. Was the
         // main cause of the 1-2s first-tap lag when switching to the
@@ -554,6 +580,140 @@ private struct OrderCardV2: View {
     }
 }
 
+
+// MARK: - Hub Review Queue
+//
+// Sits at the bottom of the Hub's Orders section. Same data + actions
+// as OrdersView's ReviewQueueSection, but Hub-styled (uses
+// PerchSectionCard + matching typography). Each row offers two
+// inline buttons: "Add as order" → creates the order + writes a
+// learned_senders mapping, "Not an order" → just resolves.
+
+private struct HubReviewQueueSection: View {
+    @Environment(\.perchPalette) private var palette
+
+    let items: [ReviewItem]
+    let resolvingIds: Set<UUID>
+    let onConfirm: (ReviewItem) -> Void
+    let onDismiss: (ReviewItem) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("NEEDS REVIEW")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(palette.muted)
+                Spacer()
+                Text("\(items.count)")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(palette.faint)
+            }
+            .padding(.horizontal, 4)
+
+            VStack(spacing: 10) {
+                ForEach(items) { item in
+                    HubReviewQueueRow(
+                        item: item,
+                        isResolving: resolvingIds.contains(item.id),
+                        onConfirm: { onConfirm(item) },
+                        onDismiss: { onDismiss(item) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct HubReviewQueueRow: View {
+    @Environment(\.perchPalette) private var palette
+
+    let item: ReviewItem
+    let isResolving: Bool
+    let onConfirm: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        PerchSectionCard(padding: 14) {
+            // Merchant guess + freshness
+            HStack(alignment: .firstTextBaseline) {
+                Text(item.displayMerchant.uppercased())
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(palette.muted)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(relativeTime)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(palette.faint)
+            }
+
+            // Subject — serif italic, the editorial preview line
+            Text(item.displaySubject)
+                .font(.system(size: 14, weight: .regular, design: .serif).italic())
+                .foregroundStyle(palette.ink)
+                .lineLimit(2)
+                .padding(.top, 2)
+
+            // Sender mono, hidden when missing
+            if let s = item.sourceSenderEmail, !s.isEmpty {
+                Text(s)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(palette.faint)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.top, 2)
+            }
+
+            // Action row
+            HStack(spacing: 8) {
+                Spacer()
+                if isResolving {
+                    ProgressView()
+                        .scaleEffect(0.75)
+                        .tint(palette.kinetic)
+                } else {
+                    Button(action: onDismiss) {
+                        Text("Not an order")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(palette.muted)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(palette.line.opacity(0.5))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: onConfirm) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Add as order")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(palette.kinetic)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, 6)
+        }
+    }
+
+    private var relativeTime: String {
+        let interval = Date.now.timeIntervalSince(item.createdAt)
+        let m = Int(interval / 60)
+        if m < 1 { return "just now" }
+        if m < 60 { return "\(m)m ago" }
+        let h = m / 60
+        if h < 24 { return "\(h)h ago" }
+        return "\(h / 24)d ago"
+    }
+}
 
 // MARK: - Bookmarks Section Content — Sections v2
 
