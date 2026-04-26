@@ -40,7 +40,7 @@ Reply schema (no prose, no markdown, no code fences):
   "order_number": string | null,     // Order/reference number. Strip leading "#". null if absent.
   "total_amount": number | null,     // The ORDER TOTAL (final amount paid), not a line item or subtotal. Numeric, no currency symbol. null if absent.
   "currency": string | null,         // 3-letter ISO code: "EUR" / "USD" / "GBP" / "BRL" / "JPY" etc. null if you can't tell.
-  "is_purchase_confirmation": boolean, // true ONLY for a fresh purchase/order confirmation ("we got your order", "thanks for your purchase", invoices for a transaction that just happened). false for: shipping notices, marketing/newsletters, generic receipts, trip reminders ("review details for your upcoming trip"), hotel "review your reservation" nudges, airline check-in reminders, calendar/itinerary updates, statement/billing summaries, and any email about a booking that already exists.
+  "is_purchase_confirmation": boolean, // true ONLY for an ONLINE order confirmation where something will be SHIPPED OR DELIVERED to the recipient — i.e. a transaction that creates a future delivery to track. false for: shipping notices, marketing/newsletters, trip reminders, hotel reservations, airline check-in nudges, statement/billing summaries, and — importantly — IN-STORE / electronic receipts (a PDF/digital "fatura/factura" / "ticket de compra" / "documento digital" / "recibo eletrônico" sent after the user paid in-store, where there is no shipment).
   "confidence": number               // 0.0 to 1.0 — how sure you are about the above. 0.95+ = obvious, 0.5–0.7 = ambiguous, <0.4 = guess.
 }
 
@@ -48,7 +48,8 @@ Rules:
 - ONLY output the JSON object. No explanation. No "Here is the result:".
 - For order_number, extract the merchant's order/reference number, not a tracking number.
 - If multiple amounts appear, the total is usually the largest and labeled "Total" / "Grand Total" / "Order Total".
-- Trip/itinerary reminders look textually similar to order confirmations (totals, confirmation numbers, "non-refundable purchase" boilerplate). They are NOT purchase confirmations. Tell-tale signs: subject mentions "upcoming trip" / "your trip" / "review details", body mentions "itinerary" / "check-in" / "before your departure" / "manage your booking".`;
+- Trip/itinerary reminders look textually similar to order confirmations (totals, confirmation numbers, "non-refundable purchase" boilerplate). They are NOT purchase confirmations. Tell-tale signs: subject mentions "upcoming trip" / "your trip" / "review details", body mentions "itinerary" / "check-in" / "before your departure" / "manage your booking".
+- In-store digital receipts (Spain/Portugal/Brazil "documento digital" / "fatura eletrônica" / "factura electrónica" / "ticket de compra" / "recibo digital", or US "your receipt is ready" with no shipping context) are NOT order confirmations for our purposes — they're records of an already-completed in-person transaction with nothing to deliver. Tell-tale signs: very short body, a "download" link to a PDF, no shipping address, no items list, no expected delivery date, sender domain is the in-store retailer's mail-marketing host.`;
 
 interface OllamaResponse {
   model: string;

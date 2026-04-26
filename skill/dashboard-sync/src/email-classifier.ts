@@ -335,8 +335,16 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     purchaseScore = Math.max(0, purchaseScore - 0.5);
   }
 
-  const maxScore = Math.max(purchaseScore, shippingScore, 1);
-  const confidence = Math.min(maxScore, 1.0);
+  // Confidence = the stronger of the two raw scores, capped at 1.0. The
+  // earlier code was `Math.max(... , 1)` which FLOORED at 1 and then
+  // capped at 1 — so every email returned confidence = 1.0 regardless
+  // of whether any signal had matched. That made the orders-autopilot
+  // `confidence >= 0.4 → fire LLM` gate fire on EVERY "other" email,
+  // including Portuguese in-store receipts that have zero English
+  // keywords (caught in the wild: an El Corte Inglés digital receipt
+  // landing as a real order). Drop the bogus floor so confidence
+  // tracks the actual signal strength.
+  const confidence = Math.min(Math.max(purchaseScore, shippingScore), 1.0);
 
   return {
     isPurchase: purchaseScore >= 0.8,
