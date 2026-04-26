@@ -286,6 +286,55 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     }
   }
 
+  // Travel-reminder counter-signals. Trip itineraries, hotel "review your
+  // upcoming reservation", airline check-in nudges, etc. are textually
+  // close to purchase confirmations — they have totals, confirmation
+  // numbers, "non-refundable purchase" boilerplate — but they are NOT
+  // orders we want to track. Subtract aggressively: a strong travel
+  // signal pulls the score below the 0.8 purchase threshold even when
+  // a few purchase keywords incidentally hit. Caught by hand: an Amex
+  // travel reminder ("FABIO, review details for your upcoming trip")
+  // landing as a $550 American Express order.
+  const travelReminderSignals: Array<{ keyword: string; weight: number }> = [
+    { keyword: 'upcoming trip', weight: 0.7 },
+    { keyword: 'your trip', weight: 0.4 },
+    { keyword: 'review details for your', weight: 0.7 },
+    { keyword: 'review your reservation', weight: 0.7 },
+    { keyword: 'before your departure', weight: 0.7 },
+    { keyword: 'before your trip', weight: 0.7 },
+    { keyword: 'before your stay', weight: 0.7 },
+    { keyword: 'your itinerary', weight: 0.7 },
+    { keyword: 'itinerary', weight: 0.4 },
+    { keyword: 'view your reservation', weight: 0.6 },
+    { keyword: 'manage your booking', weight: 0.6 },
+    { keyword: 'manage your reservation', weight: 0.6 },
+    { keyword: 'hotel confirmation', weight: 0.5 },
+    { keyword: 'check-in starts', weight: 0.6 },
+    { keyword: 'check in:', weight: 0.4 },
+    { keyword: 'check-in:', weight: 0.4 },
+    { keyword: 'flight is not confirmed', weight: 0.6 },
+    { keyword: 'reservation/purchase', weight: 0.5 },
+    { keyword: 'cancellation policy', weight: 0.3 },
+  ];
+
+  let travelReminderScore = 0;
+  for (const signal of travelReminderSignals) {
+    if (text.includes(signal.keyword)) {
+      travelReminderScore += signal.weight;
+      matchedKeywords.push(`travel:${signal.keyword}`);
+    }
+  }
+
+  // If travel signal is strong, demote purchase. >=1.0 is a clear trip
+  // reminder — gut the purchase score so it lands in "other". 0.5–1.0 is
+  // ambiguous (could be a real travel purchase confirmation), so apply a
+  // partial penalty.
+  if (travelReminderScore >= 1.0) {
+    purchaseScore = Math.max(0, purchaseScore - 1.5);
+  } else if (travelReminderScore >= 0.5) {
+    purchaseScore = Math.max(0, purchaseScore - 0.5);
+  }
+
   const maxScore = Math.max(purchaseScore, shippingScore, 1);
   const confidence = Math.min(maxScore, 1.0);
 
@@ -659,10 +708,18 @@ function normalizeMerchant(name: string): string {
 }
 
 function extractOrderNumber(subject: string, body: string): string | null {
-  // Strip obvious HTML attributes before regex so we don't match things like
-  // cellpadding="0" or style="..." as order numbers. Cheap and effective.
+  // Strip obvious HTML noise before regex so we don't match things like
+  // cellpadding="0", style="..." attribute values, or — worst-offender —
+  // entire <style>...</style> blocks containing CSS selectors like
+  // `#outlook a { padding: 0; }` that would otherwise feed `#OUTLOOK`
+  // straight into the `#([A-Z]{2,}...)` order-number pattern.
+  // Order matters: drop full <style>/<script> blocks BEFORE the generic
+  // tag stripper, otherwise their inner text leaks through.
   const strip = (s: string) =>
     s
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<!--\[if[^\]]*\]>[\s\S]*?<!\[endif\]-->/gi, ' ')
       .replace(/cellpadding\s*=\s*["']?[^"'>\s]*/gi, '')
       .replace(/cellspacing\s*=\s*["']?[^"'>\s]*/gi, '')
       .replace(/bgcolor\s*=\s*["']?[^"'>\s]*/gi, '')
@@ -697,9 +754,12 @@ function extractOrderNumber(subject: string, body: string): string | null {
   ];
 
   // Tokens we should never accept as an order number — common HTML/CSS
-  // attributes + pure 6-char hex colors that slip through `#XYZ` patterns.
+  // attributes, well-known CSS hooks (`#outlook a {...}`, `#yiv...`),
+  // mailer keywords, and pure 3/6/8-char hex colors that slip through
+  // `#XYZ` patterns.
   const isHtmlJunk = (v: string) =>
-    /^(CELLPADDING|CELLSPACING|BGCOLOR|BORDER|ALIGN|VALIGN|WIDTH|HEIGHT|FONT|COLOR|STYLE|CLASS|UTF|HTML|BODY|TABLE|DIV|SPAN|HEADER|FOOTER)$/.test(v) ||
+    /^(CELLPADDING|CELLSPACING|BGCOLOR|BORDER|ALIGN|VALIGN|WIDTH|HEIGHT|FONT|COLOR|STYLE|CLASS|UTF|HTML|BODY|TABLE|DIV|SPAN|HEADER|FOOTER|OUTLOOK|YIV|MSO|GMAIL|XMLNS|DOCTYPE)$/.test(v) ||
+    /^YIV[0-9]+$/.test(v) ||
     /^[0-9A-F]{3}$/.test(v) ||
     /^[0-9A-F]{6}$/.test(v) ||
     /^[0-9A-F]{8}$/.test(v);
