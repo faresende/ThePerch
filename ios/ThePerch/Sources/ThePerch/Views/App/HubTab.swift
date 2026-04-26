@@ -166,9 +166,25 @@ private struct OrdersSectionContent: View {
     @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) private var dashboardViewModel
     @State private var viewModel = OrdersViewModel()
+    /// ID of the currently-expanded order card. nil when no card is
+    /// expanded. Mirrors the workout-card pattern: parent owns
+    /// expansion state, only one card open at a time.
+    @State private var expandedOrderId: UUID?
 
     private var active: [OrderWithShipments] { viewModel.activeOrders }
     private var issues: [OrderWithShipments] { viewModel.issueOrders }
+
+    /// Toggle expansion for a given order. Tap an open card → close;
+    /// tap a different card → move expansion there.
+    private func toggleExpanded(_ order: OrderWithShipments) {
+        PerchMotion.withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            if expandedOrderId == order.id {
+                expandedOrderId = nil
+            } else {
+                expandedOrderId = order.id
+            }
+        }
+    }
 
     /// Sum of active order totals for the aside.
     private var inFlightLabel: String? {
@@ -206,23 +222,37 @@ private struct OrdersSectionContent: View {
                 )
             } else {
                 ForEach(active) { order in
-                    OrderCardV2(
-                        order: order,
-                        featured: order.id == active.first?.id,
-                        onMarkDelivered: { order in
-                            Task { await viewModel.markAsDelivered(order) }
-                        }
-                    )
+                    Button {
+                        PerchHaptics.light()
+                        toggleExpanded(order)
+                    } label: {
+                        OrderCardV2(
+                            order: order,
+                            featured: order.id == active.first?.id,
+                            isExpanded: expandedOrderId == order.id,
+                            onMarkDelivered: { order in
+                                Task { await viewModel.markAsDelivered(order) }
+                            }
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 ForEach(issues) { order in
-                    OrderCardV2(
-                        order: order,
-                        featured: false,
-                        onMarkDelivered: { order in
-                            Task { await viewModel.markAsDelivered(order) }
-                        }
-                    )
+                    Button {
+                        PerchHaptics.light()
+                        toggleExpanded(order)
+                    } label: {
+                        OrderCardV2(
+                            order: order,
+                            featured: false,
+                            isExpanded: expandedOrderId == order.id,
+                            onMarkDelivered: { order in
+                                Task { await viewModel.markAsDelivered(order) }
+                            }
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 if !viewModel.deliveredOrders.isEmpty {
@@ -286,6 +316,10 @@ private struct OrderCardV2: View {
 
     let order: OrderWithShipments
     let featured: Bool
+    /// Whether the items section is expanded. Owned by the parent
+    /// (HubTab) so only one card is expanded at a time, mirroring
+    /// the workout-card pattern.
+    var isExpanded: Bool = false
     /// Fires when the user taps the checkmark on the row footer. Receives
     /// the canonical OrderWithShipments so the caller can hand it to the
     /// appropriate service. Optional so existing call sites that don't
@@ -411,8 +445,79 @@ private struct OrderCardV2: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                // Chevron — discoverability hint for tap-to-expand.
+                // Hidden when there are no items, since there's nothing
+                // to reveal. Rotates 180° when expanded.
+                if !order.items.isEmpty {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(palette.faint)
+                        .frame(width: 18, height: 18)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                }
             }
             .padding(.top, 12)
+
+            // Expanded items section. Same content as Cards/OrderCard.swift
+            // on the Orders tab — name on the left, qty × unit price on
+            // the right, mono pricing for column alignment.
+            if isExpanded && !order.items.isEmpty {
+                PerchSoftDivider()
+                    .padding(.top, 4)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("ITEMS")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(0.8)
+                            .foregroundStyle(palette.muted)
+                        Spacer()
+                        Text("\(order.items.count)")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(palette.faint)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(order.items) { item in
+                            HStack(alignment: .top, spacing: 10) {
+                                Text("\(item.displayQuantity)×")
+                                    .font(.system(size: 13, design: .monospaced))
+                                    .foregroundStyle(palette.muted)
+                                    .frame(width: 24, alignment: .leading)
+
+                                Text(item.name)
+                                    .font(.system(size: 14, weight: .regular, design: .serif).italic())
+                                    .foregroundStyle(palette.ink)
+                                    .lineLimit(2)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if !item.displayUnitPrice.isEmpty {
+                                    Text(item.displayUnitPrice)
+                                        .font(.system(size: 13, design: .monospaced))
+                                        .foregroundStyle(palette.muted)
+                                }
+                            }
+                        }
+                    }
+
+                    if !order.order.orderNumber.isEmpty {
+                        HStack {
+                            Text("ORDER #")
+                                .font(.system(size: 10))
+                                .tracking(0.6)
+                                .foregroundStyle(palette.faint)
+                            Text("#\(order.order.orderNumber)")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(palette.muted)
+                            Spacer()
+                        }
+                        .padding(.top, 2)
+                    }
+                }
+                .padding(.top, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
     }
 
