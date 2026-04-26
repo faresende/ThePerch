@@ -71,6 +71,18 @@ struct TodayTab: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 200)
                     } else {
+                        // Today's BioChecha insight card — sits above
+                        // everything else as the day's editorial
+                        // anchor. Empty state when the agent hasn't
+                        // generated a row yet (typical pre-7am state).
+                        DailyInsightCard(insight: dashboardViewModel.todayInsight)
+                            .cardAppear(index: 0, appeared: cardsAppeared)
+                            .task(id: dashboardViewModel.todayInsight?.id) {
+                                if let i = dashboardViewModel.todayInsight {
+                                    await InsightsService.shared.markShown(i)
+                                }
+                            }
+
                         // Travel card (contextual — only when trip upcoming/active)
                         TravelHomeCard(records: records, deliveries: deliveries)
 
@@ -79,7 +91,7 @@ struct TodayTab: View {
                         let isCompactHealth = HomeCardOrdering.isHealthCompact()
                         ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
                             homeCard(for: cardType, compactHealth: isCompactHealth, records: records, deliveries: deliveries)
-                                .cardAppear(index: index, appeared: cardsAppeared)
+                                .cardAppear(index: index + 1, appeared: cardsAppeared)
                         }
 
                         // 4. Signoff — "— end of today —"

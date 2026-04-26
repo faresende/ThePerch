@@ -36,6 +36,11 @@ final class DashboardViewModel {
     private(set) var trackedOrders: [OrderWithShipments] = []
     private(set) var trackedDeliveries: [DeliveryData] = []
 
+    /// Today's BioChecha-generated insight for the daily card on
+    /// Today tab. Nil before the agent has run for the day (typical
+    /// pre-7am state) — the card shows an empty state in that case.
+    private(set) var todayInsight: Insight?
+
     /// Events read live from the device's Calendar via EventKit. Separate
     /// from `calendarRecords` (which is agent-populated via Mac cron) so
     /// the UI can merge both sources — iPhone-first, agents-second — and
@@ -84,6 +89,7 @@ final class DashboardViewModel {
 
     private let supabaseService: SupabaseService
     private let ordersService: OrdersService
+    private let insightsService: InsightsService
     private let cacheService = CacheService.shared
     private var cacheUserId: String { supabaseService.currentUserId ?? "unauthenticated" }
     private let recentRecordsLimit = 500
@@ -94,6 +100,7 @@ final class DashboardViewModel {
     init(supabaseService: SupabaseService? = nil) {
         self.supabaseService = supabaseService ?? .shared
         self.ordersService = OrdersService(supabaseService: self.supabaseService)
+        self.insightsService = InsightsService(supabaseService: self.supabaseService)
     }
 
     // MARK: - Loading Data
@@ -140,6 +147,10 @@ final class DashboardViewModel {
             do { return .success(try await ordersService.fetchOrders(forceRefresh: forceRefresh)) }
             catch { return .failure(error) }
         }()
+        async let todayInsightResult: Result<Insight?, Error> = {
+            do { return .success(try await insightsService.fetchTodayDailyInsight()) }
+            catch { return .failure(error) }
+        }()
 
         let (sections, widgets, records, bookmarkRecords, trackedOrders) = await (
             sectionsResult,
@@ -148,6 +159,17 @@ final class DashboardViewModel {
             bookmarkRecordsResult,
             trackedOrdersResult
         )
+        let todayInsightAsync = await todayInsightResult
+        switch todayInsightAsync {
+        case .success(let i): self.todayInsight = i
+        case .failure(let err):
+#if DEBUG
+            print("[DashboardVM] fetchTodayDailyInsight threw: \(err)")
+#endif
+            // Insights are non-load-bearing for the rest of the app —
+            // a failure here shouldn't surface as an error banner.
+            // Just leave todayInsight nil and the empty state renders.
+        }
 
         switch sections {
         case .success(let loaded):

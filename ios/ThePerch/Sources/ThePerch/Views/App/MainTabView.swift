@@ -671,6 +671,13 @@ struct CaptureHistoryView: View {
     /// photos via the X on each tile in the floating strip.
     @State private var draftPhotos: [UIImage] = []
 
+    /// One-time "what's coming" splash — auto-shown on first visit
+    /// per install (gated by AppStorage) so visitors / demo viewers
+    /// understand the tab is a beta surface. Persistent in-place
+    /// "BETA" banner stays visible afterwards as a quieter reminder.
+    @AppStorage("captureBetaSplashSeen") private var splashSeen = false
+    @State private var showingSplash = false
+
     /// Mocked history until captures persist to the backend. Each row
     /// shows what the user previously sent — tap to re-add.
     private let history: [CaptureHistoryItem] = [
@@ -684,6 +691,21 @@ struct CaptureHistoryView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Persistent in-place beta banner — quiet but always
+                // visible. Tap it to re-open the full explanatory
+                // splash for context.
+                SwiftUI.Section {
+                    Button {
+                        showingSplash = true
+                    } label: {
+                        captureBetaBanner
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 12, trailing: 0))
+                }
+
                 // Capture list — palette-aware styling below overrides
                 // the insetGrouped default. See `.scrollContentBackground`
                 // + `.listRowBackground` + palette fonts.
@@ -806,6 +828,20 @@ struct CaptureHistoryView: View {
                 }
             }
         }
+        // Auto-present the splash on first visit.
+        .task(id: "capture-beta-splash") {
+            if !splashSeen {
+                // Small delay so it doesn't feel like a popup
+                // ambush the moment the user taps the tab.
+                try? await Task.sleep(for: .milliseconds(400))
+                showingSplash = true
+            }
+        }
+        .sheet(isPresented: $showingSplash, onDismiss: {
+            splashSeen = true
+        }) {
+            CaptureBetaSplash(onDismiss: { showingSplash = false })
+        }
     }
 
     private var canSubmit: Bool {
@@ -821,6 +857,152 @@ struct CaptureHistoryView: View {
         draftText = ""
         draftPhotos = []
         onSubmit(draft)
+    }
+
+    /// In-place beta banner that lives at the top of the capture
+    /// history list. Quiet visual weight — small kicker text in muted
+    /// color with a kinetic-tinted "BETA" pill — but tappable so the
+    /// user can re-read the splash any time.
+    private var captureBetaBanner: some View {
+        HStack(spacing: 10) {
+            Text("BETA")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(0.6)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(palette.kinetic)
+                .clipShape(Capsule())
+
+            Text("Auto-routing coming soon")
+                .font(.system(size: 13, weight: .regular, design: .serif).italic())
+                .foregroundStyle(palette.muted)
+
+            Spacer()
+
+            Image(systemName: "info.circle")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(palette.faint)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(palette.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(palette.line.opacity(0.45), lineWidth: 1)
+        )
+        .padding(.horizontal, 4)
+    }
+}
+
+// MARK: - Capture Beta Splash
+//
+// First-visit-only auto-presented sheet that explains what the
+// `+` (Create) tab will eventually do. Until the AI routing layer
+// ships, the tab is functionally a writing prompt + recent-captures
+// stub. The splash sets expectations so demos / shared views don't
+// read as "broken."
+
+private struct CaptureBetaSplash: View {
+    @Environment(\.perchPalette) private var palette
+    @Environment(\.dismiss) private var dismissEnv
+
+    let onDismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("BETA")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(0.8)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(palette.kinetic)
+                        .clipShape(Capsule())
+
+                    Text("Capture is in beta.")
+                        .font(.system(size: 28, weight: .semibold, design: .serif).italic())
+                        .foregroundStyle(palette.ink)
+
+                    Text("The plan: one place to drop a thought, photo, or receipt — and the app routes it to the right surface for you. *Pastel de nata* goes to Nutrition. *MR Porter linen jacket* goes to Orders. *Dentist Wednesday at 9:30* goes to Calendar. No more deciding which tab to open first.")
+                        .font(.system(size: 16, design: .serif).italic())
+                        .foregroundStyle(palette.ink)
+                        .lineSpacing(3)
+
+                    Text("Today's status")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(0.8)
+                        .foregroundStyle(palette.muted)
+                        .padding(.top, 8)
+
+                    bullet("The capture history is live — recent items show up below.")
+                    bullet("The text + photo capture works — you can send something and it'll land in a default destination for now.")
+                    bullet("The AI routing (the part that decides where each capture goes) is being built. Until it ships, captures land in placeholder surfaces.")
+
+                    Text("Why surface this now?")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(0.8)
+                        .foregroundStyle(palette.muted)
+                        .padding(.top, 8)
+
+                    Text("Better to see the shape of the feature than to think the tab is broken. The capture history is real value already; the routing is the unfinished bit.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(palette.muted)
+                        .lineSpacing(2)
+
+                    Spacer(minLength: 24)
+
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Text("Got it")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(palette.kinetic)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(palette.bg.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Text("Done")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(palette.kinetic)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Circle()
+                .fill(palette.kinetic.opacity(0.55))
+                .frame(width: 5, height: 5)
+                .padding(.top, 7)
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundStyle(palette.ink)
+                .lineSpacing(2)
+        }
     }
 }
 

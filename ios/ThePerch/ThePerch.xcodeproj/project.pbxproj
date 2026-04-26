@@ -15,7 +15,7 @@
 		1B755C70FCA165202C6C7A83 /* BookmarksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */; };
 		1C78119AA900E1C8B90682DF /* PerchQuickGlanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */; };
 		24C1850ACFD14218804CCF55 /* TextCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525629949349400A9FE8F436 /* TextCardRenderer.swift */; };
-		24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */; };
+		24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */; };
 		26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */; };
 		2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C887520E395213A3CA8757C /* TravelViewModel.swift */; };
 		2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD77E48492FF01406E3C35 /* TravelView.swift */; };
@@ -36,8 +36,6 @@
 		35F5437F2F52411F00204F77 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436C2F52411F00204F77 /* AdminView.swift */; };
 		35F543802F52411F00204F77 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436E2F52411F00204F77 /* CalendarView.swift */; };
 		35F543812F52411F00204F77 /* Record.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434F2F52411F00204F77 /* Record.swift */; };
-		ARUN0002ARUN0002ARUN0002 /* AgentRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */; };
-		ARCARD0002ARCARD0002ARCARD0 /* AgentRunsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */; };
 		35F543822F52411F00204F77 /* ChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543622F52411F00204F77 /* ChartCard.swift */; };
 		35F543832F52411F00204F77 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434E2F52411F00204F77 /* JSONValue.swift */; };
 		35F543842F52411F00204F77 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435A2F52411F00204F77 /* DashboardViewModel.swift */; };
@@ -49,13 +47,11 @@
 		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
 		35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436D2F52411F00204F77 /* BookmarksView.swift */; };
 		35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436A2F52411F00204F77 /* WidgetRouter.swift */; };
-
 		35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543602F52411F00204F77 /* BookmarkCard.swift */; };
 		35F543922F52411F00204F77 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543712F52411F00204F77 /* HomeView.swift */; };
 		35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543632F52411F00204F77 /* ChecklistCard.swift */; };
 		35F543942F52411F00204F77 /* TokenUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543512F52411F00204F77 /* TokenUsage.swift */; };
 		35F543962F52411F00204F77 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543552F52411F00204F77 /* SupabaseService.swift */; };
-
 		35F543982F52411F00204F77 /* EventKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543542F52411F00204F77 /* EventKitService.swift */; };
 		35F543992F52411F00204F77 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543522F52411F00204F77 /* UserProfile.swift */; };
 		35F5439A2F52411F00204F77 /* SingleValueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543652F52411F00204F77 /* SingleValueCard.swift */; };
@@ -65,8 +61,6 @@
 		35F5439E2F52411F00204F77 /* PerchTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543762F52411F00204F77 /* PerchTheme.swift */; };
 		35F5439F2F52411F00204F77 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435D2F52411F00204F77 /* AuthView.swift */; };
 		35F543A02F52411F00204F77 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543692F52411F00204F77 /* MockData.swift */; };
-		FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC0FFEE000000010000B001 /* SecretsLoader.swift */; };
-		FFC0FFEE000000010000B004 /* CloudDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC0FFEE000000010000B003 /* CloudDefaults.swift */; };
 		35F543A62F52449100204F77 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A52F52449100204F77 /* Auth */; };
 		35F543A82F52449100204F77 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A72F52449100204F77 /* Functions */; };
 		35F543AA2F52449100204F77 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 35F543A92F52449100204F77 /* PostgREST */; };
@@ -84,7 +78,6 @@
 		5CC4FE16D0724E1B90BD8BDA /* UniversalCardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */; };
 		5E2203331EBA92BB378B6097 /* LiquidGlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */; };
 		6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */; };
-		A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */; };
 		734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */; };
 		7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */; };
 		822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */; };
@@ -93,10 +86,13 @@
 		90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */; };
 		99E67B0E893542999222D13B /* UniversalCardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */; };
 		A1327FFE76188D06F10B001E /* TodayTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CBEA125F2BF3482151382 /* TodayTab.swift */; };
+		A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */; };
 		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
 		ACMS0002ACMS0002ACMS0002 /* AdminCommandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */; };
 		ADVM0002ADVM0002ADVM0002 /* AdminViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */; };
 		AMBM0002AMBM0002AMBM0002 /* AmbienceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */; };
+		ARCARD0002ARCARD0002ARCARD0 /* AgentRunsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */; };
+		ARUN0002ARUN0002ARUN0002 /* AgentRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */; };
 		B147D8B3A44F493392626D00 /* MetricCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */; };
 		B21A3D007DC34A21C0C959A0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571AC61D48E7054D783C5A2B /* NotificationService.swift */; };
 		BGRE0002BGRE0002BGRE0002 /* BackgroundRefreshService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */; };
@@ -124,6 +120,8 @@
 		F4C6D71B135641088ADEC4D7 /* CardGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BBC038A620A4778B341EA85 /* CardGalleryView.swift */; };
 		F5445DCE2E590BC759DACA34 /* NewCardStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583A9684EA57783652C76057 /* NewCardStyle.swift */; };
 		FF602294F262630BC98CFF64 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
+		FFC0FFEE000000010000B002 /* SecretsLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC0FFEE000000010000B001 /* SecretsLoader.swift */; };
+		FFC0FFEE000000010000B004 /* CloudDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC0FFEE000000010000B003 /* CloudDefaults.swift */; };
 		HCHD0002HCHD0002HCHD0002 /* HomeCardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCHD0001HCHD0001HCHD0001 /* HomeCardHeader.swift */; };
 		HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */; };
 		HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */; };
@@ -143,19 +141,22 @@
 		NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */; };
 		NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */; };
 		ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */; };
-		REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */; };
 		ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */; };
 		ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */; };
+		ORDT0002ORDT0002ORDT0002 /* OrderModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */; };
 		ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */; };
 		ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */; };
 		PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */; };
 		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
+		REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */; };
+		INSGHT0002INSGHT0002INS /* Insight.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSGHT0001INSGHT0001INS /* Insight.swift */; };
+		INSSVC0002INSSVC0002INS /* InsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSSVC0001INSSVC0001INS /* InsightsService.swift */; };
+		DAYCRD0002DAYCRD0002DAY /* DailyInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */; };
 		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
 		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
 		TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */; };
 		TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */; };
 		TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0031TEST0031TEST0031 /* RecordTests.swift */; };
-		ORDT0002ORDT0002ORDT0002 /* OrderModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */; };
 		TRVT0002TRVT0002TRVT0002 /* TravelTasksCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */; };
 		WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */; };
 /* End PBXBuildFile section */
@@ -178,15 +179,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		005BFD8FEEDB4EFEB75BE109 /* Embed App Extensions */ = {
+		005BFD8FEEDB4EFEB75BE109 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed App Extensions */,
+				24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed Foundation Extensions */,
 			);
-			name = "Embed App Extensions";
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		2F1BF96B66F7CED12CFDCF40 /* Embed Frameworks */ = {
@@ -223,16 +224,10 @@
 		35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCard.swift; sourceTree = "<group>"; };
 		35F542E32F522B6D00204F77 /* ThePerch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThePerch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35F543492F52411F00204F77 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
-		FFC0FFEE000000010000B001 /* SecretsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsLoader.swift; sourceTree = "<group>"; };
-		FFC0FFEE000000010000B003 /* CloudDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudDefaults.swift; sourceTree = "<group>"; };
-		FFC0FFEE000000010000A001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
-		FFC0FFEE000000010000A002 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		35F5434C2F52411F00204F77 /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
 		35F5434D2F52411F00204F77 /* DataPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloads.swift; sourceTree = "<group>"; };
 		35F5434E2F52411F00204F77 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		35F5434F2F52411F00204F77 /* Record.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Record.swift; sourceTree = "<group>"; };
-		ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRun.swift; sourceTree = "<group>"; };
-		ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRunsCard.swift; sourceTree = "<group>"; };
 		35F543502F52411F00204F77 /* Section.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Section.swift; sourceTree = "<group>"; };
 		35F543512F52411F00204F77 /* TokenUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenUsage.swift; sourceTree = "<group>"; };
 		35F543522F52411F00204F77 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
@@ -240,7 +235,6 @@
 		35F543552F52411F00204F77 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		35F543592F52411F00204F77 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		35F5435A2F52411F00204F77 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
-
 		35F5435D2F52411F00204F77 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		35F5435E2F52411F00204F77 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		35F543602F52411F00204F77 /* BookmarkCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCard.swift; sourceTree = "<group>"; };
@@ -254,7 +248,6 @@
 		35F5436C2F52411F00204F77 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
 		35F5436D2F52411F00204F77 /* BookmarksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarksView.swift; sourceTree = "<group>"; };
 		35F5436E2F52411F00204F77 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
-
 		35F543702F52411F00204F77 /* HealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthView.swift; sourceTree = "<group>"; };
 		35F543712F52411F00204F77 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -273,8 +266,8 @@
 		63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardContainer.swift; sourceTree = "<group>"; };
 		66A2E9B18B340651B6C624B3 /* HealthTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthTab.swift; sourceTree = "<group>"; };
 		66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
-		7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerchSegmentedPicker.swift; sourceTree = "<group>"; };
 		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
+		7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerchSegmentedPicker.swift; sourceTree = "<group>"; };
 		7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookmarksViewModel.swift; sourceTree = "<group>"; };
 		7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
 		82518FC23E55607E3C495A66 /* HubTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HubTab.swift; sourceTree = "<group>"; };
@@ -289,6 +282,8 @@
 		ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminCommandService.swift; sourceTree = "<group>"; };
 		ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminViewModel.swift; sourceTree = "<group>"; };
 		AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbienceManager.swift; sourceTree = "<group>"; };
+		ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRunsCard.swift; sourceTree = "<group>"; };
+		ARUN0001ARUN0001ARUN0001 /* AgentRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRun.swift; sourceTree = "<group>"; };
 		BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyVolumeCard.swift; sourceTree = "<group>"; };
 		BGRE0001BGRE0001BGRE0001 /* BackgroundRefreshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRefreshService.swift; sourceTree = "<group>"; };
 		C27DBAD9446B0EA0E5642376 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
@@ -315,6 +310,10 @@
 		F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardFooter.swift; sourceTree = "<group>"; };
 		F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThePerchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ThePerchWidgets.swift; path = ThePerchWidgets/ThePerchWidgets.swift; sourceTree = "<group>"; };
+		FFC0FFEE000000010000A001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		FFC0FFEE000000010000A002 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
+		FFC0FFEE000000010000B001 /* SecretsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsLoader.swift; sourceTree = "<group>"; };
+		FFC0FFEE000000010000B003 /* CloudDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudDefaults.swift; sourceTree = "<group>"; };
 		HCHD0001HCHD0001HCHD0001 /* HomeCardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardHeader.swift; sourceTree = "<group>"; };
 		HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardOrdering.swift; sourceTree = "<group>"; };
 		HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceProtocol.swift; sourceTree = "<group>"; };
@@ -334,19 +333,22 @@
 		NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCard.swift; sourceTree = "<group>"; };
-		REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewItemCard.swift; sourceTree = "<group>"; };
 		ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModels.swift; sourceTree = "<group>"; };
 		ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersService.swift; sourceTree = "<group>"; };
+		ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModelsTests.swift; sourceTree = "<group>"; };
 		ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersViewModel.swift; sourceTree = "<group>"; };
 		ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersView.swift; sourceTree = "<group>"; };
 		PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperlessCard.swift; sourceTree = "<group>"; };
 		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
+		REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewItemCard.swift; sourceTree = "<group>"; };
+		INSGHT0001INSGHT0001INS /* Insight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Insight.swift; sourceTree = "<group>"; };
+		INSSVC0001INSSVC0001INS /* InsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsService.swift; sourceTree = "<group>"; };
+		DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightCard.swift; sourceTree = "<group>"; };
 		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
 		SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceProtocol.swift; sourceTree = "<group>"; };
 		TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloadsTests.swift; sourceTree = "<group>"; };
 		TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormattersTests.swift; sourceTree = "<group>"; };
 		TEST0031TEST0031TEST0031 /* RecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTests.swift; sourceTree = "<group>"; };
-		ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModelsTests.swift; sourceTree = "<group>"; };
 		TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThePerchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelTasksCard.swift; sourceTree = "<group>"; };
 		WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCompactCard.swift; sourceTree = "<group>"; };
@@ -467,6 +469,7 @@
 				35F5434D2F52411F00204F77 /* DataPayloads.swift */,
 				35F5434E2F52411F00204F77 /* JSONValue.swift */,
 				ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */,
+				INSGHT0001INSGHT0001INS /* Insight.swift */,
 				NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */,
 				35F5434F2F52411F00204F77 /* Record.swift */,
 				35F543502F52411F00204F77 /* Section.swift */,
@@ -486,6 +489,7 @@
 				35F543542F52411F00204F77 /* EventKitService.swift */,
 				NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */,
 				ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */,
+				INSSVC0001INSSVC0001INS /* InsightsService.swift */,
 				35F543552F52411F00204F77 /* SupabaseService.swift */,
 				C27DBAD9446B0EA0E5642376 /* KeychainService.swift */,
 				NMON0001NMON0001NMON0001 /* NetworkMonitor.swift */,
@@ -514,7 +518,6 @@
 				5C887520E395213A3CA8757C /* TravelViewModel.swift */,
 				35F543592F52411F00204F77 /* AuthViewModel.swift */,
 				35F5435A2F52411F00204F77 /* DashboardViewModel.swift */,
-
 				ADVM0001ADVM0001ADVM0001 /* AdminViewModel.swift */,
 				HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */,
 			);
@@ -544,6 +547,7 @@
 				35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */,
 				ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */,
 				REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */,
+				DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */,
 				DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */,
 				35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */,
 				35F543602F52411F00204F77 /* BookmarkCard.swift */,
@@ -590,7 +594,6 @@
 				35F5436C2F52411F00204F77 /* AdminView.swift */,
 				35F5436D2F52411F00204F77 /* BookmarksView.swift */,
 				35F5436E2F52411F00204F77 /* CalendarView.swift */,
-
 				ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */,
 				35F543702F52411F00204F77 /* HealthView.swift */,
 				5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */,
@@ -669,7 +672,6 @@
 				82518FC23E55607E3C495A66 /* HubTab.swift */,
 				7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */,
 			);
-			name = App;
 			path = App;
 			sourceTree = "<group>";
 		};
@@ -737,7 +739,6 @@
 				583A9684EA57783652C76057 /* NewCardStyle.swift */,
 				1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */,
 			);
-			name = Components;
 			path = Components;
 			sourceTree = "<group>";
 		};
@@ -747,7 +748,6 @@
 				3F25B14CE75261A4A0BFF0F3 /* App */,
 				64587975DD04B244BA61855A /* Components */,
 			);
-			name = Views;
 			path = Views;
 			sourceTree = "<group>";
 		};
@@ -797,7 +797,6 @@
 			children = (
 				7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */,
 			);
-			name = ViewModels;
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
@@ -827,7 +826,6 @@
 			children = (
 				4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */,
 			);
-			name = Services;
 			path = Services;
 			sourceTree = "<group>";
 		};
@@ -911,7 +909,7 @@
 				35F542E02F522B6D00204F77 /* Frameworks */,
 				35F542E12F522B6D00204F77 /* Resources */,
 				2F1BF96B66F7CED12CFDCF40 /* Embed Frameworks */,
-				005BFD8FEEDB4EFEB75BE109 /* Embed App Extensions */,
+				005BFD8FEEDB4EFEB75BE109 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -992,7 +990,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					35F542E22F522B6D00204F77 = {
 						CreatedOnToolsVersion = 26.3;
@@ -1099,6 +1097,9 @@
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
 				ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */,
 				REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */,
+				INSGHT0002INSGHT0002INS /* Insight.swift in Sources */,
+				INSSVC0002INSSVC0002INS /* InsightsService.swift in Sources */,
+				DAYCRD0002DAYCRD0002DAY /* DailyInsightCard.swift in Sources */,
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
 				ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */,
 				35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */,
@@ -1109,7 +1110,6 @@
 				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
 				35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */,
 				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,
-
 				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
 				NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */,
 				ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */,
@@ -1123,7 +1123,6 @@
 				ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */,
 				35F543962F52411F00204F77 /* SupabaseService.swift in Sources */,
 				8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */,
-
 				35F543982F52411F00204F77 /* EventKitService.swift in Sources */,
 				35F543992F52411F00204F77 /* UserProfile.swift in Sources */,
 				35E8ADA82F5B19CB00BAC8FE /* HealthKitSyncService.swift in Sources */,
@@ -1245,11 +1244,13 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = 102;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 47;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1260,6 +1261,7 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch.sharedkit;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -1279,11 +1281,13 @@
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = 102;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 47;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1294,6 +1298,7 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = NotButter.ThePerch.sharedkit;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -1366,6 +1371,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -1423,6 +1429,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
