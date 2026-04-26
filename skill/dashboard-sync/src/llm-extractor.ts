@@ -49,7 +49,33 @@ Rules:
 - For order_number, extract the merchant's order/reference number, not a tracking number.
 - If multiple amounts appear, the total is usually the largest and labeled "Total" / "Grand Total" / "Order Total".
 - Trip/itinerary reminders look textually similar to order confirmations (totals, confirmation numbers, "non-refundable purchase" boilerplate). They are NOT purchase confirmations. Tell-tale signs: subject mentions "upcoming trip" / "your trip" / "review details", body mentions "itinerary" / "check-in" / "before your departure" / "manage your booking".
-- In-store digital receipts (Spain/Portugal/Brazil "documento digital" / "fatura eletrônica" / "factura electrónica" / "ticket de compra" / "recibo digital", or US "your receipt is ready" with no shipping context) are NOT order confirmations for our purposes — they're records of an already-completed in-person transaction with nothing to deliver. Tell-tale signs: very short body, a "download" link to a PDF, no shipping address, no items list, no expected delivery date, sender domain is the in-store retailer's mail-marketing host.`;
+- In-store digital receipts (Spain/Portugal/Brazil "documento digital" / "fatura eletrônica" / "factura electrónica" / "ticket de compra" / "recibo digital", or US "your receipt is ready" with no shipping context) are NOT order confirmations for our purposes — they're records of an already-completed in-person transaction with nothing to deliver. Tell-tale signs: very short body, a "download" link to a PDF, no shipping address, no items list, no expected delivery date, sender domain is the in-store retailer's mail-marketing host.
+
+Examples (input → expected JSON output):
+
+EXAMPLE 1 — real online order confirmation (Body&Fit, Dutch):
+From: Body&Fit Customer Service <noreply@bodyandfit.com>
+Subject: Your Body&Fit order is confirmed!
+Body: Hi Fábio, thanks for your order BF1429199. Total: €114.97. We'll let you know when it ships.
+{"merchant_name":"Body&Fit","order_number":"BF1429199","total_amount":114.97,"currency":"EUR","is_purchase_confirmation":true,"confidence":0.97}
+
+EXAMPLE 2 — trip itinerary reminder (Amex, NOT an order):
+From: American Express <AmericanExpress@welcome.americanexpress.com>
+Subject: FABIO, review details for your upcoming trip
+Body: Your American Express booking #ZO-AX1042-37980 is coming up. Review your itinerary, manage your booking online. Hotel confirmation #: exp-2435832390. Average benefit value of $550. Cancellation policy: non-refundable.
+{"merchant_name":"American Express","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"confidence":0.96}
+
+EXAMPLE 3 — in-store digital receipt (El Corte Inglés, Portuguese, NOT an order):
+From: El Corte Inglés <elcorteingles@mc.elcorteingles.es>
+Subject: Envio de documento digital
+Body: O documento digital relativo à sua compra com o número 004014005292827202604264 já está disponível. DESCARREGAR. Muito obrigado pela sua confiança.
+{"merchant_name":"El Corte Inglés","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"confidence":0.92}
+
+EXAMPLE 4 — real online order confirmation (Hardgraft, English with tracking):
+From: Hardgraft <hello@hardgraft.com>
+Subject: hardgraft order HGMC20117325 confirmed
+Body: Thanks for your order. Order total: €160.93. Tracking: 1Z999...
+{"merchant_name":"Hardgraft","order_number":"HGMC20117325","total_amount":160.93,"currency":"EUR","is_purchase_confirmation":true,"confidence":0.98}`;
 
 interface OllamaResponse {
   model: string;

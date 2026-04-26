@@ -61,6 +61,20 @@ export interface ClassifyMeta {
 }
 
 /**
+ * Result of `classifyEmail`. Beyond the headline `type` + `confidence`,
+ * this exposes the underlying purchase/shipping scores and the matched
+ * keywords so the caller can write rich telemetry without having to
+ * re-run the analyzer.
+ */
+export interface ClassifyResult {
+  type: EmailType;
+  confidence: number;
+  purchaseScore: number;
+  shippingScore: number;
+  matchedKeywords: string[];
+}
+
+/**
  * Classifies an email body as purchase or shipping type.
  */
 export function classifyEmail(
@@ -68,9 +82,15 @@ export function classifyEmail(
   body: string,
   senderEmail: string,
   meta: ClassifyMeta = {},
-): { type: EmailType; confidence: number } {
+): ClassifyResult {
   if (isNonGoodsSender(senderEmail)) {
-    return { type: 'other', confidence: 1 };
+    return {
+      type: 'other',
+      confidence: 1,
+      purchaseScore: 0,
+      shippingScore: 0,
+      matchedKeywords: ['non_goods_sender'],
+    };
   }
   const lowerSender = senderEmail.toLowerCase();
 
@@ -81,7 +101,13 @@ export function classifyEmail(
   // shipping signals would otherwise win and route to shipping.
   const subjectSignals = analyzeSignals(subject.toLowerCase(), lowerSender);
   if (subjectSignals.isPurchase && subjectSignals.purchaseScore >= 0.85) {
-    return { type: 'purchase_confirmation', confidence: Math.min(subjectSignals.confidence, 1) };
+    return {
+      type: 'purchase_confirmation',
+      confidence: Math.min(subjectSignals.confidence, 1),
+      purchaseScore: subjectSignals.purchaseScore,
+      shippingScore: subjectSignals.shippingScore,
+      matchedKeywords: [...subjectSignals.matchedKeywords, 'subject_only_fastpath'],
+    };
   }
 
   const text = `${subject} ${body}`.toLowerCase();
@@ -119,6 +145,13 @@ export function classifyEmail(
     signals.matchedKeywords.push('learned_sender');
   }
 
+  // Common diagnostic fields shared by every return path below.
+  const diag = {
+    purchaseScore: signals.purchaseScore,
+    shippingScore: signals.shippingScore,
+    matchedKeywords: signals.matchedKeywords,
+  };
+
   if (signals.isPurchase && signals.isShipping) {
     // Both signals — compare RAW summed scores so ties are rare. Order
     // confirmations from real merchants almost always carry some shipping
@@ -127,25 +160,25 @@ export function classifyEmail(
     // "other", which silently drops orders. Using the raw sums lets
     // "Order #X confirmed" beat "tracking number TBD" cleanly.
     if (signals.purchaseScore > signals.shippingScore) {
-      return { type: 'purchase_confirmation', confidence: signals.confidence };
+      return { type: 'purchase_confirmation', confidence: signals.confidence, ...diag };
     } else if (signals.shippingScore > signals.purchaseScore) {
-      return { type: 'shipping_notification', confidence: signals.confidence };
+      return { type: 'shipping_notification', confidence: signals.confidence, ...diag };
     }
     // Genuine tie — prefer purchase since shipping notifications without
     // a clear purchase signal are rare. Better to land in orders and let
     // the extractor demote to review_item than to silently skip.
-    return { type: 'purchase_confirmation', confidence: signals.confidence * 0.6 };
+    return { type: 'purchase_confirmation', confidence: signals.confidence * 0.6, ...diag };
   }
 
   if (signals.isPurchase) {
-    return { type: 'purchase_confirmation', confidence: signals.confidence };
+    return { type: 'purchase_confirmation', confidence: signals.confidence, ...diag };
   }
 
   if (signals.isShipping) {
-    return { type: 'shipping_notification', confidence: signals.confidence };
+    return { type: 'shipping_notification', confidence: signals.confidence, ...diag };
   }
 
-  return { type: 'other', confidence: signals.confidence };
+  return { type: 'other', confidence: signals.confidence, ...diag };
 }
 
 function analyzeSignals(text: string, senderEmail: string): EmailSignals {
@@ -178,6 +211,74 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     { keyword: 'invoice', weight: 0.5 },
     { keyword: 'receipt', weight: 0.5 },
     { keyword: 'confirmation', weight: 0.4 },
+
+    // ─── Portuguese (PT/BR) ────────────────────────────────────────────
+    { keyword: 'pedido confirmado', weight: 0.9 },
+    { keyword: 'pedido recebido', weight: 0.85 },
+    { keyword: 'recebemos o seu pedido', weight: 0.85 },
+    { keyword: 'recebemos seu pedido', weight: 0.85 },
+    { keyword: 'obrigado pelo seu pedido', weight: 0.9 },
+    { keyword: 'obrigado pela sua compra', weight: 0.9 },
+    { keyword: 'confirmação do pedido', weight: 0.85 },
+    { keyword: 'confirmação de pedido', weight: 0.85 },
+    { keyword: 'confirmação da encomenda', weight: 0.85 },
+    { keyword: 'a sua encomenda', weight: 0.7 },
+    { keyword: 'sua encomenda', weight: 0.7 },
+    { keyword: 'número do pedido', weight: 0.8 },
+    { keyword: 'número da encomenda', weight: 0.8 },
+    { keyword: 'pedido nº', weight: 0.8 },
+    { keyword: 'encomenda nº', weight: 0.8 },
+    { keyword: 'pagamento confirmado', weight: 0.8 },
+
+    // ─── Spanish (ES) ──────────────────────────────────────────────────
+    { keyword: 'pedido confirmado', weight: 0.9 }, // also PT
+    { keyword: 'gracias por su pedido', weight: 0.9 },
+    { keyword: 'gracias por tu pedido', weight: 0.9 },
+    { keyword: 'gracias por su compra', weight: 0.9 },
+    { keyword: 'gracias por tu compra', weight: 0.9 },
+    { keyword: 'confirmación de pedido', weight: 0.85 }, // also PT
+    { keyword: 'confirmación de su pedido', weight: 0.85 },
+    { keyword: 'su pedido', weight: 0.6 },
+    { keyword: 'tu pedido', weight: 0.6 },
+    { keyword: 'número de pedido', weight: 0.8 },
+    { keyword: 'hemos recibido su pedido', weight: 0.85 },
+    { keyword: 'hemos recibido tu pedido', weight: 0.85 },
+    { keyword: 'pago confirmado', weight: 0.8 },
+
+    // ─── French (FR) ───────────────────────────────────────────────────
+    { keyword: 'commande confirmée', weight: 0.9 },
+    { keyword: 'merci pour votre commande', weight: 0.9 },
+    { keyword: 'merci pour votre achat', weight: 0.9 },
+    { keyword: 'confirmation de commande', weight: 0.85 },
+    { keyword: 'confirmation de votre commande', weight: 0.85 },
+    { keyword: 'votre commande', weight: 0.6 },
+    { keyword: 'numéro de commande', weight: 0.8 },
+    { keyword: 'commande n°', weight: 0.8 },
+    { keyword: 'nous avons bien reçu votre commande', weight: 0.85 },
+    { keyword: 'paiement confirmé', weight: 0.8 },
+
+    // ─── German (DE) ───────────────────────────────────────────────────
+    { keyword: 'bestellung bestätigt', weight: 0.9 },
+    { keyword: 'bestellbestätigung', weight: 0.9 },
+    { keyword: 'vielen dank für ihre bestellung', weight: 0.9 },
+    { keyword: 'vielen dank für deine bestellung', weight: 0.9 },
+    { keyword: 'ihre bestellung', weight: 0.6 },
+    { keyword: 'deine bestellung', weight: 0.6 },
+    { keyword: 'bestellnummer', weight: 0.8 },
+    { keyword: 'wir haben ihre bestellung erhalten', weight: 0.85 },
+    { keyword: 'zahlung bestätigt', weight: 0.8 },
+
+    // ─── Dutch (NL) — Body&Fit speaks Dutch ───────────────────────────
+    { keyword: 'bestelling bevestigd', weight: 0.9 },
+    { keyword: 'orderbevestiging', weight: 0.9 },
+    { keyword: 'bedankt voor je bestelling', weight: 0.9 },
+    { keyword: 'bedankt voor uw bestelling', weight: 0.9 },
+    { keyword: 'je bestelling', weight: 0.6 },
+    { keyword: 'uw bestelling', weight: 0.6 },
+    { keyword: 'bestelnummer', weight: 0.8 },
+    { keyword: 'we hebben je bestelling ontvangen', weight: 0.85 },
+    { keyword: 'we hebben uw bestelling ontvangen', weight: 0.85 },
+    { keyword: 'betaling bevestigd', weight: 0.8 },
   ];
 
   const shippingSignals: Array<{ keyword: string; weight: number }> = [
@@ -264,17 +365,36 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
   }
 
   // Catch-all regex for "order [#XYZ / has been / is] confirmed" phrasings
-  // that the literal-keyword list misses. Real-world subject lines like
+  // (and PT/ES/FR/DE/NL equivalents) that the literal-keyword list misses.
+  // Real-world subject lines like
   //   "Order #108984 confirmed"
   //   "hardgraft order HGMC20117325 confirmed"
   //   "Your Body&Fit order is confirmed!"
-  // all read as orders to a human but skip the literal "order confirmed".
-  // Single fire (not stacking) so we don't double-count if both this regex
-  // and the literal "order confirmed" hit.
-  if (/order(?:\s+[#a-z0-9-]{2,30}){0,3}\s+(?:is\s+|has\s+been\s+)?confirmed/i.test(text)
-      && !matchedKeywords.includes('order confirmed')) {
-    purchaseScore += 0.85;
-    matchedKeywords.push('order_confirmed_regex');
+  //   "Pedido #1234 confirmado"
+  //   "Commande N°1234 confirmée"
+  //   "Bestellung #1234 bestätigt"
+  // all read as orders to a human but skip the literal phrasings. Single
+  // fire so we don't double-count.
+  const confirmedRegexes: RegExp[] = [
+    // English: "order ... confirmed"
+    /order(?:\s+[#a-z0-9-]{2,30}){0,3}\s+(?:is\s+|has\s+been\s+)?confirmed/i,
+    // PT/ES: "pedido ... confirmado/a"; "encomenda ... confirmada"
+    /(?:pedido|encomenda)(?:\s+[#a-z0-9ºn°-]{2,30}){0,3}\s+confirmad[oa]/i,
+    // FR: "commande ... confirmée"
+    /commande(?:\s+[#a-z0-9°n-]{2,30}){0,3}\s+confirm[ée]e?/i,
+    // DE: "Bestellung ... bestätigt"
+    /bestellung(?:\s+[#a-z0-9-]{2,30}){0,3}\s+best[äa]tigt/i,
+    // NL: "bestelling ... bevestigd"
+    /bestelling(?:\s+[#a-z0-9-]{2,30}){0,3}\s+bevestigd/i,
+  ];
+  if (!matchedKeywords.includes('order confirmed')) {
+    for (const re of confirmedRegexes) {
+      if (re.test(text)) {
+        purchaseScore += 0.85;
+        matchedKeywords.push('order_confirmed_regex');
+        break; // only fire once
+      }
+    }
   }
 
   // Boost purchase score for known merchant domains. Generous list — false
@@ -333,6 +453,57 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     purchaseScore = Math.max(0, purchaseScore - 1.5);
   } else if (travelReminderScore >= 0.5) {
     purchaseScore = Math.max(0, purchaseScore - 0.5);
+  }
+
+  // Marketing-email demotion. Real merchant emails OFTEN have marketing
+  // CTAs in the footer ("Save 20% on your next order!", "back in stock") —
+  // we can't naively count those as negative or we'll false-negative real
+  // orders. Three layers of protection:
+  //   1. Only count marketing signals from the subject + first 500 chars
+  //      of body (footer CTAs in real order emails sit much later).
+  //   2. A confident purchase signal makes the email immune — if the
+  //      subject scored ≥0.85 OR the (post-travel) purchaseScore is
+  //      ≥1.0, marketing demotion is skipped entirely.
+  //   3. Otherwise, marketing score ≥0.5 in the early window applies a
+  //      partial penalty; ≥1.0 applies a strong penalty.
+  const marketingSignals: Array<{ keyword: string; weight: number }> = [
+    { keyword: 'limited time', weight: 0.5 },
+    { keyword: 'limited offer', weight: 0.5 },
+    { keyword: 'use code', weight: 0.4 },
+    { keyword: 'use promo code', weight: 0.5 },
+    { keyword: 'save now', weight: 0.4 },
+    { keyword: '% off', weight: 0.4 },
+    { keyword: 'while supplies last', weight: 0.6 },
+    { keyword: 'shop now', weight: 0.4 },
+    { keyword: 'complete your purchase', weight: 0.5 },
+    { keyword: 'back in stock', weight: 0.6 },
+    { keyword: 'last chance', weight: 0.5 },
+    { keyword: 'flash sale', weight: 0.6 },
+    { keyword: 'new arrivals', weight: 0.4 },
+    { keyword: 'recommended for you', weight: 0.4 },
+  ];
+  // Layer 1: only check the subject + early body window.
+  const lowerText = text;  // already lowercased above
+  const earlyWindow = lowerText.slice(0, 500); // text already starts with subject
+  let marketingScore = 0;
+  for (const signal of marketingSignals) {
+    if (earlyWindow.includes(signal.keyword)) {
+      marketingScore += signal.weight;
+      matchedKeywords.push(`marketing:${signal.keyword}`);
+    }
+  }
+  // Layer 2: high-confidence purchase signal makes the email immune.
+  // (Subject was already scored above; we approximate "confident" via
+  // the post-travel purchaseScore being ≥1.0.)
+  const isConfidentPurchase = purchaseScore >= 1.0;
+  // Layer 3: apply penalty proportional to marketing score, but only if
+  // not already a confident purchase.
+  if (!isConfidentPurchase) {
+    if (marketingScore >= 1.0) {
+      purchaseScore = Math.max(0, purchaseScore - 0.8);
+    } else if (marketingScore >= 0.5) {
+      purchaseScore = Math.max(0, purchaseScore - 0.3);
+    }
   }
 
   // Confidence = the stronger of the two raw scores, capped at 1.0. The
@@ -737,40 +908,54 @@ function extractOrderNumber(subject: string, body: string): string | null {
   const subj = strip(subject);
   const bod = strip(body);
 
-  // Patterns in order of specificity. The earlier patterns fire when a
-  // "#" or "order number"/"order no" anchor is present; the later ones
-  // are more permissive and run only if those miss.
+  // Multilingual commerce-anchor words. Every viable order-number pattern
+  // requires the token to follow one of these — that's the proximity rule.
+  // Empirically (see backtest in commit history) the order number lives
+  // either in the subject or within ~30 chars of an anchor in the body
+  // 100% of the time across our test corpus; the previous standalone
+  // `#XYZ` pattern was the source of every junk extraction we've ever
+  // had (#OUTLOOK from CSS, #DADAD2 from hex colors, etc.).
+  const ANCHOR = '(?:order|pedido|encomenda|orden|commande|bestellung|bestelling|ordine)';
+
+  // Patterns in order of specificity. Each one ANCHORS to a commerce
+  // word so the captured token is by construction near "order" /
+  // "pedido" / "commande" / etc. — proximity is built in.
   const patterns: RegExp[] = [
-    // "Order #AB-12345678"
-    /order\s*#\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
-    // "order number: AB-12345678"
-    /order\s+number\s*[:#]?\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
-    // "order no. 12345678"
-    /order\s+no\.?\s*([A-Z0-9][A-Z0-9-]{4,24})/i,
+    // "Order #AB-12345678" / "pedido #AB-12345678"
+    new RegExp(`${ANCHOR}\\s*#\\s*([A-Z0-9][A-Z0-9-]{4,24})`, 'i'),
+    // "order number: AB-12345678" / "número de pedido: X" / "numéro de commande: X"
+    new RegExp(`(?:${ANCHOR}\\s+(?:number|nº|n°|no\\.?|numero|número)|(?:numero|número|num\\.|n[ºo°]\\.?)\\s+(?:de\\s+|do\\s+|da\\s+)?${ANCHOR})\\s*[:#]?\\s*([A-Z0-9][A-Z0-9-]{4,24})`, 'i'),
     // Amazon-style "order 123-1234567-1234567"
-    /order\s+(\d{3}-\d{7}-\d{7})/i,
-    // "order HGMC20117325" / "order ABC-12345" — bare token after "order"
-    // (no # required). Restricted to merchant-style prefixes (≥2 letters,
-    // ≥1 digit somewhere) so we don't scoop "order details" or "order
-    // confirmation".
-    /order\s+([A-Z]{2,}[A-Z0-9-]*[0-9][A-Z0-9-]*)/,
-    // "Order 1723 confirmed" — pure-numeric Shopify-style. Constrained
-    // to "order <digits> confirmed" so common phrases don't match.
-    /order\s+(\d{3,8})\s+confirmed/i,
-    // "#ORD-12345678" (must start with an alpha prefix to avoid catching random tokens)
-    /#([A-Z]{2,}[A-Z0-9-]{3,24})/i,
+    new RegExp(`${ANCHOR}\\s+(\\d{3}-\\d{7}-\\d{7})`, 'i'),
+    // "order HGMC20117325" / "pedido ABC-12345" — bare token after the
+    // anchor (no # required). Restricted to merchant-style prefixes
+    // (≥2 letters, ≥1 digit somewhere) so we don't scoop "order details"
+    // / "pedido confirmado" / "commande confirmée".
+    new RegExp(`${ANCHOR}\\s+([A-Z]{2,}[A-Z0-9-]*[0-9][A-Z0-9-]*)`, 'i'),
+    // "Order 1723 confirmed" / "Pedido 1723 confirmado" — pure-numeric
+    // Shopify-style. Multilingual completion words.
+    new RegExp(`${ANCHOR}\\s+(\\d{3,8})\\s+(?:confirmed|confirmad[oa]|confirm[ée]e?|best[äa]tigt|bevestigd)`, 'i'),
+    // "thanks for your order BF1429199" — token immediately after the
+    // anchor in body prose. Matches Body&Fit-style emails.
+    new RegExp(`(?:thanks?\\s+for\\s+your\\s+|obrigado\\s+pelo\\s+seu\\s+|gracias\\s+por\\s+(?:su|tu)\\s+|merci\\s+pour\\s+votre\\s+|vielen\\s+dank\\s+für\\s+(?:ihre|deine)\\s+|bedankt\\s+voor\\s+(?:je|uw)\\s+)${ANCHOR}\\s+([A-Z0-9][A-Z0-9-]{4,24})`, 'i'),
   ];
 
   // Tokens we should never accept as an order number — common HTML/CSS
-  // attributes, well-known CSS hooks (`#outlook a {...}`, `#yiv...`),
-  // mailer keywords, and pure 3/6/8-char hex colors that slip through
-  // `#XYZ` patterns.
+  // attributes, well-known CSS hooks, mailer keywords, and 3/6/8-char
+  // hex colors. Defense in depth — the proximity rule above already
+  // rejects most of these by structure, but belt-and-suspenders.
+  //
+  // Important: a 6-char hex color check would otherwise false-reject
+  // pure-digit Shopify order numbers like "108984" / "104383" (every
+  // char is in 0-9 ⊆ [0-9A-F]). Require at least one A-F LETTER for
+  // the hex-color rejection so digits-only tokens are kept.
+  const isHexColor = (v: string) =>
+    (/^[0-9A-F]{3}$/.test(v) || /^[0-9A-F]{6}$/.test(v) || /^[0-9A-F]{8}$/.test(v))
+    && /[A-F]/.test(v);
   const isHtmlJunk = (v: string) =>
     /^(CELLPADDING|CELLSPACING|BGCOLOR|BORDER|ALIGN|VALIGN|WIDTH|HEIGHT|FONT|COLOR|STYLE|CLASS|UTF|HTML|BODY|TABLE|DIV|SPAN|HEADER|FOOTER|OUTLOOK|YIV|MSO|GMAIL|XMLNS|DOCTYPE)$/.test(v) ||
     /^YIV[0-9]+$/.test(v) ||
-    /^[0-9A-F]{3}$/.test(v) ||
-    /^[0-9A-F]{6}$/.test(v) ||
-    /^[0-9A-F]{8}$/.test(v);
+    isHexColor(v);
 
   for (const pattern of patterns) {
     const m = subj.match(pattern) || bod.match(pattern);
@@ -877,9 +1062,16 @@ function extractTotal(body: string): AmountResult {
   }
   if (matches.length === 0) return { amount: null, currency: 'USD' };
 
-  // Strategy 1: anchored-total — find the rightmost "Total..." label and
-  // pick the next amount within ~120 chars after it.
-  const anchorRe = /(?:grand\s+total|order\s+total|total\s+(?:price|amount|due|paid)|^total\b|\btotal\b)\s*[:\s]*/gi;
+  // Anchored-total only — find the rightmost "Total..." label (multilingual)
+  // and pick the next amount within ~120 chars after it.
+  //
+  // The previous "Strategy 2" fallback returned the LARGEST currency
+  // amount in the body when no anchor was found. That fallback was the
+  // direct cause of the Amex trip-reminder false positive ("$550 average
+  // savings" was extracted as the order total). A null total is honest;
+  // a wrong total is worse than no total. The LLM second-pass is good at
+  // recovering totals when keyword matching fails.
+  const anchorRe = /(?:grand\s+total|order\s+total|total\s+(?:price|amount|due|paid)|total\s+a\s+pagar|importe\s+total|total\s+à\s+payer|gesamtbetrag|totaalbedrag|^total\b|\btotal\b)\s*[:\s]*/gi;
   let lastAnchor = -1;
   let am: RegExpExecArray | null;
   while ((am = anchorRe.exec(body)) !== null) {
@@ -894,10 +1086,7 @@ function extractTotal(body: string): AmountResult {
     if (after) return { amount: after.amount, currency: after.currency };
   }
 
-  // Strategy 2: largest amount in the body. Heuristic but very reliable
-  // since totals beat line items in practice.
-  const largest = matches.reduce((a, b) => (b.amount > a.amount ? b : a));
-  return { amount: largest.amount, currency: largest.currency };
+  return { amount: null, currency: 'USD' };
 }
 
 function extractOrderDate(body: string): Date | null {

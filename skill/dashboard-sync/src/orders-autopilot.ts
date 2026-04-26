@@ -34,6 +34,10 @@ import {
   LearnedSenderMatch,
 } from './learned-senders';
 import {
+  recordClassification,
+  ClassificationLog,
+} from './classifications-store';
+import {
   registerTrackingNumbers,
   pollTrackingNumbers,
   normalizeCarrierForTracker,
@@ -92,6 +96,24 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
     || (sender.match(/^([^<]+)</)?.[1])
     || '').trim();
 
+  // Telemetry accumulator: every exit from this function (and its handlers)
+  // writes ONE row to email_classifications via writeTelemetry. The base
+  // payload is built up as we collect signals; handlers extend it before
+  // their own exit.
+  let userIdForTelemetry: string | null = null;
+  try {
+    userIdForTelemetry = await getUserIdFromEmail(senderEmail);
+  } catch { /* PERCH_USER_ID missing — telemetry will silently skip */ }
+  const telemetry: Partial<ClassificationLog> = {
+    user_id: userIdForTelemetry ?? '',
+    email_id: id,
+    subject: subject?.slice(0, 500) ?? null,
+    sender_email: senderEmail || null,
+    sender_name: senderName || null,
+    llm_called: false,
+    learned_sender_matched: false,
+  };
+
   try {
     // Tier 3 pre-fetch: consult the learned_senders table BEFORE
     // classification. A hit here means the user has previously resolved
@@ -111,13 +133,23 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
       // don't break the pipeline over a learned-sender miss.
       console.warn('[orders-autopilot] learned_senders lookup skipped:', (err as Error).message);
     }
+    if (learned) {
+      telemetry.learned_sender_matched = true;
+      telemetry.learned_sender_match_axis = learned.matched_on;
+    }
 
     // Step 1: Classify
-    const { type, confidence } = classifyEmail(subject, body, senderEmail, {
+    const classified = classifyEmail(subject, body, senderEmail, {
       senderName,
       folders: email.folders ?? [],
       hasLearnedSender: !!learned,
     });
+    const { type, confidence } = classified;
+    telemetry.tier1_purchase_score = classified.purchaseScore;
+    telemetry.tier1_shipping_score = classified.shippingScore;
+    telemetry.tier1_type = type;
+    telemetry.tier1_confidence = confidence;
+    telemetry.tier1_matched_keywords = classified.matchedKeywords;
 
     if (type === 'other') {
       // Tier 2 LLM second-pass: if there's meaningful commerce signal
@@ -126,16 +158,26 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
       // matching can't catch ("Your trip is booked", "Pre-order
       // received", non-English subjects, etc.).
       if (confidence >= 0.4) {
+        telemetry.llm_called = true;
         const llm = await extractWithLLM(subject, senderEmail, body);
+        if (llm) {
+          telemetry.llm_provider = llm.source;
+          telemetry.llm_is_purchase = llm.is_purchase_confirmation;
+          telemetry.llm_confidence = llm.confidence;
+          telemetry.llm_merchant_name = llm.merchant_name ?? null;
+          telemetry.llm_order_number = llm.order_number ?? null;
+        } else {
+          telemetry.llm_provider = 'failed';
+        }
         if (llm && llm.is_purchase_confirmation && llm.confidence >= 0.6) {
           // Promote to purchase path with LLM-provided fields.
-          return await handlePurchaseConfirmation(email, llm.confidence, llm, learned);
+          return await handlePurchaseConfirmation(email, llm.confidence, llm, learned, telemetry);
         }
         // LLM agrees it's not an order, OR LLM unreachable — but the
         // ambiguity is real. Queue for review instead of silently
         // dropping; the iOS review queue (Tier 3) will surface it.
         try {
-          await createReviewItem({
+          const reviewId = await createReviewItem({
             user_id: await getUserIdFromEmail(senderEmail),
             type: 'other',
             related_order_id: null,
@@ -144,11 +186,14 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
             suggested_action: 'Review manually — classifier unsure if this is an order',
             confidence_score: confidence,
           });
+          telemetry.related_review_item_id = reviewId;
+          await writeTelemetry(telemetry, 'created_review_item', `Queued for review (confidence ${confidence.toFixed(2)})`);
           return { success: true, type, action: 'created_review_item', detail: `Queued for review (confidence ${confidence.toFixed(2)})`, confidence };
         } catch (e) {
           // If review_item insert fails, fall through to the legacy skip.
         }
       }
+      await writeTelemetry(telemetry, 'skipped', 'Email does not appear to be purchase or shipping related');
       return {
         success: true,
         type,
@@ -160,16 +205,18 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
 
     // Step 2: Extract
     if (type === 'purchase_confirmation') {
-      return await handlePurchaseConfirmation(email, confidence, undefined, learned);
+      return await handlePurchaseConfirmation(email, confidence, undefined, learned, telemetry);
     } else if (type === 'shipping_notification') {
-      return await handleShippingNotification(email, confidence);
+      return await handleShippingNotification(email, confidence, telemetry);
     }
 
+    await writeTelemetry(telemetry, 'skipped', 'Unknown type');
     return { success: true, type, action: 'skipped', detail: 'Unknown type', confidence };
 
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[orders-autopilot] processEmail error for ${id}:`, message);
+    await writeTelemetry(telemetry, 'error', message.slice(0, 500));
     return {
       success: false,
       type: 'other',
@@ -187,8 +234,10 @@ async function handlePurchaseConfirmation(
   baseConfidence: number,
   preExtractedLLM?: LLMExtractedFields | null,
   learned?: LearnedSenderMatch | null,
+  telemetry?: Partial<ClassificationLog>,
 ): Promise<ProcessEmailResult> {
   const { id, sender, date } = email;
+  const tel = telemetry ?? { user_id: '', email_id: id };
 
   // Reuse the same email→display-name parsing as the top-level entry.
   const senderEmail = (email.senderEmail
@@ -226,7 +275,17 @@ async function handlePurchaseConfirmation(
 
   let llm: LLMExtractedFields | null = preExtractedLLM ?? null;
   if (needsLLM) {
+    tel.llm_called = true;
     llm = await extractWithLLM(email.subject, senderEmail, email.body);
+    if (llm) {
+      tel.llm_provider = llm.source;
+      tel.llm_is_purchase = llm.is_purchase_confirmation;
+      tel.llm_confidence = llm.confidence;
+      tel.llm_merchant_name = llm.merchant_name ?? null;
+      tel.llm_order_number = llm.order_number ?? null;
+    } else {
+      tel.llm_provider = 'failed';
+    }
   }
 
   // Merchant name lock: a learned-sender or hardcoded-known mapping is
@@ -264,6 +323,7 @@ async function handlePurchaseConfirmation(
   };
 
   if (!fields.merchantName || fields.merchantName === 'Unknown') {
+    await writeTelemetry(tel, 'error', 'Could not identify merchant from email');
     return {
       success: false,
       type: 'purchase_confirmation',
@@ -290,6 +350,15 @@ async function handlePurchaseConfirmation(
   // Push to iOS via dashboard_records with category=commerce
   await pushCommerceRecord(orderId, 'order', fields, baseConfidence);
 
+  tel.merchant_source = fields.merchantSource;
+  tel.resolved_merchant = fields.merchantName;
+  tel.resolved_order_number = fields.orderNumber;
+  tel.resolved_total_amount = fields.totalAmount;
+  tel.resolved_currency = fields.currency;
+  tel.related_order_id = orderId;
+  await writeTelemetry(tel, isNew ? 'created_order' : 'updated_order',
+    `${isNew ? 'Created' : 'Updated'} order: ${fields.merchantName}${fields.orderNumber ? ` #${fields.orderNumber}` : ''}`);
+
   return {
     success: true,
     type: 'purchase_confirmation',
@@ -304,14 +373,16 @@ async function handlePurchaseConfirmation(
 async function handleShippingNotification(
   email: EmailInput,
   baseConfidence: number,
+  telemetry?: Partial<ClassificationLog>,
 ): Promise<ProcessEmailResult> {
   const { id, sender } = email;
+  const tel = telemetry ?? { user_id: '', email_id: id };
 
   const fields = extractShipmentFields(email.subject, email.body, sender, id);
 
   if (!fields.trackingNumber) {
     // No tracking number found — create a review item instead
-    await createReviewItem({
+    const reviewId = await createReviewItem({
       user_id: await getUserIdFromEmail(sender),
       type: 'orphan_shipment',
       related_order_id: null,
@@ -321,6 +392,8 @@ async function handleShippingNotification(
       confidence_score: baseConfidence * 0.5,
     });
 
+    tel.related_review_item_id = reviewId;
+    await writeTelemetry(tel, 'created_review_item', 'No tracking number found');
     return {
       success: true,
       type: 'shipping_notification',
@@ -342,6 +415,7 @@ async function handleShippingNotification(
 
   if (existingByTracking) {
     // Shipment already linked to an order
+    await writeTelemetry(tel, 'skipped', `Tracking ${fields.trackingNumber} already linked`);
     return {
       success: true,
       type: 'shipping_notification',
@@ -372,7 +446,7 @@ async function handleShippingNotification(
 
   if (!orderId) {
     // Could not find matching order — create review item
-    await createReviewItem({
+    const reviewId = await createReviewItem({
       user_id: userId,
       type: 'shipment_no_order',
       related_order_id: null,
@@ -382,6 +456,8 @@ async function handleShippingNotification(
       confidence_score: baseConfidence * 0.6,
     });
 
+    tel.related_review_item_id = reviewId;
+    await writeTelemetry(tel, 'created_review_item', `Tracking ${fields.trackingNumber} could not be matched to an order`);
     return {
       success: true,
       type: 'shipping_notification',
@@ -429,6 +505,8 @@ async function handleShippingNotification(
       .catch(err => console.warn('[orders-autopilot] 17track poll failed:', err.message));
   }
 
+  tel.related_order_id = orderId;
+  await writeTelemetry(tel, 'linked_shipment', `Linked tracking ${fields.trackingNumber} to order`);
   return {
     success: true,
     type: 'shipping_notification',
@@ -436,6 +514,27 @@ async function handleShippingNotification(
     detail: `Linked tracking ${fields.trackingNumber} to order`,
     confidence: baseConfidence,
   };
+}
+
+// ─── Telemetry helper ──────────────────────────────────────────────────────
+
+/**
+ * Finalize and persist a classification telemetry row. Best-effort:
+ * never throws, never blocks the pipeline. A missing user_id silently
+ * drops the write (telemetry without ownership is meaningless and
+ * would violate RLS anyway).
+ */
+async function writeTelemetry(
+  tel: Partial<ClassificationLog>,
+  finalAction: ClassificationLog['final_action'],
+  detail?: string,
+): Promise<void> {
+  if (!tel.user_id || !tel.email_id) return;
+  await recordClassification({
+    ...(tel as ClassificationLog),
+    final_action: finalAction,
+    detail: detail ?? tel.detail ?? null,
+  });
 }
 
 // ─── 17track polling ───────────────────────────────────────────────────────
