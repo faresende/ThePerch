@@ -170,6 +170,10 @@ private struct OrdersSectionContent: View {
     /// expanded. Mirrors the workout-card pattern: parent owns
     /// expansion state, only one card open at a time.
     @State private var expandedOrderId: UUID?
+    /// Same shape, separate state for the review-queue cards. Order
+    /// cards and review cards expand independently — collapsing one
+    /// doesn't collapse the other.
+    @State private var expandedReviewId: UUID?
     /// Modal sheet flag for the "Past orders →" drill-in. Presents
     /// the full OrdersView (which has Active / Issues / Delivered /
     /// Needs review sections) over the Hub.
@@ -186,6 +190,17 @@ private struct OrdersSectionContent: View {
                 expandedOrderId = nil
             } else {
                 expandedOrderId = order.id
+            }
+        }
+    }
+
+    /// Same pattern, separate state for review-queue cards.
+    private func toggleExpandedReview(_ item: ReviewItem) {
+        PerchMotion.withOptionalAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            if expandedReviewId == item.id {
+                expandedReviewId = nil
+            } else {
+                expandedReviewId = item.id
             }
         }
     }
@@ -269,10 +284,14 @@ private struct OrdersSectionContent: View {
                 // confidently classify. Lives at the bottom of the
                 // active orders list so the user sees pending decisions
                 // alongside their tracked stuff. Hidden when empty.
+                // Cards expand on tap to reveal the autopilot's reasoning,
+                // best-guess fields, and a Fastmail deep-link.
                 if !viewModel.reviewItems.isEmpty {
                     HubReviewQueueSection(
                         items: viewModel.reviewItems,
                         resolvingIds: viewModel.resolvingReviewIds,
+                        expandedReviewId: expandedReviewId,
+                        onToggleExpanded: { item in toggleExpandedReview(item) },
                         onConfirm: { item in Task { await viewModel.confirmReviewItem(item) } },
                         onDismiss: { item in Task { await viewModel.dismissReviewItem(item) } }
                     )
@@ -583,17 +602,19 @@ private struct OrderCardV2: View {
 
 // MARK: - Hub Review Queue
 //
-// Sits at the bottom of the Hub's Orders section. Same data + actions
-// as OrdersView's ReviewQueueSection, but Hub-styled (uses
-// PerchSectionCard + matching typography). Each row offers two
-// inline buttons: "Add as order" → creates the order + writes a
-// learned_senders mapping, "Not an order" → just resolves.
+// Sits at the bottom of the Hub's Orders section. Each row is a
+// shared `ReviewItemCard` (Views/Cards/ReviewItemCard.swift) wrapped
+// in a Button so the whole card is a tap target for expand/collapse.
+// Tap-to-expand reveals the autopilot's reasoning, its best-guess
+// fields, and a Fastmail deep-link.
 
 private struct HubReviewQueueSection: View {
     @Environment(\.perchPalette) private var palette
 
     let items: [ReviewItem]
     let resolvingIds: Set<UUID>
+    let expandedReviewId: UUID?
+    let onToggleExpanded: (ReviewItem) -> Void
     let onConfirm: (ReviewItem) -> Void
     let onDismiss: (ReviewItem) -> Void
 
@@ -613,105 +634,22 @@ private struct HubReviewQueueSection: View {
 
             VStack(spacing: 10) {
                 ForEach(items) { item in
-                    HubReviewQueueRow(
-                        item: item,
-                        isResolving: resolvingIds.contains(item.id),
-                        onConfirm: { onConfirm(item) },
-                        onDismiss: { onDismiss(item) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-private struct HubReviewQueueRow: View {
-    @Environment(\.perchPalette) private var palette
-
-    let item: ReviewItem
-    let isResolving: Bool
-    let onConfirm: () -> Void
-    let onDismiss: () -> Void
-
-    var body: some View {
-        PerchSectionCard(padding: 14) {
-            // Merchant guess + freshness
-            HStack(alignment: .firstTextBaseline) {
-                Text(item.displayMerchant.uppercased())
-                    .font(.system(size: 12, weight: .semibold))
-                    .tracking(0.6)
-                    .foregroundStyle(palette.muted)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Text(relativeTime)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(palette.faint)
-            }
-
-            // Subject — serif italic, the editorial preview line
-            Text(item.displaySubject)
-                .font(.system(size: 14, weight: .regular, design: .serif).italic())
-                .foregroundStyle(palette.ink)
-                .lineLimit(2)
-                .padding(.top, 2)
-
-            // Sender mono, hidden when missing
-            if let s = item.sourceSenderEmail, !s.isEmpty {
-                Text(s)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(palette.faint)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .padding(.top, 2)
-            }
-
-            // Action row
-            HStack(spacing: 8) {
-                Spacer()
-                if isResolving {
-                    ProgressView()
-                        .scaleEffect(0.75)
-                        .tint(palette.kinetic)
-                } else {
-                    Button(action: onDismiss) {
-                        Text("Not an order")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(palette.muted)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(palette.line.opacity(0.5))
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: onConfirm) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 10, weight: .bold))
-                            Text("Add as order")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(palette.kinetic)
-                        .clipShape(Capsule())
+                    Button {
+                        PerchHaptics.light()
+                        onToggleExpanded(item)
+                    } label: {
+                        ReviewItemCard(
+                            item: item,
+                            isExpanded: expandedReviewId == item.id,
+                            isResolving: resolvingIds.contains(item.id),
+                            onConfirm: { onConfirm(item) },
+                            onDismiss: { onDismiss(item) }
+                        )
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.top, 6)
         }
-    }
-
-    private var relativeTime: String {
-        let interval = Date.now.timeIntervalSince(item.createdAt)
-        let m = Int(interval / 60)
-        if m < 1 { return "just now" }
-        if m < 60 { return "\(m)m ago" }
-        let h = m / 60
-        if h < 24 { return "\(h)h ago" }
-        return "\(h / 24)d ago"
     }
 }
 

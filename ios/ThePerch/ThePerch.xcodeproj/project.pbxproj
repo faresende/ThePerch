@@ -143,6 +143,7 @@
 		NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */; };
 		NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */; };
 		ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */; };
+		REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */; };
 		ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */; };
 		ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */; };
 		ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */; };
@@ -333,6 +334,7 @@
 		NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCard.swift; sourceTree = "<group>"; };
+		REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewItemCard.swift; sourceTree = "<group>"; };
 		ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModels.swift; sourceTree = "<group>"; };
 		ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersService.swift; sourceTree = "<group>"; };
 		ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersViewModel.swift; sourceTree = "<group>"; };
@@ -541,6 +543,7 @@
 				ARCARD0001ARCARD0001ARCARD0 /* AgentRunsCard.swift */,
 				35E8ADAD2F5B270A00BAC8FE /* DeliveryCard.swift */,
 				ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */,
+				REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */,
 				DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */,
 				35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */,
 				35F543602F52411F00204F77 /* BookmarkCard.swift */,
@@ -1095,6 +1098,7 @@
 				35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */,
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
 				ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */,
+				REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */,
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
 				ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */,
 				35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */,
