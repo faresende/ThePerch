@@ -674,14 +674,21 @@ private struct PastOrdersSheet: View {
             OrdersView()
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
+                        // Plain "Done" text button — iOS-native for
+                        // modal-sheet dismissal (CaptureSheet uses
+                        // the same pattern). Lighter visual weight
+                        // than xmark.circle.fill, scales with Dynamic
+                        // Type, integrates with the toolbar
+                        // typography system. Tinted in `palette.kinetic`
+                        // to match the rest of the app's primary
+                        // actions (Track →, Add as order).
                         Button {
                             PerchHaptics.light()
                             onDismiss()
                         } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundStyle(palette.muted)
-                                .symbolRenderingMode(.hierarchical)
+                            Text("Done")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(palette.kinetic)
                         }
                         .accessibilityLabel("Close past orders")
                     }
