@@ -58,6 +58,13 @@ struct OrdersView: View {
             guard vm.orders.isEmpty else { return }
             await vm.loadOrders()
         }
+        // Phase 1 corrections: undo toast for `.notAnOrder` swipes.
+        // Toast lives at the OrdersView root (not the row) so it
+        // doesn't get clipped by ScrollView edges and stays visible
+        // while the user scrolls.
+        .undoCorrectionToast(receipt: vm.activeUndoReceipt) {
+            Task { await vm.cancelActiveUndo() }
+        }
     }
 
     /// Toggle the expanded card. Tapping the already-expanded card
@@ -118,7 +125,14 @@ struct OrdersView: View {
                     expandedOrderId: expandedOrderId,
                     onToggleExpanded: toggleExpanded,
                     onMarkDelivered: { order in Task { await viewModel.markAsDelivered(order) } },
-                    onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } }
+                    onUndoDelivered: { order in Task { await viewModel.undoDelivered(order) } },
+                    // Phase 1 corrections-and-rules: swipe-to-correct
+                    // is enabled on the Active section. (Delivered /
+                    // Issues stay tap-only — corrections there are
+                    // rare and accidental swipes carry more cost.)
+                    onCorrection: { order, kind in
+                        Task { await viewModel.recordCorrection(order, kind: kind) }
+                    }
                 )
 
                 if !viewModel.issueOrders.isEmpty {
@@ -239,6 +253,11 @@ struct OrdersGroupSection: View {
     var onToggleExpanded: ((OrderWithShipments) -> Void)? = nil
     var onMarkDelivered: ((OrderWithShipments) -> Void)?
     var onUndoDelivered: ((OrderWithShipments) -> Void)?
+    /// Phase 1 corrections — invoked when the user taps a swipe-action
+    /// on a row. nil = swipe-actions are not enabled in this section
+    /// (e.g. Delivered, Issues — corrections only on Active by default,
+    /// but the parent can enable elsewhere by passing a non-nil cb).
+    var onCorrection: ((OrderWithShipments, CorrectionKind) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
@@ -258,22 +277,64 @@ struct OrdersGroupSection: View {
             } else {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     ForEach(Array(orders.enumerated()), id: \.element.id) { index, order in
-                        Button {
-                            PerchHaptics.light()
-                            onToggleExpanded?(order)
-                        } label: {
-                            OrderCard(
-                                model: order,
-                                isExpanded: expandedOrderId == order.id,
-                                onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
-                                onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
-                            )
-                            .cardAppear(index: startIndex + index, appeared: cardsAppeared)
-                        }
-                        .buttonStyle(.plain)
+                        orderRow(order: order, index: index)
                     }
                 }
             }
+        }
+    }
+
+    /// One order row. Wraps the OrderCard in either:
+    ///   - SwipeActionsContainer (when corrections are enabled)
+    ///   - the plain Button (legacy behavior)
+    /// Tap-to-expand survives both wrappers.
+    @ViewBuilder
+    private func orderRow(order: OrderWithShipments, index: Int) -> some View {
+        let card = Button {
+            PerchHaptics.light()
+            onToggleExpanded?(order)
+        } label: {
+            OrderCard(
+                model: order,
+                isExpanded: expandedOrderId == order.id,
+                onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
+                onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
+            )
+            .cardAppear(index: startIndex + index, appeared: cardsAppeared)
+        }
+        .buttonStyle(.plain)
+
+        if let onCorrection {
+            SwipeActionsContainer(actions: [
+                // Order matters: rightmost (last) = most-destructive,
+                // matches Mail/Messages convention (red action lives at
+                // the trailing edge after a full swipe).
+                SwipeAction(
+                    label: CorrectionKind.alreadyDelivered.actionLabel,
+                    systemImage: CorrectionKind.alreadyDelivered.actionSymbol,
+                    tint: .green,
+                    role: .normal,
+                    handler: { onCorrection(order, .alreadyDelivered) }
+                ),
+                SwipeAction(
+                    label: CorrectionKind.wrongTracking.actionLabel,
+                    systemImage: CorrectionKind.wrongTracking.actionSymbol,
+                    tint: .orange,
+                    role: .normal,
+                    handler: { onCorrection(order, .wrongTracking) }
+                ),
+                SwipeAction(
+                    label: CorrectionKind.notAnOrder.actionLabel,
+                    systemImage: CorrectionKind.notAnOrder.actionSymbol,
+                    tint: .red,
+                    role: .destructive,
+                    handler: { onCorrection(order, .notAnOrder) }
+                ),
+            ]) {
+                card
+            }
+        } else {
+            card
         }
     }
 

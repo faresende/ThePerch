@@ -15,6 +15,11 @@ struct OrderCard: View {
     /// Called when the user long-presses and selects "Undo Delivery Override".
     var onUndoDelivered: (() -> Void)?
 
+    /// Phase 1 corrections: long-press exposes "Why this is an order?"
+    /// which presents the parse_trace debug sheet. State here, sheet
+    /// rendered via .sheet modifier on the card body.
+    @State private var showingParseTrace = false
+
     private let steps: [(key: String, label: String)] = [
         ("ordered", "Ordered"),
         ("shipped", "Shipped"),
@@ -129,9 +134,17 @@ struct OrderCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
         .contextMenu {
-            if hasActionMenu {
-                contextMenuItems
-            }
+            // hasActionMenu only gates Mark/Undo Delivered visibility;
+            // "Why this is an order?" is always shown so the trace peek
+            // is reachable on every card. Splitting the gate keeps the
+            // legacy hasActionMenu logic intact for the delivery items.
+            contextMenuItems
+        }
+        .sheet(isPresented: $showingParseTrace) {
+            ParseTraceSheet(
+                orderId: model.id,
+                orderMerchant: model.order.merchant
+            )
         }
     }
 
@@ -411,6 +424,16 @@ struct OrderCard: View {
                     Label("Mark as Delivered", systemImage: "checkmark.circle.fill")
                 }
             }
+        }
+
+        // Phase 1 corrections-and-rules: parse-trace debug peek.
+        // Always available (works on Active / Issues / Delivered alike,
+        // unlike the swipe affordance which is Active-only). Legacy
+        // rows without a trace get a friendly empty state.
+        Button {
+            showingParseTrace = true
+        } label: {
+            Label("Why this is an order?", systemImage: "questionmark.circle")
         }
     }
 

@@ -13,6 +13,19 @@ final class OrdersViewModel {
     /// show a spinner / disable buttons during the network roundtrip).
     var resolvingReviewIds: Set<UUID> = []
 
+    // MARK: - Corrections (Phase 1)
+    //
+    // The currently-active undo receipt — non-nil for the 5s window
+    // after a `.notAnOrder` swipe. The toast view binds to this value;
+    // setting it to nil dismisses the toast (whether by user-tap-undo,
+    // timer expiry, or a follow-up correction overwriting it).
+    var activeUndoReceipt: CorrectionReceipt?
+    /// Set of order ids currently animating out via a swipe correction.
+    /// Used to block double-swipes and to drive `withAnimation` scoping
+    /// in the view.
+    private(set) var correctingOrderIds: Set<UUID> = []
+    private var undoTask: Task<Void, Never>?
+
     private let ordersService: OrdersService
 
     init() {
@@ -108,6 +121,69 @@ final class OrdersViewModel {
         }
     }
 
+    // MARK: - Corrections (Phase 1)
+    //
+    // Three swipe actions on each order card. `recordCorrection` calls
+    // the server-side RPC, then optimistically removes the row from
+    // the local list (so the swipe-to-dismiss animation feels instant).
+    // For `.notAnOrder`, we set `activeUndoReceipt` and start a 5s
+    // timer; the UndoCorrectionToast binds to that value.
+
+    func recordCorrection(_ order: OrderWithShipments, kind: CorrectionKind) async {
+        guard !correctingOrderIds.contains(order.id) else { return }
+        correctingOrderIds.insert(order.id)
+        defer { correctingOrderIds.remove(order.id) }
+
+        do {
+            let receipt = try await ordersService.recordCorrection(
+                orderId: order.id,
+                kind: kind
+            )
+            // Optimistic local mutation — avoids a full reload.
+            // For all three kinds, the row's display state changes:
+            //   .notAnOrder       — drops out of activeOrders (status flipped to dismissed_by_user)
+            //   .wrongTracking    — shipment cleared, re-render with "tracking pending"
+            //   .alreadyDelivered — moves to delivered group
+            // The simplest correct behavior is a full reload.
+            await loadOrders(forceRefresh: true)
+
+            if kind.showsUndoToast {
+                presentUndo(receipt)
+            }
+        } catch {
+            self.error = "Couldn't save correction: \(error.localizedDescription)"
+        }
+    }
+
+    /// Cancel the active undo receipt — fired by the toast's "Undo" button.
+    /// Idempotent: a second call after the toast has already auto-dismissed
+    /// is a silent no-op.
+    func cancelActiveUndo() async {
+        guard let receipt = activeUndoReceipt else { return }
+        activeUndoReceipt = nil
+        undoTask?.cancel()
+        undoTask = nil
+        do {
+            try await ordersService.cancelCorrection(receipt.id)
+            await loadOrders(forceRefresh: true)
+        } catch {
+            self.error = "Couldn't undo: \(error.localizedDescription)"
+        }
+    }
+
+    private func presentUndo(_ receipt: CorrectionReceipt) {
+        activeUndoReceipt = receipt
+        undoTask?.cancel()
+        undoTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self?.activeUndoReceipt?.id == receipt.id else { return }
+                self?.activeUndoReceipt = nil
+            }
+        }
+    }
+
     var activeOrders: [OrderWithShipments] {
         groupedOrders.active
     }
@@ -130,6 +206,12 @@ final class OrdersViewModel {
         var issues: [OrderWithShipments] = []
 
         for order in orders {
+            // Phase 1 corrections: dismissed_by_user rows drop out of
+            // every visible group. They live on as soft-deleted rows
+            // (visible in Past Orders sheet with a "Restore" affordance)
+            // but never surface in Today/Active/Delivered/Issues.
+            if order.order.isDismissedByUser { continue }
+
             switch group(for: order) {
             case .active:
                 active.append(order)

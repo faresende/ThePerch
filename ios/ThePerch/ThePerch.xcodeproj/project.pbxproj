@@ -71,7 +71,9 @@
 		36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */; };
 		3749D01A490DDFA35F9DD843 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
 		3D7E9154E605502C7EB865B0 /* TimeOfDayAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */; };
+		3E300B906C36C47DA1B66E75 /* UndoCorrectionToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9113DFD580EE158E6448E952 /* UndoCorrectionToast.swift */; };
 		3F6A37B86C02CC8B9BE415C1 /* DeliveryActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */; };
+		4E65A462FA9DE4BE19EB9F06 /* SwipeActionsContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */; };
 		5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */; };
 		59CB169535699F8CA0C74712 /* HealthTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A2E9B18B340651B6C624B3 /* HealthTab.swift */; };
 		5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E4BAE3418A661ACF7991AE /* SectionHeader.swift */; };
@@ -81,6 +83,7 @@
 		734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */; };
 		7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */; };
 		822A4D6FFCE24FB1AB0825C2 /* UniversalCardFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */; };
+		8B84E982C7691BA70FEE9B24 /* ParseTraceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1675CA68C5E59F9B76A55D69 /* ParseTraceSheet.swift */; };
 		8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11EC4737AE86C5DEBAC049B /* WorkoutCard.swift */; };
 		8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27DBAD9446B0EA0E5642376 /* KeychainService.swift */; };
 		90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */; };
@@ -106,6 +109,7 @@
 		D259FD4EDAA14C63BED05FD3 /* StatusCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */; };
 		D6835F8D85F6945DB95754DB /* DeliveryLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */; };
 		D7E24467C07447F6175D7FD8 /* GlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94456FC52FF967F10A509355 /* GlassTabBar.swift */; };
+		DAYCRD0002DAYCRD0002DAY /* DailyInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */; };
 		DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */; };
 		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
 		DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLHC0001DLHC0001DLHC0001 /* DeliveryHomeCard.swift */; };
@@ -128,6 +132,8 @@
 		HMVM0002HMVM0002HMVM0002 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */; };
 		HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */; };
 		HSHC0002HSHC0002HSHC0002 /* HealthSummaryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */; };
+		INSGHT0002INSGHT0002INS /* Insight.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSGHT0001INSGHT0001INS /* Insight.swift */; };
+		INSSVC0002INSSVC0002INS /* InsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSSVC0001INSSVC0001INS /* InsightsService.swift */; };
 		JVDC0002JVDC0002JVDC0002 /* JSONValueDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */; };
 		LKSW0002LKSW0002LKSW0002 /* PerchLockScreenWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */; };
 		MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */; };
@@ -149,9 +155,6 @@
 		PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */; };
 		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
 		REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */; };
-		INSGHT0002INSGHT0002INS /* Insight.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSGHT0001INSGHT0001INS /* Insight.swift */; };
-		INSSVC0002INSSVC0002INS /* InsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSSVC0001INSSVC0001INS /* InsightsService.swift */; };
-		DAYCRD0002DAYCRD0002DAY /* DailyInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */; };
 		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
 		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
 		TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */; };
@@ -207,6 +210,7 @@
 		02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PerchSharedKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		03B91F417EA96A65024733B2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelHomeCard.swift; sourceTree = "<group>"; };
+		1675CA68C5E59F9B76A55D69 /* ParseTraceSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ParseTraceSheet.swift; sourceTree = "<group>"; };
 		194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCardRenderer.swift; sourceTree = "<group>"; };
 		1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiquidGlassTabBar.swift; sourceTree = "<group>"; };
 		260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardRenderer.swift; sourceTree = "<group>"; };
@@ -267,6 +271,7 @@
 		66A2E9B18B340651B6C624B3 /* HealthTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthTab.swift; sourceTree = "<group>"; };
 		66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShimmerEffect.swift; sourceTree = "<group>"; };
 		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
+		6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SwipeActionsContainer.swift; path = Components/SwipeActionsContainer.swift; sourceTree = "<group>"; };
 		7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerchSegmentedPicker.swift; sourceTree = "<group>"; };
 		7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookmarksViewModel.swift; sourceTree = "<group>"; };
 		7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
@@ -274,6 +279,7 @@
 		837659300DEF6DC763F7F917 /* SectionNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionNavigator.swift; sourceTree = "<group>"; };
 		9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutView.swift; sourceTree = "<group>"; };
 		90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardHeader.swift; sourceTree = "<group>"; };
+		9113DFD580EE158E6448E952 /* UndoCorrectionToast.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UndoCorrectionToast.swift; path = Components/UndoCorrectionToast.swift; sourceTree = "<group>"; };
 		94456FC52FF967F10A509355 /* GlassTabBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlassTabBar.swift; sourceTree = "<group>"; };
 		971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardRenderer.swift; sourceTree = "<group>"; };
 		9BBC038A620A4778B341EA85 /* CardGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGalleryView.swift; sourceTree = "<group>"; };
@@ -295,6 +301,7 @@
 		CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		D2FD77E48492FF01406E3C35 /* TravelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelView.swift; sourceTree = "<group>"; };
 		D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryActivityAttributes.swift; path = PerchSharedKit/DeliveryActivityAttributes.swift; sourceTree = "<group>"; };
+		DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightCard.swift; sourceTree = "<group>"; };
 		DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCompletionOverlay.swift; sourceTree = "<group>"; };
 		DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchQuickGlanceWidget.swift; path = ThePerchWidgets/PerchQuickGlanceWidget.swift; sourceTree = "<group>"; };
 		DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLiveActivityManager.swift; sourceTree = "<group>"; };
@@ -320,6 +327,8 @@
 		HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryCard.swift; sourceTree = "<group>"; };
 		HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryHomeCard.swift; sourceTree = "<group>"; };
+		INSGHT0001INSGHT0001INS /* Insight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Insight.swift; sourceTree = "<group>"; };
+		INSSVC0001INSSVC0001INS /* InsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsService.swift; sourceTree = "<group>"; };
 		JVDC0001JVDC0001JVDC0001 /* JSONValueDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValueDecoder.swift; sourceTree = "<group>"; };
 		LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerchLockScreenWidgets.swift; path = ThePerchWidgets/PerchLockScreenWidgets.swift; sourceTree = "<group>"; };
 		MDCD0001MDCD0001MDCD0001 /* MedicationsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsCard.swift; sourceTree = "<group>"; };
@@ -341,9 +350,6 @@
 		PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperlessCard.swift; sourceTree = "<group>"; };
 		PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormatters.swift; sourceTree = "<group>"; };
 		REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewItemCard.swift; sourceTree = "<group>"; };
-		INSGHT0001INSGHT0001INS /* Insight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Insight.swift; sourceTree = "<group>"; };
-		INSSVC0001INSSVC0001INS /* InsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsService.swift; sourceTree = "<group>"; };
-		DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightCard.swift; sourceTree = "<group>"; };
 		RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeReconnectManager.swift; sourceTree = "<group>"; };
 		SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseServiceProtocol.swift; sourceTree = "<group>"; };
 		TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloadsTests.swift; sourceTree = "<group>"; };
@@ -412,6 +418,7 @@
 				F7A98B0547DF8F41CD675CDB /* App */,
 				50E2DAC2E7213FC52067B201 /* Cards */,
 				5D26D5715A724D319B268491 /* Detail */,
+				C1B8F23ADF0F94B0DF0F543F /* Components */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -719,6 +726,7 @@
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */,
+				1675CA68C5E59F9B76A55D69 /* ParseTraceSheet.swift */,
 			);
 			path = Detail;
 			sourceTree = "<group>";
@@ -835,6 +843,15 @@
 				45CD6F981C79A4A548131E02 /* ThePerch */,
 			);
 			name = ios;
+			sourceTree = "<group>";
+		};
+		C1B8F23ADF0F94B0DF0F543F /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */,
+				9113DFD580EE158E6448E952 /* UndoCorrectionToast.swift */,
+			);
+			name = Components;
 			sourceTree = "<group>";
 		};
 		D37761C71C8DF09D1BAE6D3C /* PerchSharedKit */ = {
@@ -1196,6 +1213,9 @@
 				D7E24467C07447F6175D7FD8 /* GlassTabBar.swift in Sources */,
 				F5445DCE2E590BC759DACA34 /* NewCardStyle.swift in Sources */,
 				5E2203331EBA92BB378B6097 /* LiquidGlassTabBar.swift in Sources */,
+				4E65A462FA9DE4BE19EB9F06 /* SwipeActionsContainer.swift in Sources */,
+				3E300B906C36C47DA1B66E75 /* UndoCorrectionToast.swift in Sources */,
+				8B84E982C7691BA70FEE9B24 /* ParseTraceSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

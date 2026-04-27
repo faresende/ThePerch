@@ -435,6 +435,145 @@ final class OrdersService {
             throw OrdersServiceError.updateFailed(error.localizedDescription)
         }
     }
+
+    // MARK: - Corrections (Phase 1)
+    //
+    // The corrections-and-rules feedback loop. Each method calls a
+    // SECURITY DEFINER Postgres RPC that does the insert + state
+    // transition atomically. The RPC pattern (vs raw .from() writes)
+    // gives us:
+    //   1. Atomicity — insert + status flip in one round-trip.
+    //   2. Server-side parse_trace snapshot — iOS doesn't need to
+    //      know the trace's shape to capture it for rule-distillation.
+    //   3. Symmetric undo — `cancel_order_correction` reverses the
+    //      whole transaction.
+    //
+    // RPCs defined in supabase/migrations/20260427000000_order_corrections.sql.
+
+    /// Record a correction against an order. Returns a receipt the
+    /// caller can hold onto for the undo affordance (only relevant
+    /// for `.notAnOrder` — the other kinds don't show an undo toast).
+    func recordCorrection(orderId: UUID, kind: CorrectionKind) async throws -> CorrectionReceipt {
+        do {
+            let response = try await supabaseService.databaseClient
+                .rpc("record_order_correction",
+                     params: RecordCorrectionArgs(p_order_id: orderId, p_kind: kind.rawValue))
+                .execute()
+            // RPC returns a uuid (the correction row's id)
+            let correctionId = try orderDecoder.decode(UUID.self, from: response.data)
+            return CorrectionReceipt(id: correctionId, kind: kind, orderId: orderId)
+        } catch {
+            throw OrdersServiceError.updateFailed(error.localizedDescription)
+        }
+    }
+
+    /// Reverse a correction — used by the undo toast. Symmetric to
+    /// `recordCorrection`: deletes the correction row and reverses
+    /// the state transition. `wrongTracking` corrections leave the
+    /// nulled tracking nulled (re-scanning the carrier email is the
+    /// only honest way to restore it).
+    func cancelCorrection(_ correctionId: UUID) async throws {
+        do {
+            try await supabaseService.databaseClient
+                .rpc("cancel_order_correction",
+                     params: CancelCorrectionArgs(p_correction_id: correctionId))
+                .execute()
+        } catch {
+            throw OrdersServiceError.updateFailed(error.localizedDescription)
+        }
+    }
+
+    /// Fetch the `parse_trace` JSONB column for a single order. Used
+    /// by the long-press "Why this is an order?" debug peek. Returned
+    /// as a `[String: Any]` dictionary parsed via JSONSerialization so
+    /// the renderer is resilient to scanner version drift — when new
+    /// fields land, the sheet just shows them without iOS needing a
+    /// release.
+    ///
+    /// Returns `nil` for legacy rows (created before parse-trace
+    /// landed) and on any decode/network error (caller renders the
+    /// "no parse trace" empty state).
+    func fetchParseTrace(orderId: UUID) async throws -> [String: Any]? {
+        // We intentionally avoid generating a Swift type for the trace —
+        // the shape evolves on the scanner side (versioned via the
+        // `version` field) and we'd rather render whatever ships
+        // than fail to compile.
+        do {
+            let result = try await supabaseService.databaseClient
+                .from("orders")
+                .select("parse_trace")
+                .eq("id", value: orderId.uuidString)
+                .single()
+                .execute()
+
+            // Result data is a JSON object: { "parse_trace": {...} | null }
+            guard
+                let outer = try JSONSerialization.jsonObject(with: result.data) as? [String: Any],
+                let trace = outer["parse_trace"] as? [String: Any]
+            else {
+                return nil
+            }
+            return trace
+        } catch {
+            throw OrdersServiceError.updateFailed(error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - RPC arg structs
+//
+// Marked `nonisolated` because this project sets
+// SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor — without an explicit
+// opt-out the synthesized Encodable conformance would be main-actor-
+// isolated, which fails the Sendable parameter on .rpc(...).
+nonisolated private struct RecordCorrectionArgs: Encodable, Sendable {
+    let p_order_id: UUID
+    let p_kind: String
+}
+
+nonisolated private struct CancelCorrectionArgs: Encodable, Sendable {
+    let p_correction_id: UUID
+}
+
+// MARK: - Correction Types
+
+enum CorrectionKind: String, Codable, Sendable {
+    case notAnOrder       = "not_an_order"
+    case wrongTracking    = "wrong_tracking"
+    case alreadyDelivered = "already_delivered"
+
+    /// Human-readable label for the swipe-action button.
+    var actionLabel: String {
+        switch self {
+        case .notAnOrder:       return "Not an order"
+        case .wrongTracking:    return "Wrong tracking"
+        case .alreadyDelivered: return "Already delivered"
+        }
+    }
+
+    /// SF Symbol for the swipe-action button.
+    var actionSymbol: String {
+        switch self {
+        case .notAnOrder:       return "xmark.bin"
+        case .wrongTracking:    return "shippingbox.and.arrow.backward"
+        case .alreadyDelivered: return "checkmark.circle"
+        }
+    }
+
+    /// Whether this kind shows an undo toast after firing.
+    /// Only `.notAnOrder` gets the toast — the other two are recoverable
+    /// through other paths (re-scan for tracking; repeat-swipe for delivered).
+    var showsUndoToast: Bool {
+        self == .notAnOrder
+    }
+}
+
+/// Returned by `recordCorrection`. The undo toast holds onto this
+/// for the 5s undo window — tapping "Undo" calls `cancelCorrection(receipt.id)`.
+struct CorrectionReceipt: Identifiable, Sendable, Equatable {
+    let id: UUID            // correction row id (used for cancellation)
+    let kind: CorrectionKind
+    let orderId: UUID
 }
 
 // MARK: - Errors

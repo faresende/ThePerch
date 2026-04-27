@@ -12,9 +12,18 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
     /// Set by the user to mark an order delivered when automated tracking cannot confirm it.
     /// `nil` means automated tracking controls status. Never written by automated agents.
     let manualDeliveredAt: Date?
+    /// Set when the user swipes "Not an order" via OrdersService.recordCorrection.
+    /// Coupled with status='dismissed_by_user'. Reversed by cancelCorrection.
+    /// Phase-1 corrections-and-rules (2026-04-27).
+    let dismissedAt: Date?
 
     /// True when the user has manually overridden this order's status to delivered.
     var isManuallyDelivered: Bool { manualDeliveredAt != nil }
+    /// True when the user dismissed this row via "Not an order" swipe.
+    /// `OrdersService` filters these from default Today/Active queries.
+    var isDismissedByUser: Bool { status == "dismissed_by_user" }
+    /// True when the parser flagged this as a digital purchase (no shipment expected).
+    var isDigital: Bool { status == "digital" }
 
     // Columns were renamed during the Apr 2026 orders-schema cleanup:
     //   merchant          → merchant_name
@@ -32,6 +41,34 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
         case confidence = "confidence_score"
         case createdAt = "created_at"
         case manualDeliveredAt = "manual_delivered_at"
+        case dismissedAt = "dismissed_at"
+    }
+
+    /// Memberwise initializer with `dismissedAt` defaulted so previews
+    /// and test fixtures compiled before the corrections-and-rules
+    /// migration keep working without the new parameter.
+    init(
+        id: UUID,
+        merchant: String,
+        orderNumber: String,
+        total: Decimal?,
+        currency: String,
+        status: String,
+        confidence: Double,
+        createdAt: Date,
+        manualDeliveredAt: Date? = nil,
+        dismissedAt: Date? = nil
+    ) {
+        self.id = id
+        self.merchant = merchant
+        self.orderNumber = orderNumber
+        self.total = total
+        self.currency = currency
+        self.status = status
+        self.confidence = confidence
+        self.createdAt = createdAt
+        self.manualDeliveredAt = manualDeliveredAt
+        self.dismissedAt = dismissedAt
     }
 }
 
@@ -49,6 +86,7 @@ extension Order {
         let confidence = (try c.decodeIfPresent(Double.self, forKey: .confidence)) ?? 0
         let createdAt = try c.decode(Date.self, forKey: .createdAt)
         let manualDeliveredAt = try c.decodeIfPresent(Date.self, forKey: .manualDeliveredAt)
+        let dismissedAt = try c.decodeIfPresent(Date.self, forKey: .dismissedAt)
         self.init(
             id: id,
             merchant: merchant,
@@ -58,7 +96,8 @@ extension Order {
             status: status,
             confidence: confidence,
             createdAt: createdAt,
-            manualDeliveredAt: manualDeliveredAt
+            manualDeliveredAt: manualDeliveredAt,
+            dismissedAt: dismissedAt
         )
     }
 }
