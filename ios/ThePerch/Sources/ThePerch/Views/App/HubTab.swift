@@ -241,23 +241,59 @@ private struct OrdersSectionContent: View {
                 )
             } else {
                 ForEach(active) { order in
-                    Button {
-                        PerchHaptics.light()
-                        toggleExpanded(order)
-                    } label: {
-                        OrderCardV2(
-                            order: order,
-                            featured: order.id == active.first?.id,
-                            isExpanded: expandedOrderId == order.id,
-                            onMarkDelivered: { order in
-                                Task { await viewModel.markAsDelivered(order) }
-                            },
-                            onUndoDelivered: { order in
-                                Task { await viewModel.undoDelivered(order) }
+                    // Phase 1 corrections: wrap the OrderCardV2 in
+                    // SwipeActionsContainer so left-swipe reveals
+                    // "Already delivered" / "Wrong tracking" / "Not an
+                    // order". Each calls recordCorrection on the
+                    // viewModel, which writes the order_corrections
+                    // row + applies the state transition atomically.
+                    SwipeActionsContainer(actions: [
+                        SwipeAction(
+                            label: CorrectionKind.alreadyDelivered.actionLabel,
+                            systemImage: CorrectionKind.alreadyDelivered.actionSymbol,
+                            tint: .green,
+                            role: .normal,
+                            handler: {
+                                Task { await viewModel.recordCorrection(order, kind: .alreadyDelivered) }
                             }
-                        )
+                        ),
+                        SwipeAction(
+                            label: CorrectionKind.wrongTracking.actionLabel,
+                            systemImage: CorrectionKind.wrongTracking.actionSymbol,
+                            tint: .orange,
+                            role: .normal,
+                            handler: {
+                                Task { await viewModel.recordCorrection(order, kind: .wrongTracking) }
+                            }
+                        ),
+                        SwipeAction(
+                            label: CorrectionKind.notAnOrder.actionLabel,
+                            systemImage: CorrectionKind.notAnOrder.actionSymbol,
+                            tint: .red,
+                            role: .destructive,
+                            handler: {
+                                Task { await viewModel.recordCorrection(order, kind: .notAnOrder) }
+                            }
+                        ),
+                    ]) {
+                        Button {
+                            PerchHaptics.light()
+                            toggleExpanded(order)
+                        } label: {
+                            OrderCardV2(
+                                order: order,
+                                featured: order.id == active.first?.id,
+                                isExpanded: expandedOrderId == order.id,
+                                onMarkDelivered: { order in
+                                    Task { await viewModel.markAsDelivered(order) }
+                                },
+                                onUndoDelivered: { order in
+                                    Task { await viewModel.undoDelivered(order) }
+                                }
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
 
                 ForEach(issues) { order in
@@ -345,6 +381,13 @@ private struct OrdersSectionContent: View {
         .onChange(of: dashboardViewModel.trackedOrders) { _, new in
             viewModel.orders = new
         }
+        // Phase 1 corrections: undo toast for `.notAnOrder` swipes.
+        // Toast lives at the OrdersSectionContent root (not the row)
+        // so it doesn't get clipped by the page TabView and stays
+        // visible while the user scrolls the orders list.
+        .undoCorrectionToast(receipt: viewModel.activeUndoReceipt) {
+            Task { await viewModel.cancelActiveUndo() }
+        }
     }
 
     private var orderKicker: String {
@@ -388,6 +431,11 @@ private struct OrderCardV2: View {
     var onMarkDelivered: ((OrderWithShipments) -> Void)? = nil
     /// Long-press action to undo a manual delivery override.
     var onUndoDelivered: ((OrderWithShipments) -> Void)? = nil
+
+    /// Phase 1 corrections: parse-trace debug peek presented from the
+    /// long-press menu. Always available (works on any card, not just
+    /// Active rows where the swipe affordance is enabled).
+    @State private var showingParseTrace = false
 
     private var stageIndex: Int {
         // Map effective status → stepper index (0=Ordered, 1=Shipped,
@@ -589,6 +637,20 @@ private struct OrderCardV2: View {
                     Label("Mark as Delivered", systemImage: "checkmark.circle.fill")
                 }
             }
+            // Phase 1 corrections-and-rules: parse-trace debug peek.
+            // Always shown so the trace is reachable on every card,
+            // not gated on delivery state.
+            Button {
+                showingParseTrace = true
+            } label: {
+                Label("Why this is an order?", systemImage: "questionmark.circle")
+            }
+        }
+        .sheet(isPresented: $showingParseTrace) {
+            ParseTraceSheet(
+                orderId: order.id,
+                orderMerchant: order.order.merchant
+            )
         }
     }
 
