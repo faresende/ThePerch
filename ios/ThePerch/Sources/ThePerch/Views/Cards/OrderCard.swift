@@ -14,10 +14,13 @@ struct OrderCard: View {
     var onMarkDelivered: (() -> Void)?
     /// Called when the user long-presses and selects "Undo Delivery Override".
     var onUndoDelivered: (() -> Void)?
+    /// Phase 1 corrections-and-rules: three long-press menu items
+    /// (not_an_order / wrong_tracking / already_delivered). nil means
+    /// corrections aren't enabled in this context (e.g. preview).
+    var onCorrection: ((CorrectionKind) -> Void)? = nil
 
     /// Phase 1 corrections: long-press exposes "Why this is an order?"
-    /// which presents the parse_trace debug sheet. State here, sheet
-    /// rendered via .sheet modifier on the card body.
+    /// which presents the parse_trace debug sheet.
     @State private var showingParseTrace = false
 
     private let steps: [(key: String, label: String)] = [
@@ -426,10 +429,32 @@ struct OrderCard: View {
             }
         }
 
-        // Phase 1 corrections-and-rules: parse-trace debug peek.
-        // Always available (works on Active / Issues / Delivered alike,
-        // unlike the swipe affordance which is Active-only). Legacy
-        // rows without a trace get a friendly empty state.
+        // Phase 1 corrections-and-rules: three correction items.
+        // Each calls record_order_correction RPC + applies the
+        // matching state transition. Inline (no Section header)
+        // because SwiftUI's contextMenu builder doesn't accept Section.
+        if let onCorrection {
+            Button {
+                onCorrection(.alreadyDelivered)
+            } label: {
+                Label(CorrectionKind.alreadyDelivered.actionLabel,
+                      systemImage: CorrectionKind.alreadyDelivered.actionSymbol)
+            }
+            Button {
+                onCorrection(.wrongTracking)
+            } label: {
+                Label(CorrectionKind.wrongTracking.actionLabel,
+                      systemImage: CorrectionKind.wrongTracking.actionSymbol)
+            }
+            Button(role: .destructive) {
+                onCorrection(.notAnOrder)
+            } label: {
+                Label(CorrectionKind.notAnOrder.actionLabel,
+                      systemImage: CorrectionKind.notAnOrder.actionSymbol)
+            }
+        }
+
+        // Parse-trace debug peek. Always shown.
         Button {
             showingParseTrace = true
         } label: {

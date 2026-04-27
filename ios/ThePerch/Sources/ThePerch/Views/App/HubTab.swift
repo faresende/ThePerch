@@ -241,59 +241,31 @@ private struct OrdersSectionContent: View {
                 )
             } else {
                 ForEach(active) { order in
-                    // Phase 1 corrections: wrap the OrderCardV2 in
-                    // SwipeActionsContainer so left-swipe reveals
-                    // "Already delivered" / "Wrong tracking" / "Not an
-                    // order". Each calls recordCorrection on the
-                    // viewModel, which writes the order_corrections
-                    // row + applies the state transition atomically.
-                    SwipeActionsContainer(actions: [
-                        SwipeAction(
-                            label: CorrectionKind.alreadyDelivered.actionLabel,
-                            systemImage: CorrectionKind.alreadyDelivered.actionSymbol,
-                            tint: .green,
-                            role: .normal,
-                            handler: {
-                                Task { await viewModel.recordCorrection(order, kind: .alreadyDelivered) }
+                    Button {
+                        PerchHaptics.light()
+                        toggleExpanded(order)
+                    } label: {
+                        OrderCardV2(
+                            order: order,
+                            featured: order.id == active.first?.id,
+                            isExpanded: expandedOrderId == order.id,
+                            onMarkDelivered: { order in
+                                Task { await viewModel.markAsDelivered(order) }
+                            },
+                            onUndoDelivered: { order in
+                                Task { await viewModel.undoDelivered(order) }
+                            },
+                            // Phase 1 corrections: long-press surfaces
+                            // three correction items. Each calls the
+                            // record_order_correction RPC via the
+                            // viewModel and triggers the matching
+                            // state transition.
+                            onCorrection: { order, kind in
+                                Task { await viewModel.recordCorrection(order, kind: kind) }
                             }
-                        ),
-                        SwipeAction(
-                            label: CorrectionKind.wrongTracking.actionLabel,
-                            systemImage: CorrectionKind.wrongTracking.actionSymbol,
-                            tint: .orange,
-                            role: .normal,
-                            handler: {
-                                Task { await viewModel.recordCorrection(order, kind: .wrongTracking) }
-                            }
-                        ),
-                        SwipeAction(
-                            label: CorrectionKind.notAnOrder.actionLabel,
-                            systemImage: CorrectionKind.notAnOrder.actionSymbol,
-                            tint: .red,
-                            role: .destructive,
-                            handler: {
-                                Task { await viewModel.recordCorrection(order, kind: .notAnOrder) }
-                            }
-                        ),
-                    ]) {
-                        Button {
-                            PerchHaptics.light()
-                            toggleExpanded(order)
-                        } label: {
-                            OrderCardV2(
-                                order: order,
-                                featured: order.id == active.first?.id,
-                                isExpanded: expandedOrderId == order.id,
-                                onMarkDelivered: { order in
-                                    Task { await viewModel.markAsDelivered(order) }
-                                },
-                                onUndoDelivered: { order in
-                                    Task { await viewModel.undoDelivered(order) }
-                                }
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
 
                 ForEach(issues) { order in
@@ -310,6 +282,9 @@ private struct OrdersSectionContent: View {
                             },
                             onUndoDelivered: { order in
                                 Task { await viewModel.undoDelivered(order) }
+                            },
+                            onCorrection: { order, kind in
+                                Task { await viewModel.recordCorrection(order, kind: kind) }
                             }
                         )
                     }
@@ -431,10 +406,16 @@ private struct OrderCardV2: View {
     var onMarkDelivered: ((OrderWithShipments) -> Void)? = nil
     /// Long-press action to undo a manual delivery override.
     var onUndoDelivered: ((OrderWithShipments) -> Void)? = nil
+    /// Phase 1 corrections-and-rules: long-press to record a
+    /// correction. Three kinds: not_an_order (destructive),
+    /// wrong_tracking, already_delivered. Surfaced as menu items
+    /// (rather than swipe) because the orders list lives inside
+    /// HubTab's page TabView and its horizontal pan eats swipe
+    /// gestures cleanly.
+    var onCorrection: ((OrderWithShipments, CorrectionKind) -> Void)? = nil
 
     /// Phase 1 corrections: parse-trace debug peek presented from the
-    /// long-press menu. Always available (works on any card, not just
-    /// Active rows where the swipe affordance is enabled).
+    /// long-press menu. Always available (works on any card).
     @State private var showingParseTrace = false
 
     private var stageIndex: Int {
@@ -637,9 +618,34 @@ private struct OrderCardV2: View {
                     Label("Mark as Delivered", systemImage: "checkmark.circle.fill")
                 }
             }
-            // Phase 1 corrections-and-rules: parse-trace debug peek.
-            // Always shown so the trace is reachable on every card,
-            // not gated on delivery state.
+
+            // Phase 1 corrections-and-rules: three menu items inline
+            // (no Section — SwiftUI contextMenu builder doesn't accept
+            // Section). Each calls record_order_correction RPC +
+            // applies the matching state transition.
+            if let onCorrection {
+                Button {
+                    onCorrection(order, .alreadyDelivered)
+                } label: {
+                    Label(CorrectionKind.alreadyDelivered.actionLabel,
+                          systemImage: CorrectionKind.alreadyDelivered.actionSymbol)
+                }
+                Button {
+                    onCorrection(order, .wrongTracking)
+                } label: {
+                    Label(CorrectionKind.wrongTracking.actionLabel,
+                          systemImage: CorrectionKind.wrongTracking.actionSymbol)
+                }
+                Button(role: .destructive) {
+                    onCorrection(order, .notAnOrder)
+                } label: {
+                    Label(CorrectionKind.notAnOrder.actionLabel,
+                          systemImage: CorrectionKind.notAnOrder.actionSymbol)
+                }
+            }
+
+            // Parse-trace debug peek. Always shown so the trace is
+            // reachable on every card, not gated on delivery state.
             Button {
                 showingParseTrace = true
             } label: {

@@ -284,13 +284,12 @@ struct OrdersGroupSection: View {
         }
     }
 
-    /// One order row. Wraps the OrderCard in either:
-    ///   - SwipeActionsContainer (when corrections are enabled)
-    ///   - the plain Button (legacy behavior)
-    /// Tap-to-expand survives both wrappers.
+    /// One order row. Wraps the OrderCard in a tap-to-expand Button.
+    /// Corrections (when enabled) surface via OrderCard's long-press
+    /// contextMenu — see OrderCard.contextMenuItems for the wiring.
     @ViewBuilder
     private func orderRow(order: OrderWithShipments, index: Int) -> some View {
-        let card = Button {
+        Button {
             PerchHaptics.light()
             onToggleExpanded?(order)
         } label: {
@@ -298,44 +297,12 @@ struct OrdersGroupSection: View {
                 model: order,
                 isExpanded: expandedOrderId == order.id,
                 onMarkDelivered: onMarkDelivered.map { cb in { cb(order) } },
-                onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } }
+                onUndoDelivered: onUndoDelivered.map { cb in { cb(order) } },
+                onCorrection: onCorrection.map { cb in { kind in cb(order, kind) } }
             )
             .cardAppear(index: startIndex + index, appeared: cardsAppeared)
         }
         .buttonStyle(.plain)
-
-        if let onCorrection {
-            SwipeActionsContainer(actions: [
-                // Order matters: rightmost (last) = most-destructive,
-                // matches Mail/Messages convention (red action lives at
-                // the trailing edge after a full swipe).
-                SwipeAction(
-                    label: CorrectionKind.alreadyDelivered.actionLabel,
-                    systemImage: CorrectionKind.alreadyDelivered.actionSymbol,
-                    tint: .green,
-                    role: .normal,
-                    handler: { onCorrection(order, .alreadyDelivered) }
-                ),
-                SwipeAction(
-                    label: CorrectionKind.wrongTracking.actionLabel,
-                    systemImage: CorrectionKind.wrongTracking.actionSymbol,
-                    tint: .orange,
-                    role: .normal,
-                    handler: { onCorrection(order, .wrongTracking) }
-                ),
-                SwipeAction(
-                    label: CorrectionKind.notAnOrder.actionLabel,
-                    systemImage: CorrectionKind.notAnOrder.actionSymbol,
-                    tint: .red,
-                    role: .destructive,
-                    handler: { onCorrection(order, .notAnOrder) }
-                ),
-            ]) {
-                card
-            }
-        } else {
-            card
-        }
     }
 
     private var emptyMessage: String {
