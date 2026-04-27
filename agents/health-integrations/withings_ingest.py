@@ -115,9 +115,17 @@ MEASURE_TYPES: dict[int, tuple[str, str, float]] = {
 
 
 def _api_get_measures(access_token: str, *, since_ts: int) -> dict[str, Any]:
+    # Filter by MEASUREMENT date (`startdate`/`enddate`), not by record
+    # last-modified time (`lastupdate`). With `lastupdate`, the Withings
+    # API only returns records that were SYNCED in the window — so a
+    # weight scale that synced months ago and hasn't been touched
+    # since silently disappears even though the underlying measurement
+    # is recent. `startdate`/`enddate` filter on the measurement date
+    # itself, which is what we actually want.
     body = urllib.parse.urlencode({
         "action": "getmeas",
-        "lastupdate": since_ts,
+        "startdate": since_ts,
+        "enddate": int(datetime.now(timezone.utc).timestamp()),
         # Pull all the measurement types we know about, comma-separated.
         "meastypes": ",".join(str(k) for k in MEASURE_TYPES.keys()),
         "category": 1,  # 1 = real measures (vs. user-entered objectives)
@@ -147,10 +155,14 @@ def main() -> int:
     try:
         tokens = _refresh_if_needed(_load_tokens())
         access = tokens["access_token"]
-        # Pull the last 7 days of measurements. Idempotency in upsert
+        # Pull the last 60 days of measurements. Idempotency in upsert
         # collapses repeats, so re-running an hour later just adds new
-        # readings without duplicating prior ones.
-        since = int((started - timedelta(days=7)).timestamp())
+        # readings without duplicating prior ones. Window is 60 days
+        # (not 7) because Withings users sometimes go a few weeks
+        # between weigh-ins / BP readings — a 7-day window misses those
+        # users entirely. Caught in the wild: the user's most recent
+        # weigh-in was 17 days ago when we first ran ingest.
+        since = int((started - timedelta(days=60)).timestamp())
         payload = _api_get_measures(access, since_ts=since)
         if payload.get("status") != 0:
             raise RuntimeError(f"Withings getmeas status={payload.get('status')}: {payload}")
