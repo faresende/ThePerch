@@ -88,6 +88,7 @@
 		8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27DBAD9446B0EA0E5642376 /* KeychainService.swift */; };
 		90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */; };
 		99E67B0E893542999222D13B /* UniversalCardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */; };
+		9F69AD3DC82EB3880A6E1672 /* HorizontalPanReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D13F894B2146C74E2A42E9 /* HorizontalPanReader.swift */; };
 		A1327FFE76188D06F10B001E /* TodayTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CBEA125F2BF3482151382 /* TodayTab.swift */; };
 		A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */; };
 		A576062F1F2F550146215B9E /* HealthDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD4170EBE227B63C10C9D2E /* HealthDetailView.swift */; };
@@ -210,6 +211,7 @@
 		02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PerchSharedKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		03B91F417EA96A65024733B2 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelHomeCard.swift; sourceTree = "<group>"; };
+		14D13F894B2146C74E2A42E9 /* HorizontalPanReader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HorizontalPanReader.swift; path = Components/HorizontalPanReader.swift; sourceTree = "<group>"; };
 		1675CA68C5E59F9B76A55D69 /* ParseTraceSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ParseTraceSheet.swift; sourceTree = "<group>"; };
 		194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCardRenderer.swift; sourceTree = "<group>"; };
 		1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiquidGlassTabBar.swift; sourceTree = "<group>"; };
@@ -850,6 +852,7 @@
 			children = (
 				6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */,
 				9113DFD580EE158E6448E952 /* UndoCorrectionToast.swift */,
+				14D13F894B2146C74E2A42E9 /* HorizontalPanReader.swift */,
 			);
 			name = Components;
 			sourceTree = "<group>";
@@ -1216,6 +1219,7 @@
 				4E65A462FA9DE4BE19EB9F06 /* SwipeActionsContainer.swift in Sources */,
 				3E300B906C36C47DA1B66E75 /* UndoCorrectionToast.swift in Sources */,
 				8B84E982C7691BA70FEE9B24 /* ParseTraceSheet.swift in Sources */,
+				9F69AD3DC82EB3880A6E1672 /* HorizontalPanReader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

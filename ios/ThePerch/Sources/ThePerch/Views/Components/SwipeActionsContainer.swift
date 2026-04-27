@@ -2,10 +2,12 @@ import SwiftUI
 
 // MARK: - SwipeActionsContainer
 //
-// Custom drag-to-reveal swipe-action affordance. Built bespoke (rather
-// than `.swipeActions(edge:)`) because the Orders tab uses
-// ScrollView+LazyVStack at the root, not a List — and SwiftUI's
-// native swipeActions modifier requires a List ancestor.
+// Swipe-to-reveal action affordance. Built on a UIKit-bridged pan
+// recognizer (see HorizontalPanReader.swift) instead of SwiftUI's
+// DragGesture because SwiftUI gestures cannot release after capture.
+// The orders list lives inside HubTab's page-style TabView (which
+// pages on horizontal pan) AND a vertical ScrollView — we need to
+// claim horizontal pans WITHOUT eating vertical scrolls.
 //
 // Interaction model (matches iOS Mail / Messages muscle memory):
 //   1. User drags the row leftward.
@@ -16,12 +18,6 @@ import SwiftUI
 //      - If dragged ≥ commit-zone:  fires the most-destructive action immediately.
 //   4. Tapping any revealed action runs its handler and animates closed.
 //   5. Tapping the row body while open also closes (no action fires).
-//
-// Each action has: label, SF Symbol, tint, and `role` (.destructive
-// flips the tap target's foreground to red and is a hint to assistive
-// tech).
-//
-// Phase 1 corrections-and-rules. Used by OrdersGroupSection rows.
 
 struct SwipeAction: Identifiable {
     enum Role { case normal, destructive }
@@ -38,18 +34,19 @@ struct SwipeActionsContainer<Content: View>: View {
     let actions: [SwipeAction]
     @ViewBuilder var content: () -> Content
 
+    /// Persistent offset (committed) — survives between drags when
+    /// the row is in the open state. Live drag deltas are tracked
+    /// separately in `liveDelta`.
     @State private var offset: CGFloat = 0
+    @State private var liveDelta: CGFloat = 0
     @State private var isOpen = false
-    @GestureState private var dragOffset: CGFloat = 0
 
     /// Width of the action column (per button).
     private let buttonWidth: CGFloat = 84
     /// Reveal threshold: drag past this to snap fully open.
     private var openThreshold: CGFloat { totalActionsWidth * 0.4 }
     /// Auto-commit threshold: drag past this and we fire the trailing
-    /// (most-destructive) action immediately on release. Disabled when
-    /// the trailing action isn't destructive — too risky for non-destructive
-    /// actions.
+    /// (most-destructive) action immediately on release.
     private var commitThreshold: CGFloat { totalActionsWidth * 1.6 }
 
     private var totalActionsWidth: CGFloat {
@@ -57,7 +54,7 @@ struct SwipeActionsContainer<Content: View>: View {
     }
 
     var body: some View {
-        let totalOffset = offset + dragOffset
+        let totalOffset = offset + liveDelta
 
         ZStack(alignment: .trailing) {
             // Action panel — sized to total reveal width, clipped on right edge.
@@ -65,29 +62,17 @@ struct SwipeActionsContainer<Content: View>: View {
                 .frame(width: max(0, -totalOffset))
                 .clipped()
                 .opacity(min(1, -totalOffset / max(1, totalActionsWidth * 0.3)))
-                .animation(.easeOut(duration: 0.18), value: dragOffset)
 
             // Content layer — shifted leftward by the drag.
             content()
                 .offset(x: totalOffset)
-                // .highPriorityGesture is required because OrdersView
-                // lives inside HubTab's page-style TabView, which
-                // intercepts horizontal drags for tab-paging. Without
-                // this, the swipe-action drag never reaches our handler
-                // — the user just pages over to the Bookmarks segment.
-                // The axis filter inside dragGesture keeps vertical
-                // scrolling working: vertical drags update no state,
-                // and once the gesture's `updating` block has returned
-                // without claiming motion, vertical scroll resumes.
-                .highPriorityGesture(dragGesture)
+                .background(panReader)
                 .simultaneousGesture(
                     // Tap on body while open closes without firing an action.
                     TapGesture().onEnded { if isOpen { close() } }
                 )
         }
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        // Auto-close if the parent view rebuilds (e.g. data refresh).
-        // Without this, the open offset can persist when the row changes identity.
         .onDisappear { close() }
     }
 
@@ -95,6 +80,7 @@ struct SwipeActionsContainer<Content: View>: View {
         HStack(spacing: 0) {
             ForEach(actions) { action in
                 Button {
+                    PerchHaptics.light()
                     action.handler()
                     close()
                 } label: {
@@ -116,78 +102,71 @@ struct SwipeActionsContainer<Content: View>: View {
         }
     }
 
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 8)
-            .updating($dragOffset) { value, state, _ in
-                // Axis filter: only react when the drag is predominantly
-                // horizontal. This keeps vertical scrolling smooth — we
-                // claim the gesture (via .highPriorityGesture) but stay
-                // visually idle for vertical motion, so the parent
-                // ScrollView's scroll finishes naturally as soon as the
-                // user lifts. The 1.0 ratio is generous; tighten to e.g.
-                // 1.5 if vertical scrolls feel stuttery.
-                let h = abs(value.translation.width)
-                let v = abs(value.translation.height)
-                guard h > v else { return }
-
-                // Only react to leftward drags. Rightward drags from
-                // the closed state get ignored; rightward drags from
-                // the open state pull the row back toward closed.
-                let raw = value.translation.width
-                if isOpen {
-                    // Allow positive drag to close, but never overshoot 0.
-                    state = max(0, min(raw, totalActionsWidth))
-                } else {
-                    // Negative-only drag from closed.
-                    state = min(0, raw)
-                }
+    private var panReader: some View {
+        HorizontalPanReader(
+            onChanged: { translation in
+                handleDragChanged(translation)
+            },
+            onEnded: { translation in
+                handleDragEnded(translation)
             }
-            .onEnded { value in
-                // Same axis filter on commit — a vertical drag that
-                // briefly captured the gesture shouldn't trigger swipe
-                // logic on release. Just dismiss any partial open state
-                // and let the parent's scroll inertia carry on.
-                let h = abs(value.translation.width)
-                let v = abs(value.translation.height)
-                guard h > v else {
-                    if isOpen { /* leave alone */ } else { close() }
-                    return
-                }
+        )
+    }
 
-                let raw = value.translation.width
-                let final = offset + raw
+    private func handleDragChanged(_ translation: CGSize) {
+        // Translation is the cumulative delta from where the drag
+        // started. Map it onto our live offset, clamping so the
+        // content doesn't overshoot in either direction.
+        let raw = translation.width
+        if isOpen {
+            // From open: positive raw = closing motion. Clamp [0, totalActionsWidth]
+            // (max positive recovers closed position).
+            liveDelta = max(0, min(raw, totalActionsWidth))
+        } else {
+            // From closed: only negative drags reveal. Positive drags ignored.
+            liveDelta = min(0, raw)
+        }
+    }
 
-                // Auto-commit: if the trailing-most action is destructive
-                // and the user dragged hard enough, fire it.
-                if let trailing = actions.last,
-                   trailing.role == .destructive,
-                   -raw >= commitThreshold {
-                    trailing.handler()
-                    close()
-                    return
-                }
+    private func handleDragEnded(_ translation: CGSize) {
+        let raw = translation.width
 
-                if isOpen {
-                    // We're open. Decide based on positive drag (closing intent).
-                    if raw > openThreshold {
-                        close()
-                    } else {
-                        // Snap back to fully open.
-                        snapOpen()
-                    }
-                } else {
-                    // We're closed. Decide based on negative drag.
-                    if -final > openThreshold {
-                        snapOpen()
-                    } else {
-                        close()
-                    }
-                }
+        // Auto-commit: hard leftward drag fires the destructive action.
+        if !isOpen,
+           let trailing = actions.last,
+           trailing.role == .destructive,
+           -raw >= commitThreshold {
+            PerchHaptics.medium()
+            trailing.handler()
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                liveDelta = 0
+                offset = 0
+                isOpen = false
             }
+            return
+        }
+
+        let final = offset + raw
+
+        if isOpen {
+            // We were open. Positive raw above threshold = close.
+            if raw > openThreshold {
+                close()
+            } else {
+                snapOpen()
+            }
+        } else {
+            if -final > openThreshold {
+                snapOpen()
+            } else {
+                close()
+            }
+        }
     }
 
     private func snapOpen() {
         withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            liveDelta = 0
             offset = -totalActionsWidth
             isOpen = true
         }
@@ -195,6 +174,7 @@ struct SwipeActionsContainer<Content: View>: View {
 
     private func close() {
         withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            liveDelta = 0
             offset = 0
             isOpen = false
         }
