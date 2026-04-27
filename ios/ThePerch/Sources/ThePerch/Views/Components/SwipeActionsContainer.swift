@@ -70,7 +70,16 @@ struct SwipeActionsContainer<Content: View>: View {
             // Content layer — shifted leftward by the drag.
             content()
                 .offset(x: totalOffset)
-                .gesture(dragGesture)
+                // .highPriorityGesture is required because OrdersView
+                // lives inside HubTab's page-style TabView, which
+                // intercepts horizontal drags for tab-paging. Without
+                // this, the swipe-action drag never reaches our handler
+                // — the user just pages over to the Bookmarks segment.
+                // The axis filter inside dragGesture keeps vertical
+                // scrolling working: vertical drags update no state,
+                // and once the gesture's `updating` block has returned
+                // without claiming motion, vertical scroll resumes.
+                .highPriorityGesture(dragGesture)
                 .simultaneousGesture(
                     // Tap on body while open closes without firing an action.
                     TapGesture().onEnded { if isOpen { close() } }
@@ -110,20 +119,41 @@ struct SwipeActionsContainer<Content: View>: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 8)
             .updating($dragOffset) { value, state, _ in
+                // Axis filter: only react when the drag is predominantly
+                // horizontal. This keeps vertical scrolling smooth — we
+                // claim the gesture (via .highPriorityGesture) but stay
+                // visually idle for vertical motion, so the parent
+                // ScrollView's scroll finishes naturally as soon as the
+                // user lifts. The 1.0 ratio is generous; tighten to e.g.
+                // 1.5 if vertical scrolls feel stuttery.
+                let h = abs(value.translation.width)
+                let v = abs(value.translation.height)
+                guard h > v else { return }
+
                 // Only react to leftward drags. Rightward drags from
                 // the closed state get ignored; rightward drags from
                 // the open state pull the row back toward closed.
                 let raw = value.translation.width
                 if isOpen {
                     // Allow positive drag to close, but never overshoot 0.
-                    state = max(0, min(raw, totalActionsWidth)) - 0  // [0, +totalActionsWidth]
-                    state = max(0, min(state, totalActionsWidth))
+                    state = max(0, min(raw, totalActionsWidth))
                 } else {
                     // Negative-only drag from closed.
                     state = min(0, raw)
                 }
             }
             .onEnded { value in
+                // Same axis filter on commit — a vertical drag that
+                // briefly captured the gesture shouldn't trigger swipe
+                // logic on release. Just dismiss any partial open state
+                // and let the parent's scroll inertia carry on.
+                let h = abs(value.translation.width)
+                let v = abs(value.translation.height)
+                guard h > v else {
+                    if isOpen { /* leave alone */ } else { close() }
+                    return
+                }
+
                 let raw = value.translation.width
                 let final = offset + raw
 
