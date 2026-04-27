@@ -4,6 +4,12 @@
  * Uses keyword + signal analysis for classification.
  */
 
+import {
+  extractTrackingCandidates,
+  pickWinner,
+  TrackingCandidate,
+} from './tracking-candidates';
+
 export type EmailType = 'purchase_confirmation' | 'shipping_notification' | 'other';
 
 interface EmailSignals {
@@ -663,14 +669,33 @@ export function extractShipmentFields(
   status: string;
   shippedAt: Date | null;
   confidence: number;
+  /** Phase 1.5: full candidate list, ordered as discovered. Caller can
+   *  feed into the parse-trace via `candidatesForTrace()`. Empty when
+   *  no tracking number candidates exist. */
+  trackingCandidates: TrackingCandidate[];
 } {
   const signals = analyzeSignals(`${subject} ${body}`.toLowerCase(), senderEmail.toLowerCase());
 
-  // Extract tracking number
-  const trackingNumber = extractTrackingNumber(subject, body);
+  // Phase 1.5: priority-rank-wins replaces first-match-wins. Enumerate
+  // ALL plausible candidates with their source/rank, then pick the
+  // highest-ranked. Carrier-owned URL > "Tracking number: X" body
+  // pattern > isolated match > third-party redirect.
+  const candidates = extractTrackingCandidates(subject, body, senderEmail);
+  const winner = pickWinner(candidates);
 
-  // Infer carrier
-  const carrier = inferCarrier(trackingNumber, body, senderEmail);
+  let trackingNumber: string | null = winner ? winner.number : null;
+  let carrier: string | null = winner ? winner.carrier : null;
+
+  // Fallback to legacy first-match if no candidates surfaced (e.g. an
+  // email format we haven't taught the candidate extractor about yet).
+  // Preserves prior behavior on the long tail.
+  if (!trackingNumber) {
+    trackingNumber = extractTrackingNumber(subject, body);
+  }
+  // Sender-domain-driven carrier inference still wins over candidate
+  // carrier in the same way the legacy `inferCarrier` did — the sender
+  // is authoritative if it's a carrier domain (correosexpress.com etc).
+  carrier = inferCarrier(trackingNumber, body, senderEmail) ?? carrier;
 
   // Determine shipped_at
   const shippedAt = extractShippedDate(body) || new Date();
@@ -690,6 +715,7 @@ export function extractShipmentFields(
     status,
     shippedAt,
     confidence: signals.confidence,
+    trackingCandidates: candidates,
   };
 }
 

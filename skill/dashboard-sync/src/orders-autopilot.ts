@@ -50,6 +50,9 @@ import {
   pollSingleShipment,
   TrackerResponse,
 } from './seventeen-track';
+import { ParseTraceBuilder } from './parse-trace';
+import { detectPhysicalVsDigital } from './physical-vs-digital';
+import { detectQuotedPriorOrder } from './quoted-prior-order';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -120,6 +123,14 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
     learned_sender_matched: false,
   };
 
+  // Phase-1 parse-trace accumulator. Lives alongside `telemetry` (which
+  // writes one row per email to `email_classifications` for cross-row
+  // analytics). The tracer's `build()` output is denormalized onto
+  // each order row at upsert time as `orders.parse_trace`, giving iOS
+  // an answer to "why did this get classified as an order?" without
+  // an extra join.
+  const tracer = new ParseTraceBuilder(id);
+
   try {
     // Tier 3 pre-fetch: consult the learned_senders table BEFORE
     // classification. A hit here means the user has previously resolved
@@ -142,6 +153,54 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
     if (learned) {
       telemetry.learned_sender_matched = true;
       telemetry.learned_sender_match_axis = learned.matched_on;
+      tracer.recordLearnedSender({
+        matched: true,
+        match_axis: learned.matched_on,
+        merchant: learned.merchant_name ?? null,
+      });
+    }
+
+    // Phase-1 short-circuit: detect Topfoams-style replies that quote a
+    // prior order. Runs BEFORE the classifier because tier1+LLM both
+    // see the quoted "Order #X" as a strong purchase signal and would
+    // create a duplicate. We need to bail out before they fire.
+    //
+    // Best-effort: if the user-id lookup fails (test harness without
+    // PERCH_USER_ID) or the merchant can't be inferred yet, we skip
+    // the check and fall through. False-negative cost is duplicating
+    // a row the user can swipe-correct; false-positive cost would be
+    // dropping a legitimate order, so we err on the side of caution.
+    try {
+      if (userIdForTelemetry) {
+        const inferredMerchant = inferMerchantNameFromBody(body) || senderName || null;
+        const normalizedMerchant = inferredMerchant
+          ? normalizeMerchant(inferredMerchant)
+          : null;
+        const quoted = await detectQuotedPriorOrder({
+          subject,
+          body,
+          userId: userIdForTelemetry,
+          normalizedMerchant,
+          supabase,
+        });
+        if (quoted.matched) {
+          tracer.recordShortCircuit('quoted_prior_order');
+          // We still log the short-circuit to telemetry so the rule
+          // engine can later distill "Re: from this sender quoting
+          // their own order#" into a merchant-rules pre-classifier.
+          await writeTelemetry(telemetry, 'skipped',
+            `Quoted prior order #${quoted.matched_order_number} — likely a CS reply, not a new order`);
+          return {
+            success: true,
+            type: 'other',
+            action: 'skipped',
+            detail: `Reply quotes existing order #${quoted.matched_order_number}`,
+            confidence: 0,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('[orders-autopilot] quoted-prior-order check skipped:', (err as Error).message);
     }
 
     // Step 1: Classify
@@ -156,6 +215,12 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
     telemetry.tier1_type = type;
     telemetry.tier1_confidence = confidence;
     telemetry.tier1_matched_keywords = classified.matchedKeywords;
+    tracer.recordTier1({
+      matched_keywords: classified.matchedKeywords ?? [],
+      confidence,
+      purchase_score: classified.purchaseScore,
+      shipping_score: classified.shippingScore,
+    });
 
     if (type === 'other') {
       // Tier 2 LLM second-pass: if there's meaningful commerce signal
@@ -172,12 +237,19 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
           telemetry.llm_confidence = llm.confidence;
           telemetry.llm_merchant_name = llm.merchant_name ?? null;
           telemetry.llm_order_number = llm.order_number ?? null;
+          tracer.recordLLM({
+            invoked: true,
+            is_purchase: llm.is_purchase_confirmation,
+            confidence: llm.confidence,
+            provider: llm.source ?? null,
+          });
         } else {
           telemetry.llm_provider = 'failed';
+          tracer.recordLLM({ invoked: true, is_purchase: null, confidence: null, provider: 'failed' });
         }
         if (llm && llm.is_purchase_confirmation && llm.confidence >= 0.6) {
           // Promote to purchase path with LLM-provided fields.
-          return await handlePurchaseConfirmation(email, llm.confidence, llm, learned, telemetry);
+          return await handlePurchaseConfirmation(email, llm.confidence, llm, learned, telemetry, tracer);
         }
         // LLM agrees it's not an order, OR LLM unreachable — but the
         // ambiguity is real. Queue for review instead of silently
@@ -224,7 +296,7 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
 
     // Step 2: Extract
     if (type === 'purchase_confirmation') {
-      return await handlePurchaseConfirmation(email, confidence, undefined, learned, telemetry);
+      return await handlePurchaseConfirmation(email, confidence, undefined, learned, telemetry, tracer);
     } else if (type === 'shipping_notification') {
       return await handleShippingNotification(email, confidence, telemetry);
     }
@@ -254,9 +326,14 @@ async function handlePurchaseConfirmation(
   preExtractedLLM?: LLMExtractedFields | null,
   learned?: LearnedSenderMatch | null,
   telemetry?: Partial<ClassificationLog>,
+  tracer?: ParseTraceBuilder,
 ): Promise<ProcessEmailResult> {
   const { id, sender, date } = email;
   const tel = telemetry ?? { user_id: '', email_id: id };
+  // Defensive: if a caller (test harness, future code path) reached
+  // handlePurchaseConfirmation without going through processEmail, give
+  // them a fresh tracer rather than scattering null-checks downstream.
+  const trace = tracer ?? new ParseTraceBuilder(id);
 
   // Reuse the same email→display-name parsing as the top-level entry.
   const senderEmail = (email.senderEmail
@@ -296,8 +373,15 @@ async function handlePurchaseConfirmation(
       tel.llm_confidence = llm.confidence;
       tel.llm_merchant_name = llm.merchant_name ?? null;
       tel.llm_order_number = llm.order_number ?? null;
+      trace.recordLLM({
+        invoked: true,
+        is_purchase: llm.is_purchase_confirmation,
+        confidence: llm.confidence,
+        provider: llm.source ?? null,
+      });
     } else {
       tel.llm_provider = 'failed';
+      trace.recordLLM({ invoked: true, is_purchase: null, confidence: null, provider: 'failed' });
     }
   }
 
@@ -346,6 +430,26 @@ async function handlePurchaseConfirmation(
     };
   }
 
+  // Record merchant resolution into the trace. Candidates list captures
+  // alternates the resolver considered before locking in `selected` —
+  // useful when the rule engine later asks "could we have picked a
+  // different merchant?" Currently only LLM provides an alt; extend
+  // when known-merchants / displayName paths surface their candidates.
+  const merchantCandidates = [fields.merchantName];
+  if (llm?.merchant_name && llm.merchant_name !== fields.merchantName) {
+    merchantCandidates.push(llm.merchant_name);
+  }
+  trace.recordMerchant(fields.merchantName, fields.merchantSource ?? null, merchantCandidates);
+
+  // Phase-1 Apple-bug fix: detect digital vs physical AFTER we've
+  // confirmed it's a purchase. Digital purchases write with
+  // status='digital' and skip shipment creation. The trace records
+  // the decision + signals so the rule engine can later promote
+  // sender-specific rules (e.g. "do@apple.com → always digital").
+  const pd = detectPhysicalVsDigital(email.subject, email.body);
+  trace.recordPhysicalDigital(pd);
+  const orderStatus: 'ordered' | 'digital' = pd.decision === 'digital' ? 'digital' : 'ordered';
+
   // Upsert order
   const { id: orderId, isNew } = await upsertOrder({
     user_id: await getUserIdFromEmail(sender),
@@ -357,7 +461,8 @@ async function handlePurchaseConfirmation(
     currency: fields.currency,
     source_email_ids: [id],
     confidence_score: baseConfidence,
-    status: 'ordered',
+    status: orderStatus,
+    parse_trace: trace.build(),
   });
 
   // Push to iOS via dashboard_records with category=commerce

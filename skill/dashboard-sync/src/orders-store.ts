@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabase';
+import type { ParseTrace } from './parse-trace';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -14,7 +15,10 @@ export type OrderStatus =
   | 'shipped'
   | 'delivered'
   | 'cancelled'
-  | 'issue';
+  | 'issue'
+  // Phase-1 corrections-and-rules additions (2026-04-27):
+  | 'digital'              // Apple-bug fix: digital purchase, no shipment expected
+  | 'dismissed_by_user';   // soft-delete via "Not an order" swipe correction
 
 export type ShipmentStatus =
   | 'unknown'
@@ -44,6 +48,11 @@ export interface OrderRecord {
   source_email_ids: string[];
   confidence_score: number;
   status: OrderStatus;
+  // Per-row audit trail of every parser decision. Schema in
+  // src/parse-trace.ts (`ParseTrace`). Optional because legacy
+  // call-sites (e.g. review-queue manual confirmations) may not
+  // populate one; column allows NULL for compatibility.
+  parse_trace?: ParseTrace | null;
   created_at?: string;
   updated_at?: string;
 }
