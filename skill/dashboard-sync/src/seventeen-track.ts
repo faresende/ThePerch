@@ -163,7 +163,18 @@ export async function pollTrackingNumbers(
         track_info?: {
           latest_status?: { status?: string; sub_status?: string };
           latest_event?: { time_iso?: string; description?: string; location?: string };
-          time_metrics?: { estimated_delivery_date?: string };
+          // 17track returns estimated_delivery_date as an OBJECT,
+          // not a string. `from` is the lower-bound estimate
+          // (earliest carrier expects to deliver), `to` is the
+          // upper bound. Both are nullable; carrier-not-published
+          // returns { source: null, from: null, to: null }.
+          time_metrics?: {
+            estimated_delivery_date?: {
+              source?: string | null;
+              from?: string | null;
+              to?: string | null;
+            };
+          };
           tracking?: {
             providers?: Array<{ provider?: { name?: string } }>;
           };
@@ -202,10 +213,14 @@ export async function pollTrackingNumbers(
     const carrier = info.tracking?.providers?.[0]?.provider?.name ?? 'unknown';
 
     // Phase 1 ETA: pull estimated_delivery_date from time_metrics.
-    // 17track returns ISO 8601 (or null when carrier hasn't published
-    // an ETA yet). We pass it through unchanged; the caller runs
-    // resolveETAUpdate to decide whether to write.
-    const etaAt = info.time_metrics?.estimated_delivery_date ?? null;
+    // 17track returns an OBJECT { source, from, to } where `from`
+    // is the lower-bound estimate. Prefer `from` (matches the
+    // "earliest non-delivered ETA" mental model the iOS rollup
+    // uses); fall back to `to` if only that's populated. Returns
+    // null when the carrier hasn't published an ETA — caller's
+    // resolveETAUpdate then leaves the existing eta_at untouched.
+    const edd = info.time_metrics?.estimated_delivery_date;
+    const etaAt = edd?.from ?? edd?.to ?? null;
 
     results.push({
       tracking_number: item.number,
