@@ -32,12 +32,25 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-# Make the shared supabase helper importable.
+# Make the shared supabase helper importable. Importing it also
+# auto-loads ~/.openclaw/secrets/perch.env into os.environ if needed,
+# so EIGHT_SLEEP_EMAIL/PASSWORD lookups below "just work" without
+# requiring `set -a && source ... && python3 ...`.
 sys.path.insert(0, str(Path(__file__).parent))
 from _supabase_client import upsert_health_metric, insert_agent_run  # noqa: E402
 
-LOGIN_URL = "https://api.8slp.net/v1/login"
+# 8sleep moved auth to a proper OAuth password-grant endpoint at
+# auth-api.8slp.net in early 2024. The old client-api `/v1/login`
+# still returns a session-token but the data API rejects it with
+# "session token not supported". The client_id + client_secret below
+# are extracted from the official iOS Pod app (standard mobile
+# reverse-engineering — they're not user-specific secrets).
+LOGIN_URL = "https://auth-api.8slp.net/v1/tokens"
 APP_BASE = "https://app-api.8slp.net"
+EIGHT_SLEEP_CLIENT_ID = "0894c7f33bb94800a03f1f4df13a4f38"
+EIGHT_SLEEP_CLIENT_SECRET = (
+    "f0954a3ed5763ba3d06834c73731a32f15f168f47d4f164751275def86db0c76"
+)
 
 TOKEN_CACHE = Path.home() / ".openclaw" / "state" / "8sleep-token.json"
 TOKEN_CACHE.parent.mkdir(parents=True, exist_ok=True)
@@ -47,48 +60,77 @@ TOKEN_CACHE.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _login(email: str, password: str) -> dict[str, Any]:
-    """POST credentials → returns dict with `session.token` etc."""
-    body = json.dumps({"email": email, "password": password}).encode()
+    """OAuth password grant → returns dict with access_token etc.
+
+    Body (per the OAuth 2 password-grant flow that 8sleep adopted):
+        {
+          "client_id": "...",          # baked-in from official iOS app
+          "client_secret": "...",      # baked-in
+          "grant_type": "password",
+          "username": "<email>",
+          "password": "<password>"
+        }
+
+    Response includes `access_token`, `userId`, `expiresIn`, `refreshToken`.
+    """
+    body = json.dumps({
+        "client_id": EIGHT_SLEEP_CLIENT_ID,
+        "client_secret": EIGHT_SLEEP_CLIENT_SECRET,
+        "grant_type": "password",
+        "username": email,
+        "password": password,
+    }).encode()
     req = Request(
         LOGIN_URL,
         data=body,
         method="POST",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Eight%20Sleep/3.6.0 (com.eightsleep.sleep; build:1; iOS 17.0.0) Alamofire/5.6.4",
+        },
     )
-    with urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read())
+    try:
+        with urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read())
+    except HTTPError as e:
+        body_text = e.read().decode(errors="replace")[:300]
+        raise RuntimeError(f"login HTTP {e.code}: {body_text}") from None
 
 
-def _load_cached_token() -> str | None:
+def _load_cached_session() -> tuple[str, str] | None:
+    """Returns (token, user_id) if cache is fresh, else None."""
     if not TOKEN_CACHE.exists():
         return None
     try:
         cached = json.loads(TOKEN_CACHE.read_text())
-        # Use cached token if not expired (with 5-min buffer).
         expires_at = cached.get("expiresAt")
         if expires_at:
             exp = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
             if exp > datetime.now(timezone.utc) + timedelta(minutes=5):
-                return cached.get("token")
+                token = cached.get("token")
+                user_id = cached.get("userId")
+                if token and user_id:
+                    return token, user_id
     except Exception:
         pass
     return None
 
 
-def _save_token(token: str, expires_in_seconds: int = 3600) -> None:
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in_seconds)
+def _save_session(token: str, user_id: str, expires_at_iso: str) -> None:
+    """Persist token + userId + the API-given expiration."""
     TOKEN_CACHE.write_text(
         json.dumps(
-            {"token": token, "expiresAt": expires_at.isoformat()},
+            {"token": token, "userId": user_id, "expiresAt": expires_at_iso},
             indent=2,
         )
     )
     os.chmod(TOKEN_CACHE, 0o600)
 
 
-def _get_token() -> str:
-    """Cached-or-fresh JWT for the 8sleep API."""
-    if cached := _load_cached_token():
+def _get_session() -> tuple[str, str]:
+    """Returns (token, user_id). Logs in fresh when cache expired."""
+    if cached := _load_cached_session():
         return cached
     email = os.environ.get("EIGHT_SLEEP_EMAIL")
     password = os.environ.get("EIGHT_SLEEP_PASSWORD")
@@ -99,133 +141,214 @@ def _get_token() -> str:
         )
         sys.exit(2)
     resp = _login(email, password)
-    session = resp.get("session") or {}
-    token = session.get("token")
-    if not token:
-        raise RuntimeError(f"login response missing token: {resp}")
-    _save_token(token)
-    return token
+    # OAuth response shape: { access_token, expires_in (seconds),
+    # refresh_token, userId }
+    token = resp.get("access_token")
+    user_id = resp.get("userId")
+    expires_in = int(resp.get("expires_in") or 3600)
+    expires_at = (
+        datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+    ).isoformat()
+    if not token or not user_id:
+        raise RuntimeError(f"login response missing access_token/userId: {resp}")
+    _save_session(token, user_id, expires_at)
+    return token, user_id
 
 
 # ─── API calls ──────────────────────────────────────────────────────
 
 
-def _api_get(path: str, token: str) -> dict[str, Any]:
-    """GET `${APP_BASE}${path}` with the bearer token."""
-    req = Request(
-        f"{APP_BASE}{path}",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
-            "User-Agent": "ThePerch/1.0 (8sleep ingest)",
-        },
-    )
-    with urlopen(req, timeout=20) as resp:
-        return json.loads(resp.read())
+def _api_get(path: str, token: str, user_id: str | None = None) -> dict[str, Any]:
+    """GET `${APP_BASE}${path}` with the OAuth bearer token.
+
+    Post-2024 8sleep auth: standard OAuth `Authorization: Bearer`
+    against the access_token returned by /v1/tokens. The legacy
+    Session-Token header is no longer accepted.
+    """
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+        "User-Agent": "Eight%20Sleep/3.6.0 (com.eightsleep.sleep; build:1; iOS 17.0.0) Alamofire/5.6.4",
+    }
+    if user_id:
+        headers["User-Id"] = user_id
+    req = Request(f"{APP_BASE}{path}", headers=headers)
+    try:
+        with urlopen(req, timeout=20) as resp:
+            return json.loads(resp.read())
+    except HTTPError as e:
+        body_text = e.read().decode(errors="replace")[:300]
+        raise RuntimeError(f"GET {path} HTTP {e.code}: {body_text}") from None
 
 
-def fetch_recent_intervals(token: str, *, hours_back: int = 36) -> list[dict[str, Any]]:
-    """Last-N-hours of sleep intervals. Each interval = one session."""
-    since = (datetime.now(timezone.utc) - timedelta(hours=hours_back)).isoformat()
-    until = datetime.now(timezone.utc).isoformat()
+def fetch_recent_sessions(token: str, user_id: str) -> list[dict[str, Any]]:
+    """Latest sleep sessions (most recent first). The `/sessions`
+    endpoint returns ALL recent sessions in one call — no need for a
+    `from`/`to` window since we dedupe via session.id on upsert.
+    Each session contains stages + timeseries (HRV/RMSSD/HR/etc.)."""
     data = _api_get(
-        f"/v1/users/me/intervals?from={since}&to={until}",
+        f"/v1/users/{user_id}/sessions",
         token,
+        user_id=user_id,
     )
-    return data.get("intervals") or []
-
-
-def fetch_recent_trends(token: str) -> dict[str, Any]:
-    """Latest HRV / RHR / sleep-score trends. Returns most recent values."""
-    return _api_get("/v2/users/me/trends?days=1", token)
+    return data.get("sessions") or []
 
 
 # ─── Normalise → health_metrics rows ────────────────────────────────
 
 
-def _interval_to_metrics(interval: dict[str, Any]) -> list[dict[str, Any]]:
-    """Pull the metrics we care about out of one interval payload."""
-    rows: list[dict[str, Any]] = []
-    sid = interval.get("id") or interval.get("interval_id")
-    end_ts = interval.get("ts") or interval.get("end")
-    if not sid or not end_ts:
-        return rows
-    measured_at = end_ts if "T" in end_ts else f"{end_ts}T00:00:00Z"
+def _avg(values: list[float]) -> float | None:
+    """Mean of non-empty list. Returns None for empty input."""
+    if not values:
+        return None
+    return sum(values) / len(values)
 
-    # Total sleep duration
-    if "total_in_bed_seconds" in interval:
+
+def _ts_values(timeseries: dict[str, Any], key: str) -> list[float]:
+    """Pull just the values out of an 8sleep timeseries entry.
+
+    Timeseries entries are arrays of `[ts, value]` pairs. We don't
+    need the timestamps for daily aggregates; just the value column.
+    Filters out None / non-numeric entries defensively.
+    """
+    series = timeseries.get(key) or []
+    out: list[float] = []
+    for entry in series:
+        if isinstance(entry, list) and len(entry) >= 2 and isinstance(entry[1], (int, float)):
+            out.append(float(entry[1]))
+    return out
+
+
+def _session_to_metrics(session: dict[str, Any]) -> list[dict[str, Any]]:
+    """Translate one 8sleep session payload into health_metrics rows.
+
+    Schema (post-2024 8sleep API):
+      - `id`, `ts` (sleep start), `sleepEnd`
+      - `duration` (seconds, total in bed)
+      - `score` (0-100 sleep score)
+      - `stages` array of `{stage, duration}`. Stages: light, deep,
+        rem, out, awake. "out" = bed unoccupied (e.g. bathroom run).
+      - `timeseries` with arrays-of-[timestamp, value] for:
+          heartRate, hrv (raw), rmssd (the canonical HRV metric in ms),
+          respiratoryRate, tempBedC, tempRoomC, tnt, shortAwakes
+    """
+    rows: list[dict[str, Any]] = []
+    sid = session.get("id")
+    measured_at = session.get("sleepEnd") or session.get("ts")
+    if not sid or not measured_at:
+        return rows
+
+    # Total in-bed time
+    if (duration := session.get("duration")) is not None:
         rows.append({
             "metric": "time_in_bed_min",
-            "value": float(interval["total_in_bed_seconds"]) / 60.0,
+            "value": float(duration) / 60.0,
             "unit": "minutes",
             "source_id": f"{sid}-tib",
             "measured_at": measured_at,
-            "details": None,
-        })
-    sleep_seconds = (
-        interval.get("sleep_seconds")
-        or interval.get("total_sleep_seconds")
-        or (interval.get("score", {}) or {}).get("sleep_seconds")
-    )
-    if sleep_seconds:
-        rows.append({
-            "metric": "sleep_duration_min",
-            "value": float(sleep_seconds) / 60.0,
-            "unit": "minutes",
-            "source_id": f"{sid}-sleep",
-            "measured_at": measured_at,
-            "details": None,
         })
 
-    # Sleep score (0-100)
-    score = (interval.get("score") or {}).get("score")
-    if score is not None:
+    # Sleep score (still computing on a freshly-ended session — value 0
+    # is normal for the latest row, will fill in later).
+    if (score := session.get("score")) is not None and score > 0:
         rows.append({
             "metric": "sleep_score",
             "value": float(score),
             "unit": "score",
             "source_id": f"{sid}-score",
             "measured_at": measured_at,
-            "details": None,
         })
 
-    # Sleep stages: deep, REM, light, awake (in seconds → minutes)
-    stages = interval.get("stages") or {}
+    # Stage durations — sum across the array. "out" means "not in bed";
+    # everything else counts as time in bed. Real "sleep duration" =
+    # in-bed minus awake minus out.
+    stage_seconds: dict[str, float] = {}
+    for entry in session.get("stages") or []:
+        stage = entry.get("stage")
+        dur = entry.get("duration")
+        if not stage or not isinstance(dur, (int, float)):
+            continue
+        stage_seconds[stage] = stage_seconds.get(stage, 0.0) + float(dur)
+
     for stage_key, metric_key in [
         ("deep", "sleep_deep_min"),
         ("rem", "sleep_rem_min"),
         ("light", "sleep_light_min"),
         ("awake", "sleep_awake_min"),
+        ("out", "sleep_out_of_bed_min"),
     ]:
-        seconds = stages.get(stage_key)
-        if seconds is not None:
+        if stage_key in stage_seconds:
             rows.append({
                 "metric": metric_key,
-                "value": float(seconds) / 60.0,
+                "value": stage_seconds[stage_key] / 60.0,
                 "unit": "minutes",
                 "source_id": f"{sid}-{stage_key}",
                 "measured_at": measured_at,
-                "details": None,
             })
 
-    # HRV / RHR — sometimes embedded in the interval
-    if (hrv := interval.get("hrv")) is not None:
+    # Computed total sleep = sum of light + rem + deep (excludes "out"
+    # and "awake"). Most useful single number for downstream insight.
+    asleep_seconds = sum(
+        stage_seconds.get(s, 0.0) for s in ("light", "rem", "deep")
+    )
+    if asleep_seconds > 0:
+        rows.append({
+            "metric": "sleep_duration_min",
+            "value": asleep_seconds / 60.0,
+            "unit": "minutes",
+            "source_id": f"{sid}-sleep",
+            "measured_at": measured_at,
+        })
+
+    # Timeseries-derived: HRV (rmssd), heart rate, respiratory rate,
+    # bed/room temperature averages. These are aggregated across the
+    # whole night so BioChecha gets one number per metric per session.
+    ts = session.get("timeseries") or {}
+    if (rmssd := _avg(_ts_values(ts, "rmssd"))) is not None:
         rows.append({
             "metric": "hrv_rmssd_ms",
-            "value": float(hrv),
+            "value": rmssd,
             "unit": "ms",
-            "source_id": f"{sid}-hrv",
+            "source_id": f"{sid}-rmssd",
             "measured_at": measured_at,
-            "details": None,
         })
-    if (rhr := interval.get("resting_heart_rate")) is not None:
+    hr_values = _ts_values(ts, "heartRate")
+    if hr_values:
+        # Resting heart rate ≈ minimum sustained HR during sleep. Using
+        # min directly is noisy (single-sample dips); take the 5th
+        # percentile to be robust.
+        sorted_hr = sorted(hr_values)
+        idx = max(0, int(len(sorted_hr) * 0.05))
         rows.append({
             "metric": "resting_heart_rate_bpm",
-            "value": float(rhr),
+            "value": sorted_hr[idx],
             "unit": "bpm",
             "source_id": f"{sid}-rhr",
             "measured_at": measured_at,
-            "details": None,
+        })
+    if (rr := _avg(_ts_values(ts, "respiratoryRate"))) is not None:
+        rows.append({
+            "metric": "respiratory_rate_bpm",
+            "value": rr,
+            "unit": "breaths/min",
+            "source_id": f"{sid}-rr",
+            "measured_at": measured_at,
+        })
+    if (bed_t := _avg(_ts_values(ts, "tempBedC"))) is not None:
+        rows.append({
+            "metric": "bed_temperature_c",
+            "value": bed_t,
+            "unit": "C",
+            "source_id": f"{sid}-bedtemp",
+            "measured_at": measured_at,
+        })
+    if (room_t := _avg(_ts_values(ts, "tempRoomC"))) is not None:
+        rows.append({
+            "metric": "room_temperature_c",
+            "value": room_t,
+            "unit": "C",
+            "source_id": f"{sid}-roomtemp",
+            "measured_at": measured_at,
         })
 
     return rows
@@ -241,10 +364,10 @@ def main() -> int:
     error: str | None = None
 
     try:
-        token = _get_token()
-        intervals = fetch_recent_intervals(token)
-        for interval in intervals:
-            for row in _interval_to_metrics(interval):
+        token, user_id = _get_session()
+        sessions = fetch_recent_sessions(token, user_id)
+        for session in sessions:
+            for row in _session_to_metrics(session):
                 ok = upsert_health_metric(
                     metric=row["metric"],
                     value=row["value"],
@@ -252,40 +375,12 @@ def main() -> int:
                     source="8sleep",
                     source_id=row["source_id"],
                     measured_at_iso=row["measured_at"],
-                    details=row["details"],
+                    details=None,
                 )
                 if ok:
                     written += 1
                 else:
                     failed += 1
-        # Trends — single payload of latest values
-        try:
-            trends = fetch_recent_trends(token)
-            now_iso = started.isoformat()
-            # Dig into common trend keys; tolerate schema drift.
-            for tk, mk, unit in [
-                ("hrv", "hrv_rmssd_ms", "ms"),
-                ("heart_rate", "resting_heart_rate_bpm", "bpm"),
-                ("sleep_score", "sleep_score", "score"),
-            ]:
-                v = trends.get(tk)
-                if isinstance(v, dict):
-                    v = v.get("value") or v.get("avg")
-                if isinstance(v, (int, float)):
-                    if upsert_health_metric(
-                        metric=mk,
-                        value=float(v),
-                        unit=unit,
-                        source="8sleep",
-                        source_id=f"trend-{started.date().isoformat()}-{mk}",
-                        measured_at_iso=now_iso,
-                        details=None,
-                    ):
-                        written += 1
-                    else:
-                        failed += 1
-        except Exception as e:
-            sys.stderr.write(f"[8sleep] trends fetch failed: {e}\n")
 
     except (HTTPError, URLError) as e:
         error = f"{type(e).__name__}: {e}"

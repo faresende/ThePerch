@@ -153,7 +153,12 @@ def _supabase_get(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
     url = os.environ["SUPABASE_URL"].rstrip("/")
     key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
     user = os.environ["PERCH_USER_ID"]
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
+    # URL-encode values so `+00:00` in ISO timestamps doesn't become a
+    # space when the URL is decoded server-side. Caught in the wild:
+    # PostgREST returned 22007 "invalid input syntax for type
+    # timestamp with time zone" because the `+` collapsed to ` `.
+    import urllib.parse as _up
+    qs = "&".join(f"{k}={_up.quote(str(v), safe='*.,()')}" for k, v in params.items())
     qs += f"&user_id=eq.{user}"
     req = Request(
         f"{url}/rest/v1/{path}?{qs}",
@@ -163,8 +168,12 @@ def _supabase_get(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
             "Accept": "application/json",
         },
     )
-    with urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read())
+    try:
+        with urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read())
+    except HTTPError as e:
+        body_text = e.read().decode(errors="replace")[:300]
+        raise RuntimeError(f"Supabase GET {path}?{qs[:80]} HTTP {e.code}: {body_text}") from None
 
 
 def _gather_sleep() -> list[dict[str, Any]]:

@@ -42,6 +42,11 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+# Auto-load perch.env so user doesn't have to `set -a && source ... &&`
+# every time. Importing _supabase_client triggers the load.
+sys.path.insert(0, str(Path(__file__).parent))
+import _supabase_client  # noqa: F401, E402
+
 CALLBACK_HOST = "localhost"
 CALLBACK_PORT = 8127
 CALLBACK_PATH = "/withings/callback"

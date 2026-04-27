@@ -2,18 +2,72 @@
 """
 Shared Supabase HTTP helper for the health-integration ingest scripts.
 
-Reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + PERCH_USER_ID from env
-(populated by sourcing ~/.openclaw/secrets/perch.env). Talks to PostgREST
-directly — no SDK dependency, keeps the scripts portable.
+Reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + PERCH_USER_ID from env.
+On import, auto-loads `~/.openclaw/secrets/perch.env` if present and the
+required vars aren't already in the environment — same resolution chain
+as the dashboard-sync `cli.js` so the user never has to remember
+`set -a && source ... && python3 ...`. Talks to PostgREST directly —
+no SDK dependency, keeps the scripts portable.
 """
 from __future__ import annotations
 
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+
+
+# ─── Env auto-loader (mirrors cli.js behaviour) ─────────────────────
+
+
+def _load_env_file(path: Path) -> bool:
+    """Parse a shell-exportable env file. Returns True if loaded."""
+    if not path.exists():
+        return False
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        # Strip optional `export ` prefix so shell-source format works.
+        if line.startswith("export "):
+            line = line[len("export "):]
+        if "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        val = val.strip()
+        # Strip wrapping quotes if present.
+        if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+            val = val[1:-1]
+        # Only set if not already in environment (caller's explicit env wins).
+        if key and not os.environ.get(key):
+            os.environ[key] = val
+    return True
+
+
+def _autoload_env_once() -> None:
+    """Auto-load perch.env at import time if Supabase vars aren't set.
+
+    Same resolution chain as the dashboard-sync skill's cli.js so behaviour
+    is consistent across the Python + Node halves of the stack.
+    """
+    needed = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "PERCH_USER_ID")
+    if all(os.environ.get(k) for k in needed):
+        return
+    candidates = [
+        os.environ.get("DASHBOARD_SYNC_ENV_FILE"),
+        Path.home() / ".openclaw/secrets/dashboard-sync.env",
+        Path.home() / ".openclaw/secrets/perch.env",
+    ]
+    for c in candidates:
+        if c and _load_env_file(Path(c)):
+            return
+
+
+_autoload_env_once()
 
 
 def _supabase_env() -> tuple[str, str, str]:
