@@ -110,6 +110,13 @@ struct Shipment: Identifiable, Codable, Sendable, Equatable {
     let status: String
     let createdAt: Date
     let trackingUrl: String?
+    /// Phase 1 ETA (2026-04-27): expected delivery date for this
+    /// shipment. Set by carrier-email regex extraction or 17track
+    /// polling, resolved server-side via resolveETAUpdate (priority +
+    /// recency). NULL for legacy rows / shipments without an ETA.
+    /// `eta_source` and `eta_recorded_at` aren't surfaced in iOS —
+    /// scanner-side bookkeeping only.
+    let etaAt: Date?
 
     init(
         id: UUID,
@@ -118,7 +125,8 @@ struct Shipment: Identifiable, Codable, Sendable, Equatable {
         carrier: String,
         status: String,
         createdAt: Date,
-        trackingUrl: String? = nil
+        trackingUrl: String? = nil,
+        etaAt: Date? = nil
     ) {
         self.id = id
         self.orderId = orderId
@@ -127,6 +135,7 @@ struct Shipment: Identifiable, Codable, Sendable, Equatable {
         self.status = status
         self.createdAt = createdAt
         self.trackingUrl = trackingUrl
+        self.etaAt = etaAt
     }
 
     enum CodingKeys: String, CodingKey {
@@ -137,6 +146,7 @@ struct Shipment: Identifiable, Codable, Sendable, Equatable {
         case status
         case createdAt = "created_at"
         case trackingUrl = "tracking_url"
+        case etaAt = "eta_at"
     }
 
     var resolvedTrackingURL: URL? {
@@ -293,6 +303,20 @@ struct OrderWithShipments: Identifiable, Sendable, Equatable {
     var effectiveStatus: String {
         if order.isManuallyDelivered { return "delivered" }
         return primaryShipment?.status ?? order.status
+    }
+
+    /// Phase 1 ETA (2026-04-27): the earliest non-delivered ETA across
+    /// this order's shipments. Returns nil when no shipment has an
+    /// ETA, or when all shipments are delivered (delivered status pill
+    /// takes over). Per the design, mental model is "next thing
+    /// arriving" — multi-shipment orders show their soonest expected
+    /// delivery, not the latest.
+    var effectiveETA: Date? {
+        if order.isManuallyDelivered { return nil }
+        return shipments
+            .filter { $0.status.lowercased() != "delivered" }
+            .compactMap { $0.etaAt }
+            .min()
     }
 
     /// Projects the canonical orders + shipments model into the lightweight delivery payload

@@ -57,6 +57,11 @@ export interface TrackerResponse {
   latest_checkpoint: string | null;
   shipped_at: string | null;
   delivered_at: string | null;
+  /** Phase 1 ETA (2026-04-27): pulled from track_info.time_metrics.
+   *  estimated_delivery_date. Null when 17track doesn't have one
+   *  (some carriers don't surface it). Caller runs through
+   *  resolveETAUpdate against the current shipment row. */
+  eta_at: string | null;
   events: TrackerEvent[];
 }
 
@@ -196,6 +201,12 @@ export async function pollTrackingNumbers(
 
     const carrier = info.tracking?.providers?.[0]?.provider?.name ?? 'unknown';
 
+    // Phase 1 ETA: pull estimated_delivery_date from time_metrics.
+    // 17track returns ISO 8601 (or null when carrier hasn't published
+    // an ETA yet). We pass it through unchanged; the caller runs
+    // resolveETAUpdate to decide whether to write.
+    const etaAt = info.time_metrics?.estimated_delivery_date ?? null;
+
     results.push({
       tracking_number: item.number,
       status,
@@ -203,6 +214,7 @@ export async function pollTrackingNumbers(
       latest_checkpoint: latestCheckpoint,
       shipped_at: null, // v2.2 doesn't expose a 'shipped_at' event directly
       delivered_at: deliveredAt,
+      eta_at: etaAt,
       events: [],
     });
   }
@@ -228,6 +240,7 @@ export async function pollSingleShipment(
       latest_checkpoint: null,
       shipped_at: null,
       delivered_at: null,
+      eta_at: null,
       events: [],
     };
   }

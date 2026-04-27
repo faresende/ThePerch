@@ -79,6 +79,14 @@ export interface TrackingCandidateTrace {
   discarded_reason: string | null;
 }
 
+export interface ETACandidateTrace {
+  date: string;                // ISO 8601 date (YYYY-MM-DDTHH:mm:ssZ)
+  source: string;              // 'body_regex_near_keyword' | 'body_regex_isolated'
+  selected: boolean;
+  discarded_reason: string | null;
+  matched_text: string;        // raw substring captured for debugging
+}
+
 export interface ParseTrace {
   version: typeof PARSE_TRACE_VERSION;
   parsed_at: string;
@@ -87,6 +95,10 @@ export interface ParseTrace {
   merchant: MerchantTrace;
   physical_vs_digital: PhysicalDigitalTrace | null;
   tracking_candidates: TrackingCandidateTrace[];
+  /** Phase 1 ETA: candidates extracted from carrier email body. Empty
+   *  array when this trace was built during a non-shipping flow (e.g.
+   *  purchase confirmation). */
+  eta_candidates: ETACandidateTrace[];
   source_email_ids: string[];
 }
 
@@ -109,6 +121,7 @@ export class ParseTraceBuilder {
       merchant: { selected: null, source: null, candidates: [] },
       physical_vs_digital: null,
       tracking_candidates: [],
+      eta_candidates: [],
       source_email_ids: [emailId],
     };
   }
@@ -150,6 +163,10 @@ export class ParseTraceBuilder {
 
   addTrackingCandidate(c: TrackingCandidateTrace): void {
     this.trace.tracking_candidates.push(c);
+  }
+
+  addETACandidate(c: ETACandidateTrace): void {
+    this.trace.eta_candidates.push(c);
   }
 
   /** Replace the source_email_ids list. Default constructor seeded with the primary email's id. */

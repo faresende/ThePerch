@@ -329,7 +329,17 @@ struct OrderCard: View {
             return "Marked \(shortDate)"
         }
 
-        switch normalizedStatus(model.effectiveStatus) {
+        // Phase 1 ETA: when an expected-delivery date is available
+        // and the order isn't yet delivered, surface it via the
+        // status-date line. "Arrives Tuesday" / "Was due Tuesday"
+        // takes precedence over the generic "Added/Shipped/In Transit
+        // <date>" line, since it's the more useful signal.
+        let normalized = normalizedStatus(model.effectiveStatus)
+        if normalized != "delivered", let eta = model.effectiveETA {
+            return ETAChipText.text(for: eta)
+        }
+
+        switch normalized {
         case "delivered":
             return "Delivered \(shortDate)"
         case "ordered":

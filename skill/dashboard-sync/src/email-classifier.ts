@@ -9,6 +9,7 @@ import {
   pickWinner,
   TrackingCandidate,
 } from './tracking-candidates';
+import { extractETACandidates, ETACandidate } from './extract-eta';
 
 export type EmailType = 'purchase_confirmation' | 'shipping_notification' | 'other';
 
@@ -673,6 +674,10 @@ export function extractShipmentFields(
    *  feed into the parse-trace via `candidatesForTrace()`. Empty when
    *  no tracking number candidates exist. */
   trackingCandidates: TrackingCandidate[];
+  /** Phase 1 ETA (2026-04-27): all extracted ETA candidates with
+   *  source/rank. Caller picks the winner via `pickETA` and feeds the
+   *  full list into parse_trace.eta_candidates. */
+  etaCandidates: ETACandidate[];
 } {
   const signals = analyzeSignals(`${subject} ${body}`.toLowerCase(), senderEmail.toLowerCase());
 
@@ -709,6 +714,11 @@ export function extractShipmentFields(
   else if (text.includes('label created') || trackingNumber) status = 'label_created';
   else if (text.includes('exception') || text.includes('failed')) status = 'exception';
 
+  // Phase 1 ETA: extract carrier-email ETA candidates. Empty array
+  // when no plausible delivery-date phrases are present (most
+  // shipping notifications include one; some carrier emails don't).
+  const etaCandidates = extractETACandidates(subject, body);
+
   return {
     trackingNumber,
     carrier,
@@ -716,6 +726,7 @@ export function extractShipmentFields(
     shippedAt,
     confidence: signals.confidence,
     trackingCandidates: candidates,
+    etaCandidates,
   };
 }
 

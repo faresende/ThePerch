@@ -53,6 +53,8 @@ import {
 import { ParseTraceBuilder } from './parse-trace';
 import { detectPhysicalVsDigital } from './physical-vs-digital';
 import { detectQuotedPriorOrder } from './quoted-prior-order';
+import { pickETA } from './extract-eta';
+import { resolveETAUpdate } from './resolve-eta';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -658,6 +660,42 @@ async function handleShippingNotification(
     };
   }
 
+  // Phase 1 ETA: pick the highest-ranked ETA candidate from the
+  // email body (if any), then run it through resolveETAUpdate
+  // against the existing shipment row's ETA. Skip the write if the
+  // resolver says "no update" (e.g. existing 17track ETA outranks
+  // this carrier-email ETA).
+  let etaUpdate: { eta_at: string; eta_source: 'carrier_email'; eta_recorded_at: string } | null = null;
+  const etaWinner = pickETA(fields.etaCandidates, new Date());
+  if (etaWinner) {
+    const { data: existingShipment } = await supabase
+      .from('shipments')
+      .select('eta_at, eta_source, eta_recorded_at')
+      .eq('order_id', orderId)
+      .eq('tracking_number', fields.trackingNumber)
+      .maybeSingle();
+    const now = new Date();
+    const resolved = resolveETAUpdate(
+      {
+        eta_at: existingShipment?.eta_at ? new Date(existingShipment.eta_at) : null,
+        eta_source: (existingShipment?.eta_source as string | null) ?? null,
+        eta_recorded_at: existingShipment?.eta_recorded_at ? new Date(existingShipment.eta_recorded_at) : null,
+      },
+      {
+        eta_at: etaWinner.date,
+        eta_source: 'carrier_email',
+        eta_recorded_at: now,
+      },
+    );
+    if (resolved) {
+      etaUpdate = {
+        eta_at: resolved.eta_at.toISOString(),
+        eta_source: resolved.eta_source as 'carrier_email',
+        eta_recorded_at: resolved.eta_recorded_at.toISOString(),
+      };
+    }
+  }
+
   // Upsert shipment linked to order
   const { id: shipmentId } = await upsertShipment({
     order_id: orderId,
@@ -671,6 +709,7 @@ async function handleShippingNotification(
     delivered_at: fields.status === 'delivered' ? new Date().toISOString() : null,
     source_email_ids: [id],
     confidence_score: baseConfidence,
+    ...(etaUpdate ?? {}),
   });
 
   // Derive and update order status
@@ -854,11 +893,18 @@ export async function pollShipments(userId: string): Promise<{
     if (!trackerData) continue;
 
     try {
+      // Phase 1 ETA: resolve 17track's estimated_delivery_date against
+      // the shipment's current eta_* triplet. resolve17trackETA returns
+      // null when no overwrite is warranted (e.g. 17track silent, or
+      // existing source has higher priority).
+      const etaUpdate = await resolve17trackETA(shipment.id!, trackerData.eta_at);
+
       await updateShipmentFromTracker(shipment.id!, {
         status: trackerData.status,
         checkpoint: trackerData.latest_checkpoint || undefined,
         shipped_at: trackerData.shipped_at || undefined,
         delivered_at: trackerData.delivered_at || undefined,
+        ...(etaUpdate ?? {}),
       });
 
       // Update order status after shipment update
@@ -882,13 +928,57 @@ async function pollAndUpdateShipment(
   carrier: string | null,
 ): Promise<void> {
   const result = await pollSingleShipment(apiKey, trackingNumber, carrier || undefined);
+  const etaUpdate = await resolve17trackETA(shipmentId, result.eta_at);
 
   await updateShipmentFromTracker(shipmentId, {
     status: result.status,
     checkpoint: result.latest_checkpoint || undefined,
     shipped_at: result.shipped_at || undefined,
     delivered_at: result.delivered_at || undefined,
+    ...(etaUpdate ?? {}),
   });
+}
+
+/**
+ * Phase 1 ETA: when 17track returns an estimated_delivery_date,
+ * fetch the shipment's current eta_* triplet and run the resolver
+ * to decide whether to overwrite. Returns the fields to merge into
+ * the update payload, or null when no update should happen
+ * (17track returned null, or current ETA outranks the new one).
+ */
+async function resolve17trackETA(
+  shipmentId: string,
+  trackerETA: string | null,
+): Promise<{ eta_at: string; eta_source: '17track'; eta_recorded_at: string } | null> {
+  if (!trackerETA) return null;     // 17track silent — never overwrite
+  const parsed = new Date(trackerETA);
+  if (isNaN(parsed.getTime())) return null;
+
+  const { data: existing } = await supabase
+    .from('shipments')
+    .select('eta_at, eta_source, eta_recorded_at')
+    .eq('id', shipmentId)
+    .maybeSingle();
+
+  const now = new Date();
+  const resolved = resolveETAUpdate(
+    {
+      eta_at: existing?.eta_at ? new Date(existing.eta_at) : null,
+      eta_source: (existing?.eta_source as string | null) ?? null,
+      eta_recorded_at: existing?.eta_recorded_at ? new Date(existing.eta_recorded_at) : null,
+    },
+    {
+      eta_at: parsed,
+      eta_source: '17track',
+      eta_recorded_at: now,
+    },
+  );
+  if (!resolved) return null;
+  return {
+    eta_at: resolved.eta_at.toISOString(),
+    eta_source: '17track',
+    eta_recorded_at: resolved.eta_recorded_at.toISOString(),
+  };
 }
 
 // ─── Push to iOS ───────────────────────────────────────────────────────────

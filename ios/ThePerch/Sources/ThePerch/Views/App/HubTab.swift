@@ -432,11 +432,27 @@ private struct OrderCardV2: View {
 
     private var etaText: String {
         let f = PerchFormatters.shortDateUK
-        let date = order.displayDate
         if order.effectiveStatus == "delivered" {
-            return "Arrived \(f.string(from: date))"
+            return "Arrived \(f.string(from: order.displayDate))"
         }
-        return "Updated \(f.string(from: date))"
+        // Phase 1 ETA: prefer the real expected-delivery date (from
+        // carrier-email regex / 17track polling) over the order's
+        // last-updated timestamp. Locale-aware copy via ETAChipText.
+        // Falls back to "Updated <date>" when no shipment has an ETA
+        // yet (pre-shipping-email gap).
+        if let eta = order.effectiveETA {
+            return ETAChipText.text(for: eta)
+        }
+        return "Updated \(f.string(from: order.displayDate))"
+    }
+
+    /// Whether the current etaText represents a past-due ETA. Drives
+    /// the muted-vs-quietly-muted color treatment so past-due reads
+    /// as "informational, not actionable."
+    private var etaIsPastDue: Bool {
+        guard order.effectiveStatus != "delivered",
+              let eta = order.effectiveETA else { return false }
+        return ETAChipText.isPastDue(eta)
     }
 
     private var priceText: String {
@@ -474,7 +490,7 @@ private struct OrderCardV2: View {
                 Spacer(minLength: 8)
                 Text(etaText)
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(palette.muted)
+                    .foregroundStyle(etaIsPastDue ? palette.faint : palette.muted)
             }
             .padding(.bottom, 4)
 
