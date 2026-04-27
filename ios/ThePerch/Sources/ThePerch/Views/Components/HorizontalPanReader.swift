@@ -1,62 +1,97 @@
 import SwiftUI
 import UIKit
 
-// MARK: - HorizontalPanReader
+// MARK: - SwipeReceiver
 //
-// UIKit-bridged pan gesture for swipe-to-reveal that coexists with
-// vertical ScrollView scroll AND wins over horizontal page-TabView
-// pan. Required because SwiftUI's DragGesture has no axis filter
-// that releases the gesture on vertical motion — once captured via
-// `.highPriorityGesture`, the parent ScrollView never gets vertical
-// drags, breaking the orders list's scroll.
+// Hosts SwiftUI content inside a UIHostingController inside a UIView,
+// with a horizontal-only pan recognizer attached to the OUTER UIView.
+// This is the only way to make swipe-to-reveal work cleanly inside
+// the Hub's page-style TabView while preserving:
 //
-// How it works:
-//   - A custom UIPanGestureRecognizer subclass evaluates the FIRST
-//     meaningful motion. If it's predominantly vertical (|Δy| > |Δx|),
-//     the recognizer fails — which UIKit's gesture coordination
-//     interprets as "let other recognizers activate." The ScrollView's
-//     own pan recognizer then takes over.
-//   - For horizontal motion, our recognizer succeeds. Because it's
-//     attached to a small inner view (not a parent), it wins over
-//     ancestors that haven't yet engaged (e.g. the page TabView).
+//   - Vertical scroll (the recognizer fails on predominantly vertical
+//     motion, releasing the touch back to the parent ScrollView's pan).
+//   - Tap-to-expand on the OrderCardV2 button (taps reach the SwiftUI
+//     content normally — UIKit recognizers attached to a parent UIView
+//     don't block taps on descendants).
+//   - Horizontal swipe-to-reveal (the recognizer wins over the page
+//     TabView's pan because it's attached to a deeper-nested UIView).
 //
-// Usage: wrap the swipeable content in a `.background()` of this view.
-// `onChanged` fires for every move; `onEnded` fires once at the end
-// (.ended / .cancelled / .failed).
+// Why not `.background(...)`: SwiftUI `.background()` is behind the
+// content for hit-testing too. The foreground Button absorbs touches
+// before the background view's recognizer ever sees them.
+//
+// Why UIHostingController: a recognizer on a UIView fires for ANY
+// touch that hits the view or its descendants. Hosting the SwiftUI
+// content as a child of our UIView means our recognizer sees every
+// touch that hits the content.
+//
+// `host.sizingOptions = .intrinsicContentSize` keeps layout
+// transparent — the wrapper's intrinsic size matches the SwiftUI
+// content's natural size, so SwipeActionsContainer behaves
+// identically to non-wrapped views in its parent ForEach.
 
-struct HorizontalPanReader: UIViewRepresentable {
+struct SwipeReceiver<Content: View>: UIViewRepresentable {
+    let content: Content
     let onChanged: (CGSize) -> Void
     let onEnded: (CGSize) -> Void
 
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.backgroundColor = .clear
-        view.isUserInteractionEnabled = true
-
-        let pan = HorizontalOnlyPanGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.handle(_:))
-        )
-        pan.delegate = context.coordinator
-        // Lower minimumNumberOfTouches keeps single-finger drag working.
-        pan.minimumNumberOfTouches = 1
-        pan.maximumNumberOfTouches = 1
-        view.addGestureRecognizer(pan)
-        return view
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {
-        context.coordinator.onChanged = onChanged
-        context.coordinator.onEnded = onEnded
+    init(
+        @ViewBuilder content: () -> Content,
+        onChanged: @escaping (CGSize) -> Void,
+        onEnded: @escaping (CGSize) -> Void
+    ) {
+        self.content = content()
+        self.onChanged = onChanged
+        self.onEnded = onEnded
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onChanged: onChanged, onEnded: onEnded)
     }
 
+    func makeUIView(context: Context) -> UIView {
+        let container = UIView()
+        container.backgroundColor = .clear
+
+        let host = UIHostingController(rootView: content)
+        host.view.backgroundColor = .clear
+        host.view.translatesAutoresizingMaskIntoConstraints = false
+        host.sizingOptions = .intrinsicContentSize
+
+        container.addSubview(host.view)
+        NSLayoutConstraint.activate([
+            host.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            host.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            host.view.topAnchor.constraint(equalTo: container.topAnchor),
+            host.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        let pan = HorizontalOnlyPanGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handle(_:))
+        )
+        pan.delegate = context.coordinator
+        pan.minimumNumberOfTouches = 1
+        pan.maximumNumberOfTouches = 1
+        // cancelsTouchesInView = false lets taps on the underlying
+        // SwiftUI Button fire normally — important for tap-to-expand.
+        pan.cancelsTouchesInView = false
+        container.addGestureRecognizer(pan)
+
+        context.coordinator.host = host
+        return container
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onChanged = onChanged
+        context.coordinator.onEnded = onEnded
+        context.coordinator.host?.rootView = content
+    }
+
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var onChanged: (CGSize) -> Void
         var onEnded: (CGSize) -> Void
+        var host: UIHostingController<Content>?
 
         init(onChanged: @escaping (CGSize) -> Void, onEnded: @escaping (CGSize) -> Void) {
             self.onChanged = onChanged
@@ -67,7 +102,6 @@ struct HorizontalPanReader: UIViewRepresentable {
             guard let view = recognizer.view else { return }
             let t = recognizer.translation(in: view)
             let size = CGSize(width: t.x, height: t.y)
-
             switch recognizer.state {
             case .changed:
                 onChanged(size)
@@ -78,28 +112,18 @@ struct HorizontalPanReader: UIViewRepresentable {
             }
         }
 
-        // We don't want our recognizer to fire simultaneously with
-        // ScrollView's pan — UIKit picks one. Returning false here
-        // means: when both recognizers could activate, only one wins.
-        // Because our recognizer is attached to a smaller-area inner
-        // view, it gets evaluated first; on vertical motion it fails
-        // (see HorizontalOnlyPanGestureRecognizer below) and ScrollView
-        // wins. On horizontal motion we succeed and ScrollView yields.
+        // Allow simultaneous recognition with the parent ScrollView's
+        // pan recognizer. This means BOTH can be in `.possible` at the
+        // same time — when our recognizer fails (on vertical motion),
+        // the ScrollView pan keeps going. When our recognizer succeeds
+        // (on horizontal motion), it doesn't interfere with the
+        // ScrollView's already-running recognizer because vertical
+        // scrolling and horizontal panning don't conflict.
         func gestureRecognizer(
-            _ gestureRecognizer: UIGestureRecognizer,
+            _ rec: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
         ) -> Bool {
-            return false
-        }
-
-        // Allow our recognizer to be required to fail before ScrollView
-        // activates its pan. This makes the failure->success handoff
-        // work cleanly: ScrollView's pan waits to see if we fail.
-        func gestureRecognizer(
-            _ gestureRecognizer: UIGestureRecognizer,
-            shouldBeRequiredToFailBy other: UIGestureRecognizer
-        ) -> Bool {
-            return false
+            return true
         }
     }
 }
@@ -108,8 +132,8 @@ struct HorizontalPanReader: UIViewRepresentable {
 //
 // On the first meaningful touch movement, decide whether this drag is
 // horizontal (succeed) or vertical (fail fast so the parent ScrollView
-// can take it). Threshold is 4pt — large enough to ignore tap-jitter,
-// small enough that the user's intent is clear.
+// can take it). Threshold: 4pt of motion before deciding — large enough
+// to ignore tap-jitter, small enough that the user's intent is clear.
 
 private final class HorizontalOnlyPanGestureRecognizer: UIPanGestureRecognizer {
     private var didEvaluateAxis = false
@@ -128,7 +152,6 @@ private final class HorizontalOnlyPanGestureRecognizer: UIPanGestureRecognizer {
         let t = translation(in: view)
         let absX = abs(t.x)
         let absY = abs(t.y)
-        // Wait for at least 4pt of motion in either axis before deciding.
         guard absX > 4 || absY > 4 else { return }
 
         didEvaluateAxis = true
@@ -136,7 +159,6 @@ private final class HorizontalOnlyPanGestureRecognizer: UIPanGestureRecognizer {
             // Predominantly vertical — fail and let ScrollView take it.
             state = .failed
         }
-        // Otherwise, the recognizer continues. UIKit transitions
-        // possible → began → changed naturally.
+        // Otherwise the recognizer continues normally.
     }
 }

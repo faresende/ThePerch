@@ -63,14 +63,24 @@ struct SwipeActionsContainer<Content: View>: View {
                 .clipped()
                 .opacity(min(1, -totalOffset / max(1, totalActionsWidth * 0.3)))
 
-            // Content layer — shifted leftward by the drag.
-            content()
-                .offset(x: totalOffset)
-                .background(panReader)
-                .simultaneousGesture(
-                    // Tap on body while open closes without firing an action.
-                    TapGesture().onEnded { if isOpen { close() } }
-                )
+            // Content layer — wrapped in SwipeReceiver, which hosts
+            // the SwiftUI content inside a UIHostingController so the
+            // pan recognizer is attached to a UIView that ENCLOSES
+            // the content (rather than sitting in `.background()`,
+            // which the foreground Button absorbs touches before).
+            // The recognizer's axis filter releases vertical drags
+            // back to the parent ScrollView; horizontal drags wins
+            // over the page TabView's pan.
+            SwipeReceiver(
+                content: { content() },
+                onChanged: handleDragChanged,
+                onEnded: handleDragEnded
+            )
+            .offset(x: totalOffset)
+            .simultaneousGesture(
+                // Tap on body while open closes without firing an action.
+                TapGesture().onEnded { if isOpen { close() } }
+            )
         }
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onDisappear { close() }
@@ -100,17 +110,6 @@ struct SwipeActionsContainer<Content: View>: View {
                 .buttonStyle(.plain)
             }
         }
-    }
-
-    private var panReader: some View {
-        HorizontalPanReader(
-            onChanged: { translation in
-                handleDragChanged(translation)
-            },
-            onEnded: { translation in
-                handleDragEnded(translation)
-            }
-        )
     }
 
     private func handleDragChanged(_ translation: CGSize) {
