@@ -149,16 +149,15 @@ const DATE_PATTERNS: ReadonlyArray<DatePattern> = [
       return safeDate(year, month, day);
     },
   },
-  // Numeric DD/MM or MM/DD — ambiguous, treat as DD/MM (EU convention,
-  // matches existing scanner locale set). 4-digit year required.
-  {
-    re: /\b(\d{1,2})[./](\d{1,2})[./](20\d{2})\b/g,
-    parse: (m) => {
-      const day = parseInt(m[1]);
-      const month = parseInt(m[2]);
-      return safeDate(parseInt(m[3]), month, day);
-    },
-  },
+  // Note: numeric DD/MM/YYYY or MM/DD/YYYY pattern is intentionally
+  // omitted. "04/10/2026" is irretrievably ambiguous — could be Apr
+  // 10 (US convention) or Oct 4 (EU convention). Caught in the wild
+  // when the EU-default branch read a NOMOS FedEx (US merchant)
+  // email's "04/10/2026" as Oct 4 instead of Apr 10. Better to skip
+  // the candidate entirely than to bake in a guess that's wrong half
+  // the time. ISO dates (2026-04-10) and month-name forms ("Apr 10")
+  // are unambiguous and stay covered above. If a carrier emits only
+  // numeric dates, no ETA chip — falls back to "Updated <date>".
 ];
 
 // ─── Validation ──────────────────────────────────────────────────────
