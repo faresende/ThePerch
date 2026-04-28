@@ -129,6 +129,7 @@ def main() -> int:
         if events:
             payload = [
                 {
+                    "agent_id": "calendar-sync",
                     "user_id": user,
                     "type": "event",
                     "category": "calendar",
