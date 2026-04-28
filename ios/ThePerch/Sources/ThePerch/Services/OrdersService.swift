@@ -281,10 +281,24 @@ final class OrdersService {
         return items
     }
 
-    /// Confirm a review item as a real order. Creates an `orders` row
-    /// from the review item's suggested_* fields, writes the
-    /// (sender → merchant) mapping into `learned_senders`, and resolves
-    /// the review item. Returns the new order's id.
+    /// Confirm a review item as a real order. Behaviour depends on type:
+    ///
+    /// - **`orphan_shipment` / `shipment_no_order`**: the email is a
+    ///   shipping notification we couldn't match to any existing order
+    ///   at autopilot time. Confirming here means "yes, this belongs to
+    ///   the merchant we guessed" — but odds are an order row already
+    ///   exists for that merchant (the missing tracking number on the
+    ///   email is what broke matching, not the merchant). We try to
+    ///   merge: find an open order for the same normalized merchant,
+    ///   append this email's id to its `source_email_ids`, and reuse it.
+    ///   Falls back to creating a new order only when no merge target
+    ///   exists.
+    ///
+    /// - **All other types** (`other`, etc.): user is explicitly saying
+    ///   "this is a new order I want tracked" — insert a fresh row.
+    ///
+    /// Either way: writes the (sender → merchant) learned mapping and
+    /// resolves the review item. Returns the order id (existing or new).
     @discardableResult
     func confirmReviewItemAsOrder(_ item: ReviewItem) async throws -> UUID {
         let merchant = item.displayMerchant
@@ -292,8 +306,30 @@ final class OrdersService {
             .lowercased()
             .filter { $0.isLetter || $0.isNumber }
 
-        // 1. Insert the order. We mirror the autopilot's order shape so
-        //    rows from the review queue feel identical to autopilot ones.
+        // 1. For shipping-style review items, prefer merging into an
+        //    existing open order for the same merchant.
+        let isShippingType = item.type == "orphan_shipment"
+                          || item.type == "shipment_no_order"
+        if isShippingType, let existingId = try await mergeShippingEmailIntoOpenOrder(
+            userId: item.userId,
+            normalizedMerchant: normalized,
+            sourceEmailId: item.sourceEmailId
+        ) {
+            // Sender→merchant learning + review-item resolution still
+            // happen below by falling through to the same code that
+            // runs after the insert — so we land in step 2/3 with
+            // `orderId = existingId` instead of a fresh row.
+            try await runPostConfirmHousekeeping(
+                item: item,
+                merchant: merchant,
+                orderId: existingId
+            )
+            return existingId
+        }
+
+        // 2. No merge target — create a new order. We mirror the
+        //    autopilot's order shape so rows from the review queue
+        //    feel identical to autopilot ones.
         struct NewOrder: Encodable {
             let user_id: String
             let merchant_name: String
@@ -325,8 +361,82 @@ final class OrdersService {
         let raw = try JSONSerialization.jsonObject(with: inserted.data) as? [String: Any] ?? [:]
         let orderId: UUID = (raw["id"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
 
-        // 2. Write the (sender_email → merchant) learned mapping so the
-        //    next email from this sender skips the review queue.
+        try await runPostConfirmHousekeeping(
+            item: item,
+            merchant: merchant,
+            orderId: orderId
+        )
+        return orderId
+    }
+
+    /// Look for an open (status != 'delivered', resolved at the order
+    /// level) order for the same merchant, and append this shipping
+    /// email's id to its `source_email_ids`. Returns the matched
+    /// order's id if a merge happened, nil if no candidate was found.
+    ///
+    /// Match key: normalized merchant only. We don't match on
+    /// order_number because shipment-style review items by definition
+    /// arrived without an order_number to compare against.
+    private func mergeShippingEmailIntoOpenOrder(
+        userId: UUID,
+        normalizedMerchant: String,
+        sourceEmailId: String?
+    ) async throws -> UUID? {
+        // Newest-first so the email lands on the most recent purchase
+        // when the merchant has multiple in flight.
+        struct OrderRow: Decodable {
+            let id: UUID
+            let source_email_ids: [String]?
+        }
+        let result = try await supabaseService.databaseClient
+            .from("orders")
+            .select("id, source_email_ids")
+            .eq("user_id", value: userId.uuidString)
+            .eq("normalized_merchant", value: normalizedMerchant)
+            .neq("status", value: "delivered")
+            .is("manual_delivered_at", value: nil)
+            .order("created_at", ascending: false)
+            .limit(1)
+            .execute()
+
+        let decoded: [OrderRow]
+        do {
+            decoded = try JSONDecoder().decode([OrderRow].self, from: result.data)
+        } catch {
+#if DEBUG
+            print("[OrdersService] mergeShippingEmail: decode failed: \(error)")
+#endif
+            return nil
+        }
+        guard let target = decoded.first else { return nil }
+
+        // Append the email id to source_email_ids if not already there.
+        var ids = target.source_email_ids ?? []
+        if let eid = sourceEmailId, !ids.contains(eid) {
+            ids.append(eid)
+        }
+        struct MergePayload: Encodable {
+            let source_email_ids: [String]
+            let updated_at: String
+        }
+        let now = ISO8601DateFormatter().string(from: .now)
+        try await supabaseService.databaseClient
+            .from("orders")
+            .update(MergePayload(source_email_ids: ids, updated_at: now))
+            .eq("id", value: target.id.uuidString)
+            .execute()
+        return target.id
+    }
+
+    /// Shared post-confirm work: write the sender→merchant learned
+    /// mapping (when we have a sender) and resolve the review item.
+    /// Pulled out so both the create-new and merge-into-existing
+    /// paths produce identical side-effects.
+    private func runPostConfirmHousekeeping(
+        item: ReviewItem,
+        merchant: String,
+        orderId: UUID
+    ) async throws {
         if let senderEmail = item.sourceSenderEmail?.lowercased(), !senderEmail.isEmpty {
             try? await upsertLearnedSender(
                 userId: item.userId,
@@ -336,11 +446,8 @@ final class OrdersService {
                 learnedFromReviewItemId: item.id
             )
         }
-
-        // 3. Resolve the review item.
         try await resolveReviewItem(item.id)
-
-        return orderId
+        _ = orderId  // reserved for future "linked order id" telemetry
     }
 
     /// Dismiss a review item as not-an-order. v1 just resolves; doesn't
