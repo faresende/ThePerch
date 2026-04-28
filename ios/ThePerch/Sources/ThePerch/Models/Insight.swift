@@ -43,7 +43,12 @@ struct Insight: Identifiable, Codable, Sendable, Equatable {
     /// Convenience: known insight types iOS knows how to render. Falls
     /// back to plain card display when an unknown type comes back.
     enum Kind: String, Sendable {
-        case dailyHealth = "daily_health"
+        case dailyHealth = "daily_health"          // legacy — kept until migration runs
+        case dailyHealthMorning = "daily_health_morning"
+        case dailyHealthMidday = "daily_health_midday"
+        case dailyHealthAfternoon = "daily_health_afternoon"
+        case dailyHealthEvening = "daily_health_evening"
+        case eventLogistics = "event_logistics"
         case crossDomain = "cross_domain"
         case spendingPattern = "spending_pattern"
         case anomaly = "anomaly"
@@ -60,7 +65,10 @@ struct Insight: Identifiable, Codable, Sendable, Equatable {
     var kicker: String {
         let prefix: String
         switch kind {
-        case .dailyHealth:    prefix = "TODAY"
+        case .dailyHealth, .dailyHealthMorning, .dailyHealthMidday,
+             .dailyHealthAfternoon, .dailyHealthEvening,
+             .eventLogistics:
+            prefix = "TODAY"
         case .crossDomain:    prefix = "PATTERN"
         case .spendingPattern: prefix = "SPENDING"
         case .anomaly:        prefix = "WORTH NOTING"

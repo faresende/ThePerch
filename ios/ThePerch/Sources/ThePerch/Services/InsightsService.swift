@@ -53,17 +53,22 @@ final class InsightsService {
         self.supabaseService = supabaseService
     }
 
-    /// Fetch the most recent `daily_health` insight whose
-    /// `valid_for_date` is today (or null — backwards-compat for early
-    /// rows). Returns nil when no insight exists for today yet —
-    /// expected in the early morning before BioChecha's 7am cron has
-    /// run. Caller renders an empty state.
+    /// Fetch the most recent BioChecha insight valid for today, regardless
+    /// of slot. With time-aware insights live, the latest of
+    /// daily_health_morning/midday/afternoon/evening (or event_logistics)
+    /// always wins — the iOS card simply shows the freshest take.
+    /// Falls back to the legacy `daily_health` rows that pre-date the
+    /// migration (the SQL rename should have caught these, but the OR
+    /// keeps things working if a stray remains).
+    /// Returns nil when no insight exists for today yet — expected in
+    /// the early morning before BioChecha's 7am cron has run. Caller
+    /// renders an empty state.
     func fetchTodayDailyInsight() async throws -> Insight? {
         let today = ISO8601DateFormatter.dateOnly.string(from: .now)
         let result = try await supabaseService.databaseClient
             .from("insights")
             .select()
-            .eq("insight_type", value: "daily_health")
+            .eq("agent_id", value: "biochecha")
             .or("valid_for_date.eq.\(today),valid_for_date.is.null")
             .order("generated_at", ascending: false)
             .limit(1)
