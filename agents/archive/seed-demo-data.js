@@ -93,12 +93,16 @@ async function snapshot(sb, userId) {
 // ─── Seed ────────────────────────────────────────────────────────────
 
 async function seed(sb, userId) {
-  if (!fs.existsSync(SNAPSHOT_FILE)) {
-    console.error(`No snapshot found at ${SNAPSHOT_FILE}.`);
-    console.error(`Run \`seed-demo-data.js snapshot\` first.`);
-    process.exit(1);
-  }
-  console.log('Seeding demo data (your real data is in .demo-snapshot.json)…');
+  // Always snapshot first — never trust a pre-existing file. The
+  // earlier behavior (require a snapshot, but trust whatever it
+  // contained) was the bug that lost nutrition data: a stale
+  // snapshot from before TABLES list got extended would silently
+  // miss the new tables, restore would wipe-then-not-reinsert.
+  // Now: snapshot is always fresh at seed time, capturing exactly
+  // the tables the wipe will touch.
+  console.log('Auto-snapshotting current data BEFORE wipe…');
+  await snapshot(sb, userId);
+  console.log('Now seeding demo data…');
   await wipe(sb, userId);
   await insertDemo(sb, userId);
   console.log('✓ demo data seeded. Take your screenshots, then run `seed-demo-data.js restore`.');
