@@ -781,6 +781,66 @@ def score_behavioral_capture_gap(state: AppState) -> Optional[CategoryResult]:
     )
 
 
+# ─── Event categories ───────────────────────────────────────────────
+
+
+def score_logistics_event_out_for_delivery(state: AppState) -> Optional[CategoryResult]:
+    """Event slot only. Fires when event_trigger.kind == 'out_for_delivery'."""
+    if state.slot != "event_logistics":
+        return None
+    et = state.event_trigger
+    if et is None or et.kind != "out_for_delivery":
+        return None
+    return CategoryResult(
+        category="logistics_event_out_for_delivery",
+        score=1.0,
+        fact_bundle={
+            "merchant": et.merchant,
+            "carrier": et.carrier,
+            "tracking_number": et.tracking_number,
+            "current_time": state.now.isoformat(),
+        },
+    )
+
+
+def score_logistics_event_eta_today(state: AppState) -> Optional[CategoryResult]:
+    """Event slot. Fires when event_trigger.kind == 'eta_today'."""
+    if state.slot != "event_logistics":
+        return None
+    et = state.event_trigger
+    if et is None or et.kind != "eta_today":
+        return None
+    return CategoryResult(
+        category="logistics_event_eta_today",
+        score=0.95,
+        fact_bundle={
+            "merchant": et.merchant,
+            "carrier": et.carrier,
+            "tracking_number": et.tracking_number,
+            "eta_iso": et.eta_at.isoformat() if et.eta_at else None,
+        },
+    )
+
+
+# ─── Don't-churn guard for the event slot ───────────────────────────
+
+
+def is_recent_topic_overlap(
+    recent_insight_data: dict[str, Any],
+    new_tracking_number: Optional[str],
+) -> bool:
+    """True when a recent (≤30min) insight already covered the same
+    shipment. Caller uses this to silently skip event generation."""
+    if not recent_insight_data:
+        return False
+    cat = recent_insight_data.get("winning_category", "")
+    if not cat.startswith("logistics_"):
+        return False
+    fb = recent_insight_data.get("fact_bundle") or {}
+    same = fb.get("tracking_number") == new_tracking_number
+    return bool(same)
+
+
 # ─── Voice prompts ──────────────────────────────────────────────────
 
 
@@ -1026,12 +1086,25 @@ def main() -> int:
                 score_reflective_evening,
                 score_behavioral_capture_gap,
             ],
-            "event_logistics": [],  # populated in Phase 3
+            "event_logistics": [
+                score_logistics_event_out_for_delivery,
+                score_logistics_event_eta_today,
+            ],
         }
         for fn in SLOT_CATEGORY_FNS.get(state.slot, []):
             r = fn(state)
             if r is not None:
                 candidates.append(r)
+
+        # Don't-churn guard: only for event slot. If a recent insight
+        # already covers the same shipment, silently skip.
+        if state.slot == "event_logistics" and candidates:
+            recent = _fetch_most_recent_today_insight()
+            if recent:
+                tn = state.event_trigger.tracking_number if state.event_trigger else None
+                if is_recent_topic_overlap(recent, tn):
+                    print(f"[biochecha-dynamic:{slot}] skipped — overlap with recent insight")
+                    return 0  # quiet skip
 
         winner = rank(candidates) if candidates else CategoryResult(
             category="quiet_day_fallback", score=0.0,

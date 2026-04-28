@@ -7,6 +7,7 @@
  *   pollShipments(userId) — poll 17track for all undelivered shipments
  */
 
+import { spawn } from 'node:child_process';
 import { supabase } from './supabase';
 import {
   classifyEmail,
@@ -927,6 +928,25 @@ async function pollAndUpdateShipment(
   trackingNumber: string,
   carrier: string | null,
 ): Promise<void> {
+  // ─── Phase 3: snapshot pre-update state for event-insight detection ───
+  // We need the previous status + ETA to compare against the new values
+  // and the merchant name to feed into the BioChecha event script.
+  const { data: priorShipment } = await supabase
+    .from('shipments')
+    .select('status, eta_at, order_id')
+    .eq('id', shipmentId)
+    .maybeSingle();
+
+  let merchantName: string | null = null;
+  if (priorShipment?.order_id) {
+    const { data: priorOrder } = await supabase
+      .from('orders')
+      .select('merchant_name')
+      .eq('id', priorShipment.order_id)
+      .maybeSingle();
+    merchantName = priorOrder?.merchant_name ?? null;
+  }
+
   const result = await pollSingleShipment(apiKey, trackingNumber, carrier || undefined);
   const etaUpdate = await resolve17trackETA(shipmentId, result.eta_at);
 
@@ -936,6 +956,72 @@ async function pollAndUpdateShipment(
     shipped_at: result.shipped_at || undefined,
     delivered_at: result.delivered_at || undefined,
     ...(etaUpdate ?? {}),
+  });
+
+  // ─── Phase 3: event-insight hook ───────────────────────────────
+  //
+  // Detect two transitions worth a fresh BioChecha event insight:
+  //   1. status flipped to `out_for_delivery` (was anything else)
+  //   2. ETA went from no-eta-or-future to today
+  //
+  // The Python script handles don't-churn internally (skips if a
+  // recent insight already covers this tracking number).
+  try {
+    const previouslyOFD = priorShipment?.status === 'out_for_delivery';
+    const nowOFD = result.status === 'out_for_delivery';
+    if (nowOFD && !previouslyOFD) {
+      fireEventInsight([
+        'out_for_delivery',
+        merchantName ?? 'Unknown',
+        carrier ?? 'unknown',
+        trackingNumber,
+        priorShipment?.status ?? 'unknown',
+        'out_for_delivery',
+      ]);
+    }
+
+    if (etaUpdate?.eta_at) {
+      const newEtaDate = new Date(etaUpdate.eta_at).toDateString();
+      const oldEtaDate = priorShipment?.eta_at
+        ? new Date(priorShipment.eta_at).toDateString()
+        : '';
+      const todayDate = new Date().toDateString();
+      if (newEtaDate === todayDate && oldEtaDate !== todayDate) {
+        fireEventInsight([
+          'eta_today',
+          merchantName ?? 'Unknown',
+          carrier ?? 'unknown',
+          trackingNumber,
+          etaUpdate.eta_at,
+        ]);
+      }
+    }
+  } catch (err) {
+    // Never let event-insight failure break tracking updates.
+    console.warn('[event-insight] hook error:', (err as Error).message);
+  }
+}
+
+/**
+ * Fire-and-forget shellout to biochecha_event_insight.py. Called when
+ * 17track polling detects a status flip or ETA change. The Python
+ * script handles its own idempotency via the don't-churn guard.
+ *
+ * Path resolution: $HOME/.openclaw/workspace/scripts/health-integrations/
+ * biochecha_event_insight.py is the canonical install location (see
+ * SETUP-FOR-AGENTS.md).
+ */
+function fireEventInsight(args: string[]): void {
+  const home = process.env.HOME || '';
+  const scriptPath = `${home}/.openclaw/workspace/scripts/health-integrations/biochecha_event_insight.py`;
+  const proc = spawn('python3', [scriptPath, ...args], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  proc.unref();  // allow parent to exit independently
+  proc.on('error', (err) => {
+    // Log and swallow — never let this block the poll loop.
+    console.error('[event-insight] spawn failed:', err.message);
   });
 }
 

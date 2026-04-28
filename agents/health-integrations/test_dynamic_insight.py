@@ -225,5 +225,63 @@ class TestBehavioralCaptureGap(unittest.TestCase):
         self.assertEqual(result.fact_bundle.get("today_meal_count"), 0)
 
 
+from biochecha_dynamic_insight import (
+    score_logistics_event_out_for_delivery,
+    score_logistics_event_eta_today,
+    is_recent_topic_overlap,
+)
+
+
+class TestLogisticsEventCategories(unittest.TestCase):
+    def test_out_for_delivery_scores_high(self):
+        state = _base_state("event_logistics")
+        state = replace(state, event_trigger=EventTrigger(
+            kind="out_for_delivery",
+            merchant="Body & Fit", carrier="DHL",
+            tracking_number="CQ478942688DE",
+            old_status="in_transit", new_status="out_for_delivery",
+            eta_at=None,
+        ))
+        result = score_logistics_event_out_for_delivery(state)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.score, 1.0)
+
+    def test_eta_today_only_fires_for_eta_today_event(self):
+        state = _base_state("event_logistics")
+        state = replace(state, event_trigger=EventTrigger(
+            kind="eta_today",
+            merchant="Hardgraft", carrier="DPD",
+            tracking_number="15976785968210",
+            old_status="in_transit", new_status="in_transit",
+            eta_at=datetime(2026, 4, 28, 17, 0, tzinfo=timezone.utc),
+        ))
+        result = score_logistics_event_eta_today(state)
+        self.assertIsNotNone(result)
+        self.assertGreaterEqual(result.score, 0.9)
+
+
+class TestDontChurnGuard(unittest.TestCase):
+    def test_overlap_blocks_when_same_shipment_referenced(self):
+        recent = {
+            "winning_category": "logistics_event_out_for_delivery",
+            "fact_bundle": {"tracking_number": "CQ478942688DE"},
+        }
+        self.assertTrue(is_recent_topic_overlap(recent, "CQ478942688DE"))
+
+    def test_overlap_clears_when_different_shipment(self):
+        recent = {
+            "winning_category": "logistics_event_out_for_delivery",
+            "fact_bundle": {"tracking_number": "AAAA"},
+        }
+        self.assertFalse(is_recent_topic_overlap(recent, "BBBB"))
+
+    def test_overlap_clears_when_different_topic(self):
+        recent = {
+            "winning_category": "reflective_morning",
+            "fact_bundle": {},
+        }
+        self.assertFalse(is_recent_topic_overlap(recent, "any-tracking"))
+
+
 if __name__ == "__main__":
     unittest.main()
