@@ -23,10 +23,10 @@ struct DailyInsightCard: View {
 
     @ViewBuilder
     private func populated(_ insight: Insight) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text(insight.kicker)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .tracking(0.8)
                     .foregroundStyle(palette.muted)
 
@@ -37,23 +37,26 @@ struct DailyInsightCard: View {
                     .foregroundStyle(palette.faint)
             }
 
-            // The hero: writerly body in serif italic. Lets the
-            // editorial tone of the insight breathe.
+            // Body in serif italic — kept editorial in tone but smaller
+            // than before so the card sits as one signal among many on
+            // Today rather than dominating the tab. Was 18pt; 14pt
+            // matches the visual weight of a typical card body line.
             Text(insight.body)
-                .font(.system(size: 18, design: .serif).italic())
+                .font(.system(size: 14, design: .serif).italic())
                 .foregroundStyle(palette.ink)
-                .lineSpacing(4)
+                .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(20)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(palette.card)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(palette.line.opacity(0.55), lineWidth: 1)
         )
     }
