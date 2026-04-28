@@ -86,12 +86,25 @@ const THIRD_PARTY_TRACKER_DOMAINS = [
 
 // Tracking-number patterns reused from email-classifier's
 // extractTrackingNumber. Kept locally so this module is self-contained.
+// Order matters: more specific patterns first. The generic numeric
+// fallback at the bottom would otherwise eat tracking numbers that
+// have a meaningful country/carrier suffix.
 const TRACKING_NUMBER_PATTERNS: ReadonlyArray<{ re: RegExp; carrier: string | null }> = [
   { re: /\b(1Z[A-Z0-9]{16})\b/i,             carrier: 'UPS' },
   { re: /\b(EA[0-9]{18})\b/i,                carrier: 'DHL' },
   { re: /\b(94[0-9]{20})\b/,                 carrier: 'FedEx' },
-  { re: /\b([A-Z]{2}[0-9]{9}[A-Z]{2})\b/,    carrier: null },     // USPS-style, also Royal Mail
-  { re: /\b([0-9]{12,22})\b/,                carrier: null },     // Generic numeric — DHL/Correos/etc.
+  // Cainiao "LP{12-14 digits}CN" — AliExpress / Shein / EU dropshippers.
+  { re: /\b(LP[0-9]{12,14}CN)\b/i,           carrier: 'Cainiao' },
+  // 2-letter prefix + 9 digits + 2-letter country suffix. The country
+  // suffix gets fingerprinted in inferCarrier (DE→DHL, FR→La Poste,
+  // CN→Cainiao, GB/etc→Royal Mail).
+  { re: /\b([A-Z]{2}[0-9]{9}[A-Z]{2})\b/,    carrier: null },
+  // Generic numeric tracking (12-22 digits) — DHL Deutsche Post,
+  // Correos Express, DPD-without-prefix, and many other postal carriers.
+  { re: /\b([0-9]{12,22})\b/,                carrier: null },
+  // DHL Express US 10-digit numeric. Most permissive — must be last
+  // to avoid matching the leading 10 digits of longer numbers.
+  { re: /\b([0-9]{10})\b/,                   carrier: 'DHL' },
 ];
 
 const TRACKING_KEYWORDS = [

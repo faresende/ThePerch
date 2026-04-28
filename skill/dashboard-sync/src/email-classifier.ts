@@ -172,8 +172,22 @@ export function classifyEmail(
   // what's in the body. This catches cases like Hardgraft where the
   // order-confirmation email also embeds a tracking number — body
   // shipping signals would otherwise win and route to shipping.
+  //
+  // BUT — protect the fastpath against subjects that also carry strong
+  // shipping cues. Subjects like "A shipment from order #X is on the
+  // way" hit BOTH purchase ("order #") and shipping ("shipment from
+  // order", "is on the way") signals; the fastpath would have picked
+  // purchase and silently skipped the shipping pipeline. Now the
+  // fastpath only fires when shipping is meaningfully quieter than
+  // purchase in the subject.
   const subjectSignals = analyzeSignals(subject.toLowerCase(), lowerSender);
-  if (subjectSignals.isPurchase && subjectSignals.purchaseScore >= 0.85) {
+  const subjectShippingDominant = subjectSignals.shippingScore >= 0.7
+    && subjectSignals.shippingScore >= subjectSignals.purchaseScore - 0.2;
+  if (
+    subjectSignals.isPurchase
+    && subjectSignals.purchaseScore >= 0.85
+    && !subjectShippingDominant
+  ) {
     return {
       type: 'purchase_confirmation',
       confidence: Math.min(subjectSignals.confidence, 1),
@@ -374,6 +388,32 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     { keyword: 'delivery', weight: 0.5 },
     { keyword: 'estimated delivery', weight: 0.85 },
     { keyword: 'expected delivery', weight: 0.85 },
+    // Phrases that strongly imply "this email is reporting an
+    // already-shipped package", even when they co-occur with order
+    // numbers. Caught after Jacques Marie Mage + Vulkit shipping
+    // emails were misclassified as purchase confirmations because
+    // "order #X" (0.8 purchase weight) outscored everything else
+    // and triggered the subject fastpath. These keywords give the
+    // classifier enough shipping signal to defeat the fastpath.
+    { keyword: 'shipment from order', weight: 1.0 },   // unambiguous: this IS a shipment email
+    { keyword: 'is on the way', weight: 0.9 },
+    { keyword: 'is on its way', weight: 0.9 },
+    { keyword: 'on its way', weight: 0.7 },
+    { keyword: 'on the way', weight: 0.7 },
+    { keyword: 'has shipped', weight: 0.9 },
+    { keyword: 'has been shipped', weight: 0.9 },
+    { keyword: 'shipment', weight: 0.6 },              // bare noun — moderate
+    // Multilingual variants for shipping cues. Match the same locale
+    // coverage as the purchase keyword bank above.
+    { keyword: 'a caminho', weight: 0.85 },            // PT — "on the way"
+    { keyword: 'enviado', weight: 0.7 },               // PT/ES
+    { keyword: 'envío', weight: 0.6 },                 // ES
+    { keyword: 'expédié', weight: 0.85 },              // FR
+    { keyword: 'en route', weight: 0.7 },              // FR
+    { keyword: 'versandt', weight: 0.85 },             // DE
+    { keyword: 'unterwegs', weight: 0.7 },             // DE — "on the way"
+    { keyword: 'verzonden', weight: 0.85 },            // NL
+    { keyword: 'onderweg', weight: 0.7 },              // NL
   ];
 
   // Known merchant patterns (from existing deliveries). Substring match on
@@ -1136,14 +1176,18 @@ function extractOrderNumber(subject: string, body: string): string | null {
 
 function extractTrackingNumber(subject: string, body: string): string | null {
   const text = `${subject} ${body}`;
-  // Common tracking number patterns
+  // Common tracking number patterns — order matters here: more
+  // specific patterns first so the generic numeric fallback doesn't
+  // win over them.
   const patterns = [
     /\b(1Z[A-Z0-9]{16})\b/i,                    // UPS
     /\b(94[0-9]{20})\b/,                        // FedEx
-    /\b(EA[0-9]{18})\b/i,                       // DHL
-    /\b([0-9]{12,22})\b/,                       // Generic numeric
-    /\b([A-Z]{2}[0-9]{9}[A-Z]{2})\b/,          // USPS
-    /\b([A-Z][0-9]{9}[A-Z]{2})\b/i,             // Royal Mail
+    /\b(EA[0-9]{18})\b/i,                       // DHL EA-prefix
+    /\b(LP[0-9]{12,14}CN)\b/i,                  // Cainiao (AliExpress, dropshippers)
+    /\b([A-Z]{2}[0-9]{9}[A-Z]{2})\b/,           // 2-letter+9-digit+2-letter (USPS, Royal Mail, DHL Deutsche Post, etc.)
+    /\b([A-Z][0-9]{9}[A-Z]{2})\b/i,             // Royal Mail (1-letter prefix)
+    /\b([0-9]{12,22})\b/,                       // Generic numeric (DHL/Correos/etc.)
+    /\b([0-9]{10})\b/,                          // DHL Express US 10-digit (last — most permissive)
   ];
 
   for (const pattern of patterns) {
@@ -1185,8 +1229,25 @@ function inferCarrier(trackingNumber: string | null, body: string, sender: strin
     if (trackingNumber.startsWith('1Z')) return 'UPS';
     if (/^94/.test(trackingNumber)) return 'FedEx';
     if (/^EA/i.test(trackingNumber)) return 'DHL';
+    // ISO-3166-style country suffix is the disambiguator for the
+    // [2 letters][9 digits][2 letters] format. DHL Deutsche Post
+    // uses ...DE, La Poste / Colissimo use ...FR, Royal Mail
+    // typically ...GB, Cainiao ...CN. Caught after Body&Fit's
+    // CQ478942688DE got tagged Royal Mail.
+    if (/^[A-Z]{2}[0-9]{9}DE$/.test(trackingNumber)) return 'DHL';
+    if (/^[A-Z]{2}[0-9]{9}FR$/.test(trackingNumber)) return 'La Poste';
+    if (/^[A-Z]{2}[0-9]{9}CN$/.test(trackingNumber)) return 'Cainiao';
     if (/^[A-Z]{2}[0-9]{9}[A-Z]{2}$/.test(trackingNumber)) return 'Royal Mail';
+    // Cainiao "LP{12-14 digits}CN" — used by AliExpress / Shein and
+    // by some EU dropshippers (Vulkit). Two-letter prefix + digits +
+    // CN suffix is the unambiguous signature.
+    if (/^LP[0-9]{12,14}CN$/i.test(trackingNumber)) return 'Cainiao';
     if (/^[0-9]{12,22}$/.test(trackingNumber)) return 'Generic';
+    // 10-digit numeric-only is the DHL Express US format. Less
+    // common globally but worth catching when the sender domain
+    // didn't disambiguate (Jacques Marie Mage shipped via DHL with
+    // tracking 2823872855, sender shop@jacquesmariemage.com).
+    if (/^[0-9]{10}$/.test(trackingNumber)) return 'DHL';
   }
 
   // Body-text fallback when sender + tracking-number both miss.
