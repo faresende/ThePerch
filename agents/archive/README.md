@@ -19,6 +19,21 @@ backend that needs the same backfill.
   'fastmail-jmap' -s 'fastmail-jmap-token' -w`), so it only runs on
   macOS without env-override.
 
+- **`seed-demo-data.js`** — three-mode helper for swapping real data
+  with screenshot-friendly demo data (and back):
+
+  ```bash
+  set -a && source ~/.openclaw/secrets/perch.env && set +a
+  node agents/archive/seed-demo-data.js snapshot   # save real data
+  node agents/archive/seed-demo-data.js seed       # replace with demo
+  # take screenshots
+  node agents/archive/seed-demo-data.js restore    # put real data back
+  ```
+
+  Snapshot file is `.demo-snapshot.json` (gitignored). Touches:
+  orders, shipments, order_items, health_metrics, insights,
+  order_corrections — all user-scoped. Other tables left alone.
+
 ## Running
 
 Both scripts assume `~/.openclaw/secrets/perch.env` is sourced
