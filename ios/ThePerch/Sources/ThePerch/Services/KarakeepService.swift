@@ -106,8 +106,20 @@ final class KarakeepService {
         AppConfig.shared.karakeepToken
     }
 
-    /// The base URL for the Karakeep API.
-    private let baseURL = "https://karakeep.fabio.lol/api/v1"
+    /// The base URL for the Karakeep API. Sourced from AppConfig
+    /// (`KARAKEEP_BASE_URL`); empty when no Karakeep is configured.
+    /// Self-hosters provide their own instance via env / Keychain.
+    private var baseURL: String {
+        AppConfig.shared.karakeepBaseURL
+    }
+
+    /// True when Karakeep is configured (URL + token both present).
+    /// Public callers check this before invoking fetch methods —
+    /// when false, BookmarksSectionContent renders a friendly empty
+    /// state with a docs link instead of failing network calls.
+    var isConfigured: Bool {
+        AppConfig.shared.hasKarakeep
+    }
 
     // MARK: - Private
 
@@ -142,8 +154,11 @@ final class KarakeepService {
     /// - Parameters:
     ///   - status: Filter by bookmark status (optional).
     ///   - limit: Maximum number of bookmarks to return (default 500).
-    /// - Returns: Array of `KarakeepBookmark` objects.
+    /// - Returns: Array of `KarakeepBookmark` objects. Empty array
+    ///   silently when Karakeep is not configured (no URL or no
+    ///   token) — view-layer renders a "bring your own" empty state.
     func fetchBookmarks(status: KarakeepBookmark.KarakeepStatus? = nil, limit: Int = 500) async throws -> [KarakeepBookmark] {
+        guard isConfigured else { return [] }
         var components = URLComponents(string: "\(baseURL)/bookmarks")!
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "limit", value: String(limit)),
@@ -191,8 +206,11 @@ final class KarakeepService {
 
     /// Searches bookmarks by query string.
     /// - Parameter query: The search query.
-    /// - Returns: Array of matching `KarakeepBookmark` objects.
+    /// - Returns: Array of matching `KarakeepBookmark` objects. Empty
+    ///   array when Karakeep isn't configured — same convention as
+    ///   `fetchBookmarks(status:limit:)`.
     func searchBookmarks(query: String) async throws -> [KarakeepBookmark] {
+        guard isConfigured else { return [] }
         var components = URLComponents(string: "\(baseURL)/bookmarks/search")!
         components.queryItems = [
             URLQueryItem(name: "q", value: query),

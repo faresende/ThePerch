@@ -1,11 +1,13 @@
 # Claudinho: Populate Supabase for The Perch iOS App
 
-You need to set up and populate the Supabase database for **The Perch**, Fabio's iOS dashboard app. The app connects to Supabase and expects specific tables with specific schemas.
+You need to set up and populate the Supabase database for **The Perch**, an iOS dashboard app. The app connects to Supabase and expects specific tables with specific schemas.
 
 ## Connection Details
 
-- **Supabase Project URL:** `https://cgmaotzmeoiueyzlchaz.supabase.co`
-- **Fabio's user UUID:** `00000000-0000-0000-0000-000000000000`
+Replace the placeholders below with your actual values before running SQL:
+
+- **Supabase Project URL:** `https://<YOUR-PROJECT-REF>.supabase.co`
+- **Your user UUID:** `<YOUR-USER-ID>` (any UUID — pick one and replace consistently throughout)
 
 Use the **Supabase SQL Editor** (or the CLI) to run the SQL below.
 

@@ -88,6 +88,13 @@ final class BookmarksViewModel {
         !karakeepBookmarks.isEmpty
     }
 
+    /// True when Karakeep is configured (URL + token both set).
+    /// When false, the Bookmarks view renders a friendly "bring your
+    /// own Karakeep" empty state instead of attempting fetches.
+    var isKarakeepConfigured: Bool {
+        karakeepService.isConfigured
+    }
+
     /// Whether the Paperless tab has any records (delegated to DashboardViewModel).
     var paperlessTabHasRecords: Bool {
         false // Paperless uses DashboardViewModel.bookmarkRecords directly

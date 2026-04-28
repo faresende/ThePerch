@@ -79,7 +79,6 @@
 		59CB169535699F8CA0C74712 /* HealthTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A2E9B18B340651B6C624B3 /* HealthTab.swift */; };
 		5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E4BAE3418A661ACF7991AE /* SectionHeader.swift */; };
 		5CC4FE16D0724E1B90BD8BDA /* UniversalCardHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */; };
-		5E2203331EBA92BB378B6097 /* LiquidGlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */; };
 		6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */; };
 		734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */; };
 		7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */; };
@@ -109,7 +108,6 @@
 		CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */; };
 		D259FD4EDAA14C63BED05FD3 /* StatusCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */; };
 		D6835F8D85F6945DB95754DB /* DeliveryLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */; };
-		D7E24467C07447F6175D7FD8 /* GlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94456FC52FF967F10A509355 /* GlassTabBar.swift */; };
 		DAYCRD0002DAYCRD0002DAY /* DailyInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */; };
 		DCOV0002DCOV0002DCOV0002 /* DeliveryCompletionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */; };
 		DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DLAM0001DLAM0001DLAM0001 /* DeliveryLiveActivityManager.swift */; };
@@ -213,7 +211,6 @@
 		0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelHomeCard.swift; sourceTree = "<group>"; };
 		1675CA68C5E59F9B76A55D69 /* ParseTraceSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ParseTraceSheet.swift; sourceTree = "<group>"; };
 		194FE99D6FE246A4BFE5D6DD /* StatusCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusCardRenderer.swift; sourceTree = "<group>"; };
-		1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiquidGlassTabBar.swift; sourceTree = "<group>"; };
 		260AF89A8829445FAFBEDE9E /* MetricCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricCardRenderer.swift; sourceTree = "<group>"; };
 		353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaloriesCard.swift; sourceTree = "<group>"; };
 		353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacrosCard.swift; sourceTree = "<group>"; };
@@ -282,7 +279,6 @@
 		9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutView.swift; sourceTree = "<group>"; };
 		90A6F82680DE42D8A4289776 /* UniversalCardHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardHeader.swift; sourceTree = "<group>"; };
 		9113DFD580EE158E6448E952 /* UndoCorrectionToast.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UndoCorrectionToast.swift; path = Components/UndoCorrectionToast.swift; sourceTree = "<group>"; };
-		94456FC52FF967F10A509355 /* GlassTabBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlassTabBar.swift; sourceTree = "<group>"; };
 		971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardRenderer.swift; sourceTree = "<group>"; };
 		9BBC038A620A4778B341EA85 /* CardGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGalleryView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* RecordDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordDetailView.swift; sourceTree = "<group>"; };
@@ -745,9 +741,7 @@
 		64587975DD04B244BA61855A /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				94456FC52FF967F10A509355 /* GlassTabBar.swift */,
 				583A9684EA57783652C76057 /* NewCardStyle.swift */,
-				1A1304468C2102964FD31C1C /* LiquidGlassTabBar.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1213,9 +1207,7 @@
 				7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */,
 				734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */,
 				1B755C70FCA165202C6C7A83 /* BookmarksViewModel.swift in Sources */,
-				D7E24467C07447F6175D7FD8 /* GlassTabBar.swift in Sources */,
 				F5445DCE2E590BC759DACA34 /* NewCardStyle.swift in Sources */,
-				5E2203331EBA92BB378B6097 /* LiquidGlassTabBar.swift in Sources */,
 				4E65A462FA9DE4BE19EB9F06 /* SwipeActionsContainer.swift in Sources */,
 				3E300B906C36C47DA1B66E75 /* UndoCorrectionToast.swift in Sources */,
 				8B84E982C7691BA70FEE9B24 /* ParseTraceSheet.swift in Sources */,

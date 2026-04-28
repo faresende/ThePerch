@@ -13,9 +13,14 @@
  * Run with perch.env sourced.
  */
 const { execSync } = require('child_process');
-const { createClient } = require('/Users/faresende/.openclaw/skills/dashboard-sync/node_modules/@supabase/supabase-js');
-const { extractETACandidates, pickETA } = require('/Users/faresende/.openclaw/skills/dashboard-sync/dist/extract-eta');
-const { resolveETAUpdate } = require('/Users/faresende/.openclaw/skills/dashboard-sync/dist/resolve-eta');
+
+// Resolve dependencies from the dashboard-sync skill installation.
+// Override via SKILL_PATH env if your openclaw layout is non-default.
+const SKILL_PATH = process.env.SKILL_PATH
+  || `${process.env.HOME}/.openclaw/skills/dashboard-sync`;
+const { createClient } = require(`${SKILL_PATH}/node_modules/@supabase/supabase-js`);
+const { extractETACandidates, pickETA } = require(`${SKILL_PATH}/dist/extract-eta`);
+const { resolveETAUpdate } = require(`${SKILL_PATH}/dist/resolve-eta`);
 
 const SESSION_URL = 'https://api.fastmail.com/jmap/session';
 

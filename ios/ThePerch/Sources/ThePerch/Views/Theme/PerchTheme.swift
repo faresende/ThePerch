@@ -407,7 +407,7 @@ struct PerchTheme {
     /// Glass material card — retained for navigation chrome (tab bar).
     /// Content cards use standard cardStyle().
     static func glassCard() -> some View {
-        EmptyView() // Placeholder; actual implementation in GlassTabBar.swift
+        EmptyView() // Native SwiftUI Tab/TabView gets Apple's Liquid Glass on iOS 26.
     }
 
     // MARK: - Icon Sizing

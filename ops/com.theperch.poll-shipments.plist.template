@@ -7,7 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/faresende/.openclaw/scripts/poll-shipments.sh</string>
+        <string>__HOME__/.openclaw/scripts/poll-shipments.sh</string>
     </array>
 
     <!-- Run every 30 min. 17track free tier allows ~40 trackings/month
@@ -31,16 +31,16 @@
          ~/.openclaw/logs/poll-shipments.log; these files capture any
          shell-level errors before the wrapper handles them. -->
     <key>StandardOutPath</key>
-    <string>/Users/faresende/.openclaw/logs/launchd-poll-shipments.out.log</string>
+    <string>__HOME__/.openclaw/logs/launchd-poll-shipments.out.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/faresende/.openclaw/logs/launchd-poll-shipments.err.log</string>
+    <string>__HOME__/.openclaw/logs/launchd-poll-shipments.err.log</string>
 
     <!-- Inherit the user's HOME and PATH; the wrapper script sources
          perch.env explicitly. -->
     <key>EnvironmentVariables</key>
     <dict>
         <key>HOME</key>
-        <string>/Users/faresende</string>
+        <string>__HOME__</string>
         <key>PATH</key>
         <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     </dict>

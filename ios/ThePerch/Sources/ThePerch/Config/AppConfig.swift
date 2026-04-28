@@ -30,8 +30,24 @@ struct AppConfig {
     let supabaseURL: URL
     let supabaseAnonKey: String
 
-    /// Karakeep API token for direct bookmark fetching.
+    /// Karakeep API token for direct bookmark fetching. Empty when no
+    /// token configured — bookmarks integration silently disables and
+    /// the Hub's Bookmarks segment renders a friendly empty state with
+    /// a docs link rather than failing network calls.
     let karakeepToken: String
+
+    /// Karakeep API base URL. Defaults to empty string when no
+    /// `KARAKEEP_BASE_URL` is set; combined with empty `karakeepToken`
+    /// this disables the Karakeep integration entirely. Self-hosters
+    /// set their own instance via env / Keychain config.
+    let karakeepBaseURL: String
+
+    /// True when Karakeep is configured (both URL + token present).
+    /// Drives whether Bookmarks UI shows the data view or the
+    /// "bring your own" empty state.
+    var hasKarakeep: Bool {
+        !karakeepBaseURL.isEmpty && !karakeepToken.isEmpty
+    }
 
     /// True when Supabase credentials are missing or invalid.
     let isMisconfigured: Bool
@@ -45,6 +61,7 @@ struct AppConfig {
                 self.supabaseURL = url
                 self.supabaseAnonKey = effectiveConfig.supabaseAnonKey
                 self.karakeepToken = Self.getConfigValue(key: "KARAKEEP_TOKEN")
+                self.karakeepBaseURL = Self.getConfigValue(key: "KARAKEEP_BASE_URL")
                 self.isMisconfigured = false
                 return
             }
@@ -58,6 +75,7 @@ struct AppConfig {
             self.supabaseURL = url
             self.supabaseAnonKey = anonKey
             self.karakeepToken = Self.getConfigValue(key: "KARAKEEP_TOKEN")
+            self.karakeepBaseURL = Self.getConfigValue(key: "KARAKEEP_BASE_URL")
             self.isMisconfigured = false
         } else {
             // No config found, app will show OnboardingView
@@ -67,6 +85,7 @@ struct AppConfig {
             self.supabaseURL = URL(string: "https://placeholder.supabase.co")!
             self.supabaseAnonKey = ""
             self.karakeepToken = ""
+            self.karakeepBaseURL = ""
             self.isMisconfigured = true
         }
     }

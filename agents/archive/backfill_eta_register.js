@@ -11,7 +11,11 @@
  *
  * Run from a shell with perch.env sourced.
  */
-const { createClient } = require('/Users/faresende/.openclaw/skills/dashboard-sync/node_modules/@supabase/supabase-js');
+// Resolve dependencies from the dashboard-sync skill installation.
+// Override via SKILL_PATH env if your openclaw layout is non-default.
+const SKILL_PATH = process.env.SKILL_PATH
+  || `${process.env.HOME}/.openclaw/skills/dashboard-sync`;
+const { createClient } = require(`${SKILL_PATH}/node_modules/@supabase/supabase-js`);
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

@@ -440,13 +440,26 @@ struct BookmarksView: View {
 
     @ViewBuilder
     private var emptyStateView: some View {
-        EmptyStateView(
-            icon: selectedTab == .karakeep ? "bookmark" : "doc",
-            title: selectedTab == .karakeep ? "No bookmarks saved" : "No documents saved",
-            subtitle: selectedTab == .karakeep
-                ? "Share articles from Safari or the Share Sheet to save them here."
-                : "Documents from Paperless will appear here once they sync."
-        )
+        // Karakeep tab gets a special "bring your own" message when
+        // the integration isn't configured (no KARAKEEP_BASE_URL or
+        // no token). Public-tier users without a Karakeep instance
+        // see a friendly nudge to docs instead of a misleading
+        // "no bookmarks saved" copy.
+        if selectedTab == .karakeep && !viewModel.isKarakeepConfigured {
+            EmptyStateView(
+                icon: "bookmark.slash",
+                title: "Bookmarks integration not configured",
+                subtitle: "The Perch reads bookmarks from a self-hosted Karakeep instance. Set KARAKEEP_BASE_URL and KARAKEEP_TOKEN in your config to enable this tab. See the README for setup."
+            )
+        } else {
+            EmptyStateView(
+                icon: selectedTab == .karakeep ? "bookmark" : "doc",
+                title: selectedTab == .karakeep ? "No bookmarks saved" : "No documents saved",
+                subtitle: selectedTab == .karakeep
+                    ? "Share articles from Safari or the Share Sheet to save them here."
+                    : "Documents from Paperless will appear here once they sync."
+            )
+        }
     }
 
     @ViewBuilder
