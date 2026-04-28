@@ -10,6 +10,7 @@
 		0385F06533E708330AFA01B0 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B954EE98DF57B9774F8D30 /* SearchView.swift */; };
 		04D79066DBA65FB6D46550DD /* ThePerchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */; };
 		06CAFBE9E741F0F8744E8709 /* SectionNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837659300DEF6DC763F7F917 /* SectionNavigator.swift */; };
+		0E50A94D53915532514488F3 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2C66748185CBE6B7695DCE /* ShakeDetector.swift */; };
 		100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */; };
 		137B70EC203CFFD874359DBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
 		1B755C70FCA165202C6C7A83 /* BookmarksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */; };
@@ -102,6 +103,7 @@
 		C395841AE66C9EF1B7E55F90 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
 		CA0301F8D5324ED0983AB80C /* ListCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10ECFC6D3754F22B7244C55 /* ListCardRenderer.swift */; };
 		CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACH0001CACH0001CACH0001 /* CacheService.swift */; };
+		CE0C45E3C4B5C941D2B630C2 /* InsightFeedbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77336DFC4F6F7E518760202A /* InsightFeedbackService.swift */; };
 		CFRL0002CFRL0002CFRL0002 /* CardFreshnessLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */; };
 		CLTD0002CLTD0002CLTD0002 /* CalendarTodayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */; };
 		CLTM0002CLTM0002CLTM0002 /* CalendarTomorrowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */; };
@@ -273,6 +275,7 @@
 		6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SwipeActionsContainer.swift; path = Components/SwipeActionsContainer.swift; sourceTree = "<group>"; };
 		7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerchSegmentedPicker.swift; sourceTree = "<group>"; };
 		7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookmarksViewModel.swift; sourceTree = "<group>"; };
+		77336DFC4F6F7E518760202A /* InsightFeedbackService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightFeedbackService.swift; sourceTree = "<group>"; };
 		7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
 		82518FC23E55607E3C495A66 /* HubTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HubTab.swift; sourceTree = "<group>"; };
 		837659300DEF6DC763F7F917 /* SectionNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionNavigator.swift; sourceTree = "<group>"; };
@@ -315,6 +318,7 @@
 		F740B32A40AA453097A85B5A /* UniversalCardFooter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalCardFooter.swift; sourceTree = "<group>"; };
 		F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThePerchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FEB9746F7FFD17B63ABA4663 /* ThePerchWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ThePerchWidgets.swift; path = ThePerchWidgets/ThePerchWidgets.swift; sourceTree = "<group>"; };
+		FF2C66748185CBE6B7695DCE /* ShakeDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ShakeDetector.swift; path = Components/ShakeDetector.swift; sourceTree = "<group>"; };
 		FFC0FFEE000000010000A001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		FFC0FFEE000000010000A002 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		FFC0FFEE000000010000B001 /* SecretsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsLoader.swift; sourceTree = "<group>"; };
@@ -767,6 +771,7 @@
 			children = (
 				571AC61D48E7054D783C5A2B /* NotificationService.swift */,
 				ACMS0001ACMS0001ACMS0001 /* AdminCommandService.swift */,
+				77336DFC4F6F7E518760202A /* InsightFeedbackService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -846,6 +851,7 @@
 			children = (
 				6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */,
 				9113DFD580EE158E6448E952 /* UndoCorrectionToast.swift */,
+				FF2C66748185CBE6B7695DCE /* ShakeDetector.swift */,
 			);
 			name = Components;
 			sourceTree = "<group>";
@@ -1212,6 +1218,8 @@
 				3E300B906C36C47DA1B66E75 /* UndoCorrectionToast.swift in Sources */,
 				8B84E982C7691BA70FEE9B24 /* ParseTraceSheet.swift in Sources */,
 				3361C7E9DD438E2E24354869 /* ETAChipText.swift in Sources */,
+				CE0C45E3C4B5C941D2B630C2 /* InsightFeedbackService.swift in Sources */,
+				0E50A94D53915532514488F3 /* ShakeDetector.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -18,6 +18,13 @@ struct TodayTab: View {
     @State private var cardsAppeared = true
     @State private var ambience = AmbienceManager.shared
 
+    // Rage-shake feedback (Phase 5 of time-aware insights). The shake
+    // detector fires `showingFeedbackSheet`; the sheet captures free
+    // text and posts to `insight_feedback` for the LLM to consume as
+    // few-shot context on subsequent generations.
+    @State private var showingFeedbackSheet = false
+    @State private var feedbackText = ""
+
     let onOpenProfile: () -> Void
 
     private let freshnessTracker = DataFreshnessTracker.shared
@@ -126,6 +133,77 @@ struct TodayTab: View {
         .onAppear {
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
+        .onDeviceShake {
+            // Only meaningful when there's an insight to react to. Otherwise
+            // the shake is a no-op (avoids opening an empty sheet).
+            if dashboardViewModel.todayInsight != nil {
+                PerchHaptics.medium()
+                showingFeedbackSheet = true
+            }
+        }
+        .sheet(isPresented: $showingFeedbackSheet) {
+            feedbackSheet
+        }
+    }
+
+    // MARK: - Rage-shake feedback sheet
+
+    @ViewBuilder
+    private var feedbackSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                if let insight = dashboardViewModel.todayInsight {
+                    Text("THE INSIGHT")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(0.8)
+                        .foregroundStyle(.secondary)
+                    Text(insight.body)
+                        .font(.system(size: 14, design: .serif).italic())
+                        .foregroundStyle(.primary)
+                }
+                Divider().padding(.vertical, 4)
+                Text("WHAT'S OFF")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(.secondary)
+                TextEditor(text: $feedbackText)
+                    .font(.system(size: 15))
+                    .frame(minHeight: 120)
+                    .scrollContentBackground(.hidden)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("React")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        feedbackText = ""
+                        showingFeedbackSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Send") {
+                        let body = dashboardViewModel.todayInsight?.body ?? ""
+                        let id = dashboardViewModel.todayInsight?.id
+                        let reaction = feedbackText
+                        Task {
+                            try? await InsightFeedbackService.shared.submit(
+                                insightId: id,
+                                insightBody: body,
+                                reaction: reaction
+                            )
+                        }
+                        feedbackText = ""
+                        showingFeedbackSheet = false
+                    }
+                    .disabled(feedbackText.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 
 
