@@ -37,6 +37,272 @@
 
 ---
 
+# PHASE 0 — Calendar sync agent (prep for opportunity/anticipatory categories)
+
+Goal: keep today's calendar events in `public.dashboard_records` so the categories that depend on calendar (`anticipatory_lunch_window`, `opportunistic_walk`, `opportunistic_workout`) have data to score against. Without this, those categories silently return 0 and the afternoon slot will mostly fall back to `goal_pacing` or `quiet_day_fallback`.
+
+## Task 0.1: Install + verify `icalBuddy`
+
+**Files:** None — system tool.
+
+- [ ] **Step 1: Install icalBuddy if missing**
+
+```bash
+which icalBuddy || brew install ical-buddy
+```
+Expected: prints a path to `icalBuddy` (e.g. `/opt/homebrew/bin/icalBuddy`).
+
+- [ ] **Step 2: Verify it can read today's events (will trigger macOS permission prompt the first time)**
+
+```bash
+icalBuddy -nc -nrd -ea -tf "%H:%M" -df "%Y-%m-%d" eventsToday
+```
+Expected: prints today's events in plain-text format. **First run will trigger a macOS calendar permission prompt for the terminal app** — grant access. If denied, this task fails and Phase 0 is skipped (the spec's "no calendar source" fallback applies).
+
+- [ ] **Step 3: Document permission grant in setup instructions**
+
+Append a line to `SETUP-FOR-AGENTS.md` Step 11 (or wherever calendar agent setup lives):
+
+```markdown
+> **Calendar agent first-run note:** the first time the calendar sync agent runs, macOS will prompt the terminal app for Calendar access. Grant it. Without permission, opportunity-based insights (e.g. "free afternoon, walk Osso") won't fire — the rest of the system still works.
+```
+
+## Task 0.2: Build `calendar_sync.py`
+
+**Files:**
+- Create: `agents/health-integrations/calendar_sync.py`
+
+- [ ] **Step 1: Write the script**
+
+```python
+#!/usr/bin/env python3
+"""
+calendar_sync.py — pushes today's Mac Calendar.app events into
+public.dashboard_records (category='calendar', type='event') so
+the BioChecha dynamic insight script can read them.
+
+Source: `icalBuddy eventsToday` (homebrew, macOS-only).
+Cadence: every 15 min via cron during waking hours.
+Idempotent: deletes today's calendar rows then re-inserts the
+current set. No partial state on failure (writes inside a single
+PostgREST batch).
+
+Env required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PERCH_USER_ID.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, date, timedelta, timezone
+from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _supabase_client import insert_agent_run  # noqa: E402
+
+ICALBUDDY_PATHS = ("/opt/homebrew/bin/icalBuddy", "/usr/local/bin/icalBuddy")
+
+
+def _icalbuddy_path() -> str:
+    for p in ICALBUDDY_PATHS:
+        if os.path.exists(p):
+            return p
+    raise RuntimeError("icalBuddy not found (brew install ical-buddy)")
+
+
+def _read_today_events() -> list[dict]:
+    """Run icalBuddy and parse the plain-text output."""
+    out = subprocess.check_output([
+        _icalbuddy_path(),
+        "-nc", "-nrd", "-ea",
+        "-tf", "%H:%M", "-df", "%Y-%m-%d",
+        "eventsToday",
+    ], text=True, timeout=15)
+    today = date.today()
+    events: list[dict] = []
+    current: dict | None = None
+    # Format example:
+    #   • Lunch with Marta
+    #       2026-04-28
+    #       12:30 - 13:30
+    for line in out.splitlines():
+        line = line.rstrip()
+        if not line:
+            continue
+        if line.startswith("• "):
+            # New event
+            if current and "start" in current:
+                events.append(current)
+            current = {"title": line[2:].strip()}
+        elif current is not None:
+            # Time line ("12:30 - 13:30")
+            m = re.match(r"\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})", line)
+            if m:
+                start_h, start_m = map(int, m.group(1).split(":"))
+                end_h, end_m = map(int, m.group(2).split(":"))
+                start = datetime(today.year, today.month, today.day, start_h, start_m, tzinfo=timezone.utc)
+                end = datetime(today.year, today.month, today.day, end_h, end_m, tzinfo=timezone.utc)
+                current["start"] = start.isoformat()
+                current["end"] = end.isoformat()
+    if current and "start" in current:
+        events.append(current)
+    return events
+
+
+def _supabase_post(path: str, body: bytes, headers_extra: dict | None = None) -> int:
+    url = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    if headers_extra:
+        headers.update(headers_extra)
+    req = Request(f"{url}/rest/v1/{path}", data=body, method="POST", headers=headers)
+    with urlopen(req, timeout=15) as resp:
+        return resp.status
+
+
+def _supabase_delete(path: str) -> int:
+    url = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    req = Request(f"{url}/rest/v1/{path}", method="DELETE", headers={
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Prefer": "return=minimal",
+    })
+    try:
+        with urlopen(req, timeout=10) as resp:
+            return resp.status
+    except HTTPError as e:
+        return e.code
+
+
+def main() -> int:
+    started = datetime.now(timezone.utc)
+    error: str | None = None
+    inserted = 0
+    user = os.environ["PERCH_USER_ID"]
+
+    try:
+        events = _read_today_events()
+        today = date.today().isoformat()
+        # Delete today's calendar slice for this user (idempotent).
+        _supabase_delete(
+            f"dashboard_records?user_id=eq.{user}&category=eq.calendar&"
+            f"created_at=gte.{today}T00:00:00Z&created_at=lt.{today}T23:59:59Z"
+        )
+        if events:
+            payload = [
+                {
+                    "user_id": user,
+                    "type": "event",
+                    "category": "calendar",
+                    "title": e["title"][:200],
+                    "data": {"start_at": e["start"], "end_at": e["end"]},
+                    "created_at": e["start"],
+                }
+                for e in events
+                if "start" in e and "end" in e
+            ]
+            if payload:
+                _supabase_post(
+                    "dashboard_records",
+                    json.dumps(payload).encode(),
+                )
+                inserted = len(payload)
+    except Exception as e:
+        error = f"{type(e).__name__}: {e}"
+        sys.stderr.write(f"[calendar-sync] {error}\n")
+
+    insert_agent_run(
+        agent_id="calendar-sync",
+        run_type="sync_today",
+        status="error" if error else "ok",
+        summary={"inserted": inserted},
+        error_detail=error,
+    )
+    print(f"[calendar-sync] inserted={inserted} error={error}")
+    return 1 if error else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+- [ ] **Step 2: Manual run to verify**
+
+```bash
+set -a && source ~/.openclaw/secrets/perch.env && set +a
+python3 ~/Developer/ThePerch/agents/health-integrations/calendar_sync.py
+```
+Expected: prints `[calendar-sync] inserted=N error=None` where N matches the events visible in your Calendar.app today.
+
+- [ ] **Step 3: Commit**
+
+```bash
+cd ~/Developer/ThePerch
+git add agents/health-integrations/calendar_sync.py
+git commit -m "feat(insights): calendar_sync agent — Mac Calendar.app → dashboard_records"
+```
+
+## Task 0.3: Add cron entry for calendar sync
+
+**Files:** `~/.openclaw/cron/jobs.json`
+
+- [ ] **Step 1: Back up + add the entry programmatically**
+
+```bash
+cp ~/.openclaw/cron/jobs.json ~/.openclaw/cron/jobs.json.bak-pre-calendar-sync-$(date +%Y%m%d-%H%M%S)
+python3 << 'PY'
+import json, uuid, time
+from pathlib import Path
+p = Path.home() / ".openclaw/cron/jobs.json"
+d = json.loads(p.read_text())
+new_job = {
+    "id": str(uuid.uuid4()),
+    "agentId": "cron-agent",
+    "name": "calendar-sync",
+    "description": "Push today's Mac Calendar events to dashboard_records for time-aware insights",
+    "enabled": True,
+    "schedule": {"kind": "cron", "expr": "*/15 6-22 * * *", "tz": "Europe/Lisbon"},
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "delivery": {"channel": "last", "mode": "none"},
+    "payload": {
+        "kind": "agentTurn",
+        "message": "Run: python3 ~/.openclaw/workspace/scripts/health-integrations/calendar_sync.py. Report results.",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
+        "timeoutSeconds": 60,
+    },
+    "createdAtMs": int(time.time() * 1000),
+    "state": {},
+}
+d["jobs"].append(new_job)
+p.write_text(json.dumps(d, indent=2) + "\n")
+print(f"added calendar-sync (id={new_job['id']}). total jobs: {len(d['jobs'])}")
+PY
+```
+
+- [ ] **Step 2: Symlink the script into the openclaw workspace**
+
+```bash
+ln -sf ~/Developer/ThePerch/agents/health-integrations/calendar_sync.py \
+       ~/.openclaw/workspace/scripts/health-integrations/calendar_sync.py
+ls -la ~/.openclaw/workspace/scripts/health-integrations/calendar_sync.py
+```
+Expected: symlink resolves correctly.
+
+- [ ] **Step 3: Done. No commit needed (jobs.json outside repo).**
+
+---
+
 # PHASE 1 — Scaffolding + morning slot proven end-to-end
 
 Goal: replace the existing morning insight with the new dynamic script using `slot=morning`. Output quality must match or beat the current daily insight. After Phase 1, cron still calls the OLD script (no swap yet) — Phase 4 does the swap.
@@ -738,15 +1004,22 @@ Write today's insight: a single tight paragraph (30-55 words, MAX 60) that
 surfaces ONE useful thing from what the data shows.
 
 VOICE: read like a smart friend texting a heads-up. Not a coach, not a
-doctor, not an AI assistant.
+doctor, not an AI assistant. Carry about 20% snark — dry, observational,
+occasionally self-aware. Not jokey, not cute, never an exclamation.
+Earned snark only — when the data actually warrants noticing.
+
+  ✅ "Sleep collapsed last night while body fat's been creeping. Protein's
+      the missing lever. The pattern's been there a while."
+  ✅ "HRV's the lowest in a week, second night sub-fifteen. Body's finally
+      got something to say about the load."
+  ✅ "Protein fell short today after clearing target all week. One off-day
+      isn't a streak — but two would be."
 
 PREFER COMPARATIVE OVER ABSOLUTE NUMBERS.
 The user already knows their numbers. Tell them what changed in plain
 language.
   ✅ "Sleep dropped to less than half what you usually pull."
   ❌ "Sleep dropped to 190 minutes — well below your typical 436-498."
-  ✅ "Protein fell short today after clearing target all week."
-  ❌ "Protein only 56g logged today after a week of hitting targets."
 
 MIX DOMAINS. Don't write a sleep-only or HRV-only insight. The
 interesting things live at intersections (sleep+nutrition, HRV+workout,
@@ -758,6 +1031,7 @@ ABSOLUTELY AVOID:
   ❌ "rollercoaster", "yo-yo", "all over the place" — cliché metaphors
   ❌ Reciting raw numbers when comparison would carry the meaning
   ❌ The word "recharge". The word "recalibrate".
+  ❌ Exclamation points. Cuteness. Emoji. "Pro tip" / "Fun fact".
   ❌ Any phrase a friend wouldn't actually text you
 
 Output ONLY the insight. No greeting, no signoff, no metadata. ONE
@@ -2655,6 +2929,392 @@ git log --oneline -10
 git push
 ```
 Expected: working tree clean, all commits pushed.
+
+---
+
+# PHASE 5 — Rage-shake feedback loop
+
+Goal: when the user shakes the device on the Today tab, present a sheet pre-loaded with the current insight + a free-text field to react ("too coachy", "wrong topic", "this is great"). Feedback persists to a new `insight_feedback` table and gets fed to BioChecha as few-shot context on subsequent generations — so the voice can self-correct over time.
+
+## Task 5.1: Migration — `insight_feedback` table
+
+**Files:**
+- Create: `supabase/migrations/20260428100000_insight_feedback.sql`
+
+- [ ] **Step 1: Write the migration**
+
+```sql
+-- 20260428100000_insight_feedback.sql
+-- Rage-shake feedback channel for time-aware BioChecha insights.
+-- See docs/superpowers/specs/2026-04-28-time-aware-insights-design.md.
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.insight_feedback (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  insight_id   uuid REFERENCES public.insights(id) ON DELETE SET NULL,
+  insight_body text,                  -- snapshot at feedback time
+  reaction     text NOT NULL,         -- user's free text
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS insight_feedback_user_created_idx
+  ON public.insight_feedback (user_id, created_at DESC);
+
+ALTER TABLE public.insight_feedback ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS insight_feedback_select_own ON public.insight_feedback;
+DROP POLICY IF EXISTS insight_feedback_insert_own ON public.insight_feedback;
+
+CREATE POLICY insight_feedback_select_own
+  ON public.insight_feedback FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY insight_feedback_insert_own
+  ON public.insight_feedback FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+COMMIT;
+```
+
+- [ ] **Step 2: Apply via Supabase MCP**
+
+Apply the migration. Verify the table exists:
+
+```bash
+set -a && source ~/.openclaw/secrets/perch.env && set +a
+curl -s "$SUPABASE_URL/rest/v1/insight_feedback?select=count&limit=1" \
+  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
+```
+Expected: `[{"count": 0}]` — table exists, empty.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add supabase/migrations/20260428100000_insight_feedback.sql
+git commit -m "feat(insights): insight_feedback table + RLS for rage-shake feedback"
+```
+
+## Task 5.2: iOS shake detector + InsightFeedback service
+
+**Files:**
+- Create: `ios/ThePerch/Sources/ThePerch/Services/InsightFeedbackService.swift`
+- Create: `ios/ThePerch/Sources/ThePerch/Views/Components/ShakeDetector.swift`
+- Modify: `ios/ThePerch/Sources/ThePerch/Views/App/TodayTab.swift` (attach shake handler + sheet)
+
+- [ ] **Step 1: Create the shake detector**
+
+```swift
+// ShakeDetector.swift
+import SwiftUI
+import UIKit
+
+/// View modifier that detects iOS device shake gestures (UIEvent.motionEnded
+/// with motion=.motionShake). Used by the Today tab to fire the rage-shake
+/// feedback sheet for the active BioChecha insight.
+
+struct ShakeDetector: ViewModifier {
+    let onShake: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .background(ShakeUIView(onShake: onShake))
+    }
+}
+
+private struct ShakeUIView: UIViewRepresentable {
+    let onShake: () -> Void
+
+    func makeUIView(context: Context) -> _ShakeUIView {
+        _ShakeUIView(onShake: onShake)
+    }
+    func updateUIView(_ uiView: _ShakeUIView, context: Context) {}
+}
+
+private final class _ShakeUIView: UIView {
+    let onShake: () -> Void
+    init(onShake: @escaping () -> Void) {
+        self.onShake = onShake
+        super.init(frame: .zero)
+        backgroundColor = .clear
+    }
+    required init?(coder: NSCoder) { fatalError() }
+    override var canBecomeFirstResponder: Bool { true }
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        becomeFirstResponder()
+    }
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake { onShake() }
+    }
+}
+
+extension View {
+    /// Fire `onShake` when the device is physically shaken while this view
+    /// is on screen. Backed by UIEvent.motionEnded.
+    func onDeviceShake(perform onShake: @escaping () -> Void) -> some View {
+        modifier(ShakeDetector(onShake: onShake))
+    }
+}
+```
+
+- [ ] **Step 2: Create the feedback service**
+
+```swift
+// InsightFeedbackService.swift
+import Foundation
+import Supabase
+import PostgREST
+
+@MainActor
+final class InsightFeedbackService {
+    static let shared = InsightFeedbackService()
+    private let supabaseService: SupabaseService
+    init() { self.supabaseService = .shared }
+    init(supabaseService: SupabaseService) { self.supabaseService = supabaseService }
+
+    /// Insert a feedback row tied to the given insight (or untied if nil).
+    func submit(insightId: UUID?, insightBody: String, reaction: String) async throws {
+        try await supabaseService.databaseClient
+            .from("insight_feedback")
+            .insert(InsightFeedbackPayload(
+                insight_id: insightId,
+                insight_body: insightBody,
+                reaction: reaction
+            ))
+            .execute()
+    }
+}
+
+nonisolated private struct InsightFeedbackPayload: Encodable, Sendable {
+    let insight_id: UUID?
+    let insight_body: String
+    let reaction: String
+}
+```
+
+- [ ] **Step 3: Add the sheet to TodayTab**
+
+In `TodayTab.swift`, add state + sheet + shake hookup. Near the existing `@State` declarations:
+
+```swift
+    @State private var showingFeedbackSheet = false
+    @State private var feedbackText = ""
+```
+
+Find the outermost `ScrollView` body and append (just before the `.background()` modifier or wherever modifiers stack):
+
+```swift
+            .onDeviceShake {
+                if dashboardViewModel.todayInsight != nil {
+                    PerchHaptics.medium()
+                    showingFeedbackSheet = true
+                }
+            }
+            .sheet(isPresented: $showingFeedbackSheet) {
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if let insight = dashboardViewModel.todayInsight {
+                            Text("THE INSIGHT")
+                                .font(.system(size: 10, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundStyle(.secondary)
+                            Text(insight.body)
+                                .font(.system(size: 14, design: .serif).italic())
+                                .foregroundStyle(.primary)
+                        }
+                        Divider().padding(.vertical, 4)
+                        Text("WHAT'S OFF")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(0.8)
+                            .foregroundStyle(.secondary)
+                        TextEditor(text: $feedbackText)
+                            .font(.system(size: 15))
+                            .frame(minHeight: 120)
+                            .scrollContentBackground(.hidden)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Spacer()
+                    }
+                    .padding()
+                    .navigationTitle("React")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") {
+                                feedbackText = ""
+                                showingFeedbackSheet = false
+                            }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Send") {
+                                let body = dashboardViewModel.todayInsight?.body ?? ""
+                                let id = dashboardViewModel.todayInsight?.id
+                                let reaction = feedbackText
+                                Task {
+                                    try? await InsightFeedbackService.shared.submit(
+                                        insightId: id,
+                                        insightBody: body,
+                                        reaction: reaction
+                                    )
+                                }
+                                feedbackText = ""
+                                showingFeedbackSheet = false
+                            }
+                            .disabled(feedbackText.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
+            }
+```
+
+- [ ] **Step 4: Add files to Xcode project (via xcodeproj Ruby)**
+
+```bash
+ruby -e "
+require 'xcodeproj'
+proj = Xcodeproj::Project.open('/Users/faresende/Developer/ThePerch/ios/ThePerch/ThePerch.xcodeproj')
+target = proj.targets.find { |t| t.name == 'ThePerch' }
+services = proj.main_group.find_subpath('Sources/ThePerch/Services', false)
+components = proj.main_group.find_subpath('Sources/ThePerch/Views/Components', false)
+[
+  ['/Users/faresende/Developer/ThePerch/ios/ThePerch/Sources/ThePerch/Services/InsightFeedbackService.swift', services],
+  ['/Users/faresende/Developer/ThePerch/ios/ThePerch/Sources/ThePerch/Views/Components/ShakeDetector.swift', components],
+].each do |path, group|
+  next if group.files.any? { |f| f.real_path.to_s == path }
+  ref = group.new_reference(path)
+  ref.last_known_file_type = 'sourcecode.swift'
+  target.source_build_phase.add_file_reference(ref)
+  puts \"+ #{File.basename(path)}\"
+end
+proj.save
+"
+```
+
+- [ ] **Step 5: xcodebuild verify**
+
+```bash
+cd ~/Developer/ThePerch/ios/ThePerch && xcodebuild -scheme ThePerch -destination 'generic/platform=iOS Simulator' -configuration Debug build 2>&1 | grep -E "error:|FAILED|BUILD SUCCEEDED|BUILD FAILED" | head -5
+```
+Expected: `** BUILD SUCCEEDED **`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add ios/ThePerch/Sources/ThePerch/Services/InsightFeedbackService.swift \
+        ios/ThePerch/Sources/ThePerch/Views/Components/ShakeDetector.swift \
+        ios/ThePerch/Sources/ThePerch/Views/App/TodayTab.swift \
+        ios/ThePerch/ThePerch.xcodeproj/project.pbxproj
+git commit -m "feat(insights): rage-shake → feedback sheet wired on Today tab"
+```
+
+## Task 5.3: Plumb feedback into Python `gather_state` + few-shot prompt
+
+**Files:**
+- Modify: `agents/health-integrations/biochecha_dynamic_insight.py`
+
+- [ ] **Step 1: Extend AppState with `recent_feedback: list[str]`**
+
+In the AppState dataclass (added in Task 1.2), append:
+
+```python
+    recent_feedback: list[str] = field(default_factory=list)  # most-recent reactions
+```
+
+(`field` from `dataclasses` is already imported.)
+
+- [ ] **Step 2: Add a gather helper for recent feedback**
+
+After the existing gather helpers, append:
+
+```python
+def _gather_recent_feedback(limit: int = 5) -> list[str]:
+    """Return up to `limit` most-recent feedback reactions, freshest first.
+    Used as few-shot guidance for the LLM — 'last time you wrote X, the
+    user said Y; don't do that again.'"""
+    rows = _supabase_get(
+        "insight_feedback",
+        {
+            "select": "reaction,created_at",
+            "order": "created_at.desc",
+            "limit": str(limit),
+        },
+    )
+    return [r["reaction"] for r in rows if r.get("reaction")]
+```
+
+- [ ] **Step 3: Wire into `gather_state`**
+
+Add to the AppState constructor call in `gather_state`:
+
+```python
+        recent_feedback=_gather_recent_feedback(limit=5),
+```
+
+- [ ] **Step 4: Inject feedback into the LLM user prompt**
+
+Update `_build_user_prompt`:
+
+```python
+def _build_user_prompt(slot: str, fact_bundle: dict[str, Any], recent_feedback: list[str] | None = None) -> str:
+    today = date.today()
+    parts = [
+        f"Today: {today.isoformat()} ({today.strftime('%A')})",
+        f"Slot: {slot}",
+        SLOT_PROMPT_ADDENDUM[slot],
+    ]
+    if recent_feedback:
+        parts.append("")
+        parts.append("RECENT USER FEEDBACK on past insights (correct course accordingly):")
+        for r in recent_feedback[:5]:
+            parts.append(f"  - {r[:300]}")
+    parts += [
+        "",
+        "FACTS (real numbers from your data — write the insight from these):",
+        json.dumps(fact_bundle, indent=2, default=str),
+        "",
+        "Write the insight (30-55 words, single paragraph, no preamble).",
+    ]
+    return "\n".join(parts)
+```
+
+And update the call in `_generate_insight`:
+
+```python
+def _generate_insight(slot: str, fact_bundle: dict[str, Any], recent_feedback: list[str] | None = None) -> str:
+    # ... rest unchanged, but pass recent_feedback to _build_user_prompt
+```
+
+And update both call sites in `main()` and `biochecha_event_insight.py`'s main:
+
+```python
+        body = _generate_insight(slot, winner.fact_bundle, recent_feedback=state.recent_feedback)
+```
+
+- [ ] **Step 5: Manual integration test — submit feedback, then run a slot, confirm it's in the prompt**
+
+```bash
+# Manually insert a feedback row via curl
+set -a && source ~/.openclaw/secrets/perch.env && set +a
+curl -s -X POST "$SUPABASE_URL/rest/v1/insight_feedback" \
+  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"'$PERCH_USER_ID'","reaction":"too coachy, drop the recommendations"}'
+
+# Run a slot
+python3 ~/Developer/ThePerch/agents/health-integrations/biochecha_dynamic_insight.py morning
+```
+Expected: insight is generated. Check `agent_runs` for the most recent row — its summary should reflect the feedback influence (or just verify by reviewing the body text).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add agents/health-integrations/biochecha_dynamic_insight.py
+git commit -m "feat(insights): rage-shake feedback feeds back as few-shot context to LLM"
+```
 
 ---
 
