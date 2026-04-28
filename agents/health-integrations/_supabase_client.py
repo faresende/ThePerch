@@ -82,6 +82,48 @@ def _supabase_env() -> tuple[str, str, str]:
     return url, key, user
 
 
+def bulk_upsert_health_metrics(rows: list[dict[str, Any]]) -> tuple[int, int]:
+    """Bulk upsert N health_metrics rows in a single PostgREST call.
+
+    `rows` is a list of dicts in the same shape `upsert_health_metric`
+    builds for a single row (must include `user_id` already). Returns
+    `(written, failed)`. Idempotent on the same
+    `(user_id, source, source_id, metric)` tuple as the per-row helper.
+
+    Why bulk: per-row upsert was costing ~100ms × N round-trips. Withings
+    writes ~87 metrics, 8sleep ~111. Cumulative ingest time ~20s; bulk
+    drops it to a single 200-300ms POST. PostgREST handles arrays of
+    inserts with the same on_conflict semantics as single-row.
+
+    Returns `(0, len(rows))` on any error so the caller's
+    "failed" count reflects the real failure boundary (the batch).
+    Per-row failures within a successful 2xx are not distinguished —
+    `Prefer: resolution=merge-duplicates` makes them idempotent.
+    """
+    if not rows:
+        return (0, 0)
+    url, key, _ = _supabase_env()
+    on_conflict = "user_id,source,source_id,metric"
+    req = Request(
+        f"{url}/rest/v1/health_metrics?on_conflict={on_conflict}",
+        data=json.dumps(rows).encode(),
+        method="POST",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates,return=minimal",
+        },
+    )
+    try:
+        with urlopen(req, timeout=30) as resp:
+            ok = 200 <= resp.status < 300
+            return (len(rows), 0) if ok else (0, len(rows))
+    except HTTPError as e:
+        sys.stderr.write(f"[supabase] bulk upsert: HTTP {e.code} {e.read().decode()[:300]}\n")
+        return (0, len(rows))
+
+
 def upsert_health_metric(
     *,
     metric: str,

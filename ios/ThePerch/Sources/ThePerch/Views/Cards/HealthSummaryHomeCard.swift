@@ -140,11 +140,18 @@ struct HealthSummaryHomeCard: View {
     }
 
     private func weekdayLetter(_ date: Date) -> String {
+        Self.weekdayLetterFormatter.string(from: date)
+    }
+
+    /// Phase 3 perf: cached. Sleep graph renders 7 bars × per render
+    /// of the Health card. Was creating 7 DateFormatters per render.
+    /// Reuses PerchFormatters.dayLetter format spec.
+    private static let weekdayLetterFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = .autoupdatingCurrent
         f.dateFormat = "EEEEE"  // single-letter weekday (M, T, W…)
-        return f.string(from: date)
-    }
+        return f
+    }()
 
     /// Three metrics in a horizontal row: SLEEP / RECOVERY / READINESS.
     @ViewBuilder

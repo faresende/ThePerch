@@ -40,19 +40,27 @@ struct MealRecord: Sendable {
 
         guard let string = value.stringValue else { return nil }
 
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = isoFormatter.date(from: string) {
+        if let date = Self.isoWithFractional.date(from: string) {
             return date
         }
-
-        let fallbackFormatter = ISO8601DateFormatter()
-        if let date = fallbackFormatter.date(from: string) {
+        if let date = Self.isoBasic.date(from: string) {
             return date
         }
-
         return PerchFormatters.iso8601.date(from: string)
     }
+
+    // Phase 3 perf: cached formatters. Per-render decoding on every
+    // nutrition record fetch was creating two ISO8601DateFormatter
+    // instances per row. Now once at type init.
+    private static let isoWithFractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let isoBasic: ISO8601DateFormatter = {
+        ISO8601DateFormatter()
+    }()
 }
 
 struct MealSuggestion: Codable, Identifiable, Sendable {

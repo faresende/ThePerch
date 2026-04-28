@@ -123,11 +123,17 @@ struct HomeView: View {
                 SettingsView()
             }
         }
-        .onChange(of: dashboardViewModel.allRecords) { _, _ in
-            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
-        }
-        .onChange(of: dashboardViewModel.trackedDeliveries) { _, _ in
-            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
+        // Phase 3 perf: previously two separate .onChange handlers
+        // both called updateRecords. After loadDashboard both
+        // dependencies typically change in the same tick, firing
+        // the update twice (the second call was redundant). Fold
+        // into a single handler keyed on a tuple — SwiftUI's diff
+        // fires once per coalesced change.
+        .onChange(of: DashboardSnapshot(
+            records: dashboardViewModel.allRecords,
+            deliveries: dashboardViewModel.trackedDeliveries
+        )) { _, snapshot in
+            viewModel.updateRecords(snapshot.records, trackedDeliveries: snapshot.deliveries)
         }
         .onAppear {
             // Feed initial records if dashboard already loaded
@@ -335,6 +341,15 @@ struct HomeView: View {
             Spacer()
         }
     }
+}
+
+/// Phase 3 perf: tuple-equivalent struct used as the .onChange
+/// dependency above. SwiftUI's onChange compares Equatable values
+/// — wrapping (records, deliveries) in this struct lets us coalesce
+/// two changes-in-the-same-tick into one update call.
+private struct DashboardSnapshot: Equatable {
+    let records: [Record]
+    let deliveries: [DeliveryData]
 }
 
 // MARK: - Hero Card Conditional Modifier

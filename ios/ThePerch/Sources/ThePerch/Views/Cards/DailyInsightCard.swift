@@ -90,11 +90,16 @@ struct DailyInsightCard: View {
     }
 
     private func formattedTime(_ date: Date) -> String {
+        Self.shortTimeFormatter.string(from: date).lowercased()
+    }
+
+    /// Phase 3 perf: cached. Was created on every insight render.
+    private static let shortTimeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.timeStyle = .short
         f.locale = Locale(identifier: "en_US_POSIX")
-        return f.string(from: date).lowercased()
-    }
+        return f
+    }()
 }
 
 #Preview("Populated") {

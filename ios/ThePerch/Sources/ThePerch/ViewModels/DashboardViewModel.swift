@@ -478,22 +478,31 @@ final class DashboardViewModel {
             .execute()
         let rows = try JSONDecoder().decode([Row].self, from: result.data)
 
-        // Permissive ISO 8601 parsing — PostgREST may emit with or
-        // without fractional seconds, with `Z` or `+00:00` offset.
-        let isoFractional = ISO8601DateFormatter()
-        isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let isoBasic = ISO8601DateFormatter()
-        isoBasic.formatOptions = [.withInternetDateTime]
-        func parse(_ s: String) -> Date? {
-            isoFractional.date(from: s) ?? isoBasic.date(from: s)
-        }
-
         return rows
             .compactMap { row -> SleepNight? in
-                guard let d = parse(row.measured_at) else { return nil }
+                guard let d = Self.parsePostgrestTimestamp(row.measured_at) else { return nil }
                 return SleepNight(date: d, minutes: row.value)
             }
             .sorted { $0.date < $1.date }
+    }
+
+    /// Permissive ISO 8601 parser for PostgREST timestamptz strings.
+    /// PostgREST emits with or without fractional seconds, with `Z` or
+    /// `+00:00` offset. Phase 3 perf: cached formatters.
+    private static let isoFractionalFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let isoBasicFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    private static func parsePostgrestTimestamp(_ s: String) -> Date? {
+        isoFractionalFormatter.date(from: s) ?? isoBasicFormatter.date(from: s)
     }
 
     /// Filter `OrderWithShipments` to the set that belongs on Today's

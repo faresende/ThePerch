@@ -37,7 +37,10 @@ from urllib.request import Request, urlopen
 # so EIGHT_SLEEP_EMAIL/PASSWORD lookups below "just work" without
 # requiring `set -a && source ... && python3 ...`.
 sys.path.insert(0, str(Path(__file__).parent))
-from _supabase_client import upsert_health_metric, insert_agent_run  # noqa: E402
+from _supabase_client import (  # noqa: E402
+    bulk_upsert_health_metrics,
+    insert_agent_run,
+)
 
 # 8sleep moved auth to a proper OAuth password-grant endpoint at
 # auth-api.8slp.net in early 2024. The old client-api `/v1/login`
@@ -362,25 +365,28 @@ def main() -> int:
     written = 0
     failed = 0
     error: str | None = None
+    rows: list[dict[str, Any]] = []  # Phase 3 perf: batched once at end
 
     try:
         token, user_id = _get_session()
         sessions = fetch_recent_sessions(token, user_id)
         for session in sessions:
             for row in _session_to_metrics(session):
-                ok = upsert_health_metric(
-                    metric=row["metric"],
-                    value=row["value"],
-                    unit=row["unit"],
-                    source="8sleep",
-                    source_id=row["source_id"],
-                    measured_at_iso=row["measured_at"],
-                    details=None,
-                )
-                if ok:
-                    written += 1
-                else:
-                    failed += 1
+                rows.append({
+                    "user_id": os.environ["PERCH_USER_ID"],
+                    "metric": row["metric"],
+                    "value": row["value"],
+                    "unit": row["unit"],
+                    "source": "8sleep",
+                    "source_id": row["source_id"],
+                    "measured_at": row["measured_at"],
+                    "details": None,
+                })
+
+        # Single bulk POST. ~111 metrics × 100ms = 11s previously;
+        # now one ~250ms request.
+        if rows:
+            written, failed = bulk_upsert_health_metrics(rows)
 
     except (HTTPError, URLError) as e:
         error = f"{type(e).__name__}: {e}"

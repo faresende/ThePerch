@@ -25,7 +25,10 @@ from urllib.request import Request, urlopen
 
 # Make the shared supabase helper importable.
 sys.path.insert(0, str(Path(__file__).parent))
-from _supabase_client import upsert_health_metric, insert_agent_run  # noqa: E402
+from _supabase_client import (  # noqa: E402
+    bulk_upsert_health_metrics,
+    insert_agent_run,
+)
 
 TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 MEASURE_URL = "https://wbsapi.withings.net/measure"
@@ -151,6 +154,7 @@ def main() -> int:
     written = 0
     failed = 0
     error: str | None = None
+    rows: list[dict[str, Any]] = []  # Phase 3 perf: batched once at end
 
     try:
         tokens = _refresh_if_needed(_load_tokens())
@@ -181,19 +185,21 @@ def main() -> int:
                     continue
                 metric, unit, _scale = MEASURE_TYPES[meastype]
                 value = float(value_raw) * (10 ** int(unit_exp))
-                ok = upsert_health_metric(
-                    metric=metric,
-                    value=value,
-                    unit=unit,
-                    source="withings",
-                    source_id=f"withings-{grp_id}-{meastype}",
-                    measured_at_iso=measured_at,
-                    details=None,
-                )
-                if ok:
-                    written += 1
-                else:
-                    failed += 1
+                rows.append({
+                    "user_id": os.environ["PERCH_USER_ID"],
+                    "metric": metric,
+                    "value": value,
+                    "unit": unit,
+                    "source": "withings",
+                    "source_id": f"withings-{grp_id}-{meastype}",
+                    "measured_at": measured_at,
+                    "details": None,
+                })
+
+        # Single bulk POST instead of N×100ms round-trips. ~87 metrics
+        # × 100ms = 9s previously; now one ~250ms request.
+        if rows:
+            written, failed = bulk_upsert_health_metrics(rows)
 
     except (HTTPError, URLError) as e:
         error = f"{type(e).__name__}: {e}"
