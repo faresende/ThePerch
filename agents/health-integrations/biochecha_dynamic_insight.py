@@ -493,6 +493,294 @@ def score_reflective_morning(state: AppState) -> Optional[CategoryResult]:
     )
 
 
+# ─── Midday categories ──────────────────────────────────────────────
+
+
+def score_anticipatory_lunch_window(state: AppState) -> Optional[CategoryResult]:
+    """Midday slot. Fires when calendar's busy in next 4h AND today's
+    calories are <40% of target AND it's still before 14:00 local."""
+    if state.slot != "midday":
+        return None
+    if state.now.hour >= 14:
+        return None
+    end_window = state.now + timedelta(hours=4)
+    events_in_window = [e for e in state.today_calendar_remaining
+                        if state.now <= e.start <= end_window]
+    if len(events_in_window) < 2:
+        return None
+    consumed_cal = sum(m.calories for m in state.today_meals)
+    target_cal = state.today_targets.calories
+    if target_cal <= 0:
+        return None
+    cal_ratio = consumed_cal / target_cal
+    if cal_ratio >= 0.4:
+        return None  # not enough deficit to call out
+    score = 0.7 + min(0.3, (0.4 - cal_ratio) * 1.0)  # bigger deficit → higher score
+    return CategoryResult(
+        category="anticipatory_lunch_window",
+        score=min(score, 1.0),
+        fact_bundle={
+            "events_in_next_4h": len(events_in_window),
+            "first_event_title": events_in_window[0].title,
+            "first_event_starts_in_min": int(
+                (events_in_window[0].start - state.now).total_seconds() / 60
+            ),
+            "consumed_calories": int(consumed_cal),
+            "target_calories": int(target_cal),
+            "calories_pct": round(cal_ratio * 100, 1),
+            "consumed_protein": round(sum(m.protein for m in state.today_meals), 1),
+            "target_protein": int(state.today_targets.protein),
+        },
+    )
+
+
+def score_goal_pacing_protein(state: AppState) -> Optional[CategoryResult]:
+    """Midday/afternoon. Score = min(1, deficit_ratio). Returns a low-score
+    result when on-track to keep it from surfacing as a winner."""
+    if state.slot not in ("midday", "afternoon"):
+        return None
+    consumed = sum(m.protein for m in state.today_meals)
+    target = state.today_targets.protein
+    if target <= 0:
+        return None
+    deficit_ratio = max(0.0, (target - consumed) / target)
+    if deficit_ratio < 0.4:
+        # Within reach by end of day — not worth surfacing.
+        return CategoryResult(
+            category="goal_pacing_protein",
+            score=deficit_ratio * 0.5,
+            fact_bundle={"on_track": True, "consumed": round(consumed, 1), "target": int(target)},
+        )
+    score = 0.5 + (deficit_ratio - 0.4) * 0.7  # 0.4-1.0 deficit → 0.5-0.92 score
+    return CategoryResult(
+        category="goal_pacing_protein",
+        score=min(score, 1.0),
+        fact_bundle={
+            "consumed_protein": round(consumed, 1),
+            "target_protein": int(target),
+            "deficit_g": int(target - consumed),
+            "meals_logged_today": len(state.today_meals),
+        },
+    )
+
+
+def score_logistics_arriving_today(state: AppState) -> Optional[CategoryResult]:
+    """Midday/afternoon. Fires when ≥1 shipment has ETA today + not delivered."""
+    if state.slot not in ("midday", "afternoon"):
+        return None
+    today = state.now.date()
+    arriving_today = [
+        o for o in state.today_orders_in_transit
+        if o.eta_at is not None and o.eta_at.date() == today
+    ]
+    if not arriving_today:
+        return None
+    return CategoryResult(
+        category="logistics_arriving_today",
+        score=0.85 if len(arriving_today) == 1 else 0.92,
+        fact_bundle={
+            "arriving": [
+                {
+                    "merchant": o.merchant,
+                    "carrier": o.carrier,
+                    "eta_iso": o.eta_at.isoformat() if o.eta_at else None,
+                    "status": o.status,
+                }
+                for o in arriving_today
+            ],
+            "count": len(arriving_today),
+        },
+    )
+
+
+# ─── Afternoon categories ───────────────────────────────────────────
+
+
+def score_opportunistic_walk(state: AppState) -> Optional[CategoryResult]:
+    """Afternoon. Fires on rest/light day + ≥45min gap before next event."""
+    if state.slot != "afternoon":
+        return None
+    if state.workout_schedule_today not in ("rest", "light"):
+        return None
+    upcoming = [e for e in state.today_calendar_remaining if e.start > state.now]
+    next_event = upcoming[0] if upcoming else None
+    if next_event:
+        gap_min = int((next_event.start - state.now).total_seconds() / 60)
+    else:
+        gap_min = 240  # treat "free rest of day" as plenty of room
+    if gap_min < 45:
+        return None
+    score = 0.6 + min(0.35, gap_min / 300)  # bigger gap → slightly higher
+    return CategoryResult(
+        category="opportunistic_walk",
+        score=min(score, 1.0),
+        fact_bundle={
+            "gap_min": gap_min,
+            "workout_schedule": state.workout_schedule_today,
+            "next_event_title": next_event.title if next_event else None,
+            "next_event_starts_at": next_event.start.isoformat() if next_event else None,
+        },
+    )
+
+
+def score_opportunistic_workout(state: AppState) -> Optional[CategoryResult]:
+    """Afternoon. Fires when today is a training day with a meaningful
+    calendar gap. Encourages doing the scheduled workout if it hasn't
+    happened yet."""
+    if state.slot != "afternoon":
+        return None
+    if state.workout_schedule_today not in ("training",):
+        return None
+    upcoming = [e for e in state.today_calendar_remaining if e.start > state.now]
+    if not upcoming:
+        return None
+    gap_min = int((upcoming[0].start - state.now).total_seconds() / 60)
+    if gap_min < 75:
+        return None  # not enough for a session
+    return CategoryResult(
+        category="opportunistic_workout",
+        score=0.7,
+        fact_bundle={
+            "gap_min": gap_min,
+            "next_event_title": upcoming[0].title,
+            "next_event_starts_at": upcoming[0].start.isoformat(),
+        },
+    )
+
+
+def score_goal_pacing_calories(state: AppState) -> Optional[CategoryResult]:
+    """Midday/afternoon. Surfaces when consumed calories are
+    >120% of target proportional-to-time-of-day OR <70% by mid-afternoon."""
+    if state.slot not in ("midday", "afternoon"):
+        return None
+    consumed = sum(m.calories for m in state.today_meals)
+    target = state.today_targets.calories
+    if target <= 0:
+        return None
+    # Proportional target: assume even distribution across 16 waking hours
+    waking_hours_so_far = max(1, state.now.hour - 6)
+    expected = target * (waking_hours_so_far / 16)
+    ratio = consumed / max(1, expected)
+    if 0.7 <= ratio <= 1.2:
+        return None  # in normal band
+    score = min(0.9, abs(ratio - 1.0) * 0.8)
+    return CategoryResult(
+        category="goal_pacing_calories",
+        score=score,
+        fact_bundle={
+            "consumed": int(consumed),
+            "expected_by_now": int(expected),
+            "target_today": int(target),
+            "direction": "ahead" if ratio > 1.2 else "behind",
+        },
+    )
+
+
+def score_goal_pacing_steps(state: AppState) -> Optional[CategoryResult]:
+    """Stub for v1 — no step source ingested yet. Returns None.
+    Wired into ranker so categories list is complete; will activate
+    when avg_steps_last_7_at_this_hour > 0."""
+    if state.avg_steps_last_7_at_this_hour <= 0:
+        return None
+    # Placeholder shape if/when steps land:
+    return None  # no actual signal source in v1
+
+
+def score_anomaly_recent_pattern(state: AppState) -> Optional[CategoryResult]:
+    """Cross-slot. Detects multi-day deviations: short-night streak,
+    HRV trending, recent dietary shifts."""
+    facts: dict[str, Any] = {}
+    score = 0.0
+
+    # Short-night streak (also looked at by reflective_morning, but
+    # this surfaces it in midday/afternoon/evening too).
+    if state.sleep_last_7:
+        threshold_min = 6 * 60
+        streak = 0
+        for night in reversed(state.sleep_last_7):
+            if night.duration_min is not None and night.duration_min < threshold_min:
+                streak += 1
+            else:
+                break
+        if streak >= 3:
+            score = max(score, 0.6 + min(0.3, (streak - 3) * 0.1))
+            facts["pattern"] = "short_night_streak"
+            facts["streak_days"] = streak
+
+    if score <= 0:
+        return None
+    return CategoryResult(
+        category="anomaly_recent_pattern",
+        score=min(score, 1.0),
+        fact_bundle=facts,
+    )
+
+
+# ─── Evening categories ─────────────────────────────────────────────
+
+
+def score_recap_day(state: AppState) -> Optional[CategoryResult]:
+    """Evening only. Always 1.0 — the slot's purpose is recap."""
+    if state.slot != "evening":
+        return None
+    consumed_cal = int(sum(m.calories for m in state.today_meals))
+    consumed_prot = round(sum(m.protein for m in state.today_meals), 1)
+    return CategoryResult(
+        category="recap_day",
+        score=1.0,
+        fact_bundle={
+            "meals_logged": len(state.today_meals),
+            "consumed_calories": consumed_cal,
+            "target_calories": int(state.today_targets.calories),
+            "consumed_protein": consumed_prot,
+            "target_protein": int(state.today_targets.protein),
+            "workout_today": state.workout_schedule_today,
+            "events_today": len(state.today_calendar_remaining),
+            "shipments_active": len(state.today_orders_in_transit),
+        },
+    )
+
+
+def score_anticipatory_tomorrow(state: AppState) -> Optional[CategoryResult]:
+    """Evening only — looks at tomorrow's load. Stub returns None
+    until tomorrow-fetch lands. Intentional: keep evening focused
+    on recap_day in v1; tomorrow-anticipation is a Phase 2 nice-to-have."""
+    if state.slot != "evening":
+        return None
+    return None
+
+
+def score_reflective_evening(state: AppState) -> Optional[CategoryResult]:
+    """Evening only — analogous to reflective_morning but rear-facing.
+    Lower baseline because recap_day is the primary evening surface."""
+    if state.slot != "evening":
+        return None
+    return CategoryResult(
+        category="reflective_evening",
+        score=0.4,  # below recap_day's 1.0; secondary fallback
+        fact_bundle={"summary": "evening reflection"},
+    )
+
+
+def score_behavioral_capture_gap(state: AppState) -> Optional[CategoryResult]:
+    """Any slot. Fires when no meals logged today AND it's past
+    midday — strongly suggests capture pipeline broken."""
+    today_count = len(state.today_meals)
+    hours_into_day = state.now.hour
+    if today_count > 0 or hours_into_day < 12:
+        return None
+    score = 0.4 + min(0.4, (hours_into_day - 12) * 0.1)
+    return CategoryResult(
+        category="behavioral_capture_gap",
+        score=min(score, 1.0),
+        fact_bundle={
+            "today_meal_count": 0,
+            "hours_since_last": None,  # Phase 2 if we want yesterday's last
+            "current_hour": hours_into_day,
+        },
+    )
+
+
 # ─── Voice prompts ──────────────────────────────────────────────────
 
 
@@ -709,11 +997,36 @@ def main() -> int:
 
         candidates: list[CategoryResult] = []
         SLOT_CATEGORY_FNS: dict[str, list] = {
-            "morning": [score_reflective_morning],
-            "midday": [],
-            "afternoon": [],
-            "evening": [],
-            "event_logistics": [],
+            "morning": [
+                score_reflective_morning,
+                score_anomaly_recent_pattern,
+                score_behavioral_capture_gap,
+            ],
+            "midday": [
+                score_anticipatory_lunch_window,
+                score_goal_pacing_protein,
+                score_goal_pacing_calories,
+                score_logistics_arriving_today,
+                score_anomaly_recent_pattern,
+                score_behavioral_capture_gap,
+            ],
+            "afternoon": [
+                score_opportunistic_walk,
+                score_opportunistic_workout,
+                score_goal_pacing_protein,
+                score_goal_pacing_calories,
+                score_goal_pacing_steps,
+                score_logistics_arriving_today,
+                score_anomaly_recent_pattern,
+                score_behavioral_capture_gap,
+            ],
+            "evening": [
+                score_recap_day,
+                score_anticipatory_tomorrow,
+                score_reflective_evening,
+                score_behavioral_capture_gap,
+            ],
+            "event_logistics": [],  # populated in Phase 3
         }
         for fn in SLOT_CATEGORY_FNS.get(state.slot, []):
             r = fn(state)

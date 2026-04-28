@@ -78,5 +78,152 @@ class TestRanker(unittest.TestCase):
         self.assertEqual(winner.category, "anomaly_recent_pattern")
 
 
+from biochecha_dynamic_insight import (
+    score_anticipatory_lunch_window,
+    score_goal_pacing_protein,
+    score_logistics_arriving_today,
+    score_opportunistic_walk,
+    score_opportunistic_workout,
+    score_goal_pacing_calories,
+    score_anomaly_recent_pattern,
+    score_recap_day,
+    score_anticipatory_tomorrow,
+    score_reflective_evening,
+    score_behavioral_capture_gap,
+)
+
+
+class TestAnticipatoryLunchWindow(unittest.TestCase):
+    def test_high_score_when_busy_afternoon_and_low_calories(self):
+        state = _base_state("midday")
+        state = replace(state, now=datetime(2026, 4, 28, 12, 0, tzinfo=timezone.utc))
+        # 3 events in next 4h → busy afternoon trigger
+        state = replace(state, today_calendar_remaining=[
+            CalendarEvent(
+                start=datetime(2026, 4, 28, 14, 0, tzinfo=timezone.utc),
+                end=datetime(2026, 4, 28, 14, 30, tzinfo=timezone.utc),
+                title="Meeting 1",
+            ),
+            CalendarEvent(
+                start=datetime(2026, 4, 28, 15, 0, tzinfo=timezone.utc),
+                end=datetime(2026, 4, 28, 15, 30, tzinfo=timezone.utc),
+                title="Meeting 2",
+            ),
+            CalendarEvent(
+                start=datetime(2026, 4, 28, 16, 0, tzinfo=timezone.utc),
+                end=datetime(2026, 4, 28, 16, 30, tzinfo=timezone.utc),
+                title="Meeting 3",
+            ),
+        ])
+        # No meals → calories=0 < 40% of 2500
+        result = score_anticipatory_lunch_window(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.7)
+        self.assertEqual(result.category, "anticipatory_lunch_window")
+
+    def test_zero_when_not_midday(self):
+        state = _base_state("morning")
+        self.assertIsNone(score_anticipatory_lunch_window(state))
+
+
+class TestGoalPacingProtein(unittest.TestCase):
+    def test_score_scales_with_deficit(self):
+        state = _base_state("midday")
+        # Big deficit: 0g of 180g target.
+        result = score_goal_pacing_protein(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.5)
+
+    def test_low_score_when_on_track(self):
+        state = _base_state("midday")
+        state = replace(state, today_meals=[
+            Meal(calories=500, protein=170, carbs=40, fat=15,
+                 meal_time=datetime(2026, 4, 28, 12, 0, tzinfo=timezone.utc)),
+        ])
+        result = score_goal_pacing_protein(state)
+        self.assertLess(result.score, 0.3,
+            "near-target protein should not surface as a slot winner")
+
+
+class TestLogisticsArrivingToday(unittest.TestCase):
+    def test_high_score_when_eta_today(self):
+        state = _base_state("afternoon")
+        state = replace(state, today_orders_in_transit=[
+            OrderSummary(
+                merchant="Body & Fit", order_number="BF1429199",
+                carrier="DHL", tracking_number="CQ478942688DE",
+                eta_at=datetime(2026, 4, 28, 17, 0, tzinfo=timezone.utc),
+                status="in_transit",
+            ),
+        ])
+        result = score_logistics_arriving_today(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.8)
+        self.assertIn("arriving", result.fact_bundle)
+
+
+class TestOpportunisticWalk(unittest.TestCase):
+    def test_fires_on_rest_day_with_calendar_gap(self):
+        state = _base_state("afternoon")
+        state = replace(state,
+            now=datetime(2026, 4, 28, 15, 0, tzinfo=timezone.utc),
+            workout_schedule_today="rest",
+            today_calendar_remaining=[
+                CalendarEvent(
+                    start=datetime(2026, 4, 28, 17, 30, tzinfo=timezone.utc),
+                    end=datetime(2026, 4, 28, 18, 0, tzinfo=timezone.utc),
+                    title="Design review"),
+            ],
+        )
+        result = score_opportunistic_walk(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.7)
+        self.assertEqual(result.fact_bundle.get("gap_min"), 150)
+
+    def test_skips_when_workout_scheduled_today(self):
+        state = _base_state("afternoon")
+        state = replace(state, workout_schedule_today="training")
+        self.assertIsNone(score_opportunistic_walk(state))
+
+
+class TestAnomalyRecentPattern(unittest.TestCase):
+    def test_three_short_nights_in_a_row(self):
+        state = _base_state("morning")
+        state = replace(state, sleep_last_7=[
+            SleepNight(date="2026-04-26", duration_min=320),
+            SleepNight(date="2026-04-27", duration_min=300),
+            SleepNight(date="2026-04-28", duration_min=280),
+        ])
+        result = score_anomaly_recent_pattern(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.5)
+        self.assertIn("pattern", result.fact_bundle)
+
+
+class TestRecapDay(unittest.TestCase):
+    def test_always_eligible_in_evening(self):
+        state = _base_state("evening")
+        result = score_recap_day(state)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.score, 1.0)
+        self.assertEqual(result.category, "recap_day")
+
+    def test_skips_outside_evening(self):
+        state = _base_state("morning")
+        self.assertIsNone(score_recap_day(state))
+
+
+class TestBehavioralCaptureGap(unittest.TestCase):
+    def test_fires_when_no_meals_logged_today(self):
+        state = _base_state("evening")
+        state = replace(state, now=datetime(2026, 4, 28, 20, 0, tzinfo=timezone.utc))
+        # No today_meals at 20:00 — capture is broken or skipped.
+        result = score_behavioral_capture_gap(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.5)
+        self.assertEqual(result.fact_bundle.get("hours_since_last"), None)
+        self.assertEqual(result.fact_bundle.get("today_meal_count"), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
