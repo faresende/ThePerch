@@ -134,6 +134,12 @@ struct SettingsTab: View {
             }
 
             NavigationLink {
+                MerchantRulesView()
+            } label: {
+                Label("Auto-learned rules", systemImage: "wand.and.stars")
+            }
+
+            NavigationLink {
                 DebugAdminView()
             } label: {
                 Label("Debug & Advanced", systemImage: "ant")

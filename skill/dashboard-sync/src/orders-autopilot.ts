@@ -9,6 +9,7 @@
 
 import { spawn } from 'node:child_process';
 import { supabase } from './supabase';
+import { lookupMerchantRule } from './merchant-rules';
 import {
   classifyEmail,
   extractOrderFields,
@@ -161,6 +162,44 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
         match_axis: learned.matched_on,
         merchant: learned.merchant_name ?? null,
       });
+    }
+
+    // Phase-2 short-circuit: consult merchant_rules BEFORE the classifier
+    // (and even before the quoted-prior-order check — domain-blocked
+    // emails should never run any expensive work). Auto-promoted rules
+    // come from `not_an_order` corrections piling up on a sender_domain;
+    // user-created rules (Settings → Auto-learned rules) ride the same
+    // table.
+    //
+    // Best-effort: any failure falls through to normal classification.
+    // The action vocabulary is small for v1:
+    //   - skip_purchase  → exit with action='skipped' (no order, no review)
+    //   - require_review → still exit early, but route to a review_item
+    //     so the user gets to confirm-or-dismiss instead of auto-creating.
+    //     v1 implements skip_purchase only; require_review path is
+    //     stubbed for the user-created rules feature.
+    if (userIdForTelemetry) {
+      try {
+        const rule = await lookupMerchantRule(userIdForTelemetry, senderEmail);
+        if (rule) {
+          tracer.recordMerchantRuleApplied(rule.rule_id);
+          tracer.recordShortCircuit(`merchant_rule:${rule.action}`);
+          await writeTelemetry(
+            telemetry,
+            'skipped',
+            `Skipped by merchant rule (${rule.match_kind}=${rule.match_value}, action=${rule.action})`,
+          );
+          return {
+            success: true,
+            type: 'other',
+            action: 'skipped',
+            detail: `Merchant rule short-circuit: ${rule.match_kind}=${rule.match_value}`,
+            confidence: 0,
+          };
+        }
+      } catch (err) {
+        console.warn('[orders-autopilot] merchant_rules lookup skipped:', (err as Error).message);
+      }
     }
 
     // Phase-1 short-circuit: detect Topfoams-style replies that quote a
