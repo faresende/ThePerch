@@ -93,8 +93,17 @@ def _supabase_post(path: str, body: bytes, headers_extra: dict | None = None) ->
     if headers_extra:
         headers.update(headers_extra)
     req = Request(f"{url}/rest/v1/{path}", data=body, method="POST", headers=headers)
-    with urlopen(req, timeout=15) as resp:
-        return resp.status
+    try:
+        with urlopen(req, timeout=15) as resp:
+            return resp.status
+    except HTTPError as e:
+        # PostgREST puts the actual error reason in the response body —
+        # surface it so 4xx/5xx debugging doesn't require curl reproduction.
+        try:
+            detail = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            detail = ""
+        raise RuntimeError(f"POST {path} HTTP {e.code}: {detail[:500]}") from e
 
 
 def _supabase_delete(path: str) -> int:
