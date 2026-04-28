@@ -9,14 +9,14 @@ struct HealthSummaryHomeCard: View {
     /// Last 7 nights of sleep_duration_min, oldest first. Drives the
     /// sparkline. Empty when no data yet.
     var sleepHistory: [DashboardViewModel.SleepNight] = []
-    /// When true, the parent forces compact mode (e.g. afternoon/evening).
+    /// Legacy parameter retained so call sites that pass `compact:`
+    /// keep compiling. Ignored — the card always renders expanded
+    /// now (graph + metrics + phrase). The previous tap-to-collapse
+    /// behaviour was confusing: the card landed collapsed by default,
+    /// hiding the sleep graph behind an unmarked tap target.
     var compact: Bool = false
 
-    @AppStorage("card_compact_health") private var userCompact = false
     @Environment(\.perchPalette) private var palette
-
-    /// Effective compact state: forced by time-of-day OR user toggle
-    private var isCompact: Bool { compact || userCompact }
 
     private var healthRecords: [MeasurementData] {
         records
@@ -46,63 +46,41 @@ struct HealthSummaryHomeCard: View {
             .max()
     }
 
-    /// Compact summary text for single-line display
-    private var compactSummary: String {
-        var parts: [String] = []
-        if let s = sleepDuration { parts.append("\(formatHours(s.value)) sleep") }
-        if let r = readiness { parts.append("\(Int(r.value)) readiness") }
-        return parts.joined(separator: " · ")
-    }
 
     var body: some View {
         TodayCard {
-            Button {
-                PerchHaptics.selection()
-                PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.3)) {
-                    userCompact.toggle()
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 0) {
-                    TodayEyebrow(
-                        label: "HEALTH · OVERNIGHT",
-                        accent: palette.wellness,
-                        freshness: freshnessText
-                    )
+            VStack(alignment: .leading, spacing: 0) {
+                TodayEyebrow(
+                    label: "HEALTH · OVERNIGHT",
+                    accent: palette.wellness,
+                    freshness: freshnessText
+                )
 
-                    if !hasData {
-                        Text("Waiting for sleep data…")
-                            .font(PerchTheme.Font.body)
-                            .foregroundColor(palette.faint)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 4)
-                    } else if isCompact {
-                        Text(compactSummary)
-                            .font(PerchTheme.Font.body)
+                if !hasData {
+                    Text("Waiting for sleep data…")
+                        .font(PerchTheme.Font.body)
+                        .foregroundColor(palette.faint)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 4)
+                } else {
+                    healthPhrase
+                        .padding(.bottom, 16)
+                    metricsRow
+                    if !sleepHistory.isEmpty {
+                        sleepGraph
+                            .padding(.top, 14)
+                    }
+                    if let score = sleepScore {
+                        Text(scoreLabel(score.value))
+                            .font(.system(size: 12))
                             .foregroundColor(palette.muted)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        healthPhrase
-                            .padding(.bottom, 16)
-                        metricsRow
-                        if !sleepHistory.isEmpty {
-                            sleepGraph
-                                .padding(.top, 14)
-                        }
-                        if let score = sleepScore {
-                            Text(scoreLabel(score.value))
-                                .font(.system(size: 12))
-                                .foregroundColor(palette.muted)
-                                .padding(.top, 12)
-                                .lineLimit(2)
-                        }
+                            .padding(.top, 12)
+                            .lineLimit(2)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(CardPressStyle())
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .animation(.easeInOut(duration: 0.3), value: isCompact)
     }
 
     /// "5:42 am" freshness stamp derived from most recent measurement.
