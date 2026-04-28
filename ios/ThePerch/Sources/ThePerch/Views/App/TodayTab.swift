@@ -94,13 +94,6 @@ struct TodayTab: View {
                                 .cardAppear(index: index + 1, appeared: cardsAppeared)
                         }
 
-                        // 4. Signoff — "— end of today —"
-                        Text("— end of today —")
-                            .font(PerchTheme.Font.signoff)
-                            .foregroundColor(palette.faint)
-                            .tracking(0.4)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 8)
                     }
                 }
                 .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
@@ -142,7 +135,11 @@ struct TodayTab: View {
     private func homeCard(for cardType: HomeCardType, compactHealth: Bool, records: [Record], deliveries: [DeliveryData]) -> some View {
         switch cardType {
         case .healthSummary:
-            HealthSummaryHomeCard(records: records, compact: compactHealth)
+            HealthSummaryHomeCard(
+                records: records,
+                sleepHistory: dashboardViewModel.recentSleepDurations,
+                compact: compactHealth
+            )
         case .calendarToday:
             CalendarTodayCard(records: records, eventKitEvents: dashboardViewModel.eventKitEvents)
         case .calendarTomorrow:
@@ -151,12 +148,6 @@ struct TodayTab: View {
             NutritionHomeCard(records: records)
         case .deliveries:
             DeliveryHomeCard(deliveries: deliveries)
-        case .medications:
-            MedicationsCard(records: records)
-        case .weather:
-            WeatherCompactCard(records: records)
-        case .emailSummary:
-            EmailSummaryCard(records: records)
         }
     }
 

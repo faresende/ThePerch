@@ -267,12 +267,6 @@ struct HomeView: View {
             NutritionHomeCard(records: viewModel.records)
         case .deliveries:
             DeliveryHomeCard(deliveries: viewModel.trackedDeliveries)
-        case .medications:
-            MedicationsCard(records: viewModel.records)
-        case .weather:
-            WeatherCompactCard(records: viewModel.records)
-        case .emailSummary:
-            EmailSummaryCard(records: viewModel.records)
         }
     }
 

@@ -6,6 +6,9 @@ import SwiftUI
 /// Data: filters records where category == .health, type == .measurement.
 struct HealthSummaryHomeCard: View {
     let records: [Record]
+    /// Last 7 nights of sleep_duration_min, oldest first. Drives the
+    /// sparkline. Empty when no data yet.
+    var sleepHistory: [DashboardViewModel.SleepNight] = []
     /// When true, the parent forces compact mode (e.g. afternoon/evening).
     var compact: Bool = false
 
@@ -81,6 +84,10 @@ struct HealthSummaryHomeCard: View {
                         healthPhrase
                             .padding(.bottom, 16)
                         metricsRow
+                        if !sleepHistory.isEmpty {
+                            sleepGraph
+                                .padding(.top, 14)
+                        }
                         if let score = sleepScore {
                             Text(scoreLabel(score.value))
                                 .font(.system(size: 12))
@@ -109,6 +116,56 @@ struct HealthSummaryHomeCard: View {
     private var healthPhrase: some View {
         let recoveryPct = Int(readiness?.value ?? sleepScore?.value ?? 0)
         TodayPhrase(text: PerchPhrase.healthPhrase(recovery: recoveryPct))
+    }
+
+    /// Sleep duration sparkline — 7 nights, bars sized to relative
+    /// duration. Colored by Editorial Linen wellness tone for "good"
+    /// (>= 7h) and a muted faint for "short" (< 6h). Latest night
+    /// (rightmost bar) gets a subtle ring so it's clearly the
+    /// "tonight just past."
+    @ViewBuilder
+    private var sleepGraph: some View {
+        let nights = sleepHistory
+        // Normalize to a target band 5-9 hours so bars are
+        // comparable across users without exaggerating the lows.
+        let minMin: Double = 5 * 60
+        let maxMin: Double = 9 * 60
+        VStack(alignment: .leading, spacing: 6) {
+            Text("LAST 7 NIGHTS")
+                .font(.system(size: 9.5))
+                .tracking(0.8)
+                .foregroundColor(palette.faint)
+            HStack(alignment: .bottom, spacing: 6) {
+                ForEach(Array(nights.enumerated()), id: \.offset) { idx, night in
+                    let clamped = max(minMin, min(maxMin, night.minutes))
+                    let frac = (clamped - minMin) / max(1, maxMin - minMin)
+                    let isLatest = idx == nights.count - 1
+                    let isShort = night.minutes < 6 * 60
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(isShort ? palette.faint : palette.wellness)
+                            .frame(height: max(6, 44 * frac))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .stroke(palette.ink.opacity(isLatest ? 0.35 : 0), lineWidth: 1)
+                            )
+                            .frame(maxHeight: 44, alignment: .bottom)
+                        Text(weekdayLetter(night.date))
+                            .font(.system(size: 9, weight: isLatest ? .semibold : .regular))
+                            .foregroundColor(isLatest ? palette.ink : palette.faint)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 60)
+        }
+    }
+
+    private func weekdayLetter(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = .autoupdatingCurrent
+        f.dateFormat = "EEEEE"  // single-letter weekday (M, T, W…)
+        return f.string(from: date)
     }
 
     /// Three metrics in a horizontal row: SLEEP / RECOVERY / READINESS.

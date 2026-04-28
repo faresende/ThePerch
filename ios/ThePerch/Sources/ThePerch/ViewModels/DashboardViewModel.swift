@@ -1,5 +1,7 @@
 import Foundation
 import Observation
+import Supabase
+import PostgREST
 
 // MARK: - DashboardViewModel
 
@@ -40,6 +42,17 @@ final class DashboardViewModel {
     /// Today tab. Nil before the agent has run for the day (typical
     /// pre-7am state) — the card shows an empty state in that case.
     private(set) var todayInsight: Insight?
+
+    /// Last 7 nights of sleep duration in minutes, oldest first.
+    /// Drives the sparkline on HealthSummaryHomeCard. Read directly
+    /// from health_metrics (sleep_duration_min, source=8sleep).
+    /// Empty when no data yet (early-days state).
+    private(set) var recentSleepDurations: [SleepNight] = []
+
+    struct SleepNight: Sendable, Equatable {
+        let date: Date          // start-of-day (UTC) of the night ending
+        let minutes: Double
+    }
 
     /// Events read live from the device's Calendar via EventKit. Separate
     /// from `calendarRecords` (which is agent-populated via Mac cron) so
@@ -151,6 +164,10 @@ final class DashboardViewModel {
             do { return .success(try await insightsService.fetchTodayDailyInsight()) }
             catch { return .failure(error) }
         }()
+        async let sleepHistoryResult: Result<[SleepNight], Error> = {
+            do { return .success(try await self.fetchRecentSleepDurations(days: 7)) }
+            catch { return .failure(error) }
+        }()
 
         let (sections, widgets, records, bookmarkRecords, trackedOrders) = await (
             sectionsResult,
@@ -169,6 +186,16 @@ final class DashboardViewModel {
             // Insights are non-load-bearing for the rest of the app —
             // a failure here shouldn't surface as an error banner.
             // Just leave todayInsight nil and the empty state renders.
+        }
+
+        switch await sleepHistoryResult {
+        case .success(let nights): self.recentSleepDurations = nights
+        case .failure(let err):
+#if DEBUG
+            print("[DashboardVM] fetchRecentSleepDurations threw: \(err)")
+#endif
+            // Sleep history is also non-load-bearing — health card
+            // renders a "no data" sparkline state when empty.
         }
 
         switch sections {
@@ -227,7 +254,7 @@ final class DashboardViewModel {
         switch trackedOrders {
         case .success(let loaded):
             self.trackedOrders = loaded
-            self.trackedDeliveries = loaded.map(\.trackedDeliveryData)
+            self.trackedDeliveries = Self.activeForToday(loaded).map(\.trackedDeliveryData)
             syncDeliveryLiveActivities()
         case .failure(let err):
 #if DEBUG
@@ -260,15 +287,15 @@ final class DashboardViewModel {
             if let index = trackedOrders.firstIndex(where: { $0.id == uuid }) {
                 let updated = trackedOrders[index]
                 self.trackedOrders[index] = updated  // force observer tick
-                self.trackedDeliveries = self.trackedOrders
-                    .filter { !$0.order.isManuallyDelivered || $0.id != uuid }
+                self.trackedDeliveries = Self
+                    .activeForToday(self.trackedOrders)
                     .map(\.trackedDeliveryData)
             }
             // Then refresh the canonical state from the server.
             async let refreshed = ordersService.fetchOrders(forceRefresh: true)
             if let fresh = try? await refreshed {
                 self.trackedOrders = fresh
-                self.trackedDeliveries = fresh.map(\.trackedDeliveryData)
+                self.trackedDeliveries = Self.activeForToday(fresh).map(\.trackedDeliveryData)
                 syncDeliveryLiveActivities()
             }
         } catch {
@@ -414,7 +441,7 @@ final class DashboardViewModel {
             let merged = Self.mergeRecords(try await recentRecords, with: try await bookmarkRecords)
             allRecords = merged
             trackedOrders = try await latestOrders
-            trackedDeliveries = trackedOrders.map(\.trackedDeliveryData)
+            trackedDeliveries = Self.activeForToday(trackedOrders).map(\.trackedDeliveryData)
             syncDeliveryLiveActivities()
             error = nil
             Self.preDecodeRecords(merged)
@@ -430,6 +457,67 @@ final class DashboardViewModel {
         let combined = (primary + secondary).sorted { $0.createdAt > $1.createdAt }
         var seen = Set<UUID>()
         return combined.filter { seen.insert($0.id).inserted }
+    }
+
+    /// Fetch the last N nights of sleep_duration_min from health_metrics.
+    /// One row per metric upsert, but Withings/8sleep emit one
+    /// sleep_duration_min per night, so we just take the most recent
+    /// `days` rows. Returned oldest-first for the sparkline.
+    private func fetchRecentSleepDurations(days: Int) async throws -> [SleepNight] {
+        struct Row: Decodable {
+            let value: Double
+            let measured_at: String   // raw — measured_at is timestamptz,
+                                      // various ISO 8601 forms; parse below
+        }
+        let result = try await supabaseService.databaseClient
+            .from("health_metrics")
+            .select("value, measured_at")
+            .eq("metric", value: "sleep_duration_min")
+            .order("measured_at", ascending: false)
+            .limit(days)
+            .execute()
+        let rows = try JSONDecoder().decode([Row].self, from: result.data)
+
+        // Permissive ISO 8601 parsing — PostgREST may emit with or
+        // without fractional seconds, with `Z` or `+00:00` offset.
+        let isoFractional = ISO8601DateFormatter()
+        isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let isoBasic = ISO8601DateFormatter()
+        isoBasic.formatOptions = [.withInternetDateTime]
+        func parse(_ s: String) -> Date? {
+            isoFractional.date(from: s) ?? isoBasic.date(from: s)
+        }
+
+        return rows
+            .compactMap { row -> SleepNight? in
+                guard let d = parse(row.measured_at) else { return nil }
+                return SleepNight(date: d, minutes: row.value)
+            }
+            .sorted { $0.date < $1.date }
+    }
+
+    /// Filter `OrderWithShipments` to the set that belongs on Today's
+    /// deliveries summary. Mirrors HubTab Active section's semantics:
+    ///
+    ///   - Skip dismissed_by_user (Phase 1 corrections soft-delete)
+    ///   - Skip manually-delivered (user marked it delivered already)
+    ///   - Skip delivered (carrier confirmed)
+    ///   - Skip exception / needs_review / issue (those live in Hub
+    ///     Issues section, not the Today summary)
+    ///
+    /// Pre-correction-work behavior was to map every loaded order to
+    /// trackedDeliveries unfiltered, which silently surfaced
+    /// dismissed-by-user / digital orders on Today even though Hub
+    /// hid them. Reconciles the two surfaces.
+    private static func activeForToday(_ orders: [OrderWithShipments]) -> [OrderWithShipments] {
+        orders.filter { o in
+            if o.order.isDismissedByUser { return false }
+            if o.order.isManuallyDelivered { return false }
+            let status = (o.primaryShipment?.status ?? o.order.status).lowercased()
+            if status == "delivered" { return false }
+            if ["exception", "needs_review", "issue"].contains(status) { return false }
+            return true
+        }
     }
 
     private func resultValue(_ result: Result<[Record], Error>) -> [Record] {
