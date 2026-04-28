@@ -49,5 +49,7 @@
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>KARAKEEP_TOKEN</key>
 	<string>$(KARAKEEP_TOKEN)</string>
+	<key>KARAKEEP_BASE_URL</key>
+	<string>$(KARAKEEP_BASE_URL)</string>
 </dict>
 </plist>
