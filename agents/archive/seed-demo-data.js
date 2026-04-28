@@ -37,6 +37,10 @@ const TABLES = [
   { name: 'orders', userScoped: true },
   { name: 'health_metrics', userScoped: true },
   { name: 'insights', userScoped: true },
+  // Nutrition cards on Today read from dashboard_records, not health_metrics.
+  // Snapshot/restore the user's nutrition slice only — leave bookmarks,
+  // workouts, calendar agent-fed records, etc. alone.
+  { name: 'dashboard_records', userScoped: true, filter: { category: 'nutrition' } },
 ];
 
 async function main() {
@@ -68,13 +72,18 @@ async function snapshot(sb, userId) {
   for (const t of TABLES) {
     let q = sb.from(t.name).select('*');
     if (t.userScoped) q = q.eq('user_id', userId);
-    // Children-only tables: we can grab everything that ties to this
-    // user's orders. Cheaper to grab all rows than join — these are
-    // small tables.
+    // Per-table optional filter (e.g. dashboard_records narrowed
+    // to category=nutrition so we don't blow away unrelated rows).
+    if (t.filter) {
+      for (const [col, val] of Object.entries(t.filter)) {
+        q = q.eq(col, val);
+      }
+    }
     const { data, error } = await q;
     if (error) { console.error(`snapshot ${t.name}:`, error); process.exit(1); }
     out[t.name] = data || [];
-    console.log(`  ${t.name}: ${data.length} rows`);
+    const filterDesc = t.filter ? ` (${Object.entries(t.filter).map(([k,v]) => `${k}=${v}`).join(',')})` : '';
+    console.log(`  ${t.name}${filterDesc}: ${data.length} rows`);
   }
   fs.writeFileSync(SNAPSHOT_FILE, JSON.stringify(out, null, 2));
   console.log(`✓ snapshot saved (${(JSON.stringify(out).length / 1024).toFixed(1)} KB)`);
@@ -106,8 +115,9 @@ async function restore(sb, userId) {
   console.log('Restoring real data from snapshot…');
   await wipe(sb, userId);
   // Insert in reverse-FK order: parents (orders, health_metrics, insights) first,
-  // then children (shipments, items, corrections).
-  const order = ['orders', 'shipments', 'order_items', 'health_metrics', 'insights', 'order_corrections'];
+  // then children (shipments, items, corrections). dashboard_records last
+  // because they're independent (no FK to orders).
+  const order = ['orders', 'shipments', 'order_items', 'health_metrics', 'insights', 'order_corrections', 'dashboard_records'];
   for (const tname of order) {
     const rows = snap[tname];
     if (!rows || rows.length === 0) continue;
@@ -143,6 +153,13 @@ async function wipe(sb, userId) {
   await sb.from('orders').delete().eq('user_id', userId);
   await sb.from('health_metrics').delete().eq('user_id', userId);
   await sb.from('insights').delete().eq('user_id', userId);
+  // Nutrition slice of dashboard_records ONLY (leave bookmarks,
+  // workouts, calendar, travel, etc. alone — those are real-data
+  // sources we don't want to wipe).
+  await sb.from('dashboard_records')
+    .delete()
+    .eq('user_id', userId)
+    .eq('category', 'nutrition');
 }
 
 // ─── Demo content ────────────────────────────────────────────────────
@@ -299,8 +316,61 @@ async function insertDemo(sb, userId) {
     pinned: false,
   }]);
 
+  // 4) Nutrition records for today — feeds the Nutrition card on Today.
+  // The card reads dashboard_records (category=nutrition, type=meal) and
+  // sums calories/protein/carbs/fat. Three plausible meals + a snack so
+  // the macro bars show meaningful progress (not maxed, not empty).
+  const todayMorning = isoTodayAt(8);
+  const todayLunch = isoTodayAt(13);
+  const todaySnack = isoTodayAt(16);
+  const meals = [
+    {
+      user_id: userId,
+      type: 'meal',
+      category: 'nutrition',
+      title: 'Breakfast — oats, berries, yogurt',
+      data: {
+        calories: 420,
+        protein: 22,
+        carbs: 58,
+        fat: 11,
+        meal_time: todayMorning,
+      },
+      created_at: todayMorning,
+    },
+    {
+      user_id: userId,
+      type: 'meal',
+      category: 'nutrition',
+      title: 'Lunch — grilled chicken bowl',
+      data: {
+        calories: 640,
+        protein: 48,
+        carbs: 62,
+        fat: 18,
+        meal_time: todayLunch,
+      },
+      created_at: todayLunch,
+    },
+    {
+      user_id: userId,
+      type: 'meal',
+      category: 'nutrition',
+      title: 'Snack — apple + almond butter',
+      data: {
+        calories: 240,
+        protein: 7,
+        carbs: 28,
+        fat: 14,
+        meal_time: todaySnack,
+      },
+      created_at: todaySnack,
+    },
+  ];
+  await sb.from('dashboard_records').insert(meals);
+
   console.log(`  orders: ${orders.length}, shipments: ${shipments.length}`);
-  console.log(`  health_metrics: ${metrics.length}, insights: 1`);
+  console.log(`  health_metrics: ${metrics.length}, insights: 1, meals: ${meals.length}`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
