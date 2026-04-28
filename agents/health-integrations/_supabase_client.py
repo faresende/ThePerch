@@ -108,8 +108,18 @@ def upsert_health_metric(
         "measured_at": measured_at_iso,
         "details": details,
     }
+    # PostgREST upsert needs BOTH the resolution=merge-duplicates Prefer
+    # header AND an on_conflict query parameter pointing to the unique
+    # constraint columns. Without on_conflict, PostgREST falls back to
+    # the primary key (auto-generated UUID), which is unique on every
+    # insert — so the merge never fires and the row's actual unique
+    # constraint (user_id, source, source_id, metric) blows up on
+    # duplicate. Caught in the wild after the first re-ingest day:
+    # 87/87 inserts failed with 23505 duplicate key once rows from
+    # yesterday's run already existed.
+    on_conflict = "user_id,source,source_id,metric"
     req = Request(
-        f"{url}/rest/v1/health_metrics",
+        f"{url}/rest/v1/health_metrics?on_conflict={on_conflict}",
         data=json.dumps(payload).encode(),
         method="POST",
         headers={

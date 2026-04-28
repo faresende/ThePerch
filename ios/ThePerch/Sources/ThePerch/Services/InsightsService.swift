@@ -12,7 +12,36 @@ final class InsightsService {
     private let supabaseService: SupabaseService
     private let decoder: JSONDecoder = {
         let dec = JSONDecoder()
-        dec.dateDecodingStrategy = .iso8601
+        // Insight rows mix two date shapes:
+        //   - timestamptz columns (generated_at, shown_at, etc.) →
+        //     PostgREST returns ISO 8601 with time + offset.
+        //   - `date` column (valid_for_date) → PostgREST returns
+        //     bare "YYYY-MM-DD".
+        // The .iso8601 strategy throws on the bare-date form, which
+        // killed the whole insight decode silently and left the
+        // Today tab stuck on the "BioChecha takes the morning…"
+        // empty state. Custom strategy: try ISO 8601 first, fall
+        // back to "yyyy-MM-dd" for the date-only column.
+        let isoFmt = ISO8601DateFormatter()
+        isoFmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let isoFmtNoFrac = ISO8601DateFormatter()
+        isoFmtNoFrac.formatOptions = [.withInternetDateTime]
+        let dateOnly = DateFormatter()
+        dateOnly.calendar = Calendar(identifier: .iso8601)
+        dateOnly.locale = Locale(identifier: "en_US_POSIX")
+        dateOnly.timeZone = TimeZone(secondsFromGMT: 0)
+        dateOnly.dateFormat = "yyyy-MM-dd"
+        dec.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let raw = try container.decode(String.self)
+            if let d = isoFmt.date(from: raw) { return d }
+            if let d = isoFmtNoFrac.date(from: raw) { return d }
+            if let d = dateOnly.date(from: raw) { return d }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unrecognized date format: \(raw)"
+            )
+        }
         return dec
     }()
 
