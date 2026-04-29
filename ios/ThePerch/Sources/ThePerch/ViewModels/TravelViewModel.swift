@@ -10,38 +10,49 @@ import Observation
 final class TravelViewModel {
     // MARK: - Properties
 
-    var records: [Record] = []
+    var records: [Record] = [] {
+        didSet { recomputeTrips() }
+    }
 
-    // MARK: - Trip Records
+    // MARK: - Trip Records (cached on records mutation)
+    //
+    // HubTab.body reads `currentTrip` 3+ times per render (visibleSegments,
+    // TabView decision, segment disable). Previous version did 3 full
+    // compactMap+sort passes over `records`. Now: one pass per records-set,
+    // O(1) reads thereafter.
 
-    /// All trip records, sorted by start date (upcoming first).
-    var trips: [(Record, TripData)] {
-        records.compactMap { record -> (Record, TripData)? in
+    private var _trips: [(Record, TripData)] = []
+    private var _activeTrip: (Record, TripData)?
+    private var _upcomingTrip: (Record, TripData)?
+    private var _pastTrips: [(Record, TripData)] = []
+
+    private func recomputeTrips() {
+        let mapped = records.compactMap { record -> (Record, TripData)? in
             guard let trip = record.asTrip() else { return nil }
             return (record, trip)
-        }.sorted { ($0.1.startDateParsed ?? .distantFuture) < ($1.1.startDateParsed ?? .distantFuture) }
-    }
-
-    /// The currently active trip, if any.
-    var activeTrip: (Record, TripData)? {
-        trips.first { $0.1.effectiveStatus == "active" }
-    }
-
-    /// The next upcoming trip (not yet active).
-    var upcomingTrip: (Record, TripData)? {
-        trips.first { $0.1.effectiveStatus == "upcoming" }
-    }
-
-    /// The most relevant trip: active takes priority, then upcoming.
-    var currentTrip: (Record, TripData)? {
-        activeTrip ?? upcomingTrip
-    }
-
-    /// Past trips, most recent first.
-    var pastTrips: [(Record, TripData)] {
-        trips.filter { $0.1.effectiveStatus == "completed" }
+        }
+        _trips = mapped.sorted { ($0.1.startDateParsed ?? .distantFuture) < ($1.1.startDateParsed ?? .distantFuture) }
+        _activeTrip = _trips.first { $0.1.effectiveStatus == "active" }
+        _upcomingTrip = _trips.first { $0.1.effectiveStatus == "upcoming" }
+        _pastTrips = _trips
+            .filter { $0.1.effectiveStatus == "completed" }
             .sorted { ($0.1.startDateParsed ?? .distantPast) > ($1.1.startDateParsed ?? .distantPast) }
     }
+
+    /// All trip records, sorted by start date (upcoming first).
+    var trips: [(Record, TripData)] { _trips }
+
+    /// The currently active trip, if any.
+    var activeTrip: (Record, TripData)? { _activeTrip }
+
+    /// The next upcoming trip (not yet active).
+    var upcomingTrip: (Record, TripData)? { _upcomingTrip }
+
+    /// The most relevant trip: active takes priority, then upcoming.
+    var currentTrip: (Record, TripData)? { _activeTrip ?? _upcomingTrip }
+
+    /// Past trips, most recent first.
+    var pastTrips: [(Record, TripData)] { _pastTrips }
 
     // MARK: - Itinerary
 

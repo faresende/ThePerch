@@ -119,8 +119,19 @@ async function handleCorrect(
   input: Record<string, unknown>,
 ): Promise<Response> {
   const request = normalizeCorrectRequest(input);
+  // IDOR guard: pass the authenticated user_id (set by serve() above
+  // from the JWT) into the service so it can verify the target record
+  // belongs to this caller before letting the LLM rewrite it.
+  const authedUserId = String((input as Record<string, unknown>).user_id ?? '');
+  if (!authedUserId) {
+    throw new HttpError(401, 'Missing authenticated user_id');
+  }
   try {
-    const updated = await correctAndLearnRecord(supabase, request, { correctMeal });
+    const updated = await correctAndLearnRecord(
+      supabase,
+      { ...request, user_id: authedUserId },
+      { correctMeal },
+    );
     return jsonResponse({ record: updated });
   } catch (error) {
     if (error instanceof Error && error.message === 'Meal record not found') {

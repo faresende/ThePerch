@@ -14,7 +14,7 @@ Any task involving package tracking, delivery status, the Orders tab in the iOS 
 
 The Perch has two parallel delivery tracking pipelines, reflecting its historical evolution. Understanding why they are separate is key to working with this feature.
 
-**Pipeline 1 (Canonical)**: Orders and shipments are tracked in dedicated `orders` + `shipments` tables. This is the authoritative source for tracked packages shown in the Orders tab. Ingestion runs through the JMAP listener (`sandbox/fastmail-jmap/orders_ingest_hook.py`) which calls `skill/dashboard-sync/cli.js process-email`; `scripts/orders_ingest_catchup.py` is the 12h catchup safety net. 17track handles ongoing tracking updates.
+**Pipeline 1 (Canonical)**: Orders and shipments are tracked in dedicated `orders` + `shipments` tables. This is the authoritative source for tracked packages shown in the Orders tab. The in-repo ingestion path is `scripts/orders_ingest_catchup.py` (30-min cron); a real-time external JMAP listener that shells into `skill/dashboard-sync/cli.js process-email` is optional. 17track handles ongoing tracking updates.
 
 **Pipeline 2 (Legacy)**: A parallel delivery surface uses `dashboard_records` with `category=deliveries`. This powers the Deliveries card on the Home screen. It was the original implementation before the canonical orders pipeline existed. The two pipelines are kept in sync via `OrderWithShipments.trackedDeliveryData`, which projects the canonical model into the legacy dashboard_records shape.
 
@@ -126,7 +126,7 @@ Attributes are defined in `PerchSharedKit/DeliveryActivityAttributes.swift` and 
 
 - Supabase project with `orders`, `shipments`, and `dashboard_records` tables available
 - Fastmail JMAP credentials for automatic email ingestion
-- JMAP listener (`sandbox/fastmail-jmap/orders_ingest_hook.py`) wired to call `skill/dashboard-sync/cli.js process-email` on new commerce email; `scripts/orders_ingest_catchup.py` available as the 12h catchup safety net
+- `scripts/orders_ingest_catchup.py` registered as a 30-minute cron (canonical in-repo path); an optional external JMAP listener can also call `skill/dashboard-sync/cli.js process-email` for real-time ingestion
 - Optional 17track credentials if live carrier polling is enabled
 
 ### Step-by-step

@@ -11,26 +11,42 @@ struct BookmarksView: View {
     @State private var viewModel = BookmarksViewModel()
     @State private var selectedTab: BookmarkSource = .karakeep
 
+    /// Cached snapshot of the paperless-tab bookmark partition. Recomputed
+    /// via `.onChange` on the inputs that affect it (records, searchQuery,
+    /// selectedTags, selectedTab). Previous version recomputed the whole
+    /// thing on every body invalidation — at 802 bookmarks that was
+    /// ~80–250 ms of asBookmark()-and-filter work per render, multiplied
+    /// by the 4+ reads from body (allTags, tabCount, paperlessContent's
+    /// pending/processed/filtered).
+    @State private var paperlessSnapshot: BookmarkSnapshot = .empty
+
+    private struct BookmarkSnapshot: Equatable {
+        var allTags: [String]
+        var filtered: [Record]
+        var pending: [Record]
+        var processed: [Record]
+
+        static let empty = BookmarkSnapshot(allTags: [], filtered: [], pending: [], processed: [])
+    }
+
     private var records: [Record] { dashboardViewModel.bookmarkRecords }
 
-    // MARK: - Filtered Data (single-pass decode)
+    /// Cheap fingerprint used by `.onChange` to detect when we need to
+    /// rebuild `paperlessSnapshot`. Avoids the cost of full-array
+    /// equality comparisons on every body invalidation.
+    private var paperlessFingerprint: String {
+        "\(records.count)|\(records.last?.id.uuidString ?? "")|\(records.last?.updatedAt.timeIntervalSince1970 ?? 0)|\(viewModel.searchQuery)|\(viewModel.selectedTags.sorted().joined(separator: ","))|\(selectedTab.rawValue)"
+    }
 
-    /// Pre-computed bookmark view data: decodes each record once, then filters/partitions.
-    private var bookmarkData: (
-        allTags: [String],
-        filtered: [Record],
-        pending: [Record],
-        processed: [Record]
-    ) {
-        // Karakeep tab uses BookmarksViewModel (direct API) — handled separately below
-        // Paperless tab uses Record-based decoding (existing architecture)
+    private func recomputePaperlessSnapshot() {
         guard selectedTab == .paperless else {
-            // Return empty — Karakeep tab renders from viewModel directly
-            return ([], [], [], [])
+            if paperlessSnapshot != .empty { paperlessSnapshot = .empty }
+            return
         }
 
         // Step 1: filter to active tab (single decode per record)
         var tabRecords: [(Record, BookmarkData)] = []
+        tabRecords.reserveCapacity(records.count)
         for record in records {
             guard let bookmark = record.asBookmark() else { continue }
             let source = bookmark.source ?? .karakeep
@@ -69,8 +85,16 @@ struct BookmarksView: View {
             }
         }
 
-        return (sortedTags, filtered, pending, processed)
+        let next = BookmarkSnapshot(
+            allTags: sortedTags, filtered: filtered,
+            pending: pending, processed: processed
+        )
+        if next != paperlessSnapshot { paperlessSnapshot = next }
     }
+
+    /// Backward-compat shim: existing body code reads `bookmarkData.X`.
+    /// Swap each access to read from the cached `paperlessSnapshot`.
+    private var bookmarkData: BookmarkSnapshot { paperlessSnapshot }
 
     private var karakeepData: (
         allTags: [String],
@@ -93,14 +117,13 @@ struct BookmarksView: View {
     }
 
     /// Whether the current tab has any records (before search/tag filter).
+    /// For paperless, derives from the cached snapshot (allTags/filtered)
+    /// rather than redoing a full asBookmark() scan per body.
     private var tabHasRecords: Bool {
         if selectedTab == .karakeep {
             return viewModel.karakeepTabHasRecords
         }
-        return records.contains { record in
-            guard let bookmark = record.asBookmark() else { return false }
-            return (bookmark.source ?? .karakeep) == selectedTab
-        }
+        return !paperlessSnapshot.allTags.isEmpty || !paperlessSnapshot.filtered.isEmpty
     }
 
     var body: some View {
@@ -253,6 +276,10 @@ struct BookmarksView: View {
             if !viewModel.hasLoaded {
                 Task { await viewModel.loadBookmarks() }
             }
+            recomputePaperlessSnapshot()
+        }
+        .onChange(of: paperlessFingerprint) { _, _ in
+            recomputePaperlessSnapshot()
         }
     }
 

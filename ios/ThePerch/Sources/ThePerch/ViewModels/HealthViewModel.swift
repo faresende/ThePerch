@@ -11,7 +11,9 @@ import Observation
 final class HealthViewModel {
     // MARK: - Properties
 
-    var records: [Record] = []
+    var records: [Record] = [] {
+        didSet { recomputeMetricCaches() }
+    }
     var isSyncing: Bool = false
     var syncError: String?
     var lastSyncDate: Date?
@@ -98,13 +100,48 @@ final class HealthViewModel {
 
     // MARK: - Computed Properties
 
-    /// Returns all records for a given metric key, sorted chronologically (oldest first for charts).
-    func recordsForMetric(_ metric: String) -> [Record] {
-        records.filter { $0.asMeasurement()?.metric == metric }
-            .sorted {
+    /// Cache invalidated on every `records` mutation. Body reads of
+    /// `latestByMetric` (4×) and `recordsForMetric` (7×) used to do a
+    /// full O(n) pass over 1000+ records every render. Now: one pass
+    /// per records-set, O(1) lookups thereafter.
+    private var _latestByMetric: [String: (Record, MeasurementData)] = [:]
+    private var _recordsByMetric: [String: [Record]] = [:]
+
+    private func recomputeMetricCaches() {
+        var latest: [String: (Record, MeasurementData, Date)] = [:]
+        var byMetric: [String: [Record]] = [:]
+
+        for record in records {
+            guard let measurement = record.asMeasurement() else { continue }
+            byMetric[measurement.metric, default: []].append(record)
+
+            let thisDate = effectiveDate(for: record, measurement: measurement)
+            if let existing = latest[measurement.metric] {
+                if thisDate > existing.2 {
+                    latest[measurement.metric] = (record, measurement, thisDate)
+                } else if thisDate == existing.2, record.updatedAt > existing.0.updatedAt {
+                    latest[measurement.metric] = (record, measurement, thisDate)
+                }
+            } else {
+                latest[measurement.metric] = (record, measurement, thisDate)
+            }
+        }
+
+        // Sort each metric's records oldest-first for charts.
+        for (metric, recs) in byMetric {
+            byMetric[metric] = recs.sorted {
                 guard let m0 = $0.asMeasurement(), let m1 = $1.asMeasurement() else { return false }
                 return effectiveDate(for: $0, measurement: m0) < effectiveDate(for: $1, measurement: m1)
             }
+        }
+
+        _latestByMetric = latest.mapValues { ($0.0, $0.1) }
+        _recordsByMetric = byMetric
+    }
+
+    /// Returns all records for a given metric key, sorted chronologically (oldest first for charts).
+    func recordsForMetric(_ metric: String) -> [Record] {
+        _recordsByMetric[metric] ?? []
     }
 
     /// Weight records only, sorted newest first.
@@ -142,25 +179,9 @@ final class HealthViewModel {
         return record.createdAt
     }
 
-    /// The most recent measurement for each metric type.
-    var latestByMetric: [String: (Record, MeasurementData)] {
-        var latest: [String: (Record, MeasurementData)] = [:]
-        for record in records {
-            guard let measurement = record.asMeasurement() else { continue }
-            let thisDate = effectiveDate(for: record, measurement: measurement)
-            if let existing = latest[measurement.metric] {
-                let existingDate = effectiveDate(for: existing.0, measurement: existing.1)
-                if thisDate > existingDate {
-                    latest[measurement.metric] = (record, measurement)
-                } else if thisDate == existingDate, record.updatedAt > existing.0.updatedAt {
-                    latest[measurement.metric] = (record, measurement)
-                }
-            } else {
-                latest[measurement.metric] = (record, measurement)
-            }
-        }
-        return latest
-    }
+    /// The most recent measurement for each metric type. Reads from the
+    /// cached dictionary populated by `recomputeMetricCaches()`.
+    var latestByMetric: [String: (Record, MeasurementData)] { _latestByMetric }
 
     /// The daily calories record for the current nutrition day.
     /// Before 2am, falls back to yesterday's final tally.

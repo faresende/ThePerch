@@ -14,9 +14,9 @@ Any task involving order ingestion from commerce emails, shipment tracking, orde
 
 The orders pipeline scans commerce confirmation emails from Fastmail (JMAP), detects order and shipment information using content-based pattern matching (not sender whitelist), and persists them to the `orders` and `shipments` Supabase tables. This data is then displayed in the iOS app's Orders tab and fed into Live Activities for in-transit packages.
 
-Two entry points handle this (both share the same TypeScript classifier + store):
-- **`sandbox/fastmail-jmap/orders_ingest_hook.py`** (listener): fires per new commerce email, shells out to `node skill/dashboard-sync/cli.js process-email`. Real-time path.
-- **`scripts/orders_ingest_catchup.py`** (catchup): re-scans Inbox + Paper Trail every 30 min as a safety net for anything the listener missed.
+Entry points (all share the same TypeScript classifier + store):
+- **`scripts/orders_ingest_catchup.py`** (canonical, in-repo): re-scans Inbox + Paper Trail every 30 min. Use this as the default ingestion path.
+- **External JMAP listener** (optional): a real-time JMAP listener that fires per email and shells out to `node skill/dashboard-sync/cli.js process-email`. Lives outside this repo (e.g. in an openclaw install at `~/.openclaw/workspace/sandbox/fastmail-jmap/`); not bundled here.
 - **`skill/dashboard-sync/src/orders-autopilot.ts`**: shared classifier with purchase confirmation vs shipping notification handling, 17track polling, and review items for ambiguous cases. Both entry points call into this.
 
 > The legacy monolithic `scripts/orders_autopilot_ingest_fastmail.py` was retired on 2026-04-23 — see `scripts/archive/README.md`.
@@ -120,7 +120,7 @@ python3 scripts/orders_ingest_catchup.py --lookback-hours 168  # 7 days
 
 ### Cron schedule
 
-The JMAP listener (`sandbox/fastmail-jmap/orders_ingest_hook.py`) fires per-email in real time. The catchup runs as a safety net:
+The catchup runs as a 30-minute cron (the canonical in-repo path). An external JMAP listener can also call into the same `cli.js process-email` for real-time ingestion if you've installed one separately:
 
 ```cron
 # Catchup every 30 minutes
@@ -129,7 +129,7 @@ The JMAP listener (`sandbox/fastmail-jmap/orders_ingest_hook.py`) fires per-emai
 
 ### Environment
 
-The catchup script reads Fastmail JMAP credentials from `sandbox/fastmail-jmap/jmap_client.py`. Supabase credentials come from `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` env vars; fail-fast when missing. See the script's header for the full list.
+The catchup script has self-contained JMAP plumbing — it reads Fastmail credentials from `~/.openclaw/secrets/perch.env` (or `scripts/.env`). Supabase credentials come from `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` env vars; fail-fast when missing. See the script's header for the full list.
 
 ## Adding a New Merchant
 

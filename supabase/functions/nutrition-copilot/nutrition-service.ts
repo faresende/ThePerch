@@ -90,7 +90,7 @@ export async function analyzeAndCreateRecord(
 
 export async function correctAndLearnRecord(
   supabase: ServiceSupabaseClient,
-  input: { record_id: string; correction_text: string },
+  input: { record_id: string; correction_text: string; user_id: string },
   deps: CorrectMealDeps,
 ): Promise<Record<string, unknown>> {
   const { data: existing, error: fetchError } = await supabase
@@ -106,6 +106,16 @@ export async function correctAndLearnRecord(
     throw new Error(`Failed to load meal record: ${fetchError.message}`);
   }
 
+  // IDOR guard. The supabase client used here is the service-role client,
+  // which bypasses RLS — so we MUST verify ownership in code. Without this
+  // guard, an authenticated attacker could pass any `record_id` and have
+  // the LLM rewrite (and persist) someone else's meal record + corrupt
+  // their food_memory entry.
+  const ownerId = String(existing?.user_id ?? '');
+  if (!ownerId || ownerId !== input.user_id) {
+    throw new Error('Meal record not found');
+  }
+
   const original = recordToMealAnalysis(existing ?? {});
   const corrected = await deps.correctMeal(original, input.correction_text);
   const previousHistory = Array.isArray(existing?.data?.correction_history)
@@ -113,7 +123,7 @@ export async function correctAndLearnRecord(
     : [];
 
   const learnedMemory = await learnFoodMemoryFromCorrection(supabase, {
-    userId: String(existing?.user_id ?? ''),
+    userId: ownerId,
     recordId: input.record_id,
     corrected,
     original,
@@ -122,7 +132,7 @@ export async function correctAndLearnRecord(
   });
 
   const updatedData = {
-    ...mealRecordPayload({ userId: String(existing?.user_id ?? ''), analysis: corrected }).data,
+    ...mealRecordPayload({ userId: ownerId, analysis: corrected }).data,
     corrected: true,
     correction_history: [
       ...previousHistory,

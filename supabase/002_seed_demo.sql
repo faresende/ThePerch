@@ -41,11 +41,11 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO public.agents (id, display_name, emoji, model, owner_id, is_active)
 VALUES
-  ('main',       'Claudinho',  '🦞', 'claude-opus-4.7',   demo_user_id, true),
-  ('biochecha',  'BioChecha',  '💪', 'claude-opus-4.7',   demo_user_id, true),
-  ('calendario', 'Calendario', '📅', 'claude-sonnet-4.7', demo_user_id, true),
-  ('entregas',   'Entregas',   '📦', 'claude-sonnet-4.7', demo_user_id, true),
-  ('legal',      'Legal',      '⚖️', 'claude-sonnet-4.7', demo_user_id, true)
+  ('main',       'Main',       '🦞', 'claude-opus-4-7',   demo_user_id, true),
+  ('health',     'Health',     '💪', 'claude-opus-4-7',   demo_user_id, true),
+  ('calendar',   'Calendar',   '📅', 'claude-sonnet-4-7', demo_user_id, true),
+  ('orders',     'Orders',     '📦', 'claude-sonnet-4-7', demo_user_id, true),
+  ('legal',      'Legal',      '⚖️', 'claude-sonnet-4-7', demo_user_id, true)
 ON CONFLICT (id) DO UPDATE SET
   display_name = EXCLUDED.display_name,
   emoji = EXCLUDED.emoji,
@@ -57,11 +57,11 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO public.agent_users (agent_id, user_id, role)
 VALUES
-  ('main',       demo_user_id, 'admin'),
-  ('biochecha',  demo_user_id, 'admin'),
-  ('calendario', demo_user_id, 'admin'),
-  ('entregas',   demo_user_id, 'admin'),
-  ('legal',      demo_user_id, 'admin')
+  ('main',     demo_user_id, 'admin'),
+  ('health',   demo_user_id, 'admin'),
+  ('calendar', demo_user_id, 'admin'),
+  ('orders',   demo_user_id, 'admin'),
+  ('legal',    demo_user_id, 'admin')
 ON CONFLICT (agent_id, user_id) DO UPDATE SET
   role = EXCLUDED.role;
 
@@ -72,9 +72,9 @@ ON CONFLICT (agent_id, user_id) DO UPDATE SET
 INSERT INTO public.sections (user_id, slug, display_name, sort_order, is_visible, config)
 VALUES
   (demo_user_id, 'home',       'Home',       0, true, '{"description": "Dashboard of dashboards"}'::jsonb),
-  (demo_user_id, 'health',     'Health',     1, true, '{"agent": "biochecha"}'::jsonb),
-  (demo_user_id, 'deliveries', 'Deliveries', 2, true, '{"agent": "entregas"}'::jsonb),
-  (demo_user_id, 'calendar',   'Calendar',   3, true, '{"agent": "calendario"}'::jsonb),
+  (demo_user_id, 'health',     'Health',     1, true, '{"agent": "health"}'::jsonb),
+  (demo_user_id, 'deliveries', 'Deliveries', 2, true, '{"agent": "orders"}'::jsonb),
+  (demo_user_id, 'calendar',   'Calendar',   3, true, '{"agent": "calendar"}'::jsonb),
   (demo_user_id, 'bookmarks',  'Bookmarks',  4, true, '{"agent": "main"}'::jsonb),
   (demo_user_id, 'admin',      'Admin',      5, true, '{"tabs": ["agents", "token_usage"]}'::jsonb),
   (demo_user_id, 'legal',      'Legal',      6, true, '{"agent": "legal"}'::jsonb)

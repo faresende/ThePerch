@@ -85,6 +85,10 @@ if !isConfigured {
             }
             .task(id: isConfigured) {
                 guard isConfigured else { return }
+                // Wire up the SupabaseService observers (network monitor
+                // + auth state observer) that were deferred out of init
+                // to keep cold-start fast. Idempotent.
+                SupabaseService.shared.bootstrap()
                 if bypassAuthForDebug {
                     authViewModel.isRestoringSession = false
                     return

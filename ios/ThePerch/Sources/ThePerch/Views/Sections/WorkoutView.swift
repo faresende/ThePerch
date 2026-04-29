@@ -134,16 +134,29 @@ struct WorkoutView: View {
 // MARK: - Personal Records Card
 struct PersonalRecordsCard: View {
     let sessions: [WorkoutSessionData]
-    
+
     struct PR {
         let name: String
         let weight: Double
         let reps: Int
     }
-    
-    private var topLifts: [PR] {
+
+    /// `topLifts` was previously a computed property that ran a triple-
+    /// nested loop (sessions × exercises × sets ≈ 1,400 iterations) on
+    /// every body render — including every parent state change, scroll,
+    /// expand/collapse tap, and realtime tick. Now: cached in @State,
+    /// recomputed only when the input `sessions` array changes (cheap
+    /// fingerprint check via .onChange).
+    @State private var topLifts: [PR] = []
+
+    private var sessionsFingerprint: String {
+        // Cheap signature: count + last session date + last exercise count.
+        let last = sessions.last
+        return "\(sessions.count)|\(last?.date ?? "")|\(last?.exercises.count ?? 0)"
+    }
+
+    private static func computeTopLifts(_ sessions: [WorkoutSessionData]) -> [PR] {
         var bests: [String: (weight: Double, reps: Int)] = [:]
-        
         for session in sessions {
             for exercise in session.exercises {
                 for set in exercise.sets {
@@ -162,8 +175,8 @@ struct PersonalRecordsCard: View {
                 }
             }
         }
-        
-        return bests.map { PR(name: $0.key.capitalized, weight: $0.value.weight, reps: $0.value.reps) }
+        return bests
+            .map { PR(name: $0.key.capitalized, weight: $0.value.weight, reps: $0.value.reps) }
             .sorted { $0.weight > $1.weight }
             .prefix(5)
             .map { $0 }
@@ -216,5 +229,9 @@ struct PersonalRecordsCard: View {
         }
         .padding(PerchTheme.Card.padding)
         .cardStyle()
+        .onAppear { topLifts = Self.computeTopLifts(sessions) }
+        .onChange(of: sessionsFingerprint) { _, _ in
+            topLifts = Self.computeTopLifts(sessions)
+        }
     }
 }

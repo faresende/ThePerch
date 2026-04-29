@@ -21,7 +21,6 @@ EXPORT_OPTS="$REPO_ROOT/.xcodebuildmcp/ExportOptions.plist"
 # material, so they're env-loaded.
 APPLE_KEY_ID="${APPLE_KEY_ID:-}"
 APPLE_ISSUER="${APPLE_ISSUER:-}"
-APPLE_KEY_PATH="${APPLE_KEY_PATH:-$HOME/.openclaw/secrets/AuthKey_${APPLE_KEY_ID}.p8}"
 if [ -z "$APPLE_KEY_ID" ] || [ -z "$APPLE_ISSUER" ]; then
   echo "❌ APPLE_KEY_ID and APPLE_ISSUER must be set."
   echo "   Generate at https://appstoreconnect.apple.com/access/api ; export both"
@@ -29,6 +28,22 @@ if [ -z "$APPLE_KEY_ID" ] || [ -z "$APPLE_ISSUER" ]; then
   echo "   (APPLE_KEY_PATH defaults to \$HOME/.openclaw/secrets/AuthKey_<KEY_ID>.p8)"
   exit 2
 fi
+# Validate APPLE_KEY_ID before interpolating it into a path. Apple key
+# IDs are exactly 10 alphanumeric chars (uppercase letters + digits).
+# Without this, a value like "../../etc/passwd" would resolve to a
+# path-traversal target.
+if ! [[ "$APPLE_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+  echo "❌ APPLE_KEY_ID must be exactly 10 alphanumeric chars (uppercase A-Z + 0-9)." >&2
+  echo "   Got: $APPLE_KEY_ID" >&2
+  exit 2
+fi
+# Validate APPLE_ISSUER as a UUID — same rationale. Don't interpolate
+# unvalidated env into log output that might end up on screen.
+if ! [[ "$APPLE_ISSUER" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+  echo "❌ APPLE_ISSUER must be a UUID (8-4-4-4-12 hex)." >&2
+  exit 2
+fi
+APPLE_KEY_PATH="${APPLE_KEY_PATH:-$HOME/.openclaw/secrets/AuthKey_${APPLE_KEY_ID}.p8}"
 KEY="$APPLE_KEY_PATH"
 KEY_ID="$APPLE_KEY_ID"
 ISSUER="$APPLE_ISSUER"

@@ -111,7 +111,7 @@ The calendar integration uses the same `records` table query, filtered by date r
 
 ### Prerequisites
 
-- Supabase project with the `records` table configured for `category=workouts`
+- Supabase project with the `dashboard_records` table configured for `category=workouts`
 - iOS app screens wired to `WorkoutViewModel` and Calendar integration
 - Optional `dashboard-sync` support if logging workouts through the agent path
 
@@ -151,7 +151,7 @@ await dashboard_push({
 
 ```bash
 # Check recent workouts
-curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/records" \
+curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/dashboard_records" \
   -H "apikey: $ANON_KEY" \
   --data-urlencode "category=eq.workouts" \
   --data-urlencode "order=created_at.desc" \

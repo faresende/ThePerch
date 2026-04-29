@@ -440,7 +440,7 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     'fnac': 'Fnac',
     'worten': 'Worten',
     'rackstore': 'RackStore',
-    // Apparel + EDC merchants Fábio orders from regularly
+    // Apparel + EDC merchants the user orders from regularly
     'demo-merchant': 'Demo Merchant',
     'jacquesmariemage': 'Jacques Marie Mage',
     'vulkit': 'Vulkit',
@@ -919,7 +919,7 @@ const KNOWN_MERCHANTS: Record<string, string> = {
   'fnac': 'Fnac',
   'worten': 'Worten',
   'rackstore': 'RackStore',
-  // Apparel + EDC merchants Fábio orders from regularly
+  // Apparel + EDC merchants the user orders from regularly
   'demo-merchant': 'Demo Merchant',
   'jacquesmariemage': 'Jacques Marie Mage',
   'vulkit': 'Vulkit',

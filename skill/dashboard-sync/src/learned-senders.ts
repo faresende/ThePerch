@@ -168,6 +168,7 @@ export async function recordLearnedSender(
     throw new Error(`recordLearnedSender: merchant_name "${merchant}" normalizes to empty`);
   }
 
+  const now = new Date().toISOString();
   const payload = {
     user_id: args.userId,
     sender_email: email,
@@ -176,38 +177,20 @@ export async function recordLearnedSender(
     normalized_merchant: normalized,
     learned_from_email_id: args.learnedFromEmailId ?? null,
     learned_from_review_item_id: args.learnedFromReviewItemId ?? null,
-    updated_at: new Date().toISOString(),
+    created_at: now,
+    updated_at: now,
   };
 
-  // Try update first (matches the unique index on (user_id, sender_email)).
-  const { data: existing, error: findErr } = await supabase
-    .from('learned_senders')
-    .select('id')
-    .eq('user_id', args.userId)
-    .eq('sender_email', email)
-    .maybeSingle();
-
-  if (findErr) {
-    throw new Error(`learned_senders find failed: ${findErr.message}`);
-  }
-
-  if (existing) {
-    const { data, error } = await supabase
-      .from('learned_senders')
-      .update(payload)
-      .eq('id', existing.id)
-      .select('id')
-      .single();
-    if (error) throw new Error(`learned_senders update failed: ${error.message}`);
-    return data.id;
-  }
-
+  // Native PostgREST upsert. The unique index `learned_senders_user_email_unique`
+  // on (user_id, sender_email) is the conflict target; on conflict the
+  // matching row is updated, otherwise a new row is inserted. One round-trip
+  // instead of the previous find-then-update-or-insert pair.
   const { data, error } = await supabase
     .from('learned_senders')
-    .insert([{ ...payload, created_at: new Date().toISOString() }])
+    .upsert([payload], { onConflict: 'user_id,sender_email', ignoreDuplicates: false })
     .select('id')
     .single();
-  if (error) throw new Error(`learned_senders insert failed: ${error.message}`);
+  if (error) throw new Error(`learned_senders upsert failed: ${error.message}`);
   return data.id;
 }
 

@@ -41,7 +41,7 @@ async function init() {
   pageTitle.textContent = currentTab.title || 'Untitled';
 
   // Check if configured
-  const { supabaseUrl, supabaseKey, authToken } = await chrome.storage.sync.get([
+  const { supabaseUrl, supabaseKey, authToken } = await chrome.storage.local.get([
     'supabaseUrl',
     'supabaseKey',
     'authToken'
@@ -66,7 +66,7 @@ form.addEventListener('submit', async (e) => {
   const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
 
   // Get config
-  const { supabaseUrl, supabaseKey, authToken } = await chrome.storage.sync.get([
+  const { supabaseUrl, supabaseKey, authToken } = await chrome.storage.local.get([
     'supabaseUrl',
     'supabaseKey',
     'authToken'

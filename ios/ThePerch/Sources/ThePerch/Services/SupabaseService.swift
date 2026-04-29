@@ -187,6 +187,17 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     // MARK: - Initialization
 
     private init() {
+        // Cold-start critical path: only construct the SupabaseClient
+        // here (50–150 ms first call — still expensive but unavoidable
+        // since AuthViewModel.init() reads `isAuthenticated` synchronously
+        // for the @State default).
+        //
+        // `startNetworkMonitoring` + `startAuthStateObserver` were
+        // previously called here too — moved to `bootstrap()` which
+        // ThePerchApp invokes from a `.task` AFTER first frame. Saved
+        // ~30–100 ms off the critical path because both methods spawn
+        // Tasks that hop the actor and re-arm observers; cheaper to
+        // defer to post-paint than block init.
         let config = AppConfig.shared
         self.client = SupabaseClient(
             supabaseURL: config.supabaseURL,
@@ -195,6 +206,15 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 auth: .init(redirectToURL: URL(string: "theperch://auth/callback"))
             )
         )
+    }
+
+    /// Idempotent post-first-frame bootstrap. Wires up network +
+    /// auth-state observers that don't need to be live before the
+    /// first paint.
+    private var didBootstrap = false
+    func bootstrap() {
+        guard !didBootstrap else { return }
+        didBootstrap = true
         startNetworkMonitoring()
         startAuthStateObserver()
     }
@@ -345,6 +365,17 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 return result
             } catch {
                 lastError = error
+                // Fast-fail when offline. Without this, opening the app
+                // on cellular with no signal stacks up to 1+2 = 3 s of
+                // backoff sleeps × 7 parallel cold fetches before the
+                // cached fallback gets a chance — the user just sees
+                // a spinner.
+                if !NetworkMonitor.shared.isConnected {
+#if DEBUG
+                    print("[\(operation)] Network is offline — failing fast without retry")
+#endif
+                    break
+                }
                 if attempt < maxRetries - 1 {
                     let delay = baseRetryDelay * pow(2.0, Double(attempt))
 #if DEBUG

@@ -29,7 +29,13 @@ final class AmbienceManager {
     // MARK: - Timer
 
     private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        // 5 min cadence matches the time-of-day pulse buckets (morning,
+        // afternoon, evening, night) — no benefit from minute-level
+        // ticking. Previous version fired every 60s and unconditionally
+        // assigned `ambientColor` / `sfSymbol` even when the hour bucket
+        // hadn't changed, invalidating every view that read those
+        // @Observable properties.
+        timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.refresh()
             }
@@ -51,16 +57,22 @@ final class AmbienceManager {
         let newColor = Self.colorForCurrentHour()
         let newPeriod = HomeCardOrdering.TimePeriod.current
         let newSymbol = Self.symbolForCurrentHour()
+
         if period != newPeriod {
+            // Hour bucket changed — animate the cross-fade.
             withAnimation(.easeInOut(duration: 1.0)) {
                 ambientColor = newColor
                 period = newPeriod
                 sfSymbol = newSymbol
             }
-        } else {
-            ambientColor = newColor
-            sfSymbol = newSymbol
+            return
         }
+
+        // Same bucket. Only assign if the underlying value actually
+        // differs — assigning the same value still invalidates every
+        // view observing it via @Observable.
+        if ambientColor != newColor { ambientColor = newColor }
+        if sfSymbol != newSymbol { sfSymbol = newSymbol }
     }
 
     // MARK: - Color Mapping

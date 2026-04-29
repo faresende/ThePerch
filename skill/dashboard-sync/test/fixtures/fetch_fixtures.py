@@ -36,7 +36,20 @@ where `expected_dict` is the shape the test runner asserts on:
 """
 
 import json, os, sys
-sys.path.insert(0, os.path.expanduser('~/.openclaw/workspace/sandbox/fastmail-jmap'))
+# This script harvests Fastmail emails for offline classifier replay.
+# It depends on a `jmap_client` Python helper that lives outside this
+# repo (typically alongside an openclaw install). Override the path
+# via JMAP_CLIENT_DIR if you've placed it elsewhere.
+_jmap_dir = os.environ.get(
+    'JMAP_CLIENT_DIR',
+    os.path.expanduser('~/.openclaw/workspace/sandbox/fastmail-jmap'),
+)
+if not os.path.isdir(_jmap_dir):
+    sys.exit(
+        f"[fetch_fixtures] jmap_client dir not found: {_jmap_dir}\n"
+        "Set JMAP_CLIENT_DIR=/path/to/your/jmap-client to point at it."
+    )
+sys.path.insert(0, _jmap_dir)
 from jmap_client import get_token, get_session, jmap_call
 
 FIXTURES = [

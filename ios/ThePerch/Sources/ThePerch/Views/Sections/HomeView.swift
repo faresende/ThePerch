@@ -14,6 +14,18 @@ struct HomeView: View {
 
     private let freshnessTracker = DataFreshnessTracker.shared
 
+    /// Cheap dashboard-state fingerprint for `.onChange` instead of a
+    /// full-array equality diff. Covers the mutations our updateRecords
+    /// hook actually cares about: record count, latest record's
+    /// updated_at, latest record's id, delivery count.
+    private var dashboardSnapshotFingerprint: String {
+        let r = dashboardViewModel.allRecords
+        let d = dashboardViewModel.trackedDeliveries
+        let lastId = r.last?.id.uuidString ?? ""
+        let lastUpd = r.last?.updatedAt.timeIntervalSince1970 ?? 0
+        return "\(r.count)|\(lastId)|\(lastUpd)|\(d.count)"
+    }
+
     var body: some View {
         ZStack {
             PerchTheme.background.ignoresSafeArea()
@@ -130,11 +142,14 @@ struct HomeView: View {
         // the update twice (the second call was redundant). Fold
         // into a single handler keyed on a tuple — SwiftUI's diff
         // fires once per coalesced change.
-        .onChange(of: DashboardSnapshot(
-            records: dashboardViewModel.allRecords,
-            deliveries: dashboardViewModel.trackedDeliveries
-        )) { _, snapshot in
-            viewModel.updateRecords(snapshot.records, trackedDeliveries: snapshot.deliveries)
+        // Cheap fingerprint instead of full-array Equatable diff. The
+        // previous DashboardSnapshot copied two arrays (1000 + ~50
+        // elements) on every body invalidation and compared every
+        // element. The fingerprint catches all the cases that matter
+        // for our update path: count change, latest mutation timestamp,
+        // last-id change.
+        .onChange(of: dashboardSnapshotFingerprint) { _, _ in
+            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onAppear {
             // Feed initial records if dashboard already loaded
@@ -346,15 +361,6 @@ struct HomeView: View {
             Spacer()
         }
     }
-}
-
-/// Phase 3 perf: tuple-equivalent struct used as the .onChange
-/// dependency above. SwiftUI's onChange compares Equatable values
-/// — wrapping (records, deliveries) in this struct lets us coalesce
-/// two changes-in-the-same-tick into one update call.
-private struct DashboardSnapshot: Equatable {
-    let records: [Record]
-    let deliveries: [DeliveryData]
 }
 
 // MARK: - Hero Card Conditional Modifier

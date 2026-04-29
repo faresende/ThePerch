@@ -15,7 +15,7 @@ function showStatus(type, message) {
 
 // Load saved settings on page load
 async function loadSettings() {
-  const settings = await chrome.storage.sync.get([
+  const settings = await chrome.storage.local.get([
     'supabaseUrl',
     'supabaseKey',
     'authToken'
@@ -53,7 +53,7 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  await chrome.storage.sync.set({
+  await chrome.storage.local.set({
     supabaseUrl,
     supabaseKey,
     authToken
@@ -65,7 +65,7 @@ form.addEventListener('submit', async (e) => {
 // Clear all settings
 clearBtn.addEventListener('click', async () => {
   if (confirm('Are you sure you want to clear all settings?')) {
-    await chrome.storage.sync.remove([
+    await chrome.storage.local.remove([
       'supabaseUrl',
       'supabaseKey',
       'authToken'

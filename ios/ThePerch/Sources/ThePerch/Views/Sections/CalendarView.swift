@@ -9,6 +9,14 @@ struct CalendarView: View {
     @State private var cardsAppeared = false
     @State private var selectedDate = CalendarView.dayCalendar.startOfDay(for: .now)
 
+    /// Cached merged-and-deduped event list and per-day bucket map.
+    /// Previously the `events` computed property rebuilt on every body
+    /// invocation, AND was read 9+ times per render (selectedDayEvents,
+    /// upcomingEvents, weekOverview's 7 dayHasEvents calls). At scale
+    /// that's ~9 full asEvent() decodes + dedup loops per render.
+    @State private var cachedEvents: [EventData] = []
+    @State private var eventsByDay: [Date: Bool] = [:]
+
     private static let dayCalendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
@@ -53,20 +61,46 @@ struct CalendarView: View {
 
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
-    private var events: [EventData] {
+    /// Read-only accessor for the cached events list. Updated by
+    /// `recomputeEvents()` on `.onChange` of the inputs.
+    private var events: [EventData] { cachedEvents }
+
+    /// Cheap fingerprint for `.onChange`. Captures the inputs that
+    /// affect `cachedEvents`: supabase calendar records (count + last id)
+    /// and EventKit events (count + last start).
+    private var eventsFingerprint: String {
+        let r = records
+        let lastRId = r.last?.id.uuidString ?? ""
+        let ek = dashboardViewModel.eventKitEvents
+        let lastEKStart = ek.last?.start.timeIntervalSince1970 ?? 0
+        return "\(r.count)|\(lastRId)|\(ek.count)|\(lastEKStart)"
+    }
+
+    private func recomputeEvents() {
         let supabaseEvents = records.compactMap { $0.asEvent() }
         let deviceEvents = dashboardViewModel.eventKitEvents
         // Union + dedupe by (title, start-minute). EventKit wins on ties
         // since it's live from the phone's calendar.
         var seen = Set<String>()
         var merged: [EventData] = []
+        merged.reserveCapacity(supabaseEvents.count + deviceEvents.count)
         for event in deviceEvents + supabaseEvents {
             let key = "\(event.title)|\(Int(event.start.timeIntervalSince1970 / 60))"
             if seen.insert(key).inserted {
                 merged.append(event)
             }
         }
-        return merged.sorted { $0.start < $1.start }
+        merged.sort { $0.start < $1.start }
+        cachedEvents = merged
+
+        // Build per-day "has events" map for the week-overview pill row
+        // so dayHasEvents(_:) is O(1) instead of an O(n) scan × 7 days.
+        var byDay: [Date: Bool] = [:]
+        for event in merged {
+            let day = Self.dayCalendar.startOfDay(for: event.start)
+            byDay[day] = true
+        }
+        eventsByDay = byDay
     }
 
     private var travelTrips: [TripData] {
@@ -188,6 +222,8 @@ struct CalendarView: View {
                 PerchHaptics.success()
             }
         }
+        .onAppear { recomputeEvents() }
+        .onChange(of: eventsFingerprint) { _, _ in recomputeEvents() }
     }
 
     private var dayNavigationHeader: some View {
@@ -266,9 +302,7 @@ struct CalendarView: View {
     }
 
     private func dayHasEvents(_ date: Date) -> Bool {
-        events.contains { event in
-            Self.dayCalendar.isDate(event.start, equalTo: date, toGranularity: .day)
-        }
+        eventsByDay[Self.dayCalendar.startOfDay(for: date)] ?? false
     }
 
     private func pillBackground(isToday: Bool, isSelected: Bool) -> Color {

@@ -29,6 +29,15 @@ struct TodayTab: View {
 
     private let freshnessTracker = DataFreshnessTracker.shared
 
+    /// Cheap fingerprint for the dashboard state TodayTab cares about.
+    private var todayFingerprint: String {
+        let r = dashboardViewModel.allRecords
+        let d = dashboardViewModel.trackedDeliveries
+        let lastId = r.last?.id.uuidString ?? ""
+        let lastUpd = r.last?.updatedAt.timeIntervalSince1970 ?? 0
+        return "\(r.count)|\(lastId)|\(lastUpd)|\(d.count)"
+    }
+
     init(onOpenProfile: @escaping () -> Void = {}) {
         self.onOpenProfile = onOpenProfile
     }
@@ -45,7 +54,7 @@ struct TodayTab: View {
                 // 1. FULL-BLEED hero — lives outside the padded column.
                 TodayHero(
                     timeOfDay: timeOfDay,
-                    greeting: timeOfDay.greeting,
+                    greeting: timeOfDay.greeting(name: dashboardViewModel.displayName),
                     onProfileTap: onOpenProfile,
                     isShowingCached: dashboardViewModel.isShowingCachedData
                 )
@@ -124,10 +133,12 @@ struct TodayTab: View {
             await dashboardViewModel.loadDashboard(forceRefresh: true)
             PerchHaptics.success()
         }
-        .onChange(of: dashboardViewModel.allRecords) { _, _ in
-            viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
-        }
-        .onChange(of: dashboardViewModel.trackedDeliveries) { _, _ in
+        // Single coalesced handler driven by a cheap fingerprint —
+        // previous version had 2 separate `.onChange` handlers that
+        // both fired on cold launch and both called updateRecords →
+        // updateWidgetData → WidgetCenter.shared.reloadAllTimelines
+        // (cross-process IPC), wasting 2 of 3 reloads.
+        .onChange(of: todayFingerprint) { _, _ in
             viewModel.updateRecords(dashboardViewModel.allRecords, trackedDeliveries: dashboardViewModel.trackedDeliveries)
         }
         .onAppear {
@@ -277,7 +288,7 @@ struct TodayHero: View {
             //
             // Aligned to 18pt (PerchTheme.Spacing.screenHorizontal) so the
             // greeting's left edge sits on the same vertical line as every
-            // card below. At 34pt Fraunces-italic, "Afternoon, Fábio."
+            // card below. At 34pt Fraunces-italic, "Afternoon, [name]."
             // fits on a single line within the full column width.
             //
             // The cached-data spinner trails the greeting when stale data
@@ -464,6 +475,8 @@ final class PerchLoopingVideoView: UIView {
     private var looper: AVPlayerLooper?
     private let playerLayer = AVPlayerLayer()
     private let fallbackImageView = UIImageView()
+    private var foregroundObserver: NSObjectProtocol?
+    private var backgroundObserver: NSObjectProtocol?
 
     /// One-time-per-process audio session config. Setting the session
     /// category is global state, so doing it on every PerchLoopingVideoView
@@ -524,10 +537,36 @@ final class PerchLoopingVideoView: UIView {
                 queue.play()
             }
         }
+
+        // Pause/resume the loop with the scene lifecycle. Without this
+        // we leave AVQueuePlayer running in the off-screen render server
+        // while the app is backgrounded — wasted CPU + occasional frame
+        // stutter on resume.
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.player?.play()
+        }
+        backgroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.player?.pause()
+        }
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        if let f = foregroundObserver {
+            NotificationCenter.default.removeObserver(f)
+        }
+        if let b = backgroundObserver {
+            NotificationCenter.default.removeObserver(b)
+        }
     }
 
     override func layoutSubviews() {

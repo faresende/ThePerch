@@ -31,9 +31,34 @@ if launchctl list | grep -q "$LABEL"; then
   launchctl unload "$TARGET" 2>/dev/null || true
 fi
 
-# Substitute __HOME__ → actual $HOME and write to ~/Library/LaunchAgents.
-sed "s|__HOME__|$HOME|g" "$TEMPLATE" > "$TARGET"
+# Validate paths against XML/control chars before interpolating into
+# the plist. Both $HOME and $REPO_ROOT come from the user's environment;
+# without this an attacker who controlled either could break out of
+# `<string>...</string>` blocks.
+_validate_path() {
+  local name="$1" val="$2"
+  if [[ "$val" =~ [[:cntrl:]] ]] || [[ "$val" == *'<'* ]] || [[ "$val" == *'>'* ]] || [[ "$val" == *'&'* ]] || [[ "$val" == *'"'* ]]; then
+    echo "❌ $name contains XML/control chars: $val" >&2
+    exit 2
+  fi
+  if [[ "${val:0:1}" != "/" ]]; then
+    echo "❌ $name must be an absolute path: $val" >&2
+    exit 2
+  fi
+}
+_validate_path "HOME" "$HOME"
+_validate_path "REPO_ROOT" "$REPO_ROOT"
+
+# Substitute __HOME__ → $HOME and __REPO_ROOT__ → $REPO_ROOT, then
+# write to ~/Library/LaunchAgents.
+sed -e "s|__HOME__|$HOME|g" -e "s|__REPO_ROOT__|$REPO_ROOT|g" "$TEMPLATE" > "$TARGET"
 chmod 644 "$TARGET"
+
+# Make sure the program is executable. Failing to set +x is the most
+# common reason a fresh install silently doesn't fire.
+if [[ ! -x "$REPO_ROOT/ops/poll-shipments.sh" ]]; then
+  chmod +x "$REPO_ROOT/ops/poll-shipments.sh"
+fi
 
 launchctl load "$TARGET"
 

@@ -69,13 +69,6 @@ These live outside the repo and are per-machine:
   need to install OpenClaw + clone the workspace there too.
 - **Supabase `Secrets.xcconfig`** (see above).
 
-## Where the project lived before
-
-Until 2026-04-25, the canonical repo was at
-`~/.openclaw/workspace/ThePerch/`. It's now at `~/Developer/ThePerch/`.
-The old path is preserved as a backup — safe to delete once you've
-confirmed the new location works.
-
 ## Tip: avoid iCloud for source code
 
 `~/Developer/` is not iCloud-synced by default on macOS. Keep source

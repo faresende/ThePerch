@@ -1194,14 +1194,35 @@ enum PerchTimeOfDay: Sendable {
     }
 
     /// Greeting copy per the Claude Design handoff. The night variant
-    /// is deliberately question-tagged.
-    var greeting: String {
+    /// is deliberately question-tagged. The trailing `, name` is
+    /// appended at the call site from `public.users.display_name`,
+    /// falling back to no-name greetings ("Good morning.") when no
+    /// display name has been set yet.
+    var greetingPrefix: String {
         switch self {
-        case .sunrise: return "Good morning, Fábio."
-        case .midday:  return "Afternoon, Fábio."
-        case .dusk:    return "Evening, Fábio."
-        case .night:   return "Still up, Fábio?"
+        case .sunrise: return "Good morning"
+        case .midday:  return "Afternoon"
+        case .dusk:    return "Evening"
+        case .night:   return "Still up"
         }
+    }
+
+    /// Whether this greeting should end with a question mark when a
+    /// name is appended ("Still up, Alex?") vs a period ("Good morning,
+    /// Alex.").
+    var greetingIsQuestion: Bool {
+        self == .night
+    }
+
+    /// Format the greeting with an optional display name. Pass nil/empty
+    /// to render without a name ("Good morning." / "Still up?").
+    func greeting(name: String?) -> String {
+        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let suffix = greetingIsQuestion ? "?" : "."
+        if trimmed.isEmpty {
+            return "\(greetingPrefix)\(suffix)"
+        }
+        return "\(greetingPrefix), \(trimmed)\(suffix)"
     }
 
     var accessibilityLabel: String {

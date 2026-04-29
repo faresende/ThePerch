@@ -33,7 +33,7 @@ BioChecha (manual) ──────→ dashboard-sync → dashboard_records �
 
 ```bash
 # Query health records directly
-curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/records" \
+curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/dashboard_records" \
   -H "apikey: $ANON_KEY" \
   --data-urlencode "category=eq.health" \
   --data-urlencode "order=created_at.desc" \

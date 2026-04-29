@@ -64,10 +64,13 @@ from _supabase_client import (  # noqa: E402
 # rip these out.
 LOGIN_URL = "https://auth-api.8slp.net/v1/tokens"
 APP_BASE = "https://app-api.8slp.net"
-EIGHT_SLEEP_CLIENT_ID = "0894c7f33bb94800a03f1f4df13a4f38"
-EIGHT_SLEEP_CLIENT_SECRET = (
-    "f0954a3ed5763ba3d06834c73731a32f15f168f47d4f164751275def86db0c76"
-)
+
+# Read the app-identifying credentials from env — see the comment block
+# above for why these aren't checked in. The values that worked when
+# this integration was last tested are documented in the project's
+# `~/.openclaw/secrets/perch.env` template (gitignored).
+EIGHT_SLEEP_CLIENT_ID = os.environ.get("EIGHT_SLEEP_CLIENT_ID", "")
+EIGHT_SLEEP_CLIENT_SECRET = os.environ.get("EIGHT_SLEEP_CLIENT_SECRET", "")
 
 TOKEN_CACHE = Path.home() / ".openclaw" / "state" / "8sleep-token.json"
 TOKEN_CACHE.parent.mkdir(parents=True, exist_ok=True)

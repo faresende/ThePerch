@@ -50,14 +50,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Cron jobs: 9 ingest + insight jobs migrated to `lightContext: true` + `toolsAllow: ["exec"]` + `zai/glm-5` + NO_REPLY pattern
 
 ### Changed — Other
-- Default InBody watch directory renamed `~/Documents/Claudio` → `~/Documents/InBody` (existing installs unaffected via `INBODY_WATCH_DIR` env)
+- Default InBody watch directory now `~/Documents/InBody` (override via `INBODY_WATCH_DIR` env)
 - `OrdersView` warm-hydrates from `DashboardViewModel.trackedOrders` when available
 
 ### Security
 - Pre-public scrub: deleted classifier-test fixtures (carried real Fastmail PII + live Shopify customer-auth tokens), removed maintainer-personal screenshots from `docs/Images/` and `docs/screenshots/`, scrubbed `weekly-med` prescription mention from design docs, rewrote `SECURITY.md` to match actual prevention tooling, locked `prune_agent_runs` to `service_role` only
 - Templated `ops/launchd/com.theperch.inbody-watcher.plist` (was hardcoded user paths) + `scripts/install-inbody-watcher.sh` renderer
 - App Store Connect API identifiers (`KEY_ID`, `ISSUER`) now read from env in `deploy-testflight.sh`
-- `002_seed_fabio.sql` renamed `002_seed_demo.sql` and scrubbed of personal display name
+- `002_seed_demo.sql` ships generic agent IDs (main / health / calendar / orders / legal) and a Demo User display name
 - DEBUG mock orders in `OrdersService.swift` swapped real-looking tracker numbers for synthetic placeholders
 - 13 byte-identical root-level docs (`DESIGN_REVIEW.md`, `PLAN.md`, `WORKLOG.md`, etc.) deleted; canonical copies remain in `docs/archive/`
 

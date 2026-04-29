@@ -101,7 +101,7 @@ Only the URL is strictly required. The agent or app can fill in the rest:
 
 ```bash
 # Via Supabase REST API
-curl -X POST "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/records" \
+curl -X POST "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/dashboard_records" \
   -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
