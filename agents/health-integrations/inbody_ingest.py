@@ -95,9 +95,15 @@ def _rows_from_csv(path: Path, user_id: str) -> list[dict]:
     """Parse an InBody CSV file into health_metrics rows. Skips
     columns mapped to dashes, unmapped columns, and rows with bad
     numbers — but raises on a malformed timestamp (that's a structural
-    problem worth surfacing)."""
+    problem worth surfacing).
+
+    source_id is derived from the MEASUREMENT timestamp (not the
+    filename) so re-importing the same scan under a different filename
+    upserts cleanly instead of creating duplicates. The CSV's first
+    column (`date`) is the H30's epoch-of-measurement ('YYYYMMDDHHMMSS')
+    — a stable identifier across re-exports.
+    """
     rows: list[dict] = []
-    file_stem = path.stem  # e.g. "InBody-20260429"
 
     with path.open(newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
@@ -105,7 +111,10 @@ def _rows_from_csv(path: Path, user_id: str) -> list[dict]:
             ts_raw = entry.get("date", "").strip()
             if not ts_raw:
                 continue
-            measured_at = _parse_inbody_timestamp(ts_raw).isoformat()
+            measured_dt = _parse_inbody_timestamp(ts_raw)
+            measured_at = measured_dt.isoformat()
+            # Compact, dedupe-safe identifier from the InBody-side timestamp.
+            scan_id = measured_dt.strftime("%Y%m%dT%H%M%S")
 
             for col, (metric, unit) in INBODY_COLUMN_MAP.items():
                 raw = (entry.get(col) or "").strip()
@@ -121,7 +130,9 @@ def _rows_from_csv(path: Path, user_id: str) -> list[dict]:
                     "value": value,
                     "unit": unit,
                     "source": "inbody",
-                    "source_id": f"inbody-{file_stem}-{metric}",
+                    # Stable per-scan source_id — re-importing the same
+                    # measurement (any filename) upserts in place.
+                    "source_id": f"inbody-{scan_id}-{metric}",
                     "measured_at": measured_at,
                     "details": None,
                 })

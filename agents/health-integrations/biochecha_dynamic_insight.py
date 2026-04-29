@@ -178,6 +178,52 @@ def _supabase_get(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
 # ─── State gathering ────────────────────────────────────────────────
 
 
+# ─── Source-of-truth precedence ─────────────────────────────────────
+#
+# When the same metric is written by multiple sources for the same
+# day, the higher-priority source wins. Lower-priority sources fill
+# gaps where the primary is silent.
+#
+# Sleep:  Oura > 8sleep      (Oura ingest TBD; code is ready for it)
+# Body:   InBody > Withings  (InBody is the H30 CSV path; Withings is
+#                              the smart-scale fallback for body-comp)
+SLEEP_SOURCE_PRIORITY = ("oura", "8sleep")
+BODY_COMP_SOURCE_PRIORITY = ("inbody", "withings")
+
+
+def _pick_by_priority(
+    rows: list[dict[str, Any]],
+    priority: tuple[str, ...],
+) -> dict[tuple[str, str], dict[str, Any]]:
+    """Group rows by (day, metric) and keep the highest-priority source.
+    Returns a dict keyed by (YYYY-MM-DD, metric) → row.
+
+    `rows` must include `source`, `metric`, `value`, `measured_at`.
+    Within a single source, ties on (day, metric) keep the latest by
+    `measured_at` (caller orders the query that way)."""
+    rank = {src: i for i, src in enumerate(priority)}
+    chosen: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in rows:
+        day = r["measured_at"][:10]
+        metric = r["metric"]
+        src = r.get("source") or ""
+        # Sources outside the priority list are tolerated but rank
+        # last, so an unexpected source still gets surfaced when it's
+        # the only data point.
+        new_rank = rank.get(src, len(priority))
+        key = (day, metric)
+        if key not in chosen:
+            chosen[key] = r
+            continue
+        prev = chosen[key]
+        prev_rank = rank.get(prev.get("source") or "", len(priority))
+        if new_rank < prev_rank:
+            chosen[key] = r            # higher-priority source wins
+        elif new_rank == prev_rank and r["measured_at"] > prev["measured_at"]:
+            chosen[key] = r            # same source, newer reading
+    return chosen
+
+
 def _gather_sleep_last_7() -> list[SleepNight]:
     since = (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
     rows = _supabase_get(
@@ -185,19 +231,19 @@ def _gather_sleep_last_7() -> list[SleepNight]:
         {
             "metric": "in.(sleep_duration_min,sleep_score,hrv_rmssd_ms,resting_heart_rate_bpm)",
             "measured_at": f"gte.{since}",
-            "select": "metric,value,measured_at",
+            "select": "metric,value,measured_at,source",
             "order": "measured_at.asc",
         },
     )
+    chosen = _pick_by_priority(rows, SLEEP_SOURCE_PRIORITY)
     by_day: dict[str, dict[str, Any]] = {}
-    for r in rows:
-        day = r["measured_at"][:10]
+    for (day, metric), r in chosen.items():
         d = by_day.setdefault(day, {"date": day})
-        m, v = r["metric"], float(r["value"])
-        if m == "sleep_duration_min":     d["duration_min"] = v
-        elif m == "sleep_score":          d["score"] = v
-        elif m == "hrv_rmssd_ms":         d["hrv"] = v
-        elif m == "resting_heart_rate_bpm": d["rhr"] = v
+        v = float(r["value"])
+        if metric == "sleep_duration_min":     d["duration_min"] = v
+        elif metric == "sleep_score":          d["score"] = v
+        elif metric == "hrv_rmssd_ms":         d["hrv"] = v
+        elif metric == "resting_heart_rate_bpm": d["rhr"] = v
     return [SleepNight(**d) for d in sorted(by_day.values(), key=lambda x: x["date"])]
 
 
@@ -329,21 +375,26 @@ def _gather_orders_in_transit() -> list[OrderSummary]:
 
 
 def _gather_body_comp_last_30() -> list[BodyComp]:
+    """Last 30 days of body composition with source-of-truth precedence.
+    InBody (CSV-fed) wins where available; Withings (smart-scale)
+    fills in for any day InBody is silent. The same metric on the
+    same day from both sources collapses to the higher-priority one
+    so the trailing-average math doesn't double-count a single weigh-in."""
     since = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     rows = _supabase_get(
         "health_metrics",
         {
             "metric": "in.(weight_kg,body_fat_pct,fat_mass_kg,muscle_mass_kg)",
             "measured_at": f"gte.{since}",
-            "select": "metric,value,measured_at",
+            "select": "metric,value,measured_at,source",
             "order": "measured_at.asc",
         },
     )
+    chosen = _pick_by_priority(rows, BODY_COMP_SOURCE_PRIORITY)
     by_day: dict[str, dict[str, Any]] = {}
-    for r in rows:
-        day = r["measured_at"][:10]
+    for (day, metric), r in chosen.items():
         d = by_day.setdefault(day, {"date": day})
-        d[r["metric"]] = float(r["value"])
+        d[metric] = float(r["value"])
     return sorted(
         [BodyComp(**d) for d in by_day.values()],
         key=lambda b: b.date,

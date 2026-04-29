@@ -375,5 +375,48 @@ class TestDontChurnGuard(unittest.TestCase):
         self.assertFalse(is_recent_topic_overlap(recent, "any-tracking"))
 
 
+from biochecha_dynamic_insight import _pick_by_priority
+
+
+class TestPickByPriority(unittest.TestCase):
+    def test_prefers_higher_priority_source(self):
+        rows = [
+            {"measured_at": "2026-04-29T06:00:00+00:00", "metric": "weight_kg",
+             "value": 99.5, "source": "withings"},
+            {"measured_at": "2026-04-29T06:49:00+00:00", "metric": "weight_kg",
+             "value": 98.1, "source": "inbody"},
+        ]
+        chosen = _pick_by_priority(rows, ("inbody", "withings"))
+        self.assertEqual(chosen[("2026-04-29", "weight_kg")]["source"], "inbody")
+        self.assertEqual(chosen[("2026-04-29", "weight_kg")]["value"], 98.1)
+
+    def test_falls_back_to_lower_priority_when_primary_silent(self):
+        rows = [
+            {"measured_at": "2026-04-15T07:00:00+00:00", "metric": "weight_kg",
+             "value": 99.0, "source": "withings"},
+        ]
+        chosen = _pick_by_priority(rows, ("inbody", "withings"))
+        self.assertEqual(chosen[("2026-04-15", "weight_kg")]["source"], "withings")
+
+    def test_within_same_source_keeps_latest(self):
+        rows = [
+            {"measured_at": "2026-04-29T06:00:00+00:00", "metric": "weight_kg",
+             "value": 98.5, "source": "inbody"},
+            {"measured_at": "2026-04-29T18:00:00+00:00", "metric": "weight_kg",
+             "value": 98.1, "source": "inbody"},
+        ]
+        chosen = _pick_by_priority(rows, ("inbody", "withings"))
+        self.assertEqual(chosen[("2026-04-29", "weight_kg")]["value"], 98.1)
+
+    def test_unknown_source_ranks_last_but_still_appears(self):
+        rows = [
+            {"measured_at": "2026-04-29T07:00:00+00:00", "metric": "weight_kg",
+             "value": 100.0, "source": "fitbit"},
+        ]
+        chosen = _pick_by_priority(rows, ("inbody", "withings"))
+        # No higher-priority data — keep the unknown-source row.
+        self.assertIn(("2026-04-29", "weight_kg"), chosen)
+
+
 if __name__ == "__main__":
     unittest.main()
