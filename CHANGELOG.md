@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to ThePerch iOS app are documented here.
+All notable changes to The Perch (iOS app, agents, dashboard-sync skill, Supabase schema) are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -54,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `OrdersView` warm-hydrates from `DashboardViewModel.trackedOrders` when available
 
 ### Security
-- Pre-public scrub: deleted classifier-test fixtures (carried real Fastmail PII + live Shopify customer-auth tokens), removed maintainer-personal screenshots from `docs/Images/` and `docs/screenshots/`, scrubbed `weekly-med` prescription mention from design docs, rewrote `SECURITY.md` to match actual prevention tooling, locked `prune_agent_runs` to `service_role` only
+- Pre-public scrub: deleted classifier-test fixtures (carried real Fastmail PII + live Shopify customer-auth tokens), removed maintainer-personal screenshots from `docs/Images/` and `docs/screenshots/`, scrubbed personal prescription identifiers from design docs, rewrote `SECURITY.md` to match actual prevention tooling, locked `prune_agent_runs` to `service_role` only
 - Templated `ops/launchd/com.theperch.inbody-watcher.plist` (was hardcoded user paths) + `scripts/install-inbody-watcher.sh` renderer
 - App Store Connect API identifiers (`KEY_ID`, `ISSUER`) now read from env in `deploy-testflight.sh`
 - `002_seed_demo.sql` ships generic agent IDs (main / health / calendar / orders / legal) and a Demo User display name

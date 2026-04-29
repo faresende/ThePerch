@@ -5,8 +5,25 @@
 -- joinable, just paying a sequential scan on every JOIN. Mirrors the
 -- pattern established in 20260429420000_index_perf_pass.sql.
 
-CREATE INDEX IF NOT EXISTS idx_bookmarks_record_id
-  ON public.bookmarks(record_id);
+-- public.bookmarks is a legacy table that exists in production from a
+-- pre-public manual creation but is never created by any committed
+-- migration (Round 5 dropped its unused FK index; Round 6 docs audit
+-- caught that the original index-create line breaks fresh installs).
+-- Guard the create so a fresh install doesn't fail. If/when bookmarks
+-- gets a CREATE TABLE migration, the guard becomes a no-op.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class
+    WHERE relnamespace = 'public'::regnamespace
+      AND relname = 'bookmarks'
+      AND relkind = 'r'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_record_id
+      ON public.bookmarks(record_id);
+  END IF;
+END;
+$$;
 
 CREATE INDEX IF NOT EXISTS idx_dashboard_records_agent_id
   ON public.dashboard_records(agent_id);

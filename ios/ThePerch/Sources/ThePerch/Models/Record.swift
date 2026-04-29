@@ -242,7 +242,13 @@ nonisolated final class DecodingCache: @unchecked Sendable {
     private let cache = NSCache<NSString, AnyObject>()
 
     private init() {
-        cache.countLimit = 500
+        // DashboardViewModel pulls up to ~1000 records (500 default +
+        // 500 bookmark backfill) and `preDecodeRecords` caches each
+        // record under 1–3 typed keys. With a 500-entry cap we evicted
+        // ~50% on every preDecodeRecords pass; subsequent body reads
+        // missed the cache and re-decoded. NSCache is memory-pressure-
+        // sensitive so a higher ceiling is safe.
+        cache.countLimit = 3000
     }
 
     func get<T>(_ recordId: UUID, as type: T.Type) -> T? {

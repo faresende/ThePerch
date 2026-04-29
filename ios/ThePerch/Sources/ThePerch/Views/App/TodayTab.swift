@@ -16,7 +16,6 @@ struct TodayTab: View {
     // tab blank below header" bug). Staggered fade-in is nice-to-have;
     // cards being visible is non-negotiable.
     @State private var cardsAppeared = true
-    @State private var ambience = AmbienceManager.shared
 
     // Rage-shake feedback (Phase 5 of time-aware insights). The shake
     // detector fires `showingFeedbackSheet`; the sheet captures free

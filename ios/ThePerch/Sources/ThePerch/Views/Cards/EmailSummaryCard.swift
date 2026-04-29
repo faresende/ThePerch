@@ -110,10 +110,10 @@ struct EmailSummaryCard: View {
     // MARK: - Helpers
 
     private func relativeTime(from isoString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let date = formatter.date(from: isoString)
-                ?? ISO8601DateFormatter().date(from: isoString) else {
+        // Reuse the shared formatters — was allocating two
+        // ISO8601DateFormatter instances per email-row render.
+        guard let date = PerchFormatters.iso8601Fractional.date(from: isoString)
+                ?? PerchFormatters.iso8601.date(from: isoString) else {
             return ""
         }
         let interval = Date.now.timeIntervalSince(date)

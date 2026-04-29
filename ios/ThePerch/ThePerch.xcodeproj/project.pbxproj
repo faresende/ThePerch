@@ -73,7 +73,6 @@
 		364018BE553B4FD19C5ABD37 /* PerchSharedKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */; };
 		3749D01A490DDFA35F9DD843 /* PerchSharedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02927F72DA2F1DF2FCDB70EE /* PerchSharedKit.framework */; };
-		3D7E9154E605502C7EB865B0 /* TimeOfDayAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */; };
 		3E300B906C36C47DA1B66E75 /* UndoCorrectionToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9113DFD580EE158E6448E952 /* UndoCorrectionToast.swift */; };
 		3F6A37B86C02CC8B9BE415C1 /* DeliveryActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */; };
 		4E65A462FA9DE4BE19EB9F06 /* SwipeActionsContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */; };
@@ -261,7 +260,6 @@
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
-		3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOfDayAtmosphere.swift; sourceTree = "<group>"; };
 		40DB35E8985DAE99DD669ABB /* FailableDecodable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FailableDecodable.swift; sourceTree = "<group>"; };
 		4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KarakeepService.swift; sourceTree = "<group>"; };
 		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
@@ -881,7 +879,6 @@
 				66BBAB0C0F77CA50A8F677EC /* ShimmerEffect.swift */,
 				4CA14B86D00F4FBE9F65AB55 /* LazyView.swift */,
 				7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */,
-				3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */,
 				67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */,
 				44E4BAE3418A661ACF7991AE /* SectionHeader.swift */,
 				HCHD0001HCHD0001HCHD0001 /* HomeCardHeader.swift */,
@@ -1170,7 +1167,6 @@
 				6DCCFE1B9814DBA4F23B492A /* ShimmerEffect.swift in Sources */,
 				4A4024E7F64545F696B51894 /* LazyView.swift in Sources */,
 				A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */,
-				3D7E9154E605502C7EB865B0 /* TimeOfDayAtmosphere.swift in Sources */,
 				E84531AD71195AC9C765C1C9 /* SparklineView.swift in Sources */,
 				5C29054CC3DA981B36A3EA66 /* SectionHeader.swift in Sources */,
 				0385F06533E708330AFA01B0 /* SearchView.swift in Sources */,

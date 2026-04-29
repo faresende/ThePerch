@@ -33,7 +33,7 @@ Core data table. All agent-written data lives here. This is the primary table us
 |--------|------|----------|---------|-------------|
 | `id` | UUID | NO | `uuid_generate_v4()` | Primary key |
 | `user_id` | UUID | NO | — | References `auth.users(id)`, cascade delete |
-| `agent_id` | TEXT | NO | — | Agent that created the record (e.g., `claudinho`, `entregas`) |
+| `agent_id` | TEXT | NO | — | Agent that created the record. Seed migration ships these IDs: `main`, `biochecha` (health), `calendario` (calendar), `entregas` (orders), `legal`. |
 | `type` | TEXT | NO | — | Record type: `measurement`, `delivery`, `event`, `status`, `reminder`, `text_note`, `checklist`, `cost_summary`, `bookmark`, `order`, `shipment`, `meal` |
 | `category` | TEXT | NO | — | Logical category: `health`, `deliveries`, `calendar`, `admin`, `legal`, `nutrition`, `workouts`, `bookmarks`, `commerce` |
 | `title` | TEXT | NO | `''` | Human-readable title |

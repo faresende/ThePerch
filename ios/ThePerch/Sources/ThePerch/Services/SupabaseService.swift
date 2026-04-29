@@ -968,11 +968,18 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         // don't rebuild a JSONDecoder per realtime burst (a single
         // batch ingest can fire 30+ messages in a second).
         let sharedDecoder = self.recordDecoder
+        // `insertion.record` is `[String: AnyJSON]` — passing it to
+        // `JSONSerialization.data(withJSONObject:)` raises an
+        // NSInvalidArgumentException ("Invalid type in JSON write
+        // (__SwiftValue)") because AnyJSON is a Swift enum and doesn't
+        // bridge to ObjC. `try?` doesn't catch it (NSException, not
+        // Swift Error) and the app terminates. The SDK's `decodeRecord`
+        // helper routes through JSONEncoder/JSONDecoder and avoids the
+        // bridge entirely.
         let insertTask = Task {
             for await insertion in insertions {
                 guard !Task.isCancelled else { break }
-                if let data = try? JSONSerialization.data(withJSONObject: insertion.record),
-                   let record = try? sharedDecoder.decode(Record.self, from: data) {
+                if let record = try? insertion.decodeRecord(as: Record.self, decoder: sharedDecoder) {
                     onChange(RealtimeRecordChange(action: .insert, record: record, oldId: nil))
                 } else {
                     // Even if decode fails, notify so UI can refresh
@@ -986,8 +993,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         let updateTask = Task {
             for await update in updates {
                 guard !Task.isCancelled else { break }
-                if let data = try? JSONSerialization.data(withJSONObject: update.record),
-                   let record = try? sharedDecoder.decode(Record.self, from: data) {
+                if let record = try? update.decodeRecord(as: Record.self, decoder: sharedDecoder) {
                     onChange(RealtimeRecordChange(action: .update, record: record, oldId: nil))
                 } else {
                     onChange(RealtimeRecordChange(action: .update, record: nil, oldId: nil))

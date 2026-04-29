@@ -17,7 +17,12 @@ via the existing health_metrics upsert — re-running is a no-op.
 Usage:
     python3 inbody_backfill_from_json.py [--dry-run] [--json PATH]
 
-Default JSON path: ~/Documents/InBody/openclaw-sync/agents/biochecha/data/body-composition.json
+This is a one-shot migration from a legacy JSON dump format that pre-
+dated the InBody H30 watcher pipeline. Most installs won't need it —
+skip if you don't have a `body-composition.json` already.
+
+Default JSON path: ~/Documents/InBody/body-composition.json
+Override via --json or the INBODY_BACKFILL_JSON env var.
 """
 from __future__ import annotations
 
@@ -31,8 +36,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from _supabase_client import bulk_upsert_health_metrics, insert_agent_run  # noqa: E402
 
-DEFAULT_JSON = (Path.home() / "Documents" / "InBody" / "openclaw-sync"
-                / "agents" / "biochecha" / "data" / "body-composition.json")
+DEFAULT_JSON = Path(
+    os.environ.get(
+        "INBODY_BACKFILL_JSON",
+        str(Path.home() / "Documents" / "InBody" / "body-composition.json"),
+    )
+)
 
 # Map JSON keys → (metric_key, unit). Keys mirror inbody_ingest.py and
 # the existing health_metrics conventions (Withings-compatible names

@@ -27,15 +27,18 @@ Agents (OpenClaw)                      iOS App
 ┌──────────────────────────────────────────────┐
 │              Supabase Postgres               │
 │                                              │
-│  tables:                                     │
+│  tables (canonical):                         │
 │    dashboard_records  (agent-written data)   │
-│    records            (agent-written data)   │
 │    orders             (commerce tracking)    │
 │    shipments          (package tracking)     │
+│    health_metrics     (sleep/body/nutrition) │
+│    insights           (LLM-generated cards)  │
 │    sections           (tab configuration)    │
-│    profiles           (user profiles)        │
+│    users              (display name + prefs) │
 │    agents             (agent health status)  │
+│    agent_runs         (per-run audit log)    │
 │    token_usage        (cost tracking)        │
+│    + ~10 supporting tables (see SCHEMA.md)   │
 │                                              │
 │  RLS:                                        │
 │    Users see only their own rows             │
@@ -47,7 +50,7 @@ Agents (OpenClaw)                      iOS App
 
 - **Service role key**: Used by agents (dashboard-sync, orders autopilot, etc.). Stored in environment variable `SUPABASE_SERVICE_ROLE_KEY`. Bypasses all RLS policies.
 - **Anon key**: Used by the iOS app. RLS policies enforce `auth.uid() = user_id` filtering.
-- **User auth**: Supabase Auth with email/password. On signup, a trigger auto-creates a `profiles` row and calls `provision_new_user()` to seed default sections.
+- **User auth**: Supabase Auth with email/password. On signup, the user's `public.users` row is created via the seed-demo workflow; default sections are inserted via `002_seed_demo.sql` (run once after the first auth user exists).
 
 ### RLS Policies
 
@@ -67,12 +70,14 @@ See [SCHEMA.md](./SCHEMA.md) for complete table definitions.
 
 | Table | Purpose | Primary Key | User-scoped |
 |-------|---------|-------------|-------------|
-| `dashboard_records` | Agent-written dashboard data | `id` (UUID) | Yes (`user_id`) |
-| `records` | Agent-written structured data | `id` (UUID) | Yes (`user_id`) |
+| `dashboard_records` | Agent-written card feed (the iOS app's primary read surface) | `id` (UUID) | Yes (`user_id`) |
 | `orders` | Commerce orders | `id` (UUID) | Yes (`user_id`) |
 | `shipments` | Package tracking | `id` (UUID) | Yes (`user_id`) |
+| `health_metrics` | Sleep / body composition / nutrition time-series | `id` (UUID) | Yes (`user_id`) |
+| `insights` | LLM-generated time-aware insight cards | `id` (UUID) | Yes (`user_id`) |
 | `sections` | App tab configuration | `id` (UUID) | Yes (`user_id`) |
-| `profiles` | User profiles | `id` (references auth.users) | Yes |
+| `users` | Display name + preferences | `id` (matches `auth.users.id`) | Yes |
+| `records` | Legacy pre-`dashboard_records` table | `id` (UUID) | Yes — kept for FK compatibility, do NOT use for new features |
 
 ### Record Categories
 
@@ -131,7 +136,7 @@ curl -X POST "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/dashboard_records" 
   -H "Prefer: return=representation" \
   -d '{
     "user_id": "<YOUR_USER_UUID>",
-    "agent_id": "claudinho",
+    "agent_id": "main",
     "type": "measurement",
     "category": "health",
     "title": "Morning Weight",

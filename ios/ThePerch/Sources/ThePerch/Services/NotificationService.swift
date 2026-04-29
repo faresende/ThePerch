@@ -128,17 +128,24 @@ final class NotificationService: ObservableObject {
     // MARK: - Record Change Handler
 
     /// Handles a realtime record change and schedules appropriate notifications.
+    /// Category-gated: a health metric tick shouldn't try to decode itself
+    /// as both DeliveryData and EventData. Each `as*()` call walks the
+    /// JSONValue tree; for a 30-message realtime burst that was 60+
+    /// wasted decode attempts on the main thread.
     func handleRecordChange(record: Record, action: SupabaseService.RealtimeAction) {
         guard action == .insert || action == .update else { return }
 
-        // Delivery notifications
-        if let delivery = record.asDelivery() {
-            scheduleDeliveryNotification(deliveryData: delivery, recordId: record.id)
-        }
-
-        // Calendar event reminders
-        if let event = record.asEvent() {
-            scheduleEventReminder(eventData: event, recordId: record.id)
+        switch record.category {
+        case .deliveries:
+            if let delivery = record.asDelivery() {
+                scheduleDeliveryNotification(deliveryData: delivery, recordId: record.id)
+            }
+        case .calendar:
+            if let event = record.asEvent() {
+                scheduleEventReminder(eventData: event, recordId: record.id)
+            }
+        default:
+            return
         }
     }
 

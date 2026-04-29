@@ -1,6 +1,6 @@
 ---
 name: perch-health
-description: "Health data pipeline from Oura Ring sensor data through to Supabase records, including sleep, readiness, HRV, weight and body metrics."
+description: "Health data pipeline from Oura Ring sensor data through to Supabase dashboard_records, including sleep, readiness, HRV, weight and body metrics."
 version: 1.0.0
 ---
 
@@ -12,7 +12,7 @@ Any task involving health metrics, Oura Ring data, body measurements, sleep anal
 
 ## What it does
 
-This skill manages the end-to-end health data pipeline for The Perch, from Oura Ring sensor data through to iOS dashboard display. It covers two main data streams: Oura Ring biometrics (sleep stages, readiness, resting heart rate, HRV) and body composition metrics (weight, body fat percentage, muscle mass). All health data is persisted in the Supabase `records` table with `category=health`.
+This skill manages the end-to-end health data pipeline for The Perch, from Oura Ring sensor data through to iOS dashboard display. It covers two main data streams: Oura Ring biometrics (sleep stages, readiness, resting heart rate, HRV) and body composition metrics (weight, body fat percentage, muscle mass). All health data is persisted in the Supabase `dashboard_records` table with `category=health`.
 
 The Oura Ring API provides nightly sleep analysis, daily readiness scores, and continuous heart rate variability data. These are ingested on a schedule, transformed into structured records, and written to Supabase. The iOS app reads these records and renders them via `HealthSummaryCard`, `ChartCard`, and `SingleValueCard` views depending on the `display_hint` field.
 
@@ -30,7 +30,7 @@ Oura Ingestion Script                        OpenClaw Agent
      │                                           │
      ▼                                           ▼
 ┌──────────────────────────────────────────────────────┐
-│              Supabase `records` table                 │
+│              Supabase `dashboard_records` table                 │
 │                                                      │
 │  category = "health"                                 │
 │  type: health_summary | body_metrics                 │
@@ -63,7 +63,7 @@ Oura Ingestion Script                        OpenClaw Agent
 
 ## Data Schema
 
-### Supabase `records` table (health rows)
+### Supabase `dashboard_records` table (health rows)
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -129,7 +129,7 @@ Oura Ingestion Script                        OpenClaw Agent
    ```bash
    export OURA_PERSONAL_TOKEN=your_token_here
    ```
-3. Verify the Supabase `records` table accepts `category=health` rows (it should by default)
+3. Verify the Supabase `dashboard_records` table accepts `category=health` rows (it should by default)
 
 ### Ingesting Data Manually
 
@@ -155,7 +155,7 @@ curl -H "Authorization: Bearer $OURA_PERSONAL_TOKEN" \
 - **Missing Oura data**: Check that the Oura token is valid and hasn't expired. Oura data is typically available by 8am. Early runs may return empty results.
 - **Duplicate records**: The pipeline should upsert based on date + type. If duplicates appear, deduplicate with:
   ```sql
-  DELETE FROM records a USING records b
+  DELETE FROM dashboard_records a USING records b
   WHERE a.id < b.id
     AND a.user_id = b.user_id
     AND a.category = 'health'
@@ -169,7 +169,7 @@ curl -H "Authorization: Bearer $OURA_PERSONAL_TOKEN" \
 - Verify daily ingestion by checking for recent health records:
   ```sql
   SELECT type, title, created_at
-  FROM records
+  FROM dashboard_records
   WHERE category = 'health'
     AND created_at > now() - interval '24 hours'
   ORDER BY created_at DESC;

@@ -49,8 +49,8 @@ KEY_ID="$APPLE_KEY_ID"
 ISSUER="$APPLE_ISSUER"
 
 READINESS_GATE="$HOME/.openclaw/workspace/scripts/readiness-gate.sh"
-TELEGRAM_BOT_TOKEN="${THEPERCH_TELEGRAM_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}"
-TELEGRAM_CHAT_ID="${THEPERCH_TELEGRAM_CHAT_ID:-${TELEGRAM_CHAT_ID:-}}"
+TELEGRAM_BOT_TOKEN="${PERCH_TELEGRAM_BOT_TOKEN:-${THEPERCH_TELEGRAM_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}}"
+TELEGRAM_CHAT_ID="${PERCH_TELEGRAM_CHAT_ID:-${THEPERCH_TELEGRAM_CHAT_ID:-${TELEGRAM_CHAT_ID:-}}}"
 
 FORCE=false
 SKIP_QA=false
@@ -234,7 +234,7 @@ log_deploy_success
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
   echo "⚠️  Telegram notification skipped: bot token not configured"
 elif [ -z "$TELEGRAM_CHAT_ID" ]; then
-  echo "⚠️  Telegram notification skipped: chat_id not configured (set THEPERCH_TELEGRAM_CHAT_ID)"
+  echo "⚠️  Telegram notification skipped: chat_id not configured (set PERCH_TELEGRAM_CHAT_ID)"
 elif ! printf '%s' "$TELEGRAM_BOT_TOKEN" | grep -Eq '^[0-9]{6,}:[A-Za-z0-9_-]{20,}$'; then
   echo "⚠️  Telegram notification skipped: invalid bot token format"
 else

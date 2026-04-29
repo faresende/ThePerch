@@ -70,10 +70,11 @@ Verify a few key tables exist after migrations land:
 
 ```sql
 -- Run in Supabase SQL Editor
-SELECT count(*) FROM public.users;            -- should exist (may be 0)
-SELECT count(*) FROM public.orders;           -- should exist
-SELECT count(*) FROM public.health_metrics;   -- should exist
-SELECT count(*) FROM public.insights;         -- should exist
+SELECT count(*) FROM public.users;             -- should exist (may be 0)
+SELECT count(*) FROM public.dashboard_records; -- should exist (the iOS app's primary read surface)
+SELECT count(*) FROM public.orders;            -- should exist
+SELECT count(*) FROM public.health_metrics;    -- should exist
+SELECT count(*) FROM public.insights;          -- should exist
 SELECT count(*) FROM public.order_corrections; -- should exist (Phase 1 corrections)
 ```
 
@@ -169,7 +170,7 @@ ls ~/.openclaw/workspace/scripts/health-integrations/
 
 You should see roughly:
 - Helpers: `_supabase_client.py`, `_telegram_client.py`
-- Insight generators: `biochecha_dynamic_insight.py`, `biochecha_post_wake_insight.py`, `biochecha_event_insight.py`, `biochecha_daily_insight.py` (legacy, not on cron)
+- Insight generators: `biochecha_dynamic_insight.py`, `biochecha_post_wake_insight.py`, `biochecha_event_insight.py`, `archive/biochecha_daily_insight.py` (legacy, archived 2026-04-29)
 - Ingest workers: `oura_ingest.py`, `eight_sleep_ingest.py`, `withings_ingest.py`, `withings_setup.py`, `inbody_ingest.py`, `inbody_backfill_from_json.py`, `calendar_sync.py`
 - Maintenance: `prune_agent_runs.py`
 
@@ -208,7 +209,7 @@ WHERE agent_id = 'biochecha' ORDER BY generated_at DESC LIMIT 5;
 
 The first run will likely fall through to `quiet_day_fallback` because no health data has been ingested yet — that's expected. Categories are explained in `agents/health-integrations/README.md` and `docs/post-wake-pipeline.md`.
 
-`biochecha_daily_insight.py` is a legacy single-shot generator (pre-time-aware-insights). It is NOT on cron; it stays in the tree for reference only. Don't use it for the live pipeline.
+`biochecha_daily_insight.py` was the legacy single-shot 7am generator. It is now archived at `agents/health-integrations/archive/biochecha_daily_insight.py` — kept for git history, not on cron, not symlinked into the live runtime.
 
 ---
 
@@ -442,7 +443,7 @@ Common stumbles to watch for:
 - **"Missing env" errors:** they didn't `source perch.env` in the same shell that's running the script.
 - **Withings ingest writes 0:** their most recent weigh-in is older than the script's lookback window. Default is 60 days — adjust if needed.
 - **8sleep "session token not supported":** 8sleep updated their auth flow again. Open an issue; we'll fix.
-- **iOS app shows "BioChecha takes the morning…":** the BioChecha cron hasn't fired today yet, or the insight failed to decode. Check `agent_runs` for errors.
+- **iOS app shows "The insight engine takes the morning…":** the daily insight cron hasn't fired yet, or the insight failed to decode. Check `agent_runs` for errors.
 - **Karakeep tab shows "not configured":** expected if they didn't set `KARAKEEP_BASE_URL`. Working as intended.
 
 ---

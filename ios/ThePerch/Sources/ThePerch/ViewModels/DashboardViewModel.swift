@@ -24,9 +24,29 @@ final class DashboardViewModel {
     var displayName: String?
 
     /// Single source of truth: ALL records fetched in one request.
-    /// Setting this rebuilds all filtered category arrays.
+    /// Setting this rebuilds all filtered category arrays — but only
+    /// when the new value is materially different from the old one.
+    /// Cold launch hits this path twice in quick succession (cache load
+    /// → network response, often the same data); the count+lastId+
+    /// lastUpdatedAt fingerprint elides the duplicate rebuild when both
+    /// payloads agree.
     var allRecords: [Record] = [] {
-        didSet { rebuildFilteredArrays() }
+        didSet {
+            if Self.recordsFingerprint(allRecords) != Self.recordsFingerprint(oldValue) {
+                rebuildFilteredArrays()
+            }
+        }
+    }
+
+    /// Cheap fingerprint for `allRecords` change detection. Picks up
+    /// every mutation pattern we care about — count change, latest
+    /// mutation, addition/removal at any position — without paying for
+    /// full-array equality.
+    private static func recordsFingerprint(_ rs: [Record]) -> String {
+        guard let last = rs.last else { return "0|" }
+        // include first to catch swap-style mutations.
+        let first = rs.first
+        return "\(rs.count)|\(first?.id.uuidString ?? "")|\(last.id.uuidString)|\(last.updatedAt.timeIntervalSince1970)"
     }
 
     // MARK: - Pre-filtered Record Arrays

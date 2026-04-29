@@ -1,6 +1,6 @@
 ---
 name: perch-bookmarks
-description: "URL bookmarking system with titles, favicons, and tags stored in Supabase records table."
+description: "URL bookmarking system with titles, favicons, and tags stored in Supabase dashboard_records table."
 version: 1.0.0
 ---
 
@@ -12,7 +12,7 @@ Any task involving saving, retrieving, searching, or managing bookmarks/links fo
 
 ## What it does
 
-This skill manages the bookmark data pipeline for The Perch, allowing URLs to be saved with titles, favicons, and tags for later retrieval. Bookmarks are stored in the Supabase `records` table with `category=bookmarks` and `type=bookmark`. The iOS app renders bookmarks as card grids or individual bookmark cards, with search and tag-based filtering.
+This skill manages the bookmark data pipeline for The Perch, allowing URLs to be saved with titles, favicons, and tags for later retrieval. Bookmarks are stored in the Supabase `dashboard_records` table with `category=bookmarks` and `type=bookmark`. The iOS app renders bookmarks as card grids or individual bookmark cards, with search and tag-based filtering.
 
 Bookmarks can be created from any source: agent conversations, web browsing, email links, or direct app input. Each bookmark carries structured metadata (URL, title, favicon URL, tags) in the `data` JSON field, enabling flexible categorization and retrieval.
 
@@ -24,7 +24,7 @@ Agent / Manual Input / Browser Extension
      │  direct API or agent command
      ▼
 ┌──────────────────────────────────────────────────────┐
-│              Supabase `records` table                 │
+│              Supabase `dashboard_records` table                 │
 │                                                      │
 │  category = "bookmarks"                              │
 │  type = "bookmark"                                   │
@@ -54,7 +54,7 @@ Agent / Manual Input / Browser Extension
 
 ## Data Schema
 
-### Supabase `records` table (bookmark rows)
+### Supabase `dashboard_records` table (bookmark rows)
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -142,14 +142,14 @@ When saving a bookmark from a bare URL:
 ```sql
 -- Recent bookmarks
 SELECT title, data->>'url' as url, data->>'tags' as tags, created_at
-FROM records
+FROM dashboard_records
 WHERE category = 'bookmarks'
 ORDER BY created_at DESC
 LIMIT 20;
 
 -- Bookmarks by tag (PostgreSQL JSON array containment)
 SELECT title, data->>'url' as url
-FROM records
+FROM dashboard_records
 WHERE category = 'bookmarks'
   AND data->'tags' ? 'ios';
 ```

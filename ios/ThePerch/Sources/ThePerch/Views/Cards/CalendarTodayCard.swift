@@ -109,7 +109,10 @@ struct CalendarTodayCard: View {
                 }
             }
         }
-        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
+        // 5-minute cadence: relative-time labels on calendar events are
+        // bucketed at 5+ min granularity, so per-minute updates wasted
+        // a wakeup + full body invalidation (events recomputes 4× per body).
+        .onReceive(Timer.publish(every: 300, on: .main, in: .common).autoconnect()) { _ in
             now = Date.now
         }
     }

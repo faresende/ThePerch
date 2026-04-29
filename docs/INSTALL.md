@@ -104,7 +104,7 @@ python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insi
 
 First run falls through to `quiet_day_fallback` — expected, no health data yet.
 
-`biochecha_daily_insight.py` is a legacy single-shot generator (pre-time-aware-insights). Not on cron.
+`biochecha_daily_insight.py` was the legacy single-shot generator; now lives at `agents/health-integrations/archive/biochecha_daily_insight.py`. Not on cron.
 
 ### 8. Oura (optional, primary sleep source)
 
@@ -208,7 +208,7 @@ python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insi
 | "Missing env" from Python script | You didn't `source perch.env` in the shell that's running it. |
 | Withings ingest writes 0 | Last weigh-in is older than the lookback window (default 60 days). Adjust in `withings_ingest.py`. |
 | 8sleep "session token not supported" | 8sleep updated their auth flow. Open an issue. |
-| BioChecha card stuck on "BioChecha takes the morning…" | Insight didn't generate or didn't decode. Check `agent_runs` table in Supabase for errors. |
+| Daily insight card stuck on "The insight engine takes the morning…" | Insight didn't generate or didn't decode. Check `agent_runs` table in Supabase for errors. |
 | Bookmarks tab says "not configured" | You didn't set `KARAKEEP_BASE_URL` + `KARAKEEP_TOKEN`. This is the intended state — leave it or hook up a Karakeep instance. |
 | Build fails with "no such module 'PerchSharedKit'" | Hit `File → Packages → Reset Package Caches` in Xcode. |
 

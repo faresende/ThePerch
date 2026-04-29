@@ -1,6 +1,6 @@
 ---
 name: perch-calendar
-description: "Apple Calendar event ingestion via icalBuddy, stored in Supabase records with ISO8601 timezone-aware timestamps."
+description: "Apple Calendar event ingestion via icalBuddy, stored in Supabase dashboard_records with ISO8601 timezone-aware timestamps."
 version: 1.0.0
 ---
 
@@ -12,7 +12,7 @@ Any task involving calendar events, schedule management, event ingestion from Ap
 
 ## What it does
 
-This skill manages the calendar data pipeline for The Perch, ingesting events from Apple Calendar (iCloud-synced) via icalBuddy and persisting them to the Supabase `records` table with `category=calendar`. The iOS app reads these records and renders them as event cards with time, location, and attendee information.
+This skill manages the calendar data pipeline for The Perch, ingesting events from Apple Calendar (iCloud-synced) via icalBuddy and persisting them to the Supabase `dashboard_records` table with `category=calendar`. The iOS app reads these records and renders them as event cards with time, location, and attendee information.
 
 The pipeline handles timezone-aware timestamps (ISO8601 with explicit timezone offsets), supports travel mode detection by parsing event location fields, and integrates with the training schedule to surface workout sessions alongside regular calendar events.
 
@@ -30,7 +30,7 @@ Calendar Ingestion Script
      │
      ▼
 ┌──────────────────────────────────────────────────────┐
-│              Supabase `records` table                 │
+│              Supabase `dashboard_records` table                 │
 │                                                      │
 │  category = "calendar"                               │
 │  type = "event"                                      │
@@ -70,7 +70,7 @@ When detected, the record includes `"travel_mode": true` and the app can show tr
 
 ## Data Schema
 
-### Supabase `records` table (calendar rows)
+### Supabase `dashboard_records` table (calendar rows)
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -175,7 +175,7 @@ curl -X POST "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/dashboard_records" 
 -- Check recent calendar records
 SELECT title, data->>'start_time' as start_time, data->>'location' as location,
        data->>'travel_mode' as travel_mode
-FROM records
+FROM dashboard_records
 WHERE category = 'calendar'
   AND created_at > now() - interval '24 hours'
 ORDER BY (data->>'start_time') ASC;

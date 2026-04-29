@@ -144,9 +144,18 @@ nonisolated enum PerchFormatters {
         return f
     }()
 
-    /// ISO 8601 formatter
+    /// ISO 8601 formatter (no fractional seconds).
     static let iso8601: ISO8601DateFormatter = {
         ISO8601DateFormatter()
+    }()
+
+    /// ISO 8601 formatter with fractional seconds. Some PostgREST
+    /// timestamps include them, some don't — try this one first, then
+    /// fall back to `iso8601`.
+    static let iso8601Fractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
     }()
 
     /// Relative date/time — "2 min. ago", "3 hr. ago"

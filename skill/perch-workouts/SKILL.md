@@ -12,7 +12,7 @@ Any task involving workout tracking, training schedules, exercise logging, or th
 
 ## What it does
 
-The workouts pipeline tracks resistance training sessions and displays them in the iOS app's WorkoutView. Workout sessions are stored in the Supabase `records` table with `category=workouts` and `type=workout_session`. The app supports a pull/push/legs rotation schedule, automatically determining the next workout type based on the last completed session. Rest days are calculated to ensure adequate recovery between training sessions.
+The workouts pipeline tracks resistance training sessions and displays them in the iOS app's WorkoutView. Workout sessions are stored in the Supabase `dashboard_records` table with `category=workouts` and `type=workout_session`. The app supports a pull/push/legs rotation schedule, automatically determining the next workout type based on the last completed session. Rest days are calculated to ensure adequate recovery between training sessions.
 
 Workouts are visible both in the dedicated Workouts tab and integrated into the CalendarView (showing training schedule alongside calendar events).
 
@@ -105,7 +105,7 @@ Workout schedule is visible in CalendarView by querying records with `category=w
 - Workout name as event title
 - Duration if recorded
 
-The calendar integration uses the same `records` table query, filtered by date range.
+The calendar integration uses the same `dashboard_records` table query, filtered by date range.
 
 ## Setup
 
@@ -131,7 +131,7 @@ The calendar integration uses the same `records` table query, filtered by date r
 ```typescript
 // Agent: log a workout
 await dashboard_push({
-  agent_id: "claudinho",
+  agent_id: "main",
   user_id: "<YOUR_USER_UUID>",
   type: "workout_session",
   category: "workouts",

@@ -124,14 +124,14 @@ export function CardShowcase() {
 
         {/* Agent Status Cards */}
         <AgentStatusCard
-          name="Archie"
+          name="Archive"
           emoji={"\uD83E\uDD89"}
           status="active"
           uptime="5d 3h"
           currentTask="Processing bookmark: React Server Components deep dive"
         />
         <AgentStatusCard
-          name="Claudinho"
+          name="Main"
           emoji={"\uD83E\uDDA4"}
           status="idle"
           uptime="12d 7h"

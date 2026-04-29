@@ -185,7 +185,7 @@ IMPORTANT CONTRACT UPDATE:
 - The canonical tracked-delivery model is now `orders` + `shipments`.
 - Only write legacy `dashboard_records` delivery rows if a specific compatibility surface still requires them.
 
-**Agent:** Entregas
+**Agent:** Your Agent (orders/deliveries)
 **Trigger:** When the user shares a tracking number or asks for delivery updates
 **Source:** Tracking numbers from conversation
 **Method:** Supabase REST API (insert new deliveries, update status on existing ones)
@@ -224,7 +224,7 @@ If you also need a legacy delivery card for temporary compatibility, say so expl
 
 ## 6. Calendar Events
 
-**Agent:** Calendario
+**Agent:** Your Agent (calendar)
 **Trigger:** When the user asks to sync calendar events or mentions upcoming events
 **Source:** Google Calendar API, conversation
 **Method:** Supabase REST API (insert new events, update changed ones)

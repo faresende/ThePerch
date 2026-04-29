@@ -72,8 +72,8 @@ Eventually, you may want to convert this to a signed Safari App Extension for di
 - Ensure your JWT token is still valid (may need to log back into The Perch)
 
 ### "Failed to save bookmark" error
-- Check that your Supabase project is accessible and the `bookmarks` table exists
-- Verify your anon key has INSERT permissions on both `bookmarks` and `dashboard_records` tables
+- Check that your Supabase project is accessible and the `dashboard_records` table exists
+- Verify your anon key has INSERT permissions on the `dashboard_records` table
 - Check browser console (Develop → JavaScript Console) for detailed error messages
 
 ### Settings not saving

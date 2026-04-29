@@ -1,13 +1,19 @@
 """
 _telegram_client.py — minimal Telegram Bot API client for the
-BioChecha bot. Reads the bot token from openclaw's secrets.json so
-this module's surface is just `send_message(text)`.
+post-wake briefing. Reads the bot token from openclaw's secrets.json
+so this module's surface is just `send_message(text)`.
 
 Config sources (no env addition needed if openclaw is configured):
+  - account    : env PERCH_TELEGRAM_ACCOUNT, defaults to `biochecha`
+                 (kept for backward compatibility with the maintainer's
+                 existing openclaw config; forkers can override).
   - bot token  : ~/.openclaw/secrets.json
-                 path: /channels/telegram/accounts/biochecha/botToken
-  - chat id    : env TELEGRAM_CHAT_ID, else the first entry in
-                 /channels/telegram/accounts/biochecha/allowFrom
+                 path: /channels/telegram/accounts/<account>/botToken
+                 OR env PERCH_TELEGRAM_BOT_TOKEN
+                 (env takes precedence over secrets.json).
+  - chat id    : env PERCH_TELEGRAM_CHAT_ID (or legacy TELEGRAM_CHAT_ID),
+                 else the first entry in
+                 /channels/telegram/accounts/<account>/allowFrom
                  (single-user deployment — that IS the user)
 
 Best-effort: any failure here returns False without raising. Caller
@@ -26,12 +32,20 @@ from urllib.request import Request, urlopen
 
 OPENCLAW_SECRETS = Path.home() / ".openclaw" / "secrets.json"
 OPENCLAW_CONFIG  = Path.home() / ".openclaw" / "openclaw.json"
-ACCOUNT_NAME     = "biochecha"
+# Default openclaw account label. Override via env when forking.
+ACCOUNT_NAME     = os.environ.get("PERCH_TELEGRAM_ACCOUNT", "biochecha")
 
 
 def _load_bot_token(account: str = ACCOUNT_NAME) -> str | None:
-    """Pull the bot token out of openclaw's secrets.json. The file
-    structure is /channels/telegram/accounts/<account>/botToken."""
+    """Resolve the bot token in this priority:
+       1. PERCH_TELEGRAM_BOT_TOKEN env (explicit override; works for
+          forkers who haven't configured openclaw's secrets.json)
+       2. ~/.openclaw/secrets.json
+          /channels/telegram/accounts/<account>/botToken
+    """
+    env_tok = os.environ.get("PERCH_TELEGRAM_BOT_TOKEN")
+    if env_tok:
+        return env_tok.strip()
     try:
         data = json.loads(OPENCLAW_SECRETS.read_text())
     except Exception as e:
@@ -49,10 +63,12 @@ def _load_bot_token(account: str = ACCOUNT_NAME) -> str | None:
 
 def _resolve_chat_id(account: str = ACCOUNT_NAME) -> str | None:
     """Resolve the target chat in this priority:
-       1. TELEGRAM_CHAT_ID env (explicit override)
-       2. openclaw.json allowFrom[0] for this account
+       1. PERCH_TELEGRAM_CHAT_ID env (explicit override)
+       2. TELEGRAM_CHAT_ID env (legacy alias)
+       3. openclaw.json allowFrom[0] for this account
     """
-    env_id = os.environ.get("TELEGRAM_CHAT_ID")
+    env_id = (os.environ.get("PERCH_TELEGRAM_CHAT_ID")
+              or os.environ.get("TELEGRAM_CHAT_ID"))
     if env_id:
         return env_id.strip()
     try:
