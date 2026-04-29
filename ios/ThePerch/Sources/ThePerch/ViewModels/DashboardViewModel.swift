@@ -107,12 +107,17 @@ final class DashboardViewModel {
     /// receives bursts in <30ms total) plus a small margin.
     private func scheduleFilteredArraysRebuild() {
         _filteredRebuildTask?.cancel()
+        // R15 cleanup: an unstructured `Task { ... }` spawned from a
+        // MainActor-isolated method inherits the parent's actor
+        // isolation — the closure body already runs on MainActor, so
+        // the prior `await MainActor.run { ... }` was a same-actor
+        // hop with no purpose. Removed for clarity and to drop one
+        // suspension point between the cancellation check and the
+        // rebuild call.
         _filteredRebuildTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 50_000_000)
             guard !Task.isCancelled else { return }
-            await MainActor.run { [weak self] in
-                self?.rebuildFilteredArrays()
-            }
+            self?.rebuildFilteredArrays()
         }
     }
 

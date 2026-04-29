@@ -153,6 +153,14 @@ After Round 12, R13+ remain on the table — the audits found 2 CRITICAL items (
 - Migration `20260429910000_round13_alter_policies_to_authenticated.sql` header and CHANGELOG R13 entry corrected: 33 → 34 ALTER POLICY statements (off-by-one).
 - SETUP-FOR-AGENTS.md Step 2 ledger note tightened with the R14-measured actual scale: "~35 repo files with no matching prod version + ~32 prod versions with no matching repo file" instead of the prior "~13 early migrations and several mid-April files."
 
+### Round 15 — DIMINISHING RETURNS REACHED
+All three R15 audits (security, iOS perf, backend+docs) returned **DIMINISHING RETURNS REACHED — NO NEW FINDINGS.** The audit cadence has saturated. Per the loop's stop rule ("stop on first empty round"), R15 is the natural terminator. R16 unnecessary.
+
+The only R15 commit was a 10µs cleanup the iOS perf agent flagged for code clarity:
+- iOS: dropped a redundant `await MainActor.run { ... }` inside `scheduleFilteredArraysRebuild`'s `Task { [weak self] in ... }`. An unstructured `Task { ... }` spawned from a MainActor-isolated method inherits the parent's actor isolation — the closure body already runs on MainActor, so the inner hop was a same-actor suspend with no purpose. Drops one suspension point between the cancellation check and the rebuild call.
+
+After 9 rounds of pre-public deep audits (R7→R15) — every round caught regressions introduced by the prior round plus pre-existing gaps until R14 (security)/R15 (all surfaces) finally returned empty. **Recommendation per the security audit's closing note**: future audit work should be event-driven (when new code lands, when an edge function actually deploys, when MFA enrollment ships) rather than another round number.
+
 ---
 
 ## [Build 74] - 2026-04-29
