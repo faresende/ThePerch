@@ -276,7 +276,7 @@ Write a gateway status snapshot to `dashboard_records` via the Supabase REST API
 - data: {
     "is_running": true,
     "active_models": [
-      {"model_id": "anthropic/claude-opus-4-6", "job_count": 3},
+      {"model_id": "anthropic/claude-opus-4-7", "job_count": 3},
       {"model_id": "ollama/qwen2.5:14b", "job_count": 5}
     ],
     "active_session_count": <number of active sessions>,

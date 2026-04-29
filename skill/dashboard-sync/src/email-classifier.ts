@@ -169,7 +169,7 @@ export function classifyEmail(
 
   // Subject takes priority: a clear "order ... confirmed" / "thanks for
   // your order" in the subject means PURCHASE confirmation regardless of
-  // what's in the body. This catches cases like Hardgraft where the
+  // what's in the body. This catches cases like Demo Merchant where the
   // order-confirmation email also embeds a tracking number — body
   // shipping signals would otherwise win and route to shipping.
   //
@@ -355,7 +355,7 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     { keyword: 'wir haben ihre bestellung erhalten', weight: 0.85 },
     { keyword: 'zahlung bestätigt', weight: 0.8 },
 
-    // ─── Dutch (NL) — Body&Fit speaks Dutch ───────────────────────────
+    // ─── Dutch (NL) — DemoOutdoors speaks Dutch ───────────────────────────
     { keyword: 'bestelling bevestigd', weight: 0.9 },
     { keyword: 'orderbevestiging', weight: 0.9 },
     { keyword: 'bedankt voor je bestelling', weight: 0.9 },
@@ -441,10 +441,10 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     'worten': 'Worten',
     'rackstore': 'RackStore',
     // Apparel + EDC merchants Fábio orders from regularly
-    'hardgraft': 'Hardgraft',
+    'demo-merchant': 'Demo Merchant',
     'jacquesmariemage': 'Jacques Marie Mage',
     'vulkit': 'Vulkit',
-    'bodyandfit': 'Body&Fit',
+    'bodyandfit': 'DemoOutdoors',
     'matadorequipment': 'Matador',
     'matadorup': 'Matador',
     'vollebak': 'Vollebak',
@@ -480,9 +480,9 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
   // Catch-all regex for "order [#XYZ / has been / is] confirmed" phrasings
   // (and PT/ES/FR/DE/NL equivalents) that the literal-keyword list misses.
   // Real-world subject lines like
-  //   "Order #108984 confirmed"
-  //   "hardgraft order HGMC20117325 confirmed"
-  //   "Your Body&Fit order is confirmed!"
+  //   "Order #DEMO-108984 confirmed"
+  //   "demo-merchant order HGMC-DEMO-0001 confirmed"
+  //   "Your DemoOutdoors order is confirmed!"
   //   "Pedido #1234 confirmado"
   //   "Commande N°1234 confirmée"
   //   "Bestellung #1234 bestätigt"
@@ -774,8 +774,8 @@ export function extractShipmentFields(
 
 /**
  * Strip generic suffixes from a display name to recover the merchant.
- *   "Body&Fit Customer Service" -> "Body&Fit"
- *   "Hardgraft Members Club" -> "Hardgraft"
+ *   "DemoOutdoors Customer Service" -> "DemoOutdoors"
+ *   "Demo Merchant Members Club" -> "Demo Merchant"
  *   "Apple Receipts" -> "Apple"
  *   "Vulkit Support" -> "Vulkit"
  * Returns null if the cleaned name is empty or generic-only.
@@ -792,7 +792,7 @@ export function cleanDisplayName(name: string): string | null {
   s = s.replace(/\s*\[[^\]]*\]\s*$/g, '').replace(/\s*\([^)]*\)\s*$/g, '').trim();
 
   // Strip generic role suffixes (case-insensitive). Keep removing until
-  // none match — "Body&Fit Customer Service Team" should drop both.
+  // none match — "DemoOutdoors Customer Service Team" should drop both.
   const suffixes = [
     'customer service', 'customer care', 'customer support',
     'support team', 'support', 'sales team', 'sales',
@@ -831,7 +831,7 @@ export function cleanDisplayName(name: string): string | null {
  * Pretty-print a domain stem into a plausible merchant name when no
  * better source is available. Heuristic — not always right, but better
  * than the bare lowercase domain.
- *   "bodyandfit" -> "Body & Fit"
+ *   "bodyandfit" -> "Demo Outdoors"
  *   "mrporter"   -> "MR PORTER" (special-cased common pattern)
  *   "apple"      -> "Apple"
  *   "jacquesmariemage" -> "Jacquesmariemage" (untouched — too dense)
@@ -920,10 +920,10 @@ const KNOWN_MERCHANTS: Record<string, string> = {
   'worten': 'Worten',
   'rackstore': 'RackStore',
   // Apparel + EDC merchants Fábio orders from regularly
-  'hardgraft': 'Hardgraft',
+  'demo-merchant': 'Demo Merchant',
   'jacquesmariemage': 'Jacques Marie Mage',
   'vulkit': 'Vulkit',
-  'bodyandfit': 'Body&Fit',
+  'bodyandfit': 'DemoOutdoors',
   'matadorequipment': 'Matador',
   'matadorup': 'Matador',
   'vollebak': 'Vollebak',
@@ -948,7 +948,7 @@ const KNOWN_MERCHANTS: Record<string, string> = {
  * merchant we want is Amazon).
  *
  * Body is alphanum-normalized and lowercased before substring match,
- * so multi-word brand mentions ("Body & Fit", "Net-A-Porter") still
+ * so multi-word brand mentions ("Demo Outdoors", "Net-A-Porter") still
  * hit their compact key. Returns the first match (KNOWN_MERCHANTS
  * iteration order is insertion order).
  */
@@ -1134,7 +1134,7 @@ function extractOrderNumber(subject: string, body: string): string | null {
     new RegExp(`(?:${ANCHOR}\\s+(?:number|nº|n°|no\\.?|numero|número)|(?:numero|número|num\\.|n[ºo°]\\.?)\\s+(?:de\\s+|do\\s+|da\\s+)?${ANCHOR})\\s*[:#]?\\s*([A-Z0-9][A-Z0-9-]{4,24})`, 'i'),
     // Amazon-style "order 123-1234567-1234567"
     new RegExp(`${ANCHOR}\\s+(\\d{3}-\\d{7}-\\d{7})`, 'i'),
-    // "order HGMC20117325" / "pedido ABC-12345" — bare token after the
+    // "order HGMC-DEMO-0001" / "pedido ABC-12345" — bare token after the
     // anchor (no # required). Restricted to merchant-style prefixes
     // (≥2 letters, ≥1 digit somewhere) so we don't scoop "order details"
     // / "pedido confirmado" / "commande confirmée".
@@ -1142,8 +1142,8 @@ function extractOrderNumber(subject: string, body: string): string | null {
     // "Order 1723 confirmed" / "Pedido 1723 confirmado" — pure-numeric
     // Shopify-style. Multilingual completion words.
     new RegExp(`${ANCHOR}\\s+(\\d{3,8})\\s+(?:confirmed|confirmad[oa]|confirm[ée]e?|best[äa]tigt|bevestigd)`, 'i'),
-    // "thanks for your order BF1429199" — token immediately after the
-    // anchor in body prose. Matches Body&Fit-style emails.
+    // "thanks for your order BF-DEMO-0001" — token immediately after the
+    // anchor in body prose. Matches DemoOutdoors-style emails.
     new RegExp(`(?:thanks?\\s+for\\s+your\\s+|obrigado\\s+pelo\\s+seu\\s+|gracias\\s+por\\s+(?:su|tu)\\s+|merci\\s+pour\\s+votre\\s+|vielen\\s+dank\\s+für\\s+(?:ihre|deine)\\s+|bedankt\\s+voor\\s+(?:je|uw)\\s+)${ANCHOR}\\s+([A-Z0-9][A-Z0-9-]{4,24})`, 'i'),
   ];
 
@@ -1153,7 +1153,7 @@ function extractOrderNumber(subject: string, body: string): string | null {
   // rejects most of these by structure, but belt-and-suspenders.
   //
   // Important: a 6-char hex color check would otherwise false-reject
-  // pure-digit Shopify order numbers like "108984" / "104383" (every
+  // pure-digit Shopify order numbers like "DEMO-108984" / "DEMO-104383" (every
   // char is in 0-9 ⊆ [0-9A-F]). Require at least one A-F LETTER for
   // the hex-color rejection so digits-only tokens are kept.
   const isHexColor = (v: string) =>
@@ -1232,8 +1232,8 @@ function inferCarrier(trackingNumber: string | null, body: string, sender: strin
     // ISO-3166-style country suffix is the disambiguator for the
     // [2 letters][9 digits][2 letters] format. DHL Deutsche Post
     // uses ...DE, La Poste / Colissimo use ...FR, Royal Mail
-    // typically ...GB, Cainiao ...CN. Caught after Body&Fit's
-    // CQ478942688DE got tagged Royal Mail.
+    // typically ...GB, Cainiao ...CN. Caught after DemoOutdoors's
+    // DEMO-DHL-TRACK-001 got tagged Royal Mail.
     if (/^[A-Z]{2}[0-9]{9}DE$/.test(trackingNumber)) return 'DHL';
     if (/^[A-Z]{2}[0-9]{9}FR$/.test(trackingNumber)) return 'La Poste';
     if (/^[A-Z]{2}[0-9]{9}CN$/.test(trackingNumber)) return 'Cainiao';
@@ -1280,7 +1280,7 @@ interface AmountResult { amount: number | null; currency: string }
  *
  * Previously the function returned the FIRST currency-amount it found,
  * which is usually a single line item, not the order total. Multiple
- * merchants (Vulkit, Body&Fit, Matador) were storing the wrong number.
+ * merchants (Vulkit, DemoOutdoors, Matador) were storing the wrong number.
  */
 function extractTotal(body: string): AmountResult {
   // Currency tokens we recognize, mapped to a canonical 3-letter code.

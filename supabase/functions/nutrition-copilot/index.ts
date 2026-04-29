@@ -39,10 +39,21 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Require a valid Supabase user JWT. The service-role key is used
+    // INTERNALLY (so we can write rows that RLS would otherwise gate
+    // on auth.uid()), but the CALLER must prove they're an authenticated
+    // user — otherwise this endpoint would be a fully public read/write
+    // hole into anyone's nutrition data.
+    const userId = await requireUserId(req);
+
     const body = await req.json();
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       throw new HttpError(400, 'Request body must be a JSON object');
     }
+
+    // The body's user_id is ignored (or rather, overwritten) — the
+    // authenticated caller can only act on their own data.
+    (body as Record<string, unknown>).user_id = userId;
 
     const supabase = createServiceClient();
     const mode = typeof body.mode === 'string' ? body.mode : '';
@@ -61,6 +72,37 @@ serve(async (req: Request) => {
     return handleError(error);
   }
 });
+
+/**
+ * Validate the inbound `Authorization: Bearer <jwt>` header by asking
+ * Supabase Auth to decode it. Returns the user id if valid, throws a
+ * 401 otherwise. The anon key alone is NOT sufficient — only a real
+ * user session JWT passes this check.
+ */
+async function requireUserId(req: Request): Promise<string> {
+  const auth = req.headers.get('authorization') ?? '';
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  if (!m) {
+    throw new HttpError(401, 'Missing Authorization: Bearer <jwt>');
+  }
+  const jwt = m[1].trim();
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !anonKey) {
+    throw new HttpError(500, 'Auth verification not configured');
+  }
+
+  const authClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await authClient.auth.getUser(jwt);
+  if (error || !data?.user?.id) {
+    throw new HttpError(401, 'Invalid or expired JWT');
+  }
+  return data.user.id;
+}
 
 async function handleAnalyze(
   supabase: ReturnType<typeof createServiceClient>,

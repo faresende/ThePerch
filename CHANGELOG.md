@@ -121,6 +121,6 @@ _Pre-changelog. See git history for details._
 
 ---
 
-[Unreleased]: https://github.com/your-org/theperch/compare/build/43...HEAD
-[Build 43]: https://github.com/your-org/theperch/compare/build/42...build/43
-[Build 42]: https://github.com/your-org/theperch/releases/tag/build/42
+[Unreleased]: https://github.com/faresende/ThePerch/compare/build/43...HEAD
+[Build 43]: https://github.com/faresende/ThePerch/compare/build/42...build/43
+[Build 42]: https://github.com/faresende/ThePerch/releases/tag/build/42

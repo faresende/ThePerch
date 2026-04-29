@@ -122,7 +122,7 @@ export function parseDeliveryStatus(text: string): DeliveryData | null {
  * Aggregates usage by model and calculates estimated cost.
  *
  * Uses simplified pricing:
- * - Opus 4.6: $15/M input tokens, $75/M output tokens
+ * - Opus 4.7: $15/M input tokens, $75/M output tokens
  * - Other models: estimated based on token counts
  *
  * @param usageData - Array of TokenUsageRecord objects

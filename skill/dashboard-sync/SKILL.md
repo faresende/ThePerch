@@ -73,7 +73,7 @@ Parameters:
 - user_id (string, required): UUID of the owner
 - display_name (string, optional): Human-readable agent name
 - emoji (string, optional): Emoji for the dashboard
-- model (string, optional): LLM model being used (e.g., "claude-opus-4-6")
+- model (string, optional): LLM model being used (e.g., "claude-opus-4-7")
 - is_active (boolean, optional): Current agent status
 - input_tokens (number, optional): Tokens consumed on input this session
 - output_tokens (number, optional): Tokens consumed on output this session

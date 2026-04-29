@@ -360,11 +360,11 @@ final class DashboardViewModel {
             let metaAge: String?
         }
 
+        // Single ioQueue hop instead of three sequential ones — see
+        // CacheService.loadDashboardBundle for rationale.
         let loaded = await Task.detached(priority: .userInitiated) { () -> Loaded in
-            let s = cacheService.loadSections(userId: userId)
-            let r = cacheService.loadRecords(category: nil, userId: userId)
-            let m = cacheService.metadata(for: nil, userId: userId)
-            return Loaded(sections: s, records: r, metaAge: m?.relativeAgeString)
+            let bundle = cacheService.loadDashboardBundle(userId: userId)
+            return Loaded(sections: bundle.sections, records: bundle.records, metaAge: bundle.metaAge)
         }.value
 
         var didLoad = false
@@ -516,7 +516,7 @@ final class DashboardViewModel {
             .order("measured_at", ascending: false)
             .limit(days)
             .execute()
-        let rows = try JSONDecoder().decode([Row].self, from: result.data)
+        let rows = try Self.sleepRowsDecoder.decode([Row].self, from: result.data)
 
         return rows
             .compactMap { row -> SleepNight? in
@@ -525,6 +525,16 @@ final class DashboardViewModel {
             }
             .sorted { $0.date < $1.date }
     }
+
+    /// Shared decoder for the simple Row payload above. Avoids rebuilding
+    /// a JSONDecoder on every loadDashboard sleep-history fetch.
+    private static let sleepRowsDecoder: JSONDecoder = {
+        let d = JSONDecoder()
+        // Row.measured_at is a String; we parse it ourselves with the
+        // permissive ISO formatter below — leave dateDecodingStrategy
+        // at its default (no-op for strings).
+        return d
+    }()
 
     /// Permissive ISO 8601 parser for PostgREST timestamptz strings.
     /// PostgREST emits with or without fractional seconds, with `Z` or

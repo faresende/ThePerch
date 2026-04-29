@@ -10,7 +10,7 @@
  *      we're already committed to writing.
  *   3. Extract per-line ITEMS (Tier 4) for every purchase
  *      confirmation, so the iOS card can render an expanded view
- *      with "1× Hardgraft Tasche bag · 1× leather strap" instead
+ *      with "1× Demo Merchant Tasche bag · 1× leather strap" instead
  *      of just the order total.
  *
  * Provider chain: GPT-4o-mini (primary, cloud, ~$0.001/email at our
@@ -61,7 +61,7 @@ const SYSTEM_PROMPT = `You are an email parser. The user pastes the subject + bo
 
 Reply schema (no prose, no markdown, no code fences):
 {
-  "merchant_name": string | null,    // The retailer / merchant. "Body&Fit", "Apple", "Hardgraft", etc. Drop generic suffixes ("Customer Service", "Support"). null if you can't tell.
+  "merchant_name": string | null,    // The retailer / merchant. "DemoOutdoors", "Apple", "Demo Merchant", etc. Drop generic suffixes ("Customer Service", "Support"). null if you can't tell.
   "order_number": string | null,     // Order/reference number. Strip leading "#". null if absent.
   "total_amount": number | null,     // The ORDER TOTAL (final amount paid), not a line item or subtotal. Numeric, no currency symbol. null if absent.
   "currency": string | null,         // 3-letter ISO code: "EUR" / "USD" / "GBP" / "BRL" / "JPY" etc. null if you can't tell.
@@ -87,14 +87,14 @@ Rules:
 
 Examples (input → expected JSON output):
 
-EXAMPLE 1 — real online order confirmation (Body&Fit, Dutch):
-From: Body&Fit Customer Service <noreply@bodyandfit.com>
-Subject: Your Body&Fit order is confirmed!
-Body: Hi Fábio, thanks for your order BF1429199.
+EXAMPLE 1 — real online order confirmation (DemoOutdoors, Dutch):
+From: DemoOutdoors Customer Service <noreply@bodyandfit.com>
+Subject: Your DemoOutdoors order is confirmed!
+Body: Hi Alex, thanks for your order BF-DEMO-0001.
 1× Whey Protein Isolate Vanilla 2.5kg — €54.99
 2× Creatine Monohydrate 500g — €19.99
 Total: €114.97. We'll let you know when it ships.
-{"merchant_name":"Body&Fit","order_number":"BF1429199","total_amount":114.97,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Whey Protein Isolate Vanilla 2.5kg","quantity":1,"unit_price":54.99,"currency":"EUR"},{"name":"Creatine Monohydrate 500g","quantity":2,"unit_price":19.99,"currency":"EUR"}],"confidence":0.97}
+{"merchant_name":"DemoOutdoors","order_number":"BF-DEMO-0001","total_amount":114.97,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Whey Protein Isolate Vanilla 2.5kg","quantity":1,"unit_price":54.99,"currency":"EUR"},{"name":"Creatine Monohydrate 500g","quantity":2,"unit_price":19.99,"currency":"EUR"}],"confidence":0.97}
 
 EXAMPLE 2 — trip itinerary reminder (Amex, NOT an order):
 From: American Express <AmericanExpress@welcome.americanexpress.com>
@@ -108,14 +108,14 @@ Subject: Envio de documento digital
 Body: O documento digital relativo à sua compra com o número 004014005292827202604264 já está disponível. DESCARREGAR. Muito obrigado pela sua confiança.
 {"merchant_name":"El Corte Inglés","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"items":[],"confidence":0.92}
 
-EXAMPLE 4 — real online order confirmation (Hardgraft):
-From: Hardgraft <hello@hardgraft.com>
-Subject: hardgraft order HGMC20117325 confirmed
-Body: Thanks for your order HGMC20117325.
+EXAMPLE 4 — real online order confirmation (Demo Merchant):
+From: Demo Merchant <hello@demo-merchant.com>
+Subject: demo-merchant order HGMC-DEMO-0001 confirmed
+Body: Thanks for your order HGMC-DEMO-0001.
 1× Tasche Camera Bag — €145.00
 1× Leather Wrist Strap — €15.93
 Order total: €160.93.
-{"merchant_name":"Hardgraft","order_number":"HGMC20117325","total_amount":160.93,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Tasche Camera Bag","quantity":1,"unit_price":145.00,"currency":"EUR"},{"name":"Leather Wrist Strap","quantity":1,"unit_price":15.93,"currency":"EUR"}],"confidence":0.98}`;
+{"merchant_name":"Demo Merchant","order_number":"HGMC-DEMO-0001","total_amount":160.93,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Tasche Camera Bag","quantity":1,"unit_price":145.00,"currency":"EUR"},{"name":"Leather Wrist Strap","quantity":1,"unit_price":15.93,"currency":"EUR"}],"confidence":0.98}`;
 
 /**
  * Strip HTML/CSS scaffolding from an email body before handing it to
@@ -123,7 +123,7 @@ Order total: €160.93.
  * Outlook/Yahoo boilerplate, and inlined styles — sending the raw HTML
  * means the model spends its context window on `<style>` blocks and
  * never sees the actual order content (caught in the wild: a 8639-char
- * Hardgraft body with the items list buried after ~5000 chars of CSS).
+ * Demo Merchant body with the items list buried after ~5000 chars of CSS).
  *
  * After stripping, the readable signal is typically <2000 chars, so we
  * widen the body window to 8000 to make sure the items list, total,

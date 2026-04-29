@@ -44,16 +44,27 @@ Wait for the user to confirm. Don't proceed without all three.
 
 ## Step 2 — Run migrations
 
+The schema lives in **two places** under `supabase/`:
+
+1. **`supabase/001_initial_schema.sql`** — bootstrap tables (`users`, `agents`, `sections`, `home_widgets`, `dashboard_records`, `health_metrics`, `agent_users`, etc.)
+2. **`supabase/002_seed_demo.sql`** — demo agent set + section layout (idempotent, replace placeholder UUIDs with the user's auth uid before running)
+3. **`supabase/migrations/*.sql`** — every change since (orders, shipments, insights, learned_senders, merchant_rules, agent_runs retention, etc.) — apply in **filename order** (timestamps sort lexicographically).
+
+Easiest path — open Supabase Dashboard → SQL Editor → New Query → paste → Run, repeat for each file in this order:
+
 ```bash
-cd ~/Developer/ThePerch/supabase/migrations
-ls *.sql | sort   # confirm filename order — migrations apply in order
+ls -1 ~/Developer/ThePerch/supabase/001_initial_schema.sql \
+       ~/Developer/ThePerch/supabase/002_seed_demo.sql \
+       ~/Developer/ThePerch/supabase/migrations/*.sql
 ```
 
-The user can paste each migration into Supabase's SQL Editor (Dashboard → SQL Editor → New Query → paste → Run), in **filename order**. Or if they have the Supabase CLI:
+Or, if the user has the Supabase CLI configured:
 
 ```bash
 supabase db push --project-ref <YOUR-PROJECT-REF>
 ```
+
+(`db push` reads from `supabase/migrations/`. The two `001_*` / `002_*` files at `supabase/` root won't be picked up automatically — paste those into the SQL Editor first.)
 
 Verify a few key tables exist after migrations land:
 

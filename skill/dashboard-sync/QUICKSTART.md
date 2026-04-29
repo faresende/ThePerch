@@ -79,7 +79,7 @@ if (result.records.length > 0) {
 const result = await dashboard_heartbeat({
   agent_id: 'my-agent',
   user_id: 'user-uuid-here',
-  model: 'claude-opus-4-6',
+  model: 'claude-opus-4-7',
   is_active: true,
   input_tokens: 1000,
   output_tokens: 500,
@@ -114,7 +114,7 @@ const data = parseDeliveryStatus("FedEx tracking 1Z999AA10123456784 out for deli
 import { buildCostSummary } from './src/auto-capture';
 
 const summary = buildCostSummary(usageRecords);
-// Returns: { total_cost_usd: 0.01, input_tokens: 1000, output_tokens: 500, model: 'claude-opus-4-6' }
+// Returns: { total_cost_usd: 0.01, input_tokens: 1000, output_tokens: 500, model: 'claude-opus-4-7' }
 ```
 
 ## Common Patterns
@@ -195,7 +195,7 @@ await dashboard_heartbeat({
   input_tokens: tokensIn,
   output_tokens: tokensOut,
   estimated_cost_usd: cost,
-  model: 'claude-opus-4-6'
+  model: 'claude-opus-4-7'
 });
 ```
 

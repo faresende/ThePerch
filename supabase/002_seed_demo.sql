@@ -41,11 +41,11 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO public.agents (id, display_name, emoji, model, owner_id, is_active)
 VALUES
-  ('main',       'Claudinho',  '🦞', 'claude-opus-4.6',   demo_user_id, true),
-  ('biochecha',  'BioChecha',  '💪', 'claude-opus-4.6',   demo_user_id, true),
-  ('calendario', 'Calendario', '📅', 'claude-sonnet-4.6', demo_user_id, true),
-  ('entregas',   'Entregas',   '📦', 'claude-sonnet-4.6', demo_user_id, true),
-  ('legal',      'Legal',      '⚖️', 'claude-sonnet-4.6', demo_user_id, true)
+  ('main',       'Claudinho',  '🦞', 'claude-opus-4.7',   demo_user_id, true),
+  ('biochecha',  'BioChecha',  '💪', 'claude-opus-4.7',   demo_user_id, true),
+  ('calendario', 'Calendario', '📅', 'claude-sonnet-4.7', demo_user_id, true),
+  ('entregas',   'Entregas',   '📦', 'claude-sonnet-4.7', demo_user_id, true),
+  ('legal',      'Legal',      '⚖️', 'claude-sonnet-4.7', demo_user_id, true)
 ON CONFLICT (id) DO UPDATE SET
   display_name = EXCLUDED.display_name,
   emoji = EXCLUDED.emoji,

@@ -120,14 +120,14 @@ Oura Ingestion Script                        OpenClaw Agent
 
 - Oura Ring account with API access (Personal Access Token)
 - Supabase project with migrations applied (see perch-supabase)
-- Environment variable `OURA_PERSONAL_ACCESS_TOKEN` set
+- Environment variable `OURA_PERSONAL_TOKEN` set
 
 ### Configuration
 
 1. Generate an Oura Personal Access Token at https://cloud.ouraring.com/personal-access-tokens
 2. Set the token in the agent environment:
    ```bash
-   export OURA_PERSONAL_ACCESS_TOKEN=your_token_here
+   export OURA_PERSONAL_TOKEN=your_token_here
    ```
 3. Verify the Supabase `records` table accepts `category=health` rows (it should by default)
 
@@ -135,7 +135,7 @@ Oura Ingestion Script                        OpenClaw Agent
 
 ```bash
 # Fetch yesterday's sleep data from Oura
-curl -H "Authorization: Bearer $OURA_PERSONAL_ACCESS_TOKEN" \
+curl -H "Authorization: Bearer $OURA_PERSONAL_TOKEN" \
   "https://api.ouraring.com/v2/usercollection/sleep?start_date=$(date -v-1d +%Y-%m-%d)&end_date=$(date +%Y-%m-%d)"
 
 # Write to Supabase via dashboard_push or direct API call

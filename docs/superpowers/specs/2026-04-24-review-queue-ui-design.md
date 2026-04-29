@@ -116,7 +116,7 @@ The Hub is for things the user actively engages with daily. Review-queue triage 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  [icon]  ⚡ Vulkit                     2d ago           │   ← kicker line
-│          "Order #108984 confirmed"                      │   ← subject (1 line, truncated)
+│          "Order #DEMO-108984 confirmed"                      │   ← subject (1 line, truncated)
 │          ⚠ Ambiguous classification — review            │   ← reason (1 line)
 └─────────────────────────────────────────────────────────┘
 ```
@@ -144,22 +144,22 @@ The Hub is for things the user actively engages with daily. Review-queue triage 
 │  ←  Review                                  1 of 6      │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  ⚡ From  Body&Fit Customer Service                      │
+│  ⚡ From  DemoOutdoors Customer Service                      │
 │         <noreply@bodyandfit.com>                        │
 │                                                         │
-│  Subject  Your Body&Fit order is confirmed!             │
+│  Subject  Your DemoOutdoors order is confirmed!             │
 │                                                         │
 │  Date     2 days ago                                    │
 │                                                         │
 │  ─── snippet ────────────────────────────               │
-│  Hi Fábio, thanks for your order BF1429199. │
+│  Hi Alex, thanks for your order BF-DEMO-0001. │
 │  Total: €45.20. We'll let you know when it ships.       │
 │  ─────────────────────────────────────────              │
 │                                                         │
 │  Suggested action                                       │
 │  ┌────────────────────────────────────────────────┐    │
-│  │  Merchant   [ Body&Fit            ]  edit      │    │
-│  │  Order #    [ BF1429199           ]  edit      │    │
+│  │  Merchant   [ DemoOutdoors            ]  edit      │    │
+│  │  Order #    [ BF-DEMO-0001           ]  edit      │    │
 │  │  Total      [ €45.20              ]  edit      │    │
 │  └────────────────────────────────────────────────┘    │
 │                                                         │
@@ -191,7 +191,7 @@ On tap:
    - upserts a `learned_senders` row,
    - sets `review_items.resolved_at = now()`.
 2. Calls `upsertOrder` with the user-confirmed `merchant_name` / `order_number` / `total_amount` / `currency` / `source_email_ids: [originalEmailId]` / `confidence_score: 1.0` / `status: 'ordered'`.
-3. Shows a 4-second toast at the bottom: **"✓ Body&Fit learned. Undo"**
+3. Shows a 4-second toast at the bottom: **"✓ DemoOutdoors learned. Undo"**
 4. Auto-advances to the next row (Sweep mode) or returns to the list view.
 
 The undo toast is critical — it's the safety net for the one-tap path.
@@ -224,14 +224,14 @@ After 10s the toast dismisses and the action is permanent. (User can still revok
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  ⚡ Body&Fit                                            │
+│  ⚡ DemoOutdoors                                            │
 │     noreply@bodyandfit.com  •  taught 12d ago           │
 └─────────────────────────────────────────────────────────┘
 ```
 
 Tap → revoke confirmation:
 
-> "Revoke the Body&Fit mapping?
+> "Revoke the DemoOutdoors mapping?
 > Future emails from noreply@bodyandfit.com will go through normal classification again. Existing orders are unaffected."
 >
 > [Revoke]   [Cancel]

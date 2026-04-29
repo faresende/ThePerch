@@ -1476,8 +1476,8 @@ class TestLogisticsArrivingToday(unittest.TestCase):
         state = _base_state("afternoon")
         state = replace(state, today_orders_in_transit=[
             OrderSummary(
-                merchant="Body & Fit", order_number="BF1429199",
-                carrier="DHL", tracking_number="CQ478942688DE",
+                merchant="Demo Outdoors", order_number="BF-DEMO-0001",
+                carrier="DHL", tracking_number="DEMO-DHL-TRACK-001",
                 eta_at=datetime(2026, 4, 28, 17, 0, tzinfo=timezone.utc),
                 status="in_transit",
             ),
@@ -2092,8 +2092,8 @@ class TestLogisticsEventCategories(unittest.TestCase):
         state = _base_state("event_logistics")
         state = replace(state, event_trigger=EventTrigger(
             kind="out_for_delivery",
-            merchant="Body & Fit", carrier="DHL",
-            tracking_number="CQ478942688DE",
+            merchant="Demo Outdoors", carrier="DHL",
+            tracking_number="DEMO-DHL-TRACK-001",
             old_status="in_transit", new_status="out_for_delivery",
             eta_at=None,
         ))
@@ -2105,8 +2105,8 @@ class TestLogisticsEventCategories(unittest.TestCase):
         state = _base_state("event_logistics")
         state = replace(state, event_trigger=EventTrigger(
             kind="eta_today",
-            merchant="Hardgraft", carrier="DPD",
-            tracking_number="15976785968210",
+            merchant="Demo Merchant", carrier="DPD",
+            tracking_number="DEMO-DPD-TRACK-001",
             old_status="in_transit", new_status="in_transit",
             eta_at=datetime(2026, 4, 28, 17, 0, tzinfo=timezone.utc),
         ))
@@ -2119,9 +2119,9 @@ class TestDontChurnGuard(unittest.TestCase):
     def test_overlap_blocks_when_same_shipment_referenced(self):
         recent = {
             "winning_category": "logistics_event_out_for_delivery",
-            "fact_bundle": {"tracking_number": "CQ478942688DE"},
+            "fact_bundle": {"tracking_number": "DEMO-DHL-TRACK-001"},
         }
-        self.assertTrue(is_recent_topic_overlap(recent, "CQ478942688DE"))
+        self.assertTrue(is_recent_topic_overlap(recent, "DEMO-DHL-TRACK-001"))
 
     def test_overlap_clears_when_different_shipment(self):
         recent = {
@@ -2434,7 +2434,7 @@ if __name__ == "__main__":
 
 ```bash
 set -a && source ~/.openclaw/secrets/perch.env && set +a
-python3 ~/Developer/ThePerch/agents/health-integrations/biochecha_event_insight.py out_for_delivery "Body & Fit" "DHL" "CQ478942688DE" "in_transit" "out_for_delivery"
+python3 ~/Developer/ThePerch/agents/health-integrations/biochecha_event_insight.py out_for_delivery "Demo Outdoors" "DHL" "DEMO-DHL-TRACK-001" "in_transit" "out_for_delivery"
 ```
 Expected: a generated insight body printed; a row lands in `insights` with `insight_type='event_logistics'`.
 
@@ -2442,7 +2442,7 @@ Expected: a generated insight body printed; a row lands in `insights` with `insi
 
 Run the same command again right after.
 
-Expected: `[event:out_for_delivery] skipped — recent insight already covers CQ478942688DE`. No new row in DB.
+Expected: `[event:out_for_delivery] skipped — recent insight already covers DEMO-DHL-TRACK-001`. No new row in DB.
 
 - [ ] **Step 4: Commit**
 

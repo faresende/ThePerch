@@ -13,7 +13,7 @@ The project has three code paths that touch credentials. Each has its own source
 - Real values live in `ios/ThePerch/Sources/ThePerch/Config/Secrets.xcconfig` (gitignored).
 - The committed template is `ios/ThePerch/Sources/ThePerch/Config/Secrets.example.xcconfig`.
 - Xcode substitutes the xcconfig values into `Info.plist` at build time via `$(VAR)` references.
-- `AppConfig` reads them from `Bundle.main.infoDictionary` at runtime. A legacy `Secrets.plist` fallback exists for backward compatibility.
+- `AppConfig` reads them from `Bundle.main.infoDictionary` at runtime.
 - The iOS app stores only the Supabase publishable (anon) key, which is meant to ship in the binary, plus the Karakeep API token. It never ships the Supabase service-role key.
 
 Setup on a new machine:
@@ -41,9 +41,15 @@ cp scripts/.env.example scripts/.env
 
 ### Supabase Edge Functions
 
-- All functions read secrets via `Deno.env.get(...)` and never hardcode values.
-- Values are registered per function with `supabase secrets set --project-ref <ref> KEY=VALUE`.
-- Each function's `README.md` documents which environment variables it requires.
+The repo currently ships one edge function: `supabase/functions/nutrition-copilot/`. It reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_ANON_KEY` via `Deno.env.get(...)` and is gated behind a per-request user-JWT check so the service-role key is never exposed across tenant boundaries. Set the env via:
+
+```
+supabase secrets set --project-ref <YOUR-PROJECT-REF> \
+  SUPABASE_URL=… SUPABASE_ANON_KEY=…
+# SUPABASE_SERVICE_ROLE_KEY is auto-injected by Supabase
+```
+
+Edge function callers must send a user-session JWT in the `Authorization: Bearer …` header — the anon key alone is rejected.
 
 ## Test fixtures and personal data
 

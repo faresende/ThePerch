@@ -365,20 +365,24 @@ export async function getShipmentsForOrder(orderId: string): Promise<ShipmentRec
 
 /**
  * Get all undelivered shipments for a user (for 17track polling).
+ *
+ * The user filter is pushed into the query so PostgREST returns only
+ * matching rows — previous version pulled ALL undelivered shipments
+ * across every user and filtered in JS, which was an obvious cross-
+ * tenant data exposure waiting to happen and a multi-MB payload at
+ * scale.
  */
 export async function getUndeliveredShipments(userId: string): Promise<Array<ShipmentRecord & { order: OrderRecord }>> {
   const { data, error } = await supabase
     .from('shipments')
-    .select('*, orders(*)')
+    .select('*, orders!inner(*)')
+    .eq('orders.user_id', userId)
     .neq('status', 'delivered')
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(`Failed to get undelivered shipments: ${error.message}`);
 
-  // Filter to only user's shipments
-  return (data || []).filter(
-    (s: any) => s.orders && (s.orders as OrderRecord).user_id === userId,
-  ) as Array<ShipmentRecord & { order: OrderRecord }>;
+  return (data || []) as Array<ShipmentRecord & { order: OrderRecord }>;
 }
 
 /**

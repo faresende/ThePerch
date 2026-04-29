@@ -105,17 +105,17 @@ struct HubTab: View {
                 // content stops above the tab bar; only scroll geometry
                 // extends beneath it to feed the glass.
                 TabView(selection: $selectedSegment) {
-                    hubPage { OrdersSectionContent() }
+                    hubPage { LazyView { OrdersSectionContent() } }
                         .tag(HubSegment.orders)
 
-                    hubPage { BookmarksSectionContent() }
+                    hubPage { LazyView { BookmarksSectionContent() } }
                         .tag(HubSegment.bookmarks)
 
-                    hubPage { CalendarSectionContent() }
+                    hubPage { LazyView { CalendarSectionContent() } }
                         .tag(HubSegment.calendar)
 
                     if travelViewModel.currentTrip != nil {
-                        hubPage { TravelSectionContent() }
+                        hubPage { LazyView { TravelSectionContent() } }
                             .tag(HubSegment.travel)
                     }
                 }

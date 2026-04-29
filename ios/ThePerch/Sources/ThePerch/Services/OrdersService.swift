@@ -17,6 +17,11 @@ final class OrdersService {
         decoder.dateDecodingStrategy = .iso8601
         return decoder
     }()
+    private let itemDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
 
     init() {
         self.supabaseService = .shared
@@ -71,9 +76,7 @@ final class OrdersService {
             .select()
             .order("position", ascending: true)
             .execute()
-        let dec = JSONDecoder()
-        dec.dateDecodingStrategy = .iso8601
-        let wrapped = try dec.decode([FailableDecodable<OrderItem>].self, from: result.data)
+        let wrapped = try itemDecoder.decode([FailableDecodable<OrderItem>].self, from: result.data)
         return wrapped.compactMap { entry in
 #if DEBUG
             if case .failure(let err) = entry.result {
@@ -378,7 +381,7 @@ final class OrdersService {
 
         let decoded: [OrderRow]
         do {
-            decoded = try JSONDecoder().decode([OrderRow].self, from: result.data)
+            decoded = try orderDecoder.decode([OrderRow].self, from: result.data)
         } catch {
 #if DEBUG
             print("[OrdersService] mergeShippingEmail: decode failed: \(error)")

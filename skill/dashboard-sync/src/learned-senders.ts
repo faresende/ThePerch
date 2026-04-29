@@ -77,7 +77,12 @@ export const normalizeMerchantName = normalizeMerchant;
  * Look up a learned (sender → merchant) mapping for this user. Returns
  * null when no match — caller should fall back to keyword/LLM logic.
  *
- * Match order is enforced in JS (not SQL) so we can label which axis hit:
+ * Match order is enforced in JS so we can label which axis hit, but the
+ * SQL query is collapsed into a single round-trip via PostgREST's `or`
+ * filter: we ask for any row matching the exact email OR the sender
+ * domain, then pick the best match in JS. Saves one network hop on every
+ * email through the autopilot.
+ *
  *   1. exact sender_email
  *   2. sender_domain fallback
  */
@@ -88,19 +93,33 @@ export async function lookupLearnedSender(
   const email = (senderEmail || '').trim().toLowerCase();
   if (!email) return null;
 
-  // 1. exact email match.
-  const { data: exact, error: exactErr } = await supabase
-    .from('learned_senders')
-    .select('merchant_name, normalized_merchant')
-    .eq('user_id', userId)
-    .eq('sender_email', email)
-    .maybeSingle();
+  const domain = senderDomainStem(email);
 
-  if (exactErr) {
-    console.warn(`[learned-senders] exact lookup failed: ${exactErr.message}`);
+  // Single round-trip: fetch any row that matches by exact email OR
+  // (when we can derive one) the sender domain. We then pick the best
+  // match in JS so the matched_on label stays accurate.
+  const orFilter = domain
+    ? `sender_email.eq.${email},sender_domain.eq.${domain}`
+    : `sender_email.eq.${email}`;
+
+  const { data: rows, error } = await supabase
+    .from('learned_senders')
+    .select('merchant_name, normalized_merchant, sender_email, sender_domain, updated_at')
+    .eq('user_id', userId)
+    .or(orFilter)
+    .order('updated_at', { ascending: false })
+    .limit(8); // small cap so a noisy domain doesn't pull a huge page
+
+  if (error) {
+    console.warn(`[learned-senders] lookup failed: ${error.message}`);
     // Don't propagate — a stale lookup shouldn't break the pipeline.
     return null;
   }
+  if (!rows || rows.length === 0) return null;
+
+  // Prefer exact email match if present; otherwise the most recent
+  // domain match (rows are already sorted updated_at DESC).
+  const exact = rows.find(r => r.sender_email === email);
   if (exact) {
     return {
       merchant_name: exact.merchant_name,
@@ -109,23 +128,8 @@ export async function lookupLearnedSender(
     };
   }
 
-  // 2. domain fallback.
-  const domain = senderDomainStem(email);
   if (!domain) return null;
-
-  const { data: domainHit, error: domainErr } = await supabase
-    .from('learned_senders')
-    .select('merchant_name, normalized_merchant')
-    .eq('user_id', userId)
-    .eq('sender_domain', domain)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (domainErr) {
-    console.warn(`[learned-senders] domain lookup failed: ${domainErr.message}`);
-    return null;
-  }
+  const domainHit = rows.find(r => r.sender_domain === domain);
   if (domainHit) {
     return {
       merchant_name: domainHit.merchant_name,

@@ -184,8 +184,8 @@ async function insertDemo(sb, userId) {
     {
       id: '11111111-1111-1111-1111-111111111111',
       user_id: userId,
-      merchant_name: 'Hardgraft',
-      normalized_merchant: 'hardgraft',
+      merchant_name: 'Demo Merchant',
+      normalized_merchant: 'demomerchant',
       order_number: 'HG-2487',
       order_date: isoDateDaysAgo(3),
       total_amount: 287.00,
@@ -197,7 +197,7 @@ async function insertDemo(sb, userId) {
     {
       id: '22222222-2222-2222-2222-222222222222',
       user_id: userId,
-      merchant_name: 'Body & Fit',
+      merchant_name: 'Demo Outdoors',
       normalized_merchant: 'body-and-fit',
       order_number: 'BF-991045',
       order_date: isoDateDaysAgo(2),
@@ -210,8 +210,8 @@ async function insertDemo(sb, userId) {
     {
       id: '33333333-3333-3333-3333-333333333333',
       user_id: userId,
-      merchant_name: 'Topfoams',
-      normalized_merchant: 'topfoams',
+      merchant_name: 'Demo Foams',
+      normalized_merchant: 'demofoams',
       order_number: 'TF-7733',
       order_date: isoDateDaysAgo(8),
       total_amount: 412.99,

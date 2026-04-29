@@ -14,23 +14,25 @@ Any task involving order ingestion from commerce emails, shipment tracking, orde
 
 The orders pipeline scans commerce confirmation emails from Fastmail (JMAP), detects order and shipment information using content-based pattern matching (not sender whitelist), and persists them to the `orders` and `shipments` Supabase tables. This data is then displayed in the iOS app's Orders tab and fed into Live Activities for in-transit packages.
 
-Two scripts handle this:
-- **`orders_autopilot_ingest_fastmail.py`**: Fetches emails from Fastmail Paper Trail + Inbox, detects orders via content patterns, and upserts to `orders` + `shipments` tables
-- **`dashboard-sync` skill (orders-autopilot.ts)**: More sophisticated classifier with purchase confirmation vs shipping notification handling, 17track polling, and review items for ambiguous cases
+Two entry points handle this (both share the same TypeScript classifier + store):
+- **`sandbox/fastmail-jmap/orders_ingest_hook.py`** (listener): fires per new commerce email, shells out to `node skill/dashboard-sync/cli.js process-email`. Real-time path.
+- **`scripts/orders_ingest_catchup.py`** (catchup): re-scans Inbox + Paper Trail every 30 min as a safety net for anything the listener missed.
+- **`skill/dashboard-sync/src/orders-autopilot.ts`**: shared classifier with purchase confirmation vs shipping notification handling, 17track polling, and review items for ambiguous cases. Both entry points call into this.
+
+> The legacy monolithic `scripts/orders_autopilot_ingest_fastmail.py` was retired on 2026-04-23 — see `scripts/archive/README.md`.
 
 ## Architecture
 
 ```
 Fastmail JMAP (Paper Trail P7V + Inbox P-F)
         │
-        │ jmap_client (Python)
+        │ orders_ingest_hook.py (listener)  OR  orders_ingest_catchup.py (30-min cron)
         ▼
-orders_autopilot_ingest_fastmail.py
-  ├─ is_order_email()      — content-based detection
-  ├─ extract_order_number() — regex: #ORDER-12345
-  ├─ extract_tracking_number() — 1Z UPS, DHL numeric, generic patterns
-  ├─ upsert_order()        — orders table
-  └─ upsert_shipment()     — shipments table
+node skill/dashboard-sync/cli.js process-email
+  ├─ email-classifier.ts   — content-based detection
+  ├─ llm-extractor.ts      — order number / tracking-number extraction
+  ├─ orders-autopilot.ts   — purchase vs shipping decision + review items
+  └─ orders-store.ts       — upsert into orders + shipments
         │
         ▼
   Supabase: orders + shipments tables
@@ -108,31 +110,35 @@ Excluded regardless of content:
 
 ```bash
 cd ThePerch
-python3 scripts/orders_autopilot_ingest_fastmail.py
-python3 scripts/orders_autopilot_ingest_fastmail.py --json  # JSON output
-python3 scripts/orders_autopilot_ingest_fastmail.py --lookback-hours 168  # 7 days
-python3 scripts/orders_autopilot_ingest_fastmail.py --limit 30
+# Per-email replay through the canonical cli
+node skill/dashboard-sync/cli.js process-email --limit 5 --json
+
+# Catchup (12h window by default, override via --lookback-hours)
+python3 scripts/orders_ingest_catchup.py --json
+python3 scripts/orders_ingest_catchup.py --lookback-hours 168  # 7 days
 ```
 
 ### Cron schedule
 
+The JMAP listener (`sandbox/fastmail-jmap/orders_ingest_hook.py`) fires per-email in real time. The catchup runs as a safety net:
+
 ```cron
-# Every hour at :00 and :30
-0,30 * * * * cd <YOUR_OPENCLAW_WORKSPACE> && python3 scripts/orders_autopilot_ingest_fastmail.py >> logs/orders.log 2>&1
+# Catchup every 30 minutes
+0,30 * * * * cd <REPO> && python3 scripts/orders_ingest_catchup.py >> ~/.openclaw/logs/orders.log 2>&1
 ```
 
 ### Environment
 
-The script reads Fastmail JMAP credentials from `~/.openclaw/workspace/sandbox/fastmail-jmap/jmap_client.py`. Supabase credentials come from SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars; fail-fast when missing. See the script's header for the full list.
+The catchup script reads Fastmail JMAP credentials from `sandbox/fastmail-jmap/jmap_client.py`. Supabase credentials come from `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` env vars; fail-fast when missing. See the script's header for the full list.
 
 ## Adding a New Merchant
 
-The script uses **content-based detection**, not a sender whitelist. To add a new merchant:
+The classifier uses **content-based detection**, not a sender whitelist. To add a new merchant:
 
-1. Test the detection: send a test order confirmation from the merchant and run the script
-2. If detection fails, add merchant-specific patterns to `STRONG_ORDER_SIGNALS` or `WEAK_ORDER_SIGNALS` in the script
-3. If the merchant sends shipping emails, ensure the `extract_tracking_number()` regex handles their tracking format
-4. For carriers not yet supported, add to `get_tracking_url()` function
+1. Test the detection: send a test order confirmation from the merchant and replay it via `node skill/dashboard-sync/cli.js process-email --limit 5 --json`
+2. If detection fails, add merchant-specific patterns to the STRONG/WEAK signal lists in `skill/dashboard-sync/src/email-classifier.ts`
+3. If the merchant sends shipping emails, ensure the regex helpers in `skill/dashboard-sync/src/llm-extractor.ts` handle their tracking format
+4. For carriers not yet supported, add to the carrier URL map in `orders-autopilot.ts`
 
 ### Excluded senders
 
@@ -148,7 +154,7 @@ net-a-porter (restaurant), paypal, sendcloud, loox, amazon (all locales)
 
 ```bash
 # Dry run with verbose output
-python3 scripts/orders_autopilot_ingest_fastmail.py --limit 5 --json
+node skill/dashboard-sync/cli.js process-email --limit 5 --json
 
 # Check recent orders in Supabase
 curl -G "https://<YOUR-PROJECT-REF>.supabase.co/rest/v1/orders" \
@@ -171,4 +177,4 @@ curl -G ".../shipments" \
 
 ### Dashboard-sync Integration
 
-The legacy dashboard-sync skill (`orders-autopilot.ts`) uses a different pipeline with 17track polling. The Python script handles initial email ingestion; the TypeScript skill handles ongoing tracking updates. Both write to the same `orders` + `shipments` tables.
+The dashboard-sync skill (`orders-autopilot.ts`) is the canonical classifier and is shared by both the JMAP listener and the catchup script. 17track polling runs out of the same TypeScript layer (`scripts/poll-shipments.js` invoked by the LaunchAgent) and writes back to the same `orders` + `shipments` tables.

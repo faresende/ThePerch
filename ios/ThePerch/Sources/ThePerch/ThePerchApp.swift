@@ -104,6 +104,11 @@ if !isConfigured {
                 Task.detached(priority: .utility) { @MainActor in
                     await dashboardViewModel.setupRealtimeSubscriptions()
                 }
+                // Crash-report scan was previously synchronous in
+                // CrashReporter.init() — pulled off cold-start critical
+                // path. Run it now and surface the alert if anything
+                // turns up.
+                await CrashReporter.shared.loadPendingReportsIfNeeded()
                 if CrashReporter.shared.hasPendingCrashReports {
                     showCrashAlert = true
                 }

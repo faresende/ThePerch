@@ -37,7 +37,7 @@ Use `SKILL.md` as a prompt you give to any LLM via their tool-use API, and call 
 
 ## Required environment
 
-- `OURA_PERSONAL_ACCESS_TOKEN (if using the Oura provider)`
+- `OURA_PERSONAL_TOKEN (if using the Oura provider)`
 
 ## Other prerequisites
 

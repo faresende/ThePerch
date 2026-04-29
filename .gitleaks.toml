@@ -35,13 +35,9 @@ regexes = [
     '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.''',
 ]
 
-# Historical commits with findings that have all been verified safe:
-# - 4be29384 / f2eeb82d: JWT header placeholder in GETTING_STARTED.md and
-#   test fixtures in ShareExtensionTests.swift (both false positives)
-# - c98d7090: Telegram bot token in deploy-testflight.sh — rotated on
-#   2026-04-21 via BotFather /revoke; the leaked string is dead.
-commits = [
-    "4be2938439a85c06d51af0914ae6fa7a26e307c9",
-    "f2eeb82db725d69efe1192338bb7c2c12e074656",
-    "c98d70909fe22f278441845c7d2fcb4268bfcbf6",
-]
+# Historical commit allowlist intentionally empty: the pre-public history
+# rewrite (filter-repo with --replace-text + --invert-paths, 2026-04-29)
+# invalidated every previous SHA. If gitleaks flags something on a commit
+# in the rewritten history, treat it as real, rotate the leaked credential,
+# then re-run filter-repo. Don't append SHAs here without rotating first.
+commits = []

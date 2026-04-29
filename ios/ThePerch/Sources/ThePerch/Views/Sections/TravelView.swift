@@ -817,11 +817,26 @@ struct TravelView: View {
         return "📅 \(destinationTime) (\(originTime) your time)"
     }
 
+    /// Two cached DateFormatters keyed by whether we want the
+    /// timezone-abbreviation suffix. Previous version allocated a
+    /// fresh DateFormatter on every render (formattedTime is called
+    /// from inside body for each visible event).
+    private static let formatterShort: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale.current
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+    private static let formatterWithTZ: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale.current
+        f.dateFormat = "HH:mm z"
+        return f
+    }()
+
     private func formattedTime(_ date: Date, in timeZone: TimeZone, includeAbbreviation: Bool) -> String {
-        let formatter = DateFormatter()
+        let formatter = includeAbbreviation ? Self.formatterWithTZ : Self.formatterShort
         formatter.timeZone = timeZone
-        formatter.locale = Locale.current
-        formatter.dateFormat = includeAbbreviation ? "HH:mm z" : "HH:mm"
         return formatter.string(from: date)
     }
 

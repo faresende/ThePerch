@@ -14,7 +14,7 @@ Any task involving package tracking, delivery status, the Orders tab in the iOS 
 
 The Perch has two parallel delivery tracking pipelines, reflecting its historical evolution. Understanding why they are separate is key to working with this feature.
 
-**Pipeline 1 (Canonical)**: Orders and shipments are tracked in dedicated `orders` + `shipments` tables. This is the authoritative source for tracked packages shown in the Orders tab. It uses the `orders_autopilot_ingest_fastmail.py` script for ingestion and 17track for ongoing tracking updates.
+**Pipeline 1 (Canonical)**: Orders and shipments are tracked in dedicated `orders` + `shipments` tables. This is the authoritative source for tracked packages shown in the Orders tab. Ingestion runs through the JMAP listener (`sandbox/fastmail-jmap/orders_ingest_hook.py`) which calls `skill/dashboard-sync/cli.js process-email`; `scripts/orders_ingest_catchup.py` is the 12h catchup safety net. 17track handles ongoing tracking updates.
 
 **Pipeline 2 (Legacy)**: A parallel delivery surface uses `dashboard_records` with `category=deliveries`. This powers the Deliveries card on the Home screen. It was the original implementation before the canonical orders pipeline existed. The two pipelines are kept in sync via `OrderWithShipments.trackedDeliveryData`, which projects the canonical model into the legacy dashboard_records shape.
 
@@ -27,7 +27,8 @@ PIPELINE 1 (Canonical) — Orders tab
 ─────────────────────────────────────
 Fastmail emails
         │
-        │ orders_autopilot_ingest_fastmail.py
+        │ JMAP listener → cli.js process-email
+        │ (catchup: scripts/orders_ingest_catchup.py)
         ▼
   orders + shipments tables (Supabase)
         │
@@ -38,7 +39,7 @@ Fastmail emails
 
 PIPELINE 2 (Legacy) — Home Deliveries card
 ───────────────────────────────────────────
-  orders_autopilot_ingest_fastmail.py
+  cli.js process-email / orders_ingest_catchup.py
         │
         │ upsert_delivery_record()
         ▼
@@ -125,14 +126,14 @@ Attributes are defined in `PerchSharedKit/DeliveryActivityAttributes.swift` and 
 
 - Supabase project with `orders`, `shipments`, and `dashboard_records` tables available
 - Fastmail JMAP credentials for automatic email ingestion
-- Orders autopilot script configured at `<REPO>/scripts/orders_autopilot_ingest_fastmail.py`
+- JMAP listener (`sandbox/fastmail-jmap/orders_ingest_hook.py`) wired to call `skill/dashboard-sync/cli.js process-email` on new commerce email; `scripts/orders_ingest_catchup.py` available as the 12h catchup safety net
 - Optional 17track credentials if live carrier polling is enabled
 
 ### Step-by-step
 
 1. Configure Supabase service-role access for agent writes.
-2. Set up Fastmail JMAP credentials and verify the ingestion script can read recent commerce emails.
-3. Run the autopilot script once and confirm it creates rows in `orders` and `shipments`.
+2. Set up Fastmail JMAP credentials and verify the listener can read recent commerce emails.
+3. Run `scripts/orders_ingest_catchup.py` once (or trigger the listener) and confirm it creates rows in `orders` and `shipments`.
 4. Verify the same flow projects compatible delivery data to `dashboard_records` for the Home card.
 5. Open the iOS app and confirm:
    - Orders tab loads `OrderWithShipments`

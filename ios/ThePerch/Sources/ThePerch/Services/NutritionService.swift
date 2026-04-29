@@ -1,5 +1,7 @@
 import Foundation
 import UIKit
+import Supabase
+import Auth
 
 final class NutritionService {
     static let shared = NutritionService()
@@ -54,10 +56,21 @@ final class NutritionService {
     }
 
     private func performRequest(body: [String: Any]) async throws -> [String: Any] {
+        // Edge function gates every call on a valid USER JWT — the anon
+        // key alone is not sufficient. Get the current session from the
+        // Supabase client; if there's no live session, refuse to fire.
+        let session = try await SupabaseService.shared.databaseClient
+            .auth.session
+        let jwt = session.accessToken
+
         var request = URLRequest(url: edgeFunctionURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(AppConfig.shared.supabaseAnonKey)", forHTTPHeaderField: "Authorization")
+        // The apikey header is what Supabase Edge Functions require to
+        // route to the right project; the Authorization Bearer header
+        // is the auth challenge the function itself validates.
+        request.setValue(AppConfig.shared.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await URLSession.shared.data(for: request)

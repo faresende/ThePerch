@@ -4,7 +4,9 @@ import Observation
 @Observable
 @MainActor
 final class OrdersViewModel {
-    var orders: [OrderWithShipments] = []
+    var orders: [OrderWithShipments] = [] {
+        didSet { recomputeGroupings() }
+    }
     var reviewItems: [ReviewItem] = []
     var isLoading = false
     var error: String?
@@ -211,26 +213,24 @@ final class OrdersViewModel {
         }
     }
 
-    var activeOrders: [OrderWithShipments] {
-        groupedOrders.active
-    }
+    /// Cached groupings recomputed exactly once per `orders` mutation
+    /// (via the `didSet` hook above). Previous version recomputed via a
+    /// computed property on every read — and `OrdersView.body` plus
+    /// `HubTab.OrdersSectionContent.body` between them read these
+    /// 6+ times per render, multiplied by every realtime tick.
+    private var _activeOrders: [OrderWithShipments] = []
+    private var _deliveredOrders: [OrderWithShipments] = []
+    private var _issueOrders: [OrderWithShipments] = []
 
-    var deliveredOrders: [OrderWithShipments] {
-        groupedOrders.delivered
-    }
+    var activeOrders: [OrderWithShipments] { _activeOrders }
+    var deliveredOrders: [OrderWithShipments] { _deliveredOrders }
+    var issueOrders: [OrderWithShipments] { _issueOrders }
 
-    var issueOrders: [OrderWithShipments] {
-        groupedOrders.issues
-    }
-
-    private var groupedOrders: (
-        active: [OrderWithShipments],
-        delivered: [OrderWithShipments],
-        issues: [OrderWithShipments]
-    ) {
+    private func recomputeGroupings() {
         var active: [OrderWithShipments] = []
         var delivered: [OrderWithShipments] = []
         var issues: [OrderWithShipments] = []
+        active.reserveCapacity(orders.count)
 
         for order in orders {
             // Phase 1 corrections: dismissed_by_user rows drop out of
@@ -249,7 +249,9 @@ final class OrdersViewModel {
             }
         }
 
-        return (active, delivered, issues)
+        _activeOrders = active
+        _deliveredOrders = delivered
+        _issueOrders = issues
     }
 
     private func group(for order: OrderWithShipments) -> OrderStatusGroup {

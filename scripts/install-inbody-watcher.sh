@@ -12,12 +12,34 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Resolve repo root from this script's own location (works through symlinks).
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="$REPO_ROOT/ops/launchd/com.theperch.inbody-watcher.plist.template"
 TARGET="$HOME/Library/LaunchAgents/com.theperch.inbody-watcher.plist"
 
 WATCH_DIR="${WATCH_DIR:-$HOME/Documents/InBody}"
 LOG_DIR="${LOG_DIR:-$HOME/.openclaw/logs}"
+
+# ─── Validate env-supplied paths to prevent plist injection ────────────
+# Both values are interpolated into <string>...</string> via sed below.
+# Reject anything that:
+#   - contains XML metacharacters (could break out of the plist string)
+#   - contains a newline (sed pattern would match across lines)
+#   - is not absolute (relative paths produce surprising launchd state)
+_validate_path() {
+  local name="$1" val="$2"
+  if [[ "$val" =~ [[:cntrl:]] ]] || [[ "$val" == *'<'* ]] || [[ "$val" == *'>'* ]] || [[ "$val" == *'&'* ]] || [[ "$val" == *'"'* ]]; then
+    echo "❌ $name contains XML/control chars: $val" >&2
+    exit 2
+  fi
+  if [[ "${val:0:1}" != "/" ]]; then
+    echo "❌ $name must be an absolute path: $val" >&2
+    exit 2
+  fi
+}
+_validate_path "REPO_ROOT" "$REPO_ROOT"
+_validate_path "WATCH_DIR" "$WATCH_DIR"
+_validate_path "LOG_DIR"   "$LOG_DIR"
 
 mkdir -p "$WATCH_DIR" "$LOG_DIR" "$(dirname "$TARGET")"
 

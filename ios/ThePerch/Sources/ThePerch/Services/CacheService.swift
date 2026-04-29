@@ -71,14 +71,19 @@ final class CacheService: @unchecked Sendable {
     }
 
     private func save<T: Encodable>(_ value: T, key: String, userId: String) {
-        ioQueue.sync {
+        // Fire-and-forget: cache writes are not load-bearing for any UI
+        // path — the only consumer is the next cold launch. Previous
+        // version used `ioQueue.sync` from MainActor (every successful
+        // network response paid 5–25 ms of synchronous JSON encode +
+        // atomic file write on the UI thread). Switching to async means
+        // loadDashboard returns immediately after the network landed.
+        ioQueue.async { [encoder, fileURL = cacheFileURL(for: key, userId: userId), metaURL = metadataURL(for: key, userId: userId)] in
             guard let data = try? encoder.encode(value) else { return }
-            let fileURL = cacheFileURL(for: key, userId: userId)
             try? data.write(to: fileURL, options: .atomic)
 
             let metadata = CacheMetadata(cachedAt: Date.now, key: key)
             if let metaData = try? encoder.encode(metadata) {
-                try? metaData.write(to: metadataURL(for: key, userId: userId), options: .atomic)
+                try? metaData.write(to: metaURL, options: .atomic)
             }
         }
     }
@@ -92,6 +97,40 @@ final class CacheService: @unchecked Sendable {
 
     func loadSections(userId: String) -> [Section]? {
         load([Section].self, key: "sections", userId: userId)
+    }
+
+    /// One-shot bundle load used by `DashboardViewModel.loadCachedData`.
+    /// Three sequential `ioQueue.sync` hops collapsed to one — the
+    /// serial queue used to serialize them anyway, but Swift's `sync`
+    /// indirection still cost a few extra ms per hop on cold launch.
+    struct CachedBundle: Sendable {
+        let sections: [Section]?
+        let records: [Record]?
+        let metaAge: String?
+    }
+
+    func loadDashboardBundle(userId: String) -> CachedBundle {
+        let recordsKey = cacheKey(for: nil)
+        let sectionsKey = "sections"
+        return ioQueue.sync {
+            let sections: [Section]? = {
+                let url = cacheFileURL(for: sectionsKey, userId: userId)
+                guard let data = try? Data(contentsOf: url) else { return nil }
+                return try? decoder.decode([Section].self, from: data)
+            }()
+            let records: [Record]? = {
+                let url = cacheFileURL(for: recordsKey, userId: userId)
+                guard let data = try? Data(contentsOf: url) else { return nil }
+                return try? decoder.decode([Record].self, from: data)
+            }()
+            let metaAge: String? = {
+                let url = metadataURL(for: recordsKey, userId: userId)
+                guard let data = try? Data(contentsOf: url),
+                      let meta = try? decoder.decode(CacheMetadata.self, from: data) else { return nil }
+                return meta.relativeAgeString
+            }()
+            return CachedBundle(sections: sections, records: records, metaAge: metaAge)
+        }
     }
 
     private func load<T: Decodable>(_ type: T.Type, key: String, userId: String) -> T? {

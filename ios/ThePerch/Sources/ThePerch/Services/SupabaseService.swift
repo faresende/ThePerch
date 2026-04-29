@@ -933,14 +933,15 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         print("[SupabaseService] Subscribed to dashboard_records realtime")
 #endif
 
-        // Listen for insertions
+        // Listen for insertions. Reuse the shared `recordDecoder` so we
+        // don't rebuild a JSONDecoder per realtime burst (a single
+        // batch ingest can fire 30+ messages in a second).
+        let sharedDecoder = self.recordDecoder
         let insertTask = Task {
             for await insertion in insertions {
                 guard !Task.isCancelled else { break }
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
                 if let data = try? JSONSerialization.data(withJSONObject: insertion.record),
-                   let record = try? decoder.decode(Record.self, from: data) {
+                   let record = try? sharedDecoder.decode(Record.self, from: data) {
                     onChange(RealtimeRecordChange(action: .insert, record: record, oldId: nil))
                 } else {
                     // Even if decode fails, notify so UI can refresh
@@ -954,10 +955,8 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         let updateTask = Task {
             for await update in updates {
                 guard !Task.isCancelled else { break }
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
                 if let data = try? JSONSerialization.data(withJSONObject: update.record),
-                   let record = try? decoder.decode(Record.self, from: data) {
+                   let record = try? sharedDecoder.decode(Record.self, from: data) {
                     onChange(RealtimeRecordChange(action: .update, record: record, oldId: nil))
                 } else {
                     onChange(RealtimeRecordChange(action: .update, record: nil, oldId: nil))

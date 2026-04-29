@@ -18,8 +18,8 @@
 Lane selection is required. This is intentional so deploy intent is always explicit.
 
 ```bash
-bash ~/Documents/Apps/ThePerch/deploy-testflight.sh --lane=alpha
-bash ~/Documents/Apps/ThePerch/deploy-testflight.sh --lane=beta
+bash ~/Developer/ThePerch/deploy-testflight.sh --lane=alpha
+bash ~/Developer/ThePerch/deploy-testflight.sh --lane=beta
 ```
 
 ## Notes

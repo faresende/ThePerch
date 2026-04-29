@@ -56,13 +56,13 @@ struct HealthTab: View {
                 // still ends above the tab bar; only scroll geometry
                 // extends beneath it to feed the glass.
                 TabView(selection: $selectedSegment) {
-                    HealthOverviewSegment()
+                    LazyView { HealthOverviewSegment() }
                         .tag(HealthSegment.overview)
 
-                    WorkoutsSegment()
+                    LazyView { WorkoutsSegment() }
                         .tag(HealthSegment.workouts)
 
-                    NutritionSegment()
+                    LazyView { NutritionSegment() }
                         .tag(HealthSegment.nutrition)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))

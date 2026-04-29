@@ -25,12 +25,19 @@ Don't paste the service_role anywhere committable.
 
 ### 2. Run migrations
 
+Schema lives in two places. Run in this order via the Supabase SQL Editor:
+
+1. `supabase/001_initial_schema.sql` — bootstrap tables
+2. `supabase/002_seed_demo.sql` — demo agent set (replace placeholder UUIDs with your auth uid first)
+3. Every file in `supabase/migrations/` in filename order (timestamps sort lexicographically)
+
 ```bash
-cd ~/Developer/ThePerch/supabase/migrations
-ls *.sql | sort
+ls -1 ~/Developer/ThePerch/supabase/001_initial_schema.sql \
+       ~/Developer/ThePerch/supabase/002_seed_demo.sql \
+       ~/Developer/ThePerch/supabase/migrations/*.sql
 ```
 
-Paste each `.sql` file into Supabase's SQL Editor in filename order. Or:
+Or with the Supabase CLI (note: `db push` only handles `supabase/migrations/`; paste the two root-level files into the SQL Editor first):
 
 ```bash
 supabase db push --project-ref <YOUR-PROJECT-REF>

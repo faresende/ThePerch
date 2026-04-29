@@ -25,8 +25,7 @@
 --   * Enable Leaked Password Protection (that is a dashboard setting, noted
 --     in SECURITY_AUDIT.md for manual enablement).
 --
--- Ownership column verification (derived from backend/migrations/001 and
--- supabase/001_initial_schema.sql):
+-- Ownership column verification (derived from supabase/001_initial_schema.sql):
 --   * dashboard_records.user_id  NOT NULL, FK auth.users(id)  ON DELETE CASCADE
 --   * home_widgets.user_id       NOT NULL, FK public.users(id) ON DELETE CASCADE
 --   * sections.user_id           NOT NULL, FK public.users(id) ON DELETE CASCADE

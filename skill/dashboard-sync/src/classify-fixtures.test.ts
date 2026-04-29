@@ -12,12 +12,12 @@
  *
  * Each fixture has the shape:
  *   {
- *     "label": "hardgraft-hgmc20117325",
+ *     "label": "demo-merchant-hgmc20117325",
  *     "input": { "subject", "body", "senderEmail", "senderName" },
  *     "expected": {
  *       "type": "purchase_confirmation" | "shipping_notification" | "other",
- *       "merchant": "Hardgraft",                     // optional
- *       "order_number": "HGMC20117325"               // optional
+ *       "merchant": "Demo Merchant",                     // optional
+ *       "order_number": "HGMC-DEMO-0001"               // optional
  *     }
  *   }
  *

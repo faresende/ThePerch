@@ -23,14 +23,62 @@ final class CrashReporter {
     private let crashesDirectory: URL
 
     private init() {
+        // Compute the directory URL synchronously — cheap, no I/O.
         let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         self.crashesDirectory = documentsDir.appendingPathComponent("crashes", isDirectory: true)
+        // Filesystem work (createDirectory + scanning previous reports)
+        // is deferred to `loadPendingReportsIfNeeded()` which the app
+        // calls from a `.task` after first frame paints. Keeping it
+        // out of `init()` shaves ~10–30ms off the synchronous cold-
+        // start critical path.
+    }
 
-        // Create crashes directory if needed
-        try? FileManager.default.createDirectory(at: crashesDirectory, withIntermediateDirectories: true)
+    /// Idempotent: creates the crashes directory if needed and reads any
+    /// pending crash reports off-thread. Call once after the first frame
+    /// has painted (e.g. from ThePerchApp's `.task`).
+    func loadPendingReportsIfNeeded() async {
+        // Hop off MainActor for the FS work.
+        let dir = crashesDirectory
+        let reports: [CrashReport] = await Task.detached(priority: .utility) {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            return CrashReporter.scanReports(in: dir)
+        }.value
+        self.pendingCrashReports = reports
+        self.hasPendingCrashReports = !reports.isEmpty
+    }
 
-        // Check for pending reports
-        loadPendingReports()
+    /// Pure scan helper — runs off-MainActor.
+    nonisolated private static func scanReports(in dir: URL) -> [CrashReport] {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: dir,
+            includingPropertiesForKeys: [.creationDateKey],
+            options: .skipsHiddenFiles
+        ) else { return [] }
+
+        let crashFiles = files.filter { $0.pathExtension == "txt" }
+        return crashFiles.compactMap { fileURL in
+            guard let content = try? String(contentsOf: fileURL, encoding: .utf8),
+                  let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+                  let creationDate = attrs[.creationDate] as? Date else { return nil }
+
+            let lines = content.components(separatedBy: "\n")
+            let name = lines.first(where: { $0.hasPrefix("Crash:") })?
+                .replacingOccurrences(of: "Crash: ", with: "") ?? "Unknown"
+            let reason = lines.first(where: { $0.hasPrefix("Reason:") })?
+                .replacingOccurrences(of: "Reason: ", with: "") ?? "Unknown"
+            let stackStart = lines.firstIndex(of: "Stack Trace:") ?? lines.count
+            let stackTrace = stackStart < lines.count
+                ? lines[(stackStart + 1)...].joined(separator: "\n")
+                : ""
+            return CrashReport(
+                id: UUID(),
+                name: name,
+                reason: reason,
+                stackTrace: stackTrace,
+                timestamp: creationDate,
+                fileURL: fileURL
+            )
+        }
     }
 
     // MARK: - Setup
@@ -62,35 +110,6 @@ final class CrashReporter {
     }
 
     // MARK: - Pending Reports
-
-    private func loadPendingReports() {
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: crashesDirectory,
-            includingPropertiesForKeys: [.creationDateKey],
-            options: .skipsHiddenFiles
-        ) else { return }
-
-        let crashFiles = files.filter { $0.pathExtension == "txt" }
-        pendingCrashReports = crashFiles.compactMap { fileURL in
-            guard let content = try? String(contentsOf: fileURL, encoding: .utf8),
-                  let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
-                  let creationDate = attrs[.creationDate] as? Date else { return nil }
-
-            let lines = content.components(separatedBy: "\n")
-            let name = lines.first(where: { $0.hasPrefix("Crash:") })?.replacingOccurrences(of: "Crash: ", with: "") ?? "Unknown"
-            let reason = lines.first(where: { $0.hasPrefix("Reason:") })?.replacingOccurrences(of: "Reason: ", with: "") ?? "Unknown"
-
-            return CrashReport(
-                id: UUID(),
-                name: name,
-                reason: reason,
-                stackTrace: content,
-                timestamp: creationDate,
-                fileURL: fileURL
-            )
-        }
-        hasPendingCrashReports = !pendingCrashReports.isEmpty
-    }
 
     /// Deletes all pending crash reports after they've been handled.
     func clearCrashReports() {

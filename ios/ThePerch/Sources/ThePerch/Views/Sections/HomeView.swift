@@ -296,24 +296,26 @@ struct HomeView: View {
 
     // MARK: - Dual Clock
 
+    /// Single shared HH:mm DateFormatter — we mutate its `timeZone` per
+    /// call. Safe because every read is on @MainActor (HomeView is a
+    /// SwiftUI View whose body runs on main).
+    private static let dualClockFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    private static func dualClockTime(_ tzId: String, now: Date) -> String {
+        let f = dualClockFormatter
+        f.timeZone = TimeZone(identifier: tzId) ?? .current
+        return f.string(from: now)
+    }
+
     @ViewBuilder
     private func dualClockView(_ clock: (homeTz: String, destTz: String, homeLabel: String, destLabel: String)) -> some View {
-        let homeTz = TimeZone(identifier: clock.homeTz) ?? .current
-        let destTz = TimeZone(identifier: clock.destTz) ?? .current
-
-        let homeFormatter: DateFormatter = {
-            let f = DateFormatter()
-            f.dateFormat = "HH:mm"
-            f.timeZone = homeTz
-            return f
-        }()
-
-        let destFormatter: DateFormatter = {
-            let f = DateFormatter()
-            f.dateFormat = "HH:mm"
-            f.timeZone = destTz
-            return f
-        }()
+        let now = Date()
+        let homeNow = Self.dualClockTime(clock.homeTz, now: now)
+        let destNow = Self.dualClockTime(clock.destTz, now: now)
 
         HStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: "clock")
@@ -324,7 +326,7 @@ struct HomeView: View {
                 Text(clock.homeLabel)
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
-                Text(homeFormatter.string(from: .now))
+                Text(homeNow)
                     .font(PerchTheme.Font.captionNumeric)
                     .foregroundColor(PerchTheme.textSecondary)
             }
@@ -336,7 +338,7 @@ struct HomeView: View {
                 Text(clock.destLabel)
                     .font(PerchTheme.Font.caption)
                     .foregroundColor(PerchTheme.textTertiary)
-                Text(destFormatter.string(from: .now))
+                Text(destNow)
                     .font(PerchTheme.Font.captionNumeric)
                     .foregroundColor(PerchTheme.accent)
             }

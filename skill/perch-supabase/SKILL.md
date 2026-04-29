@@ -97,16 +97,18 @@ SUPABASE_ANON_KEY=<anon-key>                  # For iOS app reads
 ### Running Migrations
 
 ```bash
-# Apply migrations in order:
-# 1. Initial schema
-psql $DATABASE_URL -f backend/migrations/001_initial_schema.sql
-
-# 2. RLS policies
-psql $DATABASE_URL -f backend/migrations/002_rls_policies.sql
-
-# 3. Managed tier (profiles, provisioning, usage view)
-psql $DATABASE_URL -f backend/migrations/003_managed_tier.sql
+# Apply migrations in order. Two root-level files first, then the
+# timestamp-ordered files under supabase/migrations/.
+psql $DATABASE_URL -f supabase/001_initial_schema.sql
+psql $DATABASE_URL -f supabase/002_seed_demo.sql        # seed agents (edit user UUID first)
+for f in supabase/migrations/*.sql; do
+  psql $DATABASE_URL -f "$f"
+done
 ```
+
+> The previous `backend/migrations/*.sql` and `backend/seed/*.sql` paths
+> have been retired — see `docs/archive/backend-old/` for the historical
+> snapshot. The canonical schema now lives entirely under `supabase/`.
 
 ### Example Queries
 
@@ -171,7 +173,7 @@ const { data, error } = await supabase
 
 ### How to Add a New Table
 
-1. Create a migration file: `backend/migrations/004_your_table.sql`
+1. Create a migration file: `supabase/migrations/<timestamp>_your_table.sql` (filename timestamps sort lexicographically, so just keep using the existing `YYYYMMDDHHMMSS_…` pattern)
 2. Define the table with `user_id uuid not null references auth.users(id) on delete cascade`
 3. Add appropriate indexes (at minimum on `user_id`)
 4. Enable RLS: `alter table public.your_table enable row level security;`

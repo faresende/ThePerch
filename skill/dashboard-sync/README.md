@@ -128,7 +128,7 @@ await dashboard_heartbeat({
   user_id: '550e8400-e29b-41d4-a716-446655440000',
   display_name: 'Health Coach Bot',
   emoji: '🏥',
-  model: 'claude-opus-4-6',
+  model: 'claude-opus-4-7',
   is_active: true,
   input_tokens: 5420,
   output_tokens: 1230,
@@ -224,7 +224,7 @@ Token usage and API cost aggregation.
   "total_cost_usd": 0.00285,
   "input_tokens": 5420,
   "output_tokens": 1230,
-  "model": "claude-opus-4-6"
+  "model": "claude-opus-4-7"
 }
 ```
 
@@ -257,7 +257,7 @@ Aggregates token usage into a cost_summary record.
 import { buildCostSummary } from '@theperch/dashboard-sync/src/auto-capture';
 
 const summary = buildCostSummary(usageRecords);
-// { total_cost_usd: 0.00285, input_tokens: 5420, output_tokens: 1230, model: 'claude-opus-4-6' }
+// { total_cost_usd: 0.00285, input_tokens: 5420, output_tokens: 1230, model: 'claude-opus-4-7' }
 ```
 
 ## Development
