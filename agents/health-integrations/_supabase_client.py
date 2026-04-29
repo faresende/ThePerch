@@ -179,6 +179,44 @@ def upsert_health_metric(
         return False
 
 
+def _ensure_agent_registered(agent_id: str) -> bool:
+    """Upsert a minimal public.agents row so FK-constrained writes succeed.
+
+    public.dashboard_records.agent_id has a FK to agents(id); without
+    a registered agent the first dashboard_records write fails with
+    HTTP 409 / SQLSTATE 23503. public.agent_runs has no such FK, so
+    agent_run inserts silently succeed and mask the problem until the
+    real data write hits — caught the hard way by calendar_sync
+    (commit 90e6b88, registered manually). Auto-registering here means
+    new ingestors written against this helper just work.
+    """
+    url, key, user_id = _supabase_env()
+    payload = {
+        "id": agent_id,
+        "display_name": agent_id,
+        "model": f"python:{agent_id}",
+        "is_active": True,
+        "owner_id": user_id,
+    }
+    req = Request(
+        f"{url}/rest/v1/agents?on_conflict=id",
+        data=json.dumps(payload).encode(),
+        method="POST",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=ignore-duplicates,return=minimal",
+        },
+    )
+    try:
+        with urlopen(req, timeout=10) as resp:
+            return 200 <= resp.status < 300
+    except HTTPError as e:
+        sys.stderr.write(f"[supabase] agent register {agent_id}: HTTP {e.code} {e.read().decode()[:200]}\n")
+        return False
+
+
 def insert_agent_run(
     *,
     agent_id: str,
@@ -188,6 +226,7 @@ def insert_agent_run(
     error_detail: str | None = None,
 ) -> bool:
     """Record an agent run in public.agent_runs for observability."""
+    _ensure_agent_registered(agent_id)
     url, key, _ = _supabase_env()
     from datetime import datetime, timezone
 
