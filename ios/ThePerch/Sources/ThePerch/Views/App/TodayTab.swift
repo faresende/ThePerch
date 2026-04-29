@@ -465,47 +465,64 @@ final class PerchLoopingVideoView: UIView {
     private let playerLayer = AVPlayerLayer()
     private let fallbackImageView = UIImageView()
 
+    /// One-time-per-process audio session config. Setting the session
+    /// category is global state, so doing it on every PerchLoopingVideoView
+    /// init is wasted work that can briefly contend with other media
+    /// (e.g. an active podcast) every time the Today tab re-renders.
+    private static let audioSessionConfigured: Void = {
+        try? AVAudioSession.sharedInstance().setCategory(
+            .ambient,
+            mode: .default,
+            options: [.mixWithOthers]
+        )
+        return ()
+    }()
+
     init(assetName: String, posterName: String) {
         super.init(frame: .zero)
         backgroundColor = UIColor(red: 0.102, green: 0.078, blue: 0.039, alpha: 1)
 
-        // Fallback image layer (always there as safety)
+        // Poster image first — gives the user something to look at
+        // immediately, even before the video pipeline finishes warming up.
         fallbackImageView.image = UIImage(named: posterName)
         fallbackImageView.contentMode = .scaleAspectFill
         fallbackImageView.frame = bounds
         fallbackImageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         addSubview(fallbackImageView)
 
-        // Configure player layer
         playerLayer.videoGravity = .resizeAspectFill
         layer.addSublayer(playerLayer)
 
-        // Coexist with other audio: iOS's default audio session category is
-        // `.soloAmbient`, which interrupts ongoing playback (podcasts, music)
-        // the moment an AVPlayer starts — even when muted. `.ambient` with
-        // `.mixWithOthers` tells iOS this app is non-primary audio, so the
-        // user's podcast keeps playing. The player is muted anyway; this
-        // just stops us from *claiming* the audio session.
-        try? AVAudioSession.sharedInstance().setCategory(
-            .ambient,
-            mode: .default,
-            options: [.mixWithOthers]
-        )
+        // Audio session configuration runs once per process via the static
+        // let above; touching it here just triggers initialization the first
+        // time any hero view loads.
+        _ = Self.audioSessionConfigured
 
-        // Load video data from asset catalog
-        if let dataAsset = NSDataAsset(name: assetName) {
-            let tmpURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("\(assetName).mp4")
+        // Hand off the heavy work — `NSDataAsset(name:)` materializes the
+        // entire MP4 from the asset catalog, then we write it to /tmp,
+        // then construct the AVPlayerItem. Doing that synchronously inside
+        // `init` blocks first frame for several hundred ms on cold start.
+        // Off-load to a detached task; attach the player layer on main when
+        // the item is ready. The poster image stays visible meanwhile.
+        let tmpURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(assetName).mp4")
+        Task.detached(priority: .userInitiated) { [assetName] in
+            // Fast path: file already on disk from a previous launch — skip
+            // the asset-catalog materialization entirely.
             if !FileManager.default.fileExists(atPath: tmpURL.path) {
+                guard let dataAsset = NSDataAsset(name: assetName) else { return }
                 try? dataAsset.data.write(to: tmpURL)
             }
-            let item = AVPlayerItem(url: tmpURL)
-            let queue = AVQueuePlayer()
-            queue.isMuted = true
-            looper = AVPlayerLooper(player: queue, templateItem: item)
-            playerLayer.player = queue
-            player = queue
-            queue.play()
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                let item = AVPlayerItem(url: tmpURL)
+                let queue = AVQueuePlayer()
+                queue.isMuted = true
+                self.looper = AVPlayerLooper(player: queue, templateItem: item)
+                self.playerLayer.player = queue
+                self.player = queue
+                queue.play()
+            }
         }
     }
 

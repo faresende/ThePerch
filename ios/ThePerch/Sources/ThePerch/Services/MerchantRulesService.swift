@@ -20,6 +20,13 @@ final class MerchantRulesService {
         return d
     }()
 
+    /// In-memory cache: re-opening Settings → Auto-learned rules
+    /// within `cacheTTL` doesn't re-fetch. Mutations (setEnabled,
+    /// deleteRule) bust the cache so the next fetch is fresh.
+    private var cachedRules: [MerchantRule]?
+    private var cachedAt: Date?
+    private let cacheTTL: TimeInterval = 30  // seconds
+
     init(supabaseService: SupabaseService = .shared) {
         self.supabaseService = supabaseService
     }
@@ -27,7 +34,17 @@ final class MerchantRulesService {
     /// Load every rule for the current user, newest-first.
     /// Permissive — a malformed row is logged and skipped without
     /// blocking the rest of the list.
-    func fetchRules() async throws -> [MerchantRule] {
+    /// Uses an in-memory TTL cache to keep second-and-after opens
+    /// of the rules screen instant. Pass `forceRefresh: true` from
+    /// pull-to-refresh handlers to bypass.
+    func fetchRules(forceRefresh: Bool = false) async throws -> [MerchantRule] {
+        if !forceRefresh,
+           let cached = cachedRules,
+           let at = cachedAt,
+           Date().timeIntervalSince(at) < cacheTTL {
+            return cached
+        }
+
         let response = try await supabaseService.databaseClient
             .from("merchant_rules")
             .select()
@@ -36,7 +53,7 @@ final class MerchantRulesService {
 
         let wrapped = try decoder.decode([FailableDecodable<MerchantRule>].self,
                                          from: response.data)
-        return wrapped.compactMap { entry in
+        let rules: [MerchantRule] = wrapped.compactMap { entry in
 #if DEBUG
             if case .failure(let err) = entry.result {
                 print("[MerchantRulesService] Dropping malformed rule: \(err)")
@@ -44,6 +61,9 @@ final class MerchantRulesService {
 #endif
             return entry.value
         }
+        cachedRules = rules
+        cachedAt = Date()
+        return rules
     }
 
     /// Toggle a rule on/off. Disabled rules stay in the table for
@@ -55,6 +75,7 @@ final class MerchantRulesService {
             .update(Payload(enabled: enabled))
             .eq("id", value: id.uuidString)
             .execute()
+        invalidateCache()
     }
 
     /// Permanently delete a rule. Use when the user wants the system
@@ -65,6 +86,12 @@ final class MerchantRulesService {
             .delete()
             .eq("id", value: id.uuidString)
             .execute()
+        invalidateCache()
+    }
+
+    private func invalidateCache() {
+        cachedRules = nil
+        cachedAt = nil
     }
 }
 

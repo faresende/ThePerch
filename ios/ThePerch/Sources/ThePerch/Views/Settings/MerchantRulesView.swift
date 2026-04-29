@@ -34,8 +34,8 @@ struct MerchantRulesView: View {
         }
         .navigationTitle("Auto-learned rules")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-        .refreshable { await load() }
+        .task { await load(forceRefresh: false) }
+        .refreshable { await load(forceRefresh: true) }
     }
 
     @ViewBuilder
@@ -122,10 +122,10 @@ struct MerchantRulesView: View {
 
     // MARK: - Actions
 
-    private func load() async {
+    private func load(forceRefresh: Bool = false) async {
         loadError = nil
         do {
-            let fetched = try await MerchantRulesService.shared.fetchRules()
+            let fetched = try await MerchantRulesService.shared.fetchRules(forceRefresh: forceRefresh)
             rules = fetched
         } catch {
             loadError = error.localizedDescription

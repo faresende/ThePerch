@@ -63,6 +63,33 @@ final class OrdersViewModel {
         }
     }
 
+    /// Warm-path entry: hydrate `orders` directly from a list the
+    /// dashboard has already fetched. No network. The OrdersView's
+    /// task block calls this when DashboardViewModel.trackedOrders
+    /// is non-empty so a fresh navigation to the section renders
+    /// instantly. Reviewable-queue items still need a separate
+    /// fetch — see `loadReviewItemsOnly`.
+    func hydrateFromDashboard(_ trackedOrders: [OrderWithShipments]) {
+        orders = trackedOrders
+        error = nil
+    }
+
+    /// Companion to `hydrateFromDashboard` — fetches just the
+    /// unresolved review-queue slice. The dashboard doesn't carry
+    /// that data so we still need this round-trip, but it can
+    /// load in the background without blocking the orders list.
+    func loadReviewItemsOnly() async {
+        do {
+            reviewItems = try await ordersService.fetchUnresolvedReviewItems()
+        } catch {
+#if DEBUG
+            print("[OrdersViewModel] loadReviewItemsOnly failed: \(error)")
+#endif
+            // Silent — review queue empty is the same state as "no items".
+            reviewItems = []
+        }
+    }
+
     // MARK: - Review queue actions
 
     /// User tapped "Add as order" on a review-queue row. Creates the

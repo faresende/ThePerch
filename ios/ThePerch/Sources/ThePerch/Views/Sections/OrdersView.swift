@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OrdersView: View {
     @Environment(\.perchPalette) private var palette
+    @Environment(DashboardViewModel.self) private var dashboardViewModel
 
     @State private var viewModel = OrdersViewModel()
     @State private var cardsAppeared = false
@@ -56,6 +57,18 @@ struct OrdersView: View {
         }
         .task {
             guard vm.orders.isEmpty else { return }
+            // Warm hydration: if DashboardViewModel already loaded the
+            // user's orders (e.g. Today tab populated first), reuse
+            // those instead of paying a cold 3-table fetch on first
+            // open of this section. The viewmodel's reviewItems list
+            // is still cold-fetched because Dashboard doesn't carry
+            // the unresolved review-item slice — but it loads in
+            // parallel and only blocks the review section's render.
+            if !dashboardViewModel.trackedOrders.isEmpty {
+                vm.hydrateFromDashboard(dashboardViewModel.trackedOrders)
+                Task { await vm.loadReviewItemsOnly() }
+                return
+            }
             await vm.loadOrders()
         }
         // Phase 1 corrections: undo toast for `.notAnOrder` swipes.
