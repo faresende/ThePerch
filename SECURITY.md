@@ -6,15 +6,15 @@ Email me@hellofabio.com with a description of the issue, reproduction steps, and
 
 ## How secrets are managed in this project
 
-The project has three code paths that touch credentials. Each has its own source of truth and no secret is ever committed to git.
+The project has three code paths that touch credentials. Each has its own source of truth and no secret is committed to git.
 
 ### iOS app
 
 - Real values live in `ios/ThePerch/Sources/ThePerch/Config/Secrets.xcconfig` (gitignored).
 - The committed template is `ios/ThePerch/Sources/ThePerch/Config/Secrets.example.xcconfig`.
 - Xcode substitutes the xcconfig values into `Info.plist` at build time via `$(VAR)` references.
-- `AppConfig` reads them from `Bundle.main.infoDictionary` at runtime. A legacy `Secrets.plist` fallback also works for backward compatibility.
-- The iOS app stores only the Supabase publishable key (safe to ship in the binary) and the Karakeep API token. It never ships the Supabase service-role key or any other privileged credential.
+- `AppConfig` reads them from `Bundle.main.infoDictionary` at runtime. A legacy `Secrets.plist` fallback exists for backward compatibility.
+- The iOS app stores only the Supabase publishable (anon) key, which is meant to ship in the binary, plus the Karakeep API token. It never ships the Supabase service-role key.
 
 Setup on a new machine:
 
@@ -24,18 +24,19 @@ cp ios/ThePerch/Sources/ThePerch/Config/Secrets.example.xcconfig \
 # edit Secrets.xcconfig with real values
 ```
 
-### Python worker (`scripts/orders_autopilot_ingest_fastmail.py`)
+### Python workers (`agents/health-integrations/*.py`, `scripts/*.py`)
 
-- Real values live in `scripts/.env` (gitignored).
+- Real values live in `~/.openclaw/secrets/perch.env` (a flat shell-export file outside this repo) AND `scripts/.env` for the legacy ingest path. Both are gitignored.
 - The committed template is `scripts/.env.example`.
-- The worker calls `_require_env(name)` at startup; any missing required variable causes the process to exit with status 2 and a clear stderr message.
-- Required variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PERCH_USER_ID`.
+- Each worker calls `_require_env(name)` (or equivalent) at startup; any missing required variable causes the process to exit with a clear stderr message.
+- Common required variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `PERCH_USER_ID`. Per-integration: `OURA_PERSONAL_TOKEN`, `EIGHT_SLEEP_EMAIL/PASSWORD`, `WITHINGS_CLIENT_ID/SECRET`, `OPENAI_API_KEY`.
 
 Setup on a new machine:
 
 ```sh
 cp scripts/.env.example scripts/.env
 # edit scripts/.env with real values
+# OR (for the agents/health-integrations path) populate ~/.openclaw/secrets/perch.env
 ```
 
 ### Supabase Edge Functions
@@ -44,18 +45,22 @@ cp scripts/.env.example scripts/.env
 - Values are registered per function with `supabase secrets set --project-ref <ref> KEY=VALUE`.
 - Each function's `README.md` documents which environment variables it requires.
 
+## Test fixtures and personal data
+
+The classifier regression suite under `skill/dashboard-sync/test/fixtures/` is gitignored at the directory level. The harvest script `fetch_fixtures.py` downloads raw email bodies from Fastmail JMAP for offline replay; those bodies routinely include names, billing addresses, payment-card last-4s, and live customer-authenticate tokens. Re-running the script is fine — the directories are gitignored so the dumps stay local. **Never force-add committed fixtures unless they have been hand-redacted to remove all PII and authentication URLs.**
+
+Screenshot drops under `docs/Images/` and `docs/screenshots/` are also gitignored. Real app screenshots routinely show personal weight, sleep, food, calendar, and bookmark data. If you need a screenshot for the README or a write-up, run `seed-demo-data.js` first and capture against synthetic data.
+
 ## Prevention tooling
 
-This repo runs two layers of automated secret detection.
+The repo ships `.gitleaks.toml` with a curated allowlist (well-known JWT header constants, archive-doc references to the rotated project ref, etc.). To run it locally before committing:
 
-- **Local pre-commit hook:** `.pre-commit-config.yaml` runs `gitleaks` on staged changes before every commit, plus `detect-private-key` and large-file checks. Install once per machine:
-  ```sh
-  brew install pre-commit   # or: pip install pre-commit
-  pre-commit install
-  ```
-- **CI on every pull request and push to `main`:** `.github/workflows/secrets-scan.yml` runs `gitleaks` against both the working tree and full git history. The job fails (and blocks merge) on any finding.
+```sh
+brew install gitleaks
+gitleaks detect --source . --redact
+```
 
-Both layers can be bypassed with `git commit -n`. Please do not.
+Pre-commit hooks and CI enforcement are not currently wired up. They have been requested as follow-up work; until they ship, gitleaks is a best-effort manual layer.
 
 ## What to do if a secret leaks
 
@@ -64,12 +69,13 @@ Both layers can be bypassed with `git commit -n`. Please do not.
    - OpenAI / Anthropic / ElevenLabs / Google: rotate in each provider's console.
    - Telegram bot tokens: rotate via BotFather.
    - Apple Developer keys: rotate in App Store Connect, Users and Access, Integrations.
+   - **Shopify customer-authenticate URLs:** these tokens stay live as long as the customer session exists. Sign out at the merchant's storefront from every device that has an active session — rotation is by-merchant, not centralized.
 2. **Remove from HEAD.** Delete or redact the value in the working tree and commit the fix.
 3. **Scrub from history.** Run `scripts/purge-secrets-from-history.sh` after adding the new literal to the script's `REPLACEMENTS` list. This uses `git filter-repo --replace-text` to rewrite every commit. The script will not run without explicit confirmation.
 4. **Force-push and coordinate.** After the scrub, force-push every branch. Every collaborator must re-clone. Any fork must be deleted or re-cloned from the scrubbed upstream.
-5. **Re-scan.** Run `gitleaks detect --source . --log-opts=--all --verbose --redact` locally and in CI to confirm the scrub worked.
-6. **Document.** Add the incident to `SECURITY_AUDIT.md` so future audits have context.
+5. **Re-scan.** Run `gitleaks detect --source . --log-opts=--all --verbose --redact` locally to confirm the scrub worked.
 
 ## Known incidents
 
-- **2026-04-20:** Supabase service-role key and OpenAI API key exposed via a public repository (not this one). Both keys were auto-revoked by their respective providers within hours. A full audit of this repository followed and is documented in `SECURITY_AUDIT.md`.
+- **2026-04-20:** Supabase service-role key and OpenAI API key exposed via a different public repository (not this one). Both keys were auto-revoked by their respective providers within hours. A full audit of this repository followed; the rotated Supabase project ref appears only in archive design docs under `docs/archive/`, exempted in `.gitleaks.toml`.
+- **2026-04-29:** Pre-public security pass discovered classifier-test fixtures contained raw Fastmail email bodies with names, billing addresses, payment last-4s, and four live Shopify customer-authenticate URLs. Fixtures deleted from the working tree and the holding directories gitignored. Customer sessions rotated by signing out at the affected merchants.

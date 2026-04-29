@@ -37,7 +37,7 @@ The card stack reorders dynamically. Here's the priority at each period:
 
 **Morning (06:00–11:59)**
 1. Health Summary (sleep score, duration, HRV, readiness)
-2. Medications (has the scar cream been applied? weekly meds on Fridays?)
+2. Medications (has the scar cream been applied? Weekly meds applied?)
 3. Calendar — Today (full day view)
 4. Weather (do I need a jacket?)
 5. Active Deliveries
@@ -106,7 +106,7 @@ The card stack reorders dynamically. Here's the priority at each period:
 - **Data:** Medication checklist for today
 - **Source:** NEW — needs `type = 'checklist'` record with `category = 'health'` and title "Medications"
 - **Pushed by:** Claudinho (daily, as part of morning briefing push)
-- **Content:** Scar cream (schedule-aware: every 2 days → alternate days → daily), weekly meds (Fridays only)
+- **Content:** Scar cream (schedule-aware: every 2 days → alternate days → daily), Weekly meds (Fridays only)
 - **Empty state:** "No medications today ✓"
 - **Interaction:** Tap to mark as taken (updates record via Supabase)
 
@@ -314,7 +314,7 @@ The greeting already adapts ("Good morning/afternoon/evening/night"). The ambien
 │  💊 MEDICATIONS                              │
 │─────────────────────────────────────────────│
 │  ☐ Scar cream (alternate days)    ← tap    │
-│  ☑ weekly-med 5mg (Friday)          done ✓   │
+│  ☑ Weekly med (Friday)                   done ✓   │
 └─────────────────────────────────────────────┘
 ```
 

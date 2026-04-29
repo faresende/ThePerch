@@ -179,6 +179,9 @@ def upsert_health_metric(
         return False
 
 
+_registered_agents_cache: set[str] = set()
+
+
 def _ensure_agent_registered(agent_id: str) -> bool:
     """Upsert a minimal public.agents row so FK-constrained writes succeed.
 
@@ -189,7 +192,14 @@ def _ensure_agent_registered(agent_id: str) -> bool:
     real data write hits — caught the hard way by calendar_sync
     (commit 90e6b88, registered manually). Auto-registering here means
     new ingestors written against this helper just work.
+
+    In-process cache: every cron tick is its own process, so the cache
+    lasts only the run, but a single run can call insert_agent_run
+    multiple times (the post-wake wrapper, for example). Skipping the
+    re-register saves one round-trip per redundant call.
     """
+    if agent_id in _registered_agents_cache:
+        return True
     url, key, user_id = _supabase_env()
     payload = {
         "id": agent_id,
@@ -211,7 +221,10 @@ def _ensure_agent_registered(agent_id: str) -> bool:
     )
     try:
         with urlopen(req, timeout=10) as resp:
-            return 200 <= resp.status < 300
+            ok = 200 <= resp.status < 300
+            if ok:
+                _registered_agents_cache.add(agent_id)
+            return ok
     except HTTPError as e:
         sys.stderr.write(f"[supabase] agent register {agent_id}: HTTP {e.code} {e.read().decode()[:200]}\n")
         return False

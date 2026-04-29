@@ -87,3 +87,11 @@ agents/archive/.demo-snapshot.json
 
 # ─── Historical one-off entries (kept for reference) ──────────────────────
 docs/superpowers/plans/2026-03-29-nutrition-food-memory.md
+
+# ─── fetch_fixtures.py output (real Fastmail email bodies; never commit) ──
+skill/dashboard-sync/test/fixtures/orders/*.json
+skill/dashboard-sync/test/fixtures/rejections/*.json
+
+# ─── Personal screenshot drops — never commit user-state captures ─────────
+docs/Images/
+docs/screenshots/

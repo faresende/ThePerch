@@ -11,7 +11,7 @@
 - [openclaw](https://github.com/anthropics/openclaw) installed and used at least once
 - Optional integrations (skip what you don't need): Withings developer app, 8sleep account, [17track](https://api.17track.net) API key, [Karakeep](https://github.com/karakeep-app/karakeep) instance, OpenAI API key
 
-## 14 steps
+## 16 steps
 
 ### 1. Supabase project
 
@@ -88,16 +88,28 @@ ln -sf ~/Developer/ThePerch/agents/health-integrations/* \
 
 ### 7. BioChecha (optional)
 
-Needs an OpenAI API key. ~$0.0001 per insight (gpt-4o-mini). Add `OPENAI_API_KEY` to perch.env, then:
+Needs an OpenAI API key. ~$0.0001 per insight (gpt-4o-mini). Add `OPENAI_API_KEY` to perch.env. The insight system has six slots — see `SETUP-FOR-AGENTS.md` Step 7 for the table. Smoke-test:
 
 ```bash
 set -a && source ~/.openclaw/secrets/perch.env && set +a
-python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_daily_insight.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py morning
 ```
 
-First run says "Quiet data day" — expected, no health data yet.
+First run falls through to `quiet_day_fallback` — expected, no health data yet.
 
-### 8. Withings (optional)
+`biochecha_daily_insight.py` is a legacy single-shot generator (pre-time-aware-insights). Not on cron.
+
+### 8. Oura (optional, primary sleep source)
+
+Generate a personal access token at https://cloud.ouraring.com/personal-access-tokens. Paste into perch.env as `OURA_PERSONAL_TOKEN`. Then:
+
+```bash
+python3 ~/.openclaw/workspace/scripts/health-integrations/oura_ingest.py
+```
+
+Pulls last 14 days. **Source-of-truth precedence: Oura > 8sleep.**
+
+### 9. Withings (optional, fallback body-comp source)
 
 1. Go to https://developer.withings.com/dashboard/. Create a personal app.
 2. Set redirect URI to: `http://localhost:8127/withings/callback`
@@ -115,32 +127,38 @@ First run says "Quiet data day" — expected, no health data yet.
    python3 ~/.openclaw/workspace/scripts/health-integrations/withings_ingest.py
    ```
 
-### 9. 8sleep (optional, may break)
+### 10. 8sleep (optional, fallback sleep source, may break)
 
-Reverse-engineered. May break when 8sleep ships a new app. Caveat emptor.
+Reverse-engineered. May break when 8sleep ships a new app. Used as the fallback when Oura is silent (ring off charger).
 
 Add `EIGHT_SLEEP_EMAIL` + `EIGHT_SLEEP_PASSWORD` to perch.env, then:
 
 ```bash
-set -a && source ~/.openclaw/secrets/perch.env && set +a
 python3 ~/.openclaw/workspace/scripts/health-integrations/eight_sleep_ingest.py
 ```
 
-### 10. 17track (optional)
+### 11. InBody H30 watcher (optional, primary body-comp source)
+
+Install the polling watcher (renders the launchd plist template + loads it):
+
+```bash
+~/Developer/ThePerch/scripts/install-inbody-watcher.sh
+# default ~/Documents/InBody — override with WATCH_DIR=...
+```
+
+Drop CSVs from LookinBody Connect into the watch folder; ingested + post-wake insight regenerated within 60s. Full architecture in `docs/post-wake-pipeline.md`. **Source-of-truth precedence: InBody > Withings.**
+
+### 12. 17track (optional)
 
 Sign up at https://api.17track.net/, get an API key. Add `SEVENTEEN_TRACK_API_KEY` to perch.env.
 
-### 11. Cron jobs
+### 13. Cron jobs
 
-Add three entries to `~/.openclaw/cron/jobs.json` — see `SETUP-FOR-AGENTS.md` for the exact JSON shapes. They run:
-
-- 8sleep ingest, every 30 min
-- Withings ingest, hourly
-- BioChecha daily insight, 7am local time
+The full set is **9 jobs** (8 ingest + insight + 1 retention). See `SETUP-FOR-AGENTS.md` Step 13 for the per-job JSON shape and the table of (name, cron expr, script, timeout). All use the `lightContext: true` + `toolsAllow: ["exec"]` + `zai/glm-5` + NO_REPLY pattern so the cron agent runs the script silently on success.
 
 Adjust the `tz` field for your timezone.
 
-### 12. LaunchAgent for shipment polling
+### 14. LaunchAgent for shipment polling
 
 ```bash
 ~/Developer/ThePerch/ops/install-launchagent.sh
@@ -148,7 +166,7 @@ Adjust the `tz` field for your timezone.
 
 Polls 17track every 30 min for delivery status + ETA updates. Logs at `~/.openclaw/logs/poll-shipments.log`.
 
-### 13. iOS app
+### 15. iOS app
 
 ```bash
 open ~/Developer/ThePerch/ios/ThePerch/ThePerch.xcodeproj
@@ -163,16 +181,18 @@ In Xcode:
    - `KARAKEEP_BASE_URL` and `KARAKEEP_TOKEN` — leave blank if no Karakeep
 4. Build + Run on **device** (not simulator).
 
-### 14. Smoke test
+### 16. Smoke test
 
 ```bash
 set -a && source ~/.openclaw/secrets/perch.env && set +a
-python3 ~/.openclaw/workspace/scripts/health-integrations/withings_ingest.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/oura_ingest.py
 python3 ~/.openclaw/workspace/scripts/health-integrations/eight_sleep_ingest.py
-python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_daily_insight.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/withings_ingest.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/calendar_sync.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py morning
 ```
 
-Open the app. Today tab should show today's BioChecha card + (eventually) the sleep graph as data accumulates.
+(Skip whichever ingests you didn't configure.) Open the app. Today tab should show today's BioChecha card; sleep + body-comp graphs populate as data accumulates.
 
 ## Common stumbles
 

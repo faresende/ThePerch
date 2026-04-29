@@ -3,6 +3,23 @@
 fetch_fixtures.py — pull email fixtures from Fastmail JMAP for the
 classifier regression suite.
 
+══════════════════════════════════════════════════════════════════════
+  PRIVACY WARNING — read before running
+
+  This script writes RAW EMAIL BODIES to JSON files under:
+      test/fixtures/orders/
+      test/fixtures/rejections/
+  Those bodies routinely include: full names, home/billing addresses,
+  phone numbers, payment-card last-4s, and live shopify customer-
+  authenticate URLs whose tokens grant access to past orders for as
+  long as the customer session at that store is alive.
+
+  Both output directories are gitignored. NEVER force-commit them.
+  If you produce a fixture that needs to ship publicly, hand-redact
+  the body first (replace PII, narrow to a ~500-char window around
+  the signal the classifier actually keys on).
+══════════════════════════════════════════════════════════════════════
+
 Usage (one-shot, requires `~/.openclaw/secrets/perch.env` sourced):
     python3 test/fixtures/fetch_fixtures.py
 

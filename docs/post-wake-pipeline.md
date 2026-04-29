@@ -118,10 +118,13 @@ priority list rank last (still surfaced when no other source has data).
    `/channels/telegram/accounts/biochecha/`. The bot token is read
    automatically; the chat_id is resolved from the `allowFrom` list.
 
-4. **launchd watcher:**
+4. **launchd watcher** — install via the renderer script. The committed
+   plist is a `.template` with placeholder paths; the script substitutes
+   the chosen `WATCH_DIR` / `LOG_DIR` and `launchctl load`s the result.
+   Re-run any time to update.
    ```bash
-   cp ops/launchd/com.theperch.inbody-watcher.plist ~/Library/LaunchAgents/
-   launchctl load ~/Library/LaunchAgents/com.theperch.inbody-watcher.plist
+   ./scripts/install-inbody-watcher.sh                          # default ~/Documents/InBody
+   WATCH_DIR=~/iCloud/InBody ./scripts/install-inbody-watcher.sh  # override
    ```
 
 5. **Watch directory exists:**

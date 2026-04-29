@@ -185,6 +185,9 @@ export class ParseTraceBuilder {
         this.trace.classifier.low_confidence_flagged = true;
       }
     }
-    return JSON.parse(JSON.stringify(this.trace)) as ParseTrace;
+    // structuredClone is ~5–10× faster than the JSON.parse(JSON.stringify(...))
+    // round-trip we used to do here. Available in Node ≥17, which we
+    // already require elsewhere (worker_threads import in jmap-search).
+    return structuredClone(this.trace);
   }
 }

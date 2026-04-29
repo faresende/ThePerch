@@ -605,18 +605,20 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                     .limit(limit)
                     .execute()
                 
-                let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
-                var records: [Record] = []
-                for item in rawArray {
-                    do {
-                        let itemData = try JSONSerialization.data(withJSONObject: item)
-                        let record = try recordDecoder.decode(Record.self, from: itemData)
-                        records.append(record)
-                    } catch {
-                        #if DEBUG
-                        print("[SupabaseService] Dropping malformed record: \(error)")
-                        #endif
+                // Direct decode of the array via FailableDecodable —
+                // a malformed row gets logged and skipped, the rest
+                // pass through. Killed the JSONSerialization → re-encode
+                // → JSONDecoder round-trip the older shape did per row
+                // (~1/3rd the JSON work for a 500-record payload).
+                let wrapped = try recordDecoder.decode([FailableDecodable<Record>].self,
+                                                       from: result.data)
+                let records: [Record] = wrapped.compactMap { entry in
+                    #if DEBUG
+                    if case .failure(let err) = entry.result {
+                        print("[SupabaseService] Dropping malformed record: \(err)")
                     }
+                    #endif
+                    return entry.value
                 }
                 return records
             }

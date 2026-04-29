@@ -71,22 +71,17 @@ final class OrdersService {
             .select()
             .order("position", ascending: true)
             .execute()
-        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
-        var items: [OrderItem] = []
-        items.reserveCapacity(rawArray.count)
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
-        for item in rawArray {
-            do {
-                let data = try JSONSerialization.data(withJSONObject: item)
-                items.append(try dec.decode(OrderItem.self, from: data))
-            } catch {
+        let wrapped = try dec.decode([FailableDecodable<OrderItem>].self, from: result.data)
+        return wrapped.compactMap { entry in
 #if DEBUG
-                print("[OrdersService] Dropping malformed order_item: \(error)")
-#endif
+            if case .failure(let err) = entry.result {
+                print("[OrdersService] Dropping malformed order_item: \(err)")
             }
+#endif
+            return entry.value
         }
-        return items
     }
 
     private func fetchOrdersTable() async throws -> [Order] {
@@ -96,22 +91,15 @@ final class OrdersService {
             .order("created_at", ascending: false)
             .execute()
 
-        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
-        var orders: [Order] = []
-        orders.reserveCapacity(rawArray.count)
-
-        for item in rawArray {
-            do {
-                let data = try JSONSerialization.data(withJSONObject: item)
-                orders.append(try orderDecoder.decode(Order.self, from: data))
-            } catch {
+        let wrapped = try orderDecoder.decode([FailableDecodable<Order>].self, from: result.data)
+        return wrapped.compactMap { entry in
 #if DEBUG
-                print("[OrdersService] Dropping malformed order: \(error)")
-#endif
+            if case .failure(let err) = entry.result {
+                print("[OrdersService] Dropping malformed order: \(err)")
             }
+#endif
+            return entry.value
         }
-
-        return orders
     }
 
     private func fetchShipmentsTable() async throws -> [Shipment] {
@@ -121,22 +109,15 @@ final class OrdersService {
             .order("created_at", ascending: false)
             .execute()
 
-        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
-        var shipments: [Shipment] = []
-        shipments.reserveCapacity(rawArray.count)
-
-        for item in rawArray {
-            do {
-                let data = try JSONSerialization.data(withJSONObject: item)
-                shipments.append(try shipmentDecoder.decode(Shipment.self, from: data))
-            } catch {
+        let wrapped = try shipmentDecoder.decode([FailableDecodable<Shipment>].self, from: result.data)
+        return wrapped.compactMap { entry in
 #if DEBUG
-                print("[OrdersService] Dropping malformed shipment: \(error)")
-#endif
+            if case .failure(let err) = entry.result {
+                print("[OrdersService] Dropping malformed shipment: \(err)")
             }
+#endif
+            return entry.value
         }
-
-        return shipments
     }
 
     private func sortDate(for model: OrderWithShipments) -> Date {
@@ -155,8 +136,8 @@ final class OrdersService {
             OrderWithShipments(
                 order: Order(
                     id: penworldId,
-                    merchant: "Penworld",
-                    orderNumber: "2200082684",
+                    merchant: "Demo Merchant A",
+                    orderNumber: "DEMO-A-0001",
                     total: Decimal(string: "89.00"),
                     currency: "EUR",
                     status: "in_transit",
@@ -168,19 +149,19 @@ final class OrdersService {
                     Shipment(
                         id: UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")!,
                         orderId: penworldId,
-                        trackingNumber: "JVGL06363881001053185034",
+                        trackingNumber: "DEMO-TRACK-A-0001",
                         carrier: "DHL",
                         status: "in_transit",
                         createdAt: now.addingTimeInterval(-86_400),
-                        trackingUrl: "https://www.dhl.com/global-en/home/tracking.html?tracking-id=JVGL06363881001053185034"
+                        trackingUrl: "https://example.com/tracking?id=DEMO-TRACK-A-0001"
                     )
                 ]
             ),
             OrderWithShipments(
                 order: Order(
                     id: bodyFitId,
-                    merchant: "Body&Fit",
-                    orderNumber: "BF1399824",
+                    merchant: "Demo Merchant B",
+                    orderNumber: "DEMO-B-0002",
                     total: Decimal(string: "114.97"),
                     currency: "EUR",
                     status: "shipped",
@@ -192,19 +173,19 @@ final class OrdersService {
                     Shipment(
                         id: UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")!,
                         orderId: bodyFitId,
-                        trackingNumber: "CQ478937250DE",
+                        trackingNumber: "DEMO-TRACK-B-0002",
                         carrier: "DHL",
                         status: "shipped",
                         createdAt: now.addingTimeInterval(-43_200),
-                        trackingUrl: "https://www.dhl.com/global-en/home/tracking.html?tracking-id=CQ478937250DE"
+                        trackingUrl: "https://example.com/tracking?id=DEMO-TRACK-B-0002"
                     )
                 ]
             ),
             OrderWithShipments(
                 order: Order(
                     id: amazonId,
-                    merchant: "Amazon",
-                    orderNumber: "404-1892456-1182753",
+                    merchant: "Demo Merchant C",
+                    orderNumber: "DEMO-C-0003",
                     total: Decimal(string: "42.99"),
                     currency: "EUR",
                     status: "delivered",
@@ -265,20 +246,16 @@ final class OrdersService {
             .order("created_at", ascending: false)
             .execute()
 
-        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
-        var items: [ReviewItem] = []
-        items.reserveCapacity(rawArray.count)
-        for item in rawArray {
-            do {
-                let data = try JSONSerialization.data(withJSONObject: item)
-                items.append(try reviewItemDecoder.decode(ReviewItem.self, from: data))
-            } catch {
+        let wrapped = try reviewItemDecoder.decode([FailableDecodable<ReviewItem>].self,
+                                                    from: result.data)
+        return wrapped.compactMap { entry in
 #if DEBUG
-                print("[OrdersService] Dropping malformed review_item: \(error)")
-#endif
+            if case .failure(let err) = entry.result {
+                print("[OrdersService] Dropping malformed review_item: \(err)")
             }
+#endif
+            return entry.value
         }
-        return items
     }
 
     /// Confirm a review item as a real order. Behaviour depends on type:

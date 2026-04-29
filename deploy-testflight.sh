@@ -13,9 +13,26 @@ SCHEME="ThePerch"
 ARCHIVE="/tmp/ThePerch.xcarchive"
 EXPORT="/tmp/ThePerch-export"
 EXPORT_OPTS="$REPO_ROOT/.xcodebuildmcp/ExportOptions.plist"
-KEY="$HOME/.openclaw/secrets/AuthKey_SCRUBBED-APPLE-KEY-ID.p8"
-KEY_ID="SCRUBBED-APPLE-KEY-ID"
-ISSUER="00000000-0000-0000-0000-000000000000"
+
+# App Store Connect API credentials. Set in env (e.g.
+# ~/.openclaw/secrets/perch.env) before running. Forkers use their own
+# Apple Developer Team — committing the maintainer's identifiers
+# wouldn't break anyone's deploy but does provide social-engineering
+# material, so they're env-loaded.
+APPLE_KEY_ID="${APPLE_KEY_ID:-}"
+APPLE_ISSUER="${APPLE_ISSUER:-}"
+APPLE_KEY_PATH="${APPLE_KEY_PATH:-$HOME/.openclaw/secrets/AuthKey_${APPLE_KEY_ID}.p8}"
+if [ -z "$APPLE_KEY_ID" ] || [ -z "$APPLE_ISSUER" ]; then
+  echo "❌ APPLE_KEY_ID and APPLE_ISSUER must be set."
+  echo "   Generate at https://appstoreconnect.apple.com/access/api ; export both"
+  echo "   in your shell or add them to ~/.openclaw/secrets/perch.env"
+  echo "   (APPLE_KEY_PATH defaults to \$HOME/.openclaw/secrets/AuthKey_<KEY_ID>.p8)"
+  exit 2
+fi
+KEY="$APPLE_KEY_PATH"
+KEY_ID="$APPLE_KEY_ID"
+ISSUER="$APPLE_ISSUER"
+
 READINESS_GATE="$HOME/.openclaw/workspace/scripts/readiness-gate.sh"
 TELEGRAM_BOT_TOKEN="${THEPERCH_TELEGRAM_BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}"
 TELEGRAM_CHAT_ID="${THEPERCH_TELEGRAM_CHAT_ID:-${TELEGRAM_CHAT_ID:-}}"

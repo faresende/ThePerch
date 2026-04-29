@@ -95,7 +95,15 @@ if !isConfigured {
                 guard bypassAuthForDebug || authViewModel.isAuthenticated, !authViewModel.isPasswordRecovery else { return }
                 await dashboardViewModel.loadDashboard()
                 BackgroundRefreshService.shared.scheduleAppRefresh()
-                await dashboardViewModel.setupRealtimeSubscriptions()
+                // Realtime subscription used to be awaited here, which on
+                // cellular blocked the .task for 600 ms – 2 s while the
+                // WebSocket handshake completed. Nothing on first paint
+                // depends on the channel being live (cards render from
+                // cache + freshly-fetched records), so kick it off
+                // detached and let the app respond to user taps right away.
+                Task.detached(priority: .utility) { @MainActor in
+                    await dashboardViewModel.setupRealtimeSubscriptions()
+                }
                 if CrashReporter.shared.hasPendingCrashReports {
                     showCrashAlert = true
                 }

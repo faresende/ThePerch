@@ -35,4 +35,9 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.prune_agent_runs(integer) TO authenticated;
+-- Service-role only: the function does an unscoped DELETE (no per-user
+-- filter), so any 'authenticated' caller in a multi-user fork could wipe
+-- everyone's status='ok' history. The retention cron worker runs under
+-- the service-role key, so this restriction matches actual usage.
+REVOKE EXECUTE ON FUNCTION public.prune_agent_runs(integer) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.prune_agent_runs(integer) TO service_role;

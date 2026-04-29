@@ -109,11 +109,11 @@ struct MainTabView: View {
                 isShowingSettings = true
             }
         }
-        .task(id: "main-tab-load-safety-net") {
-            guard dashboardViewModel.allRecords.isEmpty,
-                  !dashboardViewModel.isLoading else { return }
-            await dashboardViewModel.loadDashboard()
-        }
+        // The previous "safety-net" task here would race the
+        // ThePerchApp .task that already loads the dashboard after
+        // auth restore — sometimes both fired and we paid two
+        // concurrent fetches at boot. Removed; the App-level task
+        // is the single source of truth for the cold-load.
     }
 
     /// Called by CaptureHistoryView when the user submits a capture

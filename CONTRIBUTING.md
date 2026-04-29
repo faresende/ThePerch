@@ -14,7 +14,7 @@ This is a personal project shaped like a public repo. PRs are welcome but the ba
 
 - You're proposing anything bigger than a single file
 - You want to change the architecture (the parts in `docs/superpowers/specs/` represent decisions I've already made and don't want to relitigate)
-- The change touches the corrections-and-rules engine — that's Phase 1 of a 3-phase plan and I want to make sure new work doesn't paint me into a corner on Phases 2-3
+- The change touches the corrections-and-rules engine — Phases 1 + 2 are shipped (capture layer + auto-promoted `merchant_rules`), Phase 3 (LLM low-confidence fallback) is still deferred and I want to make sure new work doesn't paint that path into a corner
 
 ## Style notes
 

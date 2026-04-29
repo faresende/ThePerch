@@ -45,9 +45,23 @@ from _supabase_client import (  # noqa: E402
 # 8sleep moved auth to a proper OAuth password-grant endpoint at
 # auth-api.8slp.net in early 2024. The old client-api `/v1/login`
 # still returns a session-token but the data API rejects it with
-# "session token not supported". The client_id + client_secret below
-# are extracted from the official iOS Pod app (standard mobile
-# reverse-engineering — they're not user-specific secrets).
+# "session token not supported".
+#
+# The client_id + client_secret below are extracted from the official
+# iOS Pod app — they identify the app, not the user. Multiple open-
+# source community projects ship the same constants (the alternative
+# would be every fork having to MITM the iOS app to obtain them).
+# That said:
+#
+#   - Eight Sleep does not officially support third-party API access.
+#     They may roll these credentials at any time, breaking this
+#     integration for everyone. There is no official replacement.
+#   - Distributing app-extracted credentials may breach Eight Sleep's
+#     ToS. Use this script for personal data access only; do not
+#     redistribute as a service.
+#
+# If 8sleep eventually publishes an official API, switch to it and
+# rip these out.
 LOGIN_URL = "https://auth-api.8slp.net/v1/tokens"
 APP_BASE = "https://app-api.8slp.net"
 EIGHT_SLEEP_CLIENT_ID = "0894c7f33bb94800a03f1f4df13a4f38"

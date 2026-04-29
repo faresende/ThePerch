@@ -506,6 +506,26 @@ def gather_state(slot: str, event_trigger: Optional[EventTrigger] = None) -> App
     Each helper is plain stdlib urllib + JSON parsing — no shared state,
     no GIL contention worth worrying about. ThreadPoolExecutor is enough.
     """
+    # event_logistics short-circuits with an almost-empty state. The two
+    # event categories only read state.event_trigger and state.now; the
+    # full 7-query fan-out would be wasted work AND would add latency to
+    # what's meant to be a fast "shipment just flipped" notification.
+    if slot == "event_logistics":
+        return AppState(
+            slot=slot,
+            now=datetime.now(timezone.utc),
+            today_meals=[],
+            today_targets=NutritionTargets(2500, 180, 280, 80),
+            today_calendar_remaining=[],
+            today_orders_in_transit=[],
+            sleep_last_7=[],
+            body_comp_last_30=[],
+            workout_schedule_today="unknown",
+            avg_steps_last_7_at_this_hour=0,
+            event_trigger=event_trigger,
+            recent_feedback=[],
+        )
+
     from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor(max_workers=7) as pool:
@@ -1543,6 +1563,20 @@ def main() -> int:
             category="quiet_day_fallback", score=0.0,
             fact_bundle={"reason": "no eligible category for this slot"},
         )
+        # Skip the LLM call when nothing's worth saying. Burning ~250
+        # tokens to write a paragraph version of "nothing's happening"
+        # adds latency, cost, and surfaces a low-signal card on iOS that
+        # would have been better off keeping yesterday's insight.
+        if winner.category == "quiet_day_fallback":
+            print(f"[biochecha-dynamic:{slot}] quiet day — no insight surfaced")
+            insert_agent_run(
+                agent_id="biochecha",
+                run_type=f"dynamic_insight_{slot}",
+                status="ok",
+                summary={"slot": slot, "skipped": "quiet_day"},
+                error_detail=None,
+            )
+            return 0
         body = _generate_insight(slot, winner.fact_bundle, recent_feedback=state.recent_feedback)
         ok = _upsert_insight(slot, body, winner)
         if not ok:

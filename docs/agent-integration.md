@@ -125,10 +125,10 @@ from datetime import date
 from supabase import create_client
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 USER_ID = os.environ["PERCH_USER_ID"]
 
-client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 # Write a daily calorie measurement
 client.table("dashboard_records").insert({
@@ -152,7 +152,7 @@ client.table("dashboard_records").insert({
 
 ```bash
 curl -X POST "$SUPABASE_URL/rest/v1/dashboard_records" \
-  -H "apikey: $SUPABASE_SERVICE_KEY" \
+  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer $SUPAB...KEY" \
   -H "Content-Type: application/json" \
   -d '{

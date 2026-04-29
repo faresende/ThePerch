@@ -53,7 +53,7 @@ The anon key for the managed tier can be embedded in the app binary (it's safe â
 If you build a server-side Edge Function for advanced provisioning:
 ```
 MANAGED_SUPABASE_URL=https://yourproject.supabase.co
-MANAGED_SUPABASE_SERVICE_KEY=...  # Never in the app
+MANAGED_SUPABASE_SERVICE_ROLE_KEY=...  # Never in the app
 ```
 
 ## Tier Limits (suggested)

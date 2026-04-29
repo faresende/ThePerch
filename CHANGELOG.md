@@ -6,7 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-_Nothing here yet. Add upcoming changes before next deploy._
+### Added — Time-aware insights
+- Six-slot insight architecture: pre-wake `morning` (forward-looking plan-of-day), `midday` (anticipatory), `afternoon` (gap-aware opportunity), `evening` (recap), `morning_post_wake` (retrospective + body-comp delta, watcher-fired), `event_logistics` (17track-fired on out-for-delivery / ETA-today)
+- `agents/health-integrations/biochecha_dynamic_insight.py` — rule-engine + LLM voice; ranker with category priority + quiet-day fallback; 9 base categories
+- `biochecha_post_wake_insight.py` — fires on InBody CSV ingest, generates iOS card + long-form Telegram briefing
+- `biochecha_event_insight.py` — fires from `pollAndUpdateShipment` on shipment status flips
+- `_telegram_client.py` — stdlib-only Bot API client reading bot token from openclaw config
+- iOS `Insight.Kind` enum gains `dailyHealthMorning`, `dailyHealthMorningPostWake`, `dailyHealthMidday`, `dailyHealthAfternoon`, `dailyHealthEvening`, `eventLogistics`
+- iOS `fetchTodayDailyInsight` now picks the latest BioChecha row regardless of slot
+
+### Added — InBody H30 watcher
+- `agents/health-integrations/inbody_ingest.py` — parses InBody H30 CSVs to 22 metrics, dedupe by measurement timestamp
+- `agents/health-integrations/inbody_backfill_from_json.py` — one-shot historical scan import from legacy `body-composition.json`
+- `scripts/inbody-watch-tick.sh` + `scripts/install-inbody-watcher.sh` + `ops/launchd/com.theperch.inbody-watcher.plist.template` — polling-watcher install
+- `agents/health-integrations/calendar_sync.py` — macOS Calendar.app → `dashboard_records` for opportunity-based insight categories
+
+### Added — Source-of-truth precedence
+- Body composition: InBody > Withings (when both have data for the same day, higher-priority source wins; lower fills gaps)
+- Sleep: Oura > 8sleep
+- New `oura_ingest.py` reads sleep + daily sleep score + readiness via Oura Cloud API v2
+
+### Added — Phase 2 corrections-and-rules (auto-promoted merchant rules)
+- `merchant_rules` table + RLS policies + `auth.uid()`-guarded `apply_merchant_rule` and `promote_merchant_rules` SECURITY DEFINER RPCs (service-role bypass for the autopilot)
+- iOS Settings → Auto-learned rules (with 30s in-memory TTL cache)
+- TS `merchant-rules.ts` lookup wired into `processEmail` short-circuit slot
+
+### Added — Rage-shake feedback loop (Phase 5)
+- `insight_feedback` table + RLS
+- iOS shake detector + feedback sheet (auto-pre-fills with active insight)
+- Few-shot injection of recent feedback into LLM prompts via `_gather_recent_feedback`
+
+### Added — Operational
+- `agent_runs_non_ok_idx` partial index + `prune_agent_runs(days)` SECURITY DEFINER RPC (service-role only) + 04:00 daily cron
+- `_supabase_client.py` auto-registers agents in `public.agents` on first `insert_agent_run`
+
+### Changed — Performance
+- Backend: `gather_state` parallelizes its 7 Supabase reads via `ThreadPoolExecutor`
+- iOS: `preDecodeRecords` runs `nonisolated` on `Task.detached` — no main-thread freeze on fetch
+- iOS: `InsightsService` + `MerchantRulesService` decode array directly via `FailableDecodable<T>` (killed JSONSerialization round-trip)
+- iOS: shared `PerchFormatters.iso8601` replaces 8 per-call `ISO8601DateFormatter()` rebuilds
+- iOS hero MP4s re-encoded (26.7 MB → 4.4 MB) and `PaperTexture` 2048² → 1024² (5.4 MB → 0.25 MB) — total 27 MB binary slim
+- iOS hero video pipeline async via `Task.detached` (poster image renders immediately)
+- Cron jobs: 9 ingest + insight jobs migrated to `lightContext: true` + `toolsAllow: ["exec"]` + `zai/glm-5` + NO_REPLY pattern
+
+### Changed — Other
+- Default InBody watch directory renamed `~/Documents/Claudio` → `~/Documents/InBody` (existing installs unaffected via `INBODY_WATCH_DIR` env)
+- `OrdersView` warm-hydrates from `DashboardViewModel.trackedOrders` when available
+
+### Security
+- Pre-public scrub: deleted classifier-test fixtures (carried real Fastmail PII + live Shopify customer-auth tokens), removed maintainer-personal screenshots from `docs/Images/` and `docs/screenshots/`, scrubbed `weekly-med` prescription mention from design docs, rewrote `SECURITY.md` to match actual prevention tooling, locked `prune_agent_runs` to `service_role` only
+- Templated `ops/launchd/com.theperch.inbody-watcher.plist` (was hardcoded user paths) + `scripts/install-inbody-watcher.sh` renderer
+- App Store Connect API identifiers (`KEY_ID`, `ISSUER`) now read from env in `deploy-testflight.sh`
+- `002_seed_fabio.sql` renamed `002_seed_demo.sql` and scrubbed of personal display name
+- DEBUG mock orders in `OrdersService.swift` swapped real-looking tracker numbers for synthetic placeholders
+- 13 byte-identical root-level docs (`DESIGN_REVIEW.md`, `PLAN.md`, `WORKLOG.md`, etc.) deleted; canonical copies remain in `docs/archive/`
 
 ---
 

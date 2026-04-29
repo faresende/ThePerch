@@ -156,33 +156,52 @@ ln -sf ~/Developer/ThePerch/agents/health-integrations/* \
 ls ~/.openclaw/workspace/scripts/health-integrations/
 ```
 
-You should see `_supabase_client.py`, `biochecha_daily_insight.py`, `eight_sleep_ingest.py`, `withings_ingest.py`, `withings_setup.py`.
+You should see roughly:
+- Helpers: `_supabase_client.py`, `_telegram_client.py`
+- Insight generators: `biochecha_dynamic_insight.py`, `biochecha_post_wake_insight.py`, `biochecha_event_insight.py`, `biochecha_daily_insight.py` (legacy, not on cron)
+- Ingest workers: `oura_ingest.py`, `eight_sleep_ingest.py`, `withings_ingest.py`, `withings_setup.py`, `inbody_ingest.py`, `inbody_backfill_from_json.py`, `calendar_sync.py`
+- Maintenance: `prune_agent_runs.py`
 
 ---
 
-## Step 7 — BioChecha daily insight (optional, recommended)
+## Step 7 — BioChecha time-aware insights (optional, recommended)
 
-Skip this if the user doesn't want LLM-generated daily insights.
+Skip this if the user doesn't want LLM-generated insights.
 
-The user needs an OpenAI API key (https://platform.openai.com/api-keys). gpt-4o-mini, ~$0.0001 per insight, so daily cost is negligible.
+The user needs an OpenAI API key (https://platform.openai.com/api-keys). gpt-4o-mini, ~$0.0001 per insight; daily cost is negligible.
+
+The insights system has six slots:
+
+| Slot | Trigger | What it produces |
+|---|---|---|
+| `morning` | 7am Lisbon cron | Forward-looking plan-of-the-day (training, macros, calendar load) |
+| `midday` | noon cron | Mid-day check-in (anticipatory lunch / pacing / shipments) |
+| `afternoon` | 3pm cron | Gap-aware opportunity nudge |
+| `evening` | 8pm cron | Day recap |
+| `morning_post_wake` | InBody watcher OR manual | Post-weigh-in retrospective + body-comp delta + Telegram briefing |
+| `event_logistics` | 17track shipment status flip | "Out for delivery" / "ETA today" |
+
+Smoke-test that the pipeline works:
 
 ```bash
-# After they paste the key into perch.env:
 set -a && source ~/.openclaw/secrets/perch.env && set +a
-python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_daily_insight.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py morning
 ```
 
-If it succeeds, an insight row lands in `public.insights` with today's date. Verify:
+If it succeeds, an insight row lands in `public.insights` with today's date and `insight_type='daily_health_morning'`. Verify:
 
 ```sql
-SELECT * FROM public.insights WHERE agent_id = 'biochecha' ORDER BY valid_for_date DESC LIMIT 1;
+SELECT insight_type, body, valid_for_date FROM public.insights
+WHERE agent_id = 'biochecha' ORDER BY generated_at DESC LIMIT 5;
 ```
 
-The first run will likely say "Quiet data day" because there's no health data yet. That's expected.
+The first run will likely fall through to `quiet_day_fallback` because no health data has been ingested yet — that's expected. Categories are explained in `agents/health-integrations/README.md` and `docs/post-wake-pipeline.md`.
+
+`biochecha_daily_insight.py` is a legacy single-shot generator (pre-time-aware-insights). It is NOT on cron; it stays in the tree for reference only. Don't use it for the live pipeline.
 
 ---
 
-## Step 8 — Withings (optional)
+## Step 8 — Withings (optional, fallback body-comp source)
 
 Skip if the user doesn't have a Withings account.
 
@@ -209,7 +228,22 @@ Skip if the user doesn't have a Withings account.
 
 ---
 
-## Step 9 — 8sleep (optional, may break)
+## Step 9 — Oura (optional, primary sleep source)
+
+Skip if the user doesn't have an Oura ring.
+
+The user generates a personal access token at https://cloud.ouraring.com/personal-access-tokens (sign in → Create new). Pastes it into `perch.env` as `OURA_PERSONAL_TOKEN=…`. Then:
+
+```bash
+set -a && source ~/.openclaw/secrets/perch.env && set +a
+python3 ~/.openclaw/workspace/scripts/health-integrations/oura_ingest.py
+```
+
+Should report `sessions=N daily_sleep=N readiness=N written=N failed=0`. Pulls the last 14 days of sleep + daily sleep score + readiness score into `public.health_metrics` under `source='oura'`. Source-of-truth precedence in the gather code is **Oura > 8sleep**; if both are present for the same night, Oura wins.
+
+---
+
+## Step 10 — 8sleep (optional, fallback sleep source, may break)
 
 Skip if the user doesn't have an 8sleep mattress. Warn them this integration is reverse-engineered and may break.
 
@@ -220,11 +254,36 @@ set -a && source ~/.openclaw/secrets/perch.env && set +a
 python3 ~/.openclaw/workspace/scripts/health-integrations/eight_sleep_ingest.py
 ```
 
-Should report `written=N failed=0`. Pulls the last 14 days of nightly data into `public.health_metrics`.
+Should report `written=N failed=0`. Pulls the last 14 days of nightly data into `public.health_metrics` under `source='8sleep'`. Used as a fallback when Oura is silent (e.g. ring off the charger), and for bed-temp / room-temp signals Oura doesn't have.
 
 ---
 
-## Step 10 — 17track (optional, for shipment ETAs)
+## Step 11 — InBody H30 watcher (optional, primary body-comp source)
+
+Skip if the user doesn't have an InBody H30 / LookinBody Connect.
+
+The user exports CSVs from LookinBody Connect into a folder; a launchd polling agent watches it, ingests + deletes new files within 60s, and re-fires the post-wake insight. The end-to-end pipeline (CSV → iOS card + Telegram briefing) is documented in `docs/post-wake-pipeline.md`.
+
+Install the watcher:
+
+```bash
+~/Developer/ThePerch/scripts/install-inbody-watcher.sh
+# default ~/Documents/InBody — override with WATCH_DIR=...
+```
+
+The script renders `ops/launchd/com.theperch.inbody-watcher.plist.template` with the chosen paths and `launchctl load`s it. Idempotent — re-run after editing.
+
+If the user has a legacy `body-composition.json` from a pre-watcher chat-based flow, run the one-shot backfill once to populate historical scans:
+
+```bash
+python3 ~/.openclaw/workspace/scripts/health-integrations/inbody_backfill_from_json.py
+```
+
+Source-of-truth precedence: **InBody > Withings**. Withings still ingests if configured, but InBody wins where both have data for the same day.
+
+---
+
+## Step 12 — 17track (optional, for shipment ETAs)
 
 Skip if the user doesn't ship online or doesn't care about ETAs.
 
@@ -234,45 +293,65 @@ The orders skill will use it on next inbox scan.
 
 ---
 
-## Step 11 — Cron jobs
+## Step 13 — Cron jobs
 
-The Perch's data pipeline runs on cron. Add these entries to `~/.openclaw/cron/jobs.json`:
+The Perch's data pipeline runs on cron. Open the user's openclaw cron file:
 
 ```bash
-# Open the file in $EDITOR — or have the user paste these in:
 $EDITOR ~/.openclaw/cron/jobs.json
 ```
 
-Three new entries to add (paste into the `jobs` array — match the existing shape):
+The full set is **8 ingest + insight jobs + 1 retention job**. All use the
+`lightContext: true` + `toolsAllow: ["exec"]` + `zai/glm-5` + NO_REPLY pattern
+so the cron agent runs the script and exits silently on success — no LLM
+narration unless the script fails.
+
+Common shape (substitute `<NAME>`, `<SCRIPT>`, `<EXPR>`, `<TIMEOUT>`):
 
 ```json
 {
-  "id": "<generate-uuid>",
+  "id": "<uuidgen>",
   "agentId": "cron-agent",
-  "name": "8sleep-ingest",
-  "description": "Pull last night's 8sleep session every 30 min",
+  "name": "<NAME>",
   "enabled": true,
-  "schedule": { "kind": "cron", "expr": "*/30 * * * *", "tz": "Europe/Lisbon" },
+  "schedule": { "kind": "cron", "expr": "<EXPR>", "tz": "Europe/Lisbon" },
   "sessionTarget": "isolated",
   "wakeMode": "now",
   "delivery": { "channel": "last", "mode": "none" },
   "payload": {
     "kind": "agentTurn",
-    "message": "Run: python3 ~/.openclaw/workspace/scripts/health-integrations/eight_sleep_ingest.py. Report results.",
-    "model": "minimax-portal/MiniMax-M2.7-highspeed",
-    "timeoutSeconds": 300
+    "lightContext": true,
+    "toolsAllow": ["exec"],
+    "model": "zai/glm-5",
+    "timeoutSeconds": <TIMEOUT>,
+    "message": "Run exactly this command once:\npython3 ~/.openclaw/workspace/scripts/health-integrations/<SCRIPT>\n\nRules:\n- If the command exits 0, reply exactly NO_REPLY.\n- If it exits non-zero, reply with the first line of stderr only.\n- Do not summarise, do not mention cron or runs."
   },
+  "createdAtMs": <unix-ms>,
   "state": {}
-},
-{ "id": "<generate-uuid>", "agentId": "cron-agent", "name": "withings-ingest", "...": "same shape, schedule expr '0 * * * *', script withings_ingest.py" },
-{ "id": "<generate-uuid>", "agentId": "cron-agent", "name": "biochecha-daily-insight", "...": "same shape, schedule expr '0 7 * * *', script biochecha_daily_insight.py, timeoutSeconds 600" }
+}
 ```
 
-(Tweak the user's timezone if they're not in Lisbon. Generate UUIDs via `uuidgen`.)
+Per-job fillings:
+
+| name | expr | script | timeout |
+|---|---|---|---|
+| `oura-ingest`              | `*/30 * * * *`   | `oura_ingest.py`         | 300 |
+| `8sleep-ingest`            | `*/30 * * * *`   | `eight_sleep_ingest.py`  | 300 |
+| `withings-ingest`          | `0 * * * *`      | `withings_ingest.py`     | 300 |
+| `calendar-sync`            | `*/15 6-22 * * *`| `calendar_sync.py`       |  60 |
+| `biochecha-morning-insight`   | `0 7 * * *`   | `biochecha_dynamic_insight.py morning`   | 600 |
+| `biochecha-midday-insight`    | `0 12 * * *`  | `biochecha_dynamic_insight.py midday`    | 600 |
+| `biochecha-afternoon-insight` | `0 15 * * *`  | `biochecha_dynamic_insight.py afternoon` | 600 |
+| `biochecha-evening-insight`   | `0 20 * * *`  | `biochecha_dynamic_insight.py evening`   | 600 |
+| `agent-runs-prune`         | `0 4 * * *`      | `prune_agent_runs.py`    | 120 |
+
+Generate UUIDs with `uuidgen`. Tweak the timezone if the user isn't in Lisbon.
+
+The post-wake insight (`biochecha_post_wake_insight.py`) and event-logistics slot (`biochecha_event_insight.py`) do **not** go on cron — they're triggered by the InBody watcher (Step 11) and the orders-autopilot 17track hook (Step 12) respectively.
 
 ---
 
-## Step 12 — LaunchAgent for 17track polling
+## Step 14 — LaunchAgent for 17track polling
 
 ```bash
 ~/Developer/ThePerch/ops/install-launchagent.sh
@@ -290,7 +369,7 @@ Logs at `~/.openclaw/logs/poll-shipments.log`.
 
 ---
 
-## Step 13 — iOS app
+## Step 15 — iOS app
 
 Open Xcode:
 
@@ -312,7 +391,7 @@ First launch should show the Today tab with empty states for everything that doe
 
 ---
 
-## Step 14 — Smoke test
+## Step 16 — Smoke test
 
 ```bash
 # Verify a few endpoints by hitting Supabase directly:
@@ -324,19 +403,23 @@ curl -s "$SUPABASE_URL/rest/v1/health_metrics?select=metric&limit=1" \
 
 Should return `[]` initially (or `[{"metric":"..."}]` after the first ingest run).
 
-Run all three ingest scripts manually so the user can see data on Today the first time they open the app:
+Run the configured ingests + one slot generation manually so the user has data on Today the first time they open the app:
 
 ```bash
-python3 ~/.openclaw/workspace/scripts/health-integrations/withings_ingest.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/oura_ingest.py
 python3 ~/.openclaw/workspace/scripts/health-integrations/eight_sleep_ingest.py
-python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_daily_insight.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/withings_ingest.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/calendar_sync.py
+python3 ~/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py morning
 ```
+
+(Skip whichever ingest the user didn't configure. The morning slot will fall through to `quiet_day_fallback` if nothing's in `health_metrics` yet — that's expected.)
 
 ---
 
 ## Done
 
-If you got through all 14 steps cleanly: tell the user The Perch is live, give them the next-build instructions ("bump build, run on device"), and exit. If you got stuck, tell them which step and why.
+If you got through all 16 steps cleanly: tell the user The Perch is live, give them the next-build instructions ("bump build, run on device"), and exit. If you got stuck, tell them which step and why.
 
 Common stumbles to watch for:
 

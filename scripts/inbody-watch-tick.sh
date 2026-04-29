@@ -13,8 +13,10 @@
 set -euo pipefail
 
 WATCH_DIR="${INBODY_WATCH_DIR:-$HOME/Documents/InBody}"
-REPO_ROOT="$HOME/Developer/ThePerch"
-SECRETS="$HOME/.openclaw/secrets/perch.env"
+# Resolve the repo root from this script's own location so the script
+# works regardless of where the user cloned the repo.
+REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+SECRETS="${SECRETS_FILE:-$HOME/.openclaw/secrets/perch.env}"
 
 # ─── Pre-check: any CSVs to process? ──────────────────────────────────
 if [ ! -d "$WATCH_DIR" ]; then

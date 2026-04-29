@@ -1,5 +1,5 @@
 -- ============================================================================
--- The Perch - Fabio's Initial Setup Seed Data
+-- The Perch - the demo user's Initial Setup Seed Data
 -- ============================================================================
 -- IMPORTANT: Before running, replace the placeholder ID below with your
 -- actual Supabase Auth user ID. You can find it in the Supabase dashboard:
@@ -13,17 +13,17 @@
 
 DO $$
 DECLARE
-  fabio_id uuid := '00000000-0000-0000-0000-000000000000';  -- Fabio's auth.users UUID
+  demo_user_id uuid := '00000000-0000-0000-0000-000000000000';  -- the demo user's auth.users UUID
 BEGIN
 
 -- ============================================================================
--- 1. INSERT FABIO'S USER PROFILE
+-- 1. INSERT THE DEMO USER'S USER PROFILE
 -- ============================================================================
 
 INSERT INTO public.users (id, display_name, preferences)
 VALUES (
-  fabio_id,
-  'Fabio',
+  demo_user_id,
+  'Demo User',
   '{
     "theme": "light",
     "language": "pt-BR",
@@ -41,27 +41,27 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO public.agents (id, display_name, emoji, model, owner_id, is_active)
 VALUES
-  ('main',       'Claudinho',  '🦞', 'claude-opus-4.6',   fabio_id, true),
-  ('biochecha',  'BioChecha',  '💪', 'claude-opus-4.6',   fabio_id, true),
-  ('calendario', 'Calendario', '📅', 'claude-sonnet-4.6', fabio_id, true),
-  ('entregas',   'Entregas',   '📦', 'claude-sonnet-4.6', fabio_id, true),
-  ('legal',      'Legal',      '⚖️', 'claude-sonnet-4.6', fabio_id, true)
+  ('main',       'Claudinho',  '🦞', 'claude-opus-4.6',   demo_user_id, true),
+  ('biochecha',  'BioChecha',  '💪', 'claude-opus-4.6',   demo_user_id, true),
+  ('calendario', 'Calendario', '📅', 'claude-sonnet-4.6', demo_user_id, true),
+  ('entregas',   'Entregas',   '📦', 'claude-sonnet-4.6', demo_user_id, true),
+  ('legal',      'Legal',      '⚖️', 'claude-sonnet-4.6', demo_user_id, true)
 ON CONFLICT (id) DO UPDATE SET
   display_name = EXCLUDED.display_name,
   emoji = EXCLUDED.emoji,
   model = EXCLUDED.model;
 
 -- ============================================================================
--- 3. INSERT AGENT_USERS MAPPINGS (Fabio as admin of all agents)
+-- 3. INSERT AGENT_USERS MAPPINGS (Demo User as admin of all agents)
 -- ============================================================================
 
 INSERT INTO public.agent_users (agent_id, user_id, role)
 VALUES
-  ('main',       fabio_id, 'admin'),
-  ('biochecha',  fabio_id, 'admin'),
-  ('calendario', fabio_id, 'admin'),
-  ('entregas',   fabio_id, 'admin'),
-  ('legal',      fabio_id, 'admin')
+  ('main',       demo_user_id, 'admin'),
+  ('biochecha',  demo_user_id, 'admin'),
+  ('calendario', demo_user_id, 'admin'),
+  ('entregas',   demo_user_id, 'admin'),
+  ('legal',      demo_user_id, 'admin')
 ON CONFLICT (agent_id, user_id) DO UPDATE SET
   role = EXCLUDED.role;
 
@@ -71,13 +71,13 @@ ON CONFLICT (agent_id, user_id) DO UPDATE SET
 
 INSERT INTO public.sections (user_id, slug, display_name, sort_order, is_visible, config)
 VALUES
-  (fabio_id, 'home',       'Home',       0, true, '{"description": "Dashboard of dashboards"}'::jsonb),
-  (fabio_id, 'health',     'Health',     1, true, '{"agent": "biochecha"}'::jsonb),
-  (fabio_id, 'deliveries', 'Deliveries', 2, true, '{"agent": "entregas"}'::jsonb),
-  (fabio_id, 'calendar',   'Calendar',   3, true, '{"agent": "calendario"}'::jsonb),
-  (fabio_id, 'bookmarks',  'Bookmarks',  4, true, '{"agent": "main"}'::jsonb),
-  (fabio_id, 'admin',      'Admin',      5, true, '{"tabs": ["agents", "token_usage"]}'::jsonb),
-  (fabio_id, 'legal',      'Legal',      6, true, '{"agent": "legal"}'::jsonb)
+  (demo_user_id, 'home',       'Home',       0, true, '{"description": "Dashboard of dashboards"}'::jsonb),
+  (demo_user_id, 'health',     'Health',     1, true, '{"agent": "biochecha"}'::jsonb),
+  (demo_user_id, 'deliveries', 'Deliveries', 2, true, '{"agent": "entregas"}'::jsonb),
+  (demo_user_id, 'calendar',   'Calendar',   3, true, '{"agent": "calendario"}'::jsonb),
+  (demo_user_id, 'bookmarks',  'Bookmarks',  4, true, '{"agent": "main"}'::jsonb),
+  (demo_user_id, 'admin',      'Admin',      5, true, '{"tabs": ["agents", "token_usage"]}'::jsonb),
+  (demo_user_id, 'legal',      'Legal',      6, true, '{"agent": "legal"}'::jsonb)
 ON CONFLICT (user_id, slug) DO UPDATE SET
   display_name = EXCLUDED.display_name,
   sort_order = EXCLUDED.sort_order,
@@ -86,5 +86,5 @@ ON CONFLICT (user_id, slug) DO UPDATE SET
 END $$;
 
 -- ============================================================================
--- End of 002_seed_fabio.sql
+-- End of 002_seed_demo.sql
 -- ============================================================================
