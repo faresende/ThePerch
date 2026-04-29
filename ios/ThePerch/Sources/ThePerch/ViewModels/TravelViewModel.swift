@@ -11,7 +11,16 @@ final class TravelViewModel {
     // MARK: - Properties
 
     var records: [Record] = [] {
-        didSet { recomputeTrips() }
+        didSet {
+            // R11 fix: short-circuit on equality. didSet has no built-in
+            // equality check, so unconditional `records = newRecords`
+            // (now fired from BOTH ThePerchApp's .onChange AND HubTab's
+            // .onChange — both writers exist as defense-in-depth) would
+            // run recomputeTrips twice per change. Record is Equatable.
+            if records != oldValue {
+                recomputeTrips()
+            }
+        }
     }
 
     // MARK: - Trip Records (cached on records mutation)

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<!-- Required-reason API declarations. Apple has been rejecting App Store
+	     and TestFlight submissions without these since iOS 17 (May 2024).
+	     See: https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_use_of_required_reason_api -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<!-- @AppStorage + UserDefaults(suiteName:"group.com.theperch.shared")
+			     are used by HomeViewModel for widget data sync, by
+			     SupabaseService for cache state, and by various views
+			     for local user preferences (compact mode toggles,
+			     dark mode toggle, etc.). All reads and writes stay
+			     within the app and the App Group container. -->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- CrashReporter.swift uses FileManager.attributesOfItem to
+			     read modification timestamps on crash report files in
+			     the app's own container so it can display "X minutes
+			     ago" on the recovery alert. Timestamps are not sent
+			     off-device. -->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

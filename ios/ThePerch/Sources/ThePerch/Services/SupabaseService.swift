@@ -607,6 +607,16 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         #endif
 
         do {
+            // Round 11 fix (perf F3): tear down realtime channels +
+            // listener tasks BEFORE signing out. The R10 audit caught
+            // that signOut was leaking the records + agents websockets
+            // and 4 long-lived listener Tasks per session — they stayed
+            // open until app process termination (or were clobbered by
+            // a re-sign-in via the `if let existing` branch). Since
+            // `unsubscribeAll` is on this service and SupabaseService
+            // is the auth boundary, this is the right place to do it
+            // (avoids tighter AuthVM ↔ DashboardVM coupling).
+            await unsubscribeAll()
             try await client.auth.signOut()
             self.isAuthenticated = false
             self.isPasswordRecovery = false

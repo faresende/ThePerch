@@ -25,6 +25,7 @@
 		353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */; };
 		356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 356EB7102F5251A3009D0A53 /* Assets.xcassets */; };
 		35AA00022F60000100000002 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 35AA00012F60000100000001 /* LaunchScreen.storyboard */; };
+		PRVCY00B2PRVCY00B2PRVCY /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRVCY00B1PRVCY00B1PRVCY /* PrivacyInfo.xcprivacy */; };
 		35E8ADA32F5B18A100BAC8FE /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */; };
 		35E8ADA82F5B19CB00BAC8FE /* HealthKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */; };
 		35E8ADA92F5B19CB00BAC8FE /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */; };
@@ -211,6 +212,7 @@
 		353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaloriesCard.swift; sourceTree = "<group>"; };
 		353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacrosCard.swift; sourceTree = "<group>"; };
 		356EB7102F5251A3009D0A53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		PRVCY00B1PRVCY00B1PRVCY /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
 		35AA00012F60000100000001 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		35E8ADA02F5B181200BAC8FE /* ThePerch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ThePerch.entitlements; sourceTree = SOURCE_ROOT; };
 		35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
@@ -632,6 +634,7 @@
 			isa = PBXGroup;
 			children = (
 				35E8ADA02F5B181200BAC8FE /* ThePerch.entitlements */,
+				PRVCY00B1PRVCY00B1PRVCY /* PrivacyInfo.xcprivacy */,
 				356EB7102F5251A3009D0A53 /* Assets.xcassets */,
 				35AA00012F60000100000001 /* LaunchScreen.storyboard */,
 				35F5434B2F52411F00204F77 /* Config */,
@@ -1038,6 +1041,7 @@
 			files = (
 				356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */,
 				35AA00022F60000100000002 /* LaunchScreen.storyboard in Resources */,
+				PRVCY00B2PRVCY00B2PRVCY /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

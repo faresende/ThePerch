@@ -837,7 +837,13 @@ final class DashboardViewModel {
             try await supabaseService.subscribeToAgents { [weak self] action in
                 guard self != nil else { return }
                 Task { @MainActor [weak self] in
-                    await self?.loadAgents(forceRefresh: true)
+                    // Round 11 fix (perf F1): route through the debounce
+                    // here too. R10 added the helper to setupRealtimeSubscriptions
+                    // but missed this reconnect path — exactly the path
+                    // where bursts are most likely (cellular flap → 5+
+                    // buffered agent updates flush at once → 5 sequential
+                    // network round-trips on the main actor).
+                    self?.scheduleDebouncedAgentsRefresh()
                 }
             }
             return true

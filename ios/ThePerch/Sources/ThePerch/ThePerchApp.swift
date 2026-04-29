@@ -70,12 +70,29 @@ if !isConfigured {
                         .environment(networkMonitor)
                         .preferredColorScheme(darkModeEnabled ? .dark : nil)
                         .onChange(of: scenePhase) { oldPhase, newPhase in
-                            if newPhase == .active && oldPhase != .active {
+                            // R11 fix (perf F2): only refresh on a TRUE
+                            // foreground-from-background transition. Without
+                            // the `.background` guard, the cold-start path
+                            // fires this AND the auth-state .task below in
+                            // parallel, paying a duplicate predecode pass
+                            // (~50–100ms wasted main-actor work). The 30s
+                            // SupabaseService cache absorbs the wire cost
+                            // but not the local merge cost.
+                            if newPhase == .active && oldPhase == .background {
                                 Task {
                                     await dashboardViewModel.loadDashboard()
                                     BackgroundRefreshService.shared.scheduleAppRefresh()
                                 }
                             }
+                        }
+                        .onChange(of: dashboardViewModel.travelRecords) { _, newRecords in
+                            // R11 fix (CRITICAL C1): keep the shared
+                            // travelViewModel in sync with travel records as
+                            // they flow in via realtime, regardless of which
+                            // tab the user has open. R10 hoisted the VM but
+                            // left the writer scoped to HubTab — broke for
+                            // anyone who never visits Hub.
+                            travelViewModel.records = newRecords
                         }
                         .alert("Previous Crash Detected", isPresented: $showCrashAlert) {
                             Button("Dismiss") {
@@ -106,6 +123,14 @@ if !isConfigured {
             .task(id: bypassAuthForDebug || (authViewModel.isAuthenticated && !authViewModel.isPasswordRecovery)) {
                 guard bypassAuthForDebug || authViewModel.isAuthenticated, !authViewModel.isPasswordRecovery else { return }
                 await dashboardViewModel.loadDashboard()
+                // R11 fix (CRITICAL C1): seed travelViewModel.records from
+                // dashboardViewModel.travelRecords once initial load is
+                // done. R10 dropped the per-card writes assuming HubTab
+                // was the canonical writer, but a user who lives on
+                // TodayTab never visits Hub — so without this seed,
+                // TravelHomeCard's `travelVM.currentTrip` stays nil and
+                // the trip banner never renders.
+                travelViewModel.records = dashboardViewModel.travelRecords
                 BackgroundRefreshService.shared.scheduleAppRefresh()
                 // Realtime subscription used to be awaited here, which on
                 // cellular blocked the .task for 600 ms – 2 s while the

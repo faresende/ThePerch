@@ -380,13 +380,18 @@ Per-job fillings:
 |---|---|---|---|
 | `oura-ingest`              | `*/30 * * * *`   | `oura_ingest.py`         | 300 |
 | `8sleep-ingest`            | `*/30 * * * *`   | `eight_sleep_ingest.py`  | 300 |
-| `withings-ingest`          | `0 * * * *`      | `withings_ingest.py`     | 300 |
+| `withings-ingest`          | `13 * * * *`     | `withings_ingest.py`     | 300 |
 | `calendar-sync`            | `*/15 6-22 * * *`| `calendar_sync.py`       |  60 |
-| `biochecha-morning-insight`   | `0 7 * * *`   | `biochecha_dynamic_insight.py morning`   | 600 |
-| `biochecha-midday-insight`    | `0 12 * * *`  | `biochecha_dynamic_insight.py midday`    | 600 |
-| `biochecha-afternoon-insight` | `0 15 * * *`  | `biochecha_dynamic_insight.py afternoon` | 600 |
-| `biochecha-evening-insight`   | `0 20 * * *`  | `biochecha_dynamic_insight.py evening`   | 600 |
-| `agent-runs-prune`         | `0 4 * * *`      | `prune_agent_runs.py`    | 120 |
+| `biochecha-morning-insight`   | `3 7 * * *`   | `biochecha_dynamic_insight.py morning`   | 600 |
+| `biochecha-midday-insight`    | `5 12 * * *`  | `biochecha_dynamic_insight.py midday`    | 600 |
+| `biochecha-afternoon-insight` | `7 15 * * *`  | `biochecha_dynamic_insight.py afternoon` | 600 |
+| `biochecha-evening-insight`   | `9 20 * * *`  | `biochecha_dynamic_insight.py evening`   | 600 |
+| `agent-runs-prune`         | `0 4 * * 0`      | `prune_agent_runs.py`    | 120 |
+
+The minute offsets (13, 3, 5, 7, 9) and the Sunday-only (`* * 0`) prune
+schedule are deliberate — staggered minute marks avoid lock contention
+when multiple jobs would otherwise wake at exactly the same instant on
+the openclaw worker pool. Match `ops/cron-jobs.example.json` if in doubt.
 
 Generate UUIDs with `uuidgen`. Tweak the timezone if the user isn't in Lisbon.
 
