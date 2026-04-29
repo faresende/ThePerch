@@ -16,6 +16,15 @@ final class HomeViewModel {
     var trackedDeliveries: [DeliveryData] = []
     var loadError: String?
 
+    /// Coalesces widget refreshes triggered by realtime bursts. Without
+    /// this, every realtime tick (which bumps records.last.updatedAt
+    /// → fires todayFingerprint → fires updateRecords) pushed a fresh
+    /// `WidgetCenter.shared.reloadAllTimelines()` cross-process IPC.
+    /// Round 8 audit caught: a 30-message burst meant 30 widget
+    /// reloads in a second. 1-second debounce pairs with the typical
+    /// realtime burst window and the widget's own update interval.
+    private var widgetReloadTask: Task<Void, Never>?
+
     // MARK: - Updating Data (fed from DashboardViewModel)
 
     /// Called when DashboardViewModel provides new records and canonical tracked deliveries.
@@ -23,8 +32,17 @@ final class HomeViewModel {
         guard newRecords != records || newDeliveries != trackedDeliveries else { return }
         records = newRecords
         trackedDeliveries = newDeliveries
-        updateWidgetData()
+        scheduleWidgetReload()
         Task { [weak self] in await self?.syncLiveActivities() }
+    }
+
+    private func scheduleWidgetReload() {
+        widgetReloadTask?.cancel()
+        widgetReloadTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s debounce
+            guard !Task.isCancelled, let self else { return }
+            self.updateWidgetData()
+        }
     }
 
     // MARK: - Quick Glance Data

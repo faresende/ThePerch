@@ -52,7 +52,6 @@ ViewModels (@Observable)
   ├─ HealthViewModel     (health metrics)
   ├─ NutritionViewModel  (macro tracking)
   ├─ OrdersViewModel     (orders + shipments)
-  ├─ BookmarksViewModel  (bookmark search)
   ├─ TravelViewModel     (trip tracking)
   ├─ AdminViewModel      (agent status)
   └─ AuthViewModel       (sign in/out)
@@ -85,7 +84,6 @@ ios/ThePerch/Sources/ThePerch/
 │   ├── HealthViewModel.swift     # Health metrics aggregation
 │   ├── NutritionViewModel.swift  # Macro/calorie tracking
 │   ├── OrdersViewModel.swift     # Order + shipment fetching
-│   ├── BookmarksViewModel.swift  # Bookmark search/filter
 │   ├── TravelViewModel.swift     # Trip management
 │   ├── AdminViewModel.swift      # Agent health monitoring
 │   └─ AuthViewModel.swift        # Authentication state
@@ -148,7 +146,6 @@ ios/ThePerch/Sources/ThePerch/
 │       ├── MockData.swift        # Preview data
 │       ├── HomeCardOrdering.swift # Smart card ordering
 │       ├── HomeCardHeader.swift
-│       ├── TimeOfDayAtmosphere.swift
 │       ├── SparklineView.swift
 │       └── ShimmerEffect.swift
 └── ThePerchWidgets/              # Widget extension target

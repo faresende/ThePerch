@@ -349,7 +349,7 @@ Current theme is located at:
 - `ios/ThePerch/Sources/ThePerch/Views/Theme/PerchTheme.swift`
 
 And atmosphere helper:
-- `ios/ThePerch/Sources/ThePerch/Views/Helpers/TimeOfDayAtmosphere.swift`
+- (deleted in R6 dead-code purge — see CHANGELOG)
 
 (Original task path referenced `Sources/ThePerch/Theme/...` but the codebase currently uses `Views/Theme`.)
 
@@ -639,7 +639,7 @@ For `.critical`, consider switching to warning shadow (optional):
 ```
 
 
-### 7.7 `TimeOfDayAtmosphere.swift` — align with steel/amber palette
+### 7.7 `TimeOfDayAtmosphere` (retired in R6) — historical: align with steel/amber palette
 
 Current atmosphere uses morning golds and evening violets. That’s fine, but it should now feel like **charcoal + steel + amber** rather than generic color moods.
 
@@ -695,7 +695,7 @@ The effect stays nearly imperceptible, but now it harmonizes with steel/amber.
    - selected/active controls: `.perchGlow(.attention)`
 5. **Update `HeroCardModifier`**: steel→amber top line + ambient glow.
 6. **Update `StaleBorderModifier`**: warning tier gets subtle amber halo; critical uses warning tint.
-7. **Retune `TimeOfDayAtmosphere`** to steel/amber whisper gradients.
+7. **Retune the time-of-day gradient module** (`TimeOfDayAtmosphere` was retired; the live equivalent is `AmbienceManager`) to steel/amber whisper gradients.
 8. Sweep UI for any hard-coded grays and swap to:
    - icons: `steel`
    - dividers: `divider` / `steelMuted`

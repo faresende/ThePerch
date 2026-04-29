@@ -150,11 +150,20 @@ function stripEmailHtml(body: string): string {
     .trim();
 }
 
-/// Strip control characters before embedding user content in the LLM
-/// prompt — these can be used to break out of delimiters or smuggle
-/// invisible directives.
+// Pre-compiled at module-load time so regex parse errors surface
+// immediately rather than mid-prompt. RegExp constructor + escape
+// strings avoid the prior bug where the source-literal regex collapsed
+// to "[ -]" (just space + hyphen) because the editor/pre-commit
+// stripped the unicode chars between them.
+const CONTROL_CHARS_RE = new RegExp("[\\u0000-\\u001F\\u007F-\\u009F]", "g");
+const ZERO_WIDTH_RE = new RegExp("[\\u200B-\\u200F\\u2028-\\u202F\\u2060-\\u206F\\uFEFF]", "g");
+
 function sanitizeForPrompt(s: string): string {
-  return s.replace(/[ -]/g, ' ');
+  // Strip C0/C1 control characters and zero-width / direction-control
+  // chars that an attacker could embed to break out of the <email_*>
+  // delimiters or smuggle invisible directives. Round 8 audit caught
+  // the prior regex was a no-op for control chars.
+  return s.replace(CONTROL_CHARS_RE, " ").replace(ZERO_WIDTH_RE, "");
 }
 
 function buildUserPrompt(subject: string, sender: string, body: string): string {

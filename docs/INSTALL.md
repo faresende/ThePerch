@@ -138,7 +138,7 @@ Pulls last 14 days. **Source-of-truth precedence: Oura > 8sleep.**
 
 Reverse-engineered. May break when 8sleep ships a new app. Used as the fallback when Oura is silent (ring off charger).
 
-Add `EIGHT_SLEEP_EMAIL` + `EIGHT_SLEEP_PASSWORD` to perch.env, then:
+Add `EIGHT_SLEEP_EMAIL` + `EIGHT_SLEEP_PASSWORD` to perch.env. The script also reads `EIGHT_SLEEP_CLIENT_ID` + `EIGHT_SLEEP_CLIENT_SECRET` (app-identifying values extracted from the official Pod app — see `scripts/.env.example` for the rationale and ToS caveats; multiple community projects ship the same constants). Then:
 
 ```bash
 python3 ~/.openclaw/workspace/scripts/health-integrations/eight_sleep_ingest.py

@@ -19,7 +19,6 @@
 		24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */; };
 		26D664A350F849EFA4561A4D /* ChecklistCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971F0C63ADEE4B6CA66AC58A /* ChecklistCardRenderer.swift */; };
 		2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C887520E395213A3CA8757C /* TravelViewModel.swift */; };
-		2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FD77E48492FF01406E3C35 /* TravelView.swift */; };
 		3361C7E9DD438E2E24354869 /* ETAChipText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 475C19D5C753E98B76EF220A /* ETAChipText.swift */; };
 		3429EDFA0796555E65E3D6B9 /* HubTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82518FC23E55607E3C495A66 /* HubTab.swift */; };
 		353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */; };
@@ -35,8 +34,6 @@
 		35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADAE2F5B270A00BAC8FE /* EventCard.swift */; };
 		35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543612F52411F00204F77 /* CardContainer.swift */; };
 		35F5437D2F52411F00204F77 /* ThePerchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5437A2F52411F00204F77 /* ThePerchApp.swift */; };
-		35F5437F2F52411F00204F77 /* AdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436C2F52411F00204F77 /* AdminView.swift */; };
-		35F543802F52411F00204F77 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436E2F52411F00204F77 /* CalendarView.swift */; };
 		35F543812F52411F00204F77 /* Record.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434F2F52411F00204F77 /* Record.swift */; };
 		35F543822F52411F00204F77 /* ChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543622F52411F00204F77 /* ChartCard.swift */; };
 		35F543832F52411F00204F77 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434E2F52411F00204F77 /* JSONValue.swift */; };
@@ -45,11 +42,9 @@
 		35F543862F52411F00204F77 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543492F52411F00204F77 /* AppConfig.swift */; };
 		35F543872F52411F00204F77 /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434C2F52411F00204F77 /* Agent.swift */; };
 		35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435E2F52411F00204F77 /* MainTabView.swift */; };
-		35F5438B2F52411F00204F77 /* HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543702F52411F00204F77 /* HealthView.swift */; };
 		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
 		35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436A2F52411F00204F77 /* WidgetRouter.swift */; };
 		35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543602F52411F00204F77 /* BookmarkCard.swift */; };
-		35F543922F52411F00204F77 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543712F52411F00204F77 /* HomeView.swift */; };
 		35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543632F52411F00204F77 /* ChecklistCard.swift */; };
 		35F543942F52411F00204F77 /* TokenUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543512F52411F00204F77 /* TokenUsage.swift */; };
 		35F543962F52411F00204F77 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543552F52411F00204F77 /* SupabaseService.swift */; };
@@ -147,7 +142,6 @@
 		NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */; };
 		NTRS0002NTRS0002NTRS0002 /* NutritionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */; };
 		NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */; };
-		NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */; };
 		ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */; };
 		ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */; };
 		ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */; };
@@ -250,10 +244,6 @@
 		35F543652F52411F00204F77 /* SingleValueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleValueCard.swift; sourceTree = "<group>"; };
 		35F543692F52411F00204F77 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 		35F5436A2F52411F00204F77 /* WidgetRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRouter.swift; sourceTree = "<group>"; };
-		35F5436C2F52411F00204F77 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
-		35F5436E2F52411F00204F77 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
-		35F543702F52411F00204F77 /* HealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthView.swift; sourceTree = "<group>"; };
-		35F543712F52411F00204F77 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
@@ -301,7 +291,6 @@
 		CLTD0001CLTD0001CLTD0001 /* CalendarTodayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTodayCard.swift; sourceTree = "<group>"; };
 		CLTM0001CLTM0001CLTM0001 /* CalendarTomorrowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTomorrowCard.swift; sourceTree = "<group>"; };
 		CRSH0001CRSH0001CRSH0001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
-		D2FD77E48492FF01406E3C35 /* TravelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelView.swift; sourceTree = "<group>"; };
 		D7B5796D884B19E3D3836448 /* DeliveryActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeliveryActivityAttributes.swift; path = PerchSharedKit/DeliveryActivityAttributes.swift; sourceTree = "<group>"; };
 		DAYCRD0001DAYCRD0001DAY /* DailyInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightCard.swift; sourceTree = "<group>"; };
 		DCOV0001DCOV0001DCOV0001 /* DeliveryCompletionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryCompletionOverlay.swift; sourceTree = "<group>"; };
@@ -344,7 +333,6 @@
 		NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionModels.swift; sourceTree = "<group>"; };
 		NTRS0001NTRS0001NTRS0001 /* NutritionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionService.swift; sourceTree = "<group>"; };
 		NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
-		NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCard.swift; sourceTree = "<group>"; };
 		ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModels.swift; sourceTree = "<group>"; };
 		ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersService.swift; sourceTree = "<group>"; };
@@ -604,15 +592,9 @@
 		35F543732F52411F00204F77 /* Sections */ = {
 			isa = PBXGroup;
 			children = (
-				35F5436C2F52411F00204F77 /* AdminView.swift */,
-				35F5436E2F52411F00204F77 /* CalendarView.swift */,
 				ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */,
-				35F543702F52411F00204F77 /* HealthView.swift */,
 				5A97D5C9B398A4F056EE72F9 /* OnboardingView.swift */,
-				NTVW0001NTVW0001NTVW0001 /* NutritionView.swift */,
 				9044DBB21E1F0721622DEDB5 /* WorkoutView.swift */,
-				D2FD77E48492FF01406E3C35 /* TravelView.swift */,
-				35F543712F52411F00204F77 /* HomeView.swift */,
 			);
 			path = Sections;
 			sourceTree = "<group>";
@@ -1101,8 +1083,6 @@
 				8DF8EA58A2892F80482D3ED0 /* WorkoutCard.swift in Sources */,
 				35F5437C2F52411F00204F77 /* CardContainer.swift in Sources */,
 				35F5437D2F52411F00204F77 /* ThePerchApp.swift in Sources */,
-				35F5437F2F52411F00204F77 /* AdminView.swift in Sources */,
-				35F543802F52411F00204F77 /* CalendarView.swift in Sources */,
 				35F543812F52411F00204F77 /* Record.swift in Sources */,
 				35F543822F52411F00204F77 /* ChartCard.swift in Sources */,
 				35F543832F52411F00204F77 /* JSONValue.swift in Sources */,
@@ -1126,10 +1106,8 @@
 				35E8ADB12F5B270A00BAC8FE /* EventCard.swift in Sources */,
 				ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */,
 				35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */,
-				35F5438B2F52411F00204F77 /* HealthView.swift in Sources */,
 				5352396BCF0978F488158DDC /* OnboardingView.swift in Sources */,
 				36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */,
-				2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */,
 				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
 				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,
 				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
@@ -1138,7 +1116,6 @@
 				2A799937177D5B2ECFAC361A /* TravelViewModel.swift in Sources */,
 				35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */,
 				PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */,
-				35F543922F52411F00204F77 /* HomeView.swift in Sources */,
 				35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */,
 				35F543942F52411F00204F77 /* TokenUsage.swift in Sources */,
 				NTRS0002NTRS0002NTRS0002 /* NutritionService.swift in Sources */,
@@ -1187,7 +1164,6 @@
 				MLCD0002MLCD0002MLCD0002 /* MealCard.swift in Sources */,
 				MLIS0002MLIS0002MLIS0002 /* MealInputSheet.swift in Sources */,
 				NTHC0002NTHC0002NTHC0002 /* NutritionHomeCard.swift in Sources */,
-				NTVW0002NTVW0002NTVW0002 /* NutritionView.swift in Sources */,
 				DLHC0002DLHC0002DLHC0002 /* DeliveryHomeCard.swift in Sources */,
 				90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */,
 				MDCD0002MDCD0002MDCD0002 /* MedicationsCard.swift in Sources */,

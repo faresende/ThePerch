@@ -36,7 +36,7 @@ Agent / Manual Input / Browser Extension
             ┌──────────────────────┐
             │   The Perch iOS App  │
             │                      │
-            │  BookmarksViewModel  │
+            │  HubTab.BookmarksSectionContent  │
             │    ├─ BookmarkCard   │
             │    ├─ Search/filter  │
             │    └─ Tag browser    │
@@ -50,7 +50,7 @@ Agent / Manual Input / Browser Extension
 1. **Input**: Bookmarks are saved via agent commands ("bookmark this: https://..."), direct API calls, or within the app.
 2. **Enrichment**: The agent can fetch the page title and favicon automatically if only a URL is provided.
 3. **Persistence**: Records use `category=bookmarks`, `type=bookmark`, with all metadata in the `data` JSON field.
-4. **Display**: The iOS `BookmarksViewModel` supports full-text search on titles and filtering by tags. `BookmarkCard` renders individual links with favicon preview.
+4. **Display**: The iOS `HubTab.BookmarksSectionContent` supports full-text search on titles and filtering by tags. `BookmarkCard` renders individual links with favicon preview.
 
 ## Data Schema
 
@@ -133,7 +133,7 @@ When saving a bookmark from a bare URL:
 
 ### Debugging
 
-- **Bookmarks not appearing**: Verify `category=bookmarks` and `type=bookmark` are set correctly. The iOS `BookmarksViewModel` filters on both fields.
+- **Bookmarks not appearing**: Verify `category=bookmarks` and `type=bookmark` are set correctly. The iOS `HubTab.BookmarksSectionContent` filters on both fields.
 - **Search not finding a bookmark**: The search is text-based on `title` and `data->>'title'`. Tag-based filtering uses the `tags` array in the `data` JSON.
 - **Missing favicon**: Favicons are optional. If the URL doesn't serve a favicon, the app shows a fallback icon based on the first letter of the domain.
 

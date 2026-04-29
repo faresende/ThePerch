@@ -16,6 +16,21 @@ DECLARE
   demo_user_id uuid := '00000000-0000-0000-0000-000000000000';  -- the demo user's auth.users UUID
 BEGIN
 
+-- Fresh-install guard: the rest of this seed inserts rows whose FKs
+-- reference auth.users(id) (via public.users.id and public.agents.owner_id).
+-- If the placeholder UUID hasn't been replaced with a real auth user
+-- yet, every INSERT below will fail with a 23503 FK violation. Skip
+-- with a NOTICE so SETUP-FOR-AGENTS Step 3 is the natural next step
+-- rather than a stack trace.
+IF NOT EXISTS (
+  SELECT 1 FROM auth.users WHERE id = demo_user_id
+) THEN
+  RAISE NOTICE
+    '002_seed_demo: demo_user_id (%) not present in auth.users yet — skipping seed. Create the auth user first (SETUP-FOR-AGENTS.md Step 3), edit this file with the real UUID, and re-run.',
+    demo_user_id;
+  RETURN;
+END IF;
+
 -- ============================================================================
 -- 1. INSERT THE DEMO USER'S USER PROFILE
 -- ============================================================================

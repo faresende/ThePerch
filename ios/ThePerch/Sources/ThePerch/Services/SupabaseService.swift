@@ -486,13 +486,15 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 
     /// Handles incoming auth callback URLs, including password recovery links.
     ///
-    /// SECURITY: A naive `client.auth.session(from: url)` accepts ANY
+    /// SECURITY: a naive `client.auth.session(from: url)` accepts ANY
     /// `theperch://x#access_token=…&refresh_token=…` URL — including
     /// one an attacker hands to the victim via Messages, a webview,
-    /// AirDrop, etc. — and writes those attacker tokens into the SDK
-    /// session. Result: session fixation (victim's app is now signed
-    /// in as the attacker; subsequent writes go to the attacker's
-    /// account). Round 7 audit caught this.
+    /// AirDrop, or a server-controlled value (`bookmark.url`,
+    /// `shipment.tracking_url`, etc.) that re-enters the app via
+    /// `UIApplication.shared.open` / SwiftUI `Link`. Round 7 audit
+    /// caught the deeplink path; Round 8 audit caught the re-entry
+    /// path (a user can edit `tracking_url` to a `theperch://` URL,
+    /// or a malicious Karakeep instance can return one).
     ///
     /// Defenses applied here:
     ///   1. Reject any URL whose scheme isn't `theperch` (defensive —
@@ -503,9 +505,12 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     ///   3. Require `type` = "recovery" or "signup" or "magiclink" or
     ///      "invite" — the four types Supabase Auth emits. Reject any
     ///      other value (including missing).
-    ///   4. Refuse to clobber an EXISTING signed-in session unless the
-    ///      URL is a recovery flow. A user already signed in shouldn't
-    ///      be silently re-authed by a deeplink they didn't initiate.
+    ///   4. Refuse to clobber an EXISTING signed-in session — even on
+    ///      recovery. The legitimate password-recovery flow starts
+    ///      from "Forgot password?" on the AUTH screen (signed-out);
+    ///      a recovery link arriving while already signed in is by
+    ///      definition not user-initiated. The user is told to sign
+    ///      out first, then re-tap the link.
     @discardableResult
     func handleIncomingAuthURL(_ url: URL) async throws -> Bool {
         // 1. Scheme + host + path validation.
@@ -525,10 +530,22 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         }
         let isRecovery = type == "recovery"
 
-        // 3. Don't silently re-auth if already signed in (unless this
-        // is a deliberate password-recovery handoff).
-        if self.isAuthenticated && !isRecovery {
-            throw SupabaseServiceError.authError("Already signed in — sign out first to switch accounts")
+        // 3. Refuse to re-auth if already signed in. ALL flows. The
+        // R7 carve-out for recovery turned out to be a session-
+        // fixation lever (Round 8 audit) — a server-controlled
+        // `tracking_url` / `bookmark.url` pointing at
+        // `theperch://auth/callback?type=recovery#access_token=…`
+        // would silently sign the victim out of their own account
+        // and into the attacker's recovery session. The legitimate
+        // flow always starts from "Forgot password?" on AuthView
+        // (signed-out state) — recovery links arriving while
+        // already signed in are by definition not user-initiated.
+        if self.isAuthenticated {
+            throw SupabaseServiceError.authError(
+                isRecovery
+                    ? "To reset your password, sign out first, then tap the recovery link."
+                    : "Already signed in — sign out first to switch accounts."
+            )
         }
 
         if isRecovery {

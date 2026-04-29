@@ -81,6 +81,35 @@ CREATE INDEX IF NOT EXISTS idx_records_created_at ON public.records(created_at D
 CREATE INDEX IF NOT EXISTS idx_records_user_id_pinned ON public.records(user_id, pinned) WHERE pinned = true;
 
 -- ============================================================================
+-- 4b. DASHBOARD_RECORDS TABLE (canonical card feed for the iOS app)
+-- ============================================================================
+-- `dashboard_records` superseded `records` early in the project's life
+-- but the schema migration that introduced it never landed in the
+-- committed history. Production has the table from a manual creation;
+-- a fresh install needs it before any later migration touches it
+-- (security_hardening, dashboard_records_indexes, realtime_publication_fix,
+-- more_fk_indexes all reference public.dashboard_records).
+
+CREATE TABLE IF NOT EXISTS public.dashboard_records (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id      TEXT NOT NULL,
+  user_id       UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  type          TEXT NOT NULL,
+  category      TEXT NOT NULL,
+  title         TEXT NOT NULL,
+  data          JSONB NOT NULL DEFAULT '{}'::jsonb,
+  display_hint  TEXT NOT NULL DEFAULT 'card',
+  annotations   JSONB,
+  pinned        BOOLEAN DEFAULT false,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  expires_at    TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS dashboard_records_user_created_idx
+  ON public.dashboard_records (user_id, created_at DESC);
+
+-- ============================================================================
 -- 5. TOKEN_USAGE TABLE
 -- ============================================================================
 

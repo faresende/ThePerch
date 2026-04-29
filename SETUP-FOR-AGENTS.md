@@ -144,12 +144,38 @@ export OPENAI_API_KEY=
 export WITHINGS_CLIENT_ID=
 export WITHINGS_CLIENT_SECRET=
 
-# 8sleep — only needed if you have an 8sleep mattress (Step 9)
+# 8sleep — only needed if you have an 8sleep mattress (Step 9).
+# The two CLIENT_* values are app-identifying constants extracted
+# from the official Pod app — multiple community projects ship the
+# same. See scripts/.env.example for rationale + ToS caveats.
 export EIGHT_SLEEP_EMAIL=
 export EIGHT_SLEEP_PASSWORD=
+export EIGHT_SLEEP_CLIENT_ID=
+export EIGHT_SLEEP_CLIENT_SECRET=
+
+# Oura — primary sleep source (Step 8). Generate at
+# https://cloud.ouraring.com/personal-access-tokens
+export OURA_PERSONAL_TOKEN=
 
 # 17track — only needed for shipment ETAs (Step 10)
 export SEVENTEEN_TRACK_API_KEY=
+
+# InBody H30 watcher — override default ~/Documents/InBody dir (Step 11)
+export INBODY_WATCH_DIR=
+
+# Telegram bot for post-wake briefings — optional. Account name
+# defaults to "biochecha" for back-compat with the maintainer's
+# openclaw config; override via PERCH_TELEGRAM_ACCOUNT.
+export PERCH_TELEGRAM_ACCOUNT=
+export PERCH_TELEGRAM_BOT_TOKEN=
+export PERCH_TELEGRAM_CHAT_ID=
+
+# TestFlight deploy (deploy-testflight.sh) — only the maintainer needs
+# these on their dev machine. APPLE_KEY_ID is the 10-char alphanumeric
+# key id; APPLE_ISSUER is a UUID.
+export APPLE_KEY_ID=
+export APPLE_ISSUER=
+export APPLE_KEY_PATH=
 EOF
 
 chmod 600 ~/.openclaw/secrets/perch.env
