@@ -209,9 +209,15 @@ struct RecordDetailView: View {
             )
         }
 
-        // Tracking link
+        // Tracking link.
+        // R13 audit (HIGH H-1): switched from SwiftUI `Link(destination:)`
+        // (which calls UIApplication.shared.open under the hood with no
+        // scheme allowlist) to a Button + ExternalURLOpener. delivery
+        // tracking URL is server-controlled.
         if let urlString = delivery.trackingUrl, let url = URL(string: urlString) {
-            Link(destination: url) {
+            Button {
+                ExternalURLOpener.openExternal(url)
+            } label: {
                 HStack {
                     Image(systemName: "safari")
                         .font(PerchTheme.Font.body)
@@ -438,9 +444,16 @@ struct RecordDetailView: View {
             }
         }
 
-        // Open in Safari button
+        // Open in Safari button.
+        // R13 audit (HIGH H-1): bookmark URLs come from Karakeep — an
+        // external trust boundary. SwiftUI `Link` honors any registered
+        // URL scheme (shortcuts://, mailto:, tel:, ...). Route through
+        // ExternalURLOpener which allowlists http/https only. This is
+        // exactly the bookmark threat the helper's doc-comment cites.
         if let url = URL(string: bookmark.url) {
-            Link(destination: url) {
+            Button {
+                ExternalURLOpener.openExternal(url)
+            } label: {
                 HStack {
                     Image(systemName: "safari")
                         .font(PerchTheme.Font.body)

@@ -617,14 +617,24 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             // can take ~30s per channel to time out. With two channels,
             // signOut would freeze the UI for ~60s. Sign-out is a
             // security action; it must succeed even with no network.
-            // After timeout the websocket gets GC'd anyway when
-            // `client.auth.signOut()` invalidates the session.
+            //
+            // Round 13 nuance (M-1): `group.cancelAll()` cancels the
+            // OUTER tasks but the underlying `removeChannel` is a
+            // synchronous-from-the-SDK's-perspective network operation
+            // — it doesn't poll `Task.isCancelled` mid-flight. So when
+            // the timeout wins the unsubscribe task is orphaned, not
+            // truly cancelled: it keeps running until the server acks
+            // (or the websocket dies on auth invalidation, whichever
+            // comes first). That's the intended trade-off — local
+            // sign-out completes immediately, channel teardown is
+            // best-effort. R13 also parallelized the two removeChannel
+            // awaits inside `unsubscribeAll` (was sequential) so both
+            // share the 2s window.
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { [weak self] in await self?.unsubscribeAll() }
                 group.addTask {
                     try? await Task.sleep(nanoseconds: 2_000_000_000)
                 }
-                // Whichever finishes first wins; we cancel the rest.
                 _ = await group.next()
                 group.cancelAll()
             }
@@ -1180,14 +1190,27 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         for task in agentsTasks { task.cancel() }
         agentsTasks.removeAll()
 
-        if let channel = recordsChannel {
-            await client.realtimeV2.removeChannel(channel)
-            recordsChannel = nil
+        // Round 13 fix (M-1): parallelize the two removeChannel awaits
+        // via two `Task { @MainActor }` children so both share the
+        // signOut timeout window. Sequential awaits gave channel A the
+        // full 2s budget and left channel B with whatever was left
+        // (often <100ms on 3G, so signOut killed B's leave ack).
+        // `async let` would create nonisolated child contexts that
+        // can't access MainActor-bound `recordsChannel`/`agentsChannel`
+        // — Task { @MainActor } stays on the main actor and lets the
+        // SDK's await suspend without serializing the two calls.
+        let recordsTask = Task { @MainActor [weak self] in
+            guard let self, let channel = self.recordsChannel else { return }
+            await self.client.realtimeV2.removeChannel(channel)
+            self.recordsChannel = nil
         }
-        if let channel = agentsChannel {
-            await client.realtimeV2.removeChannel(channel)
-            agentsChannel = nil
+        let agentsTask = Task { @MainActor [weak self] in
+            guard let self, let channel = self.agentsChannel else { return }
+            await self.client.realtimeV2.removeChannel(channel)
+            self.agentsChannel = nil
         }
+        _ = await recordsTask.value
+        _ = await agentsTask.value
 #if DEBUG
         print("[SupabaseService] Unsubscribed from all realtime channels")
 #endif

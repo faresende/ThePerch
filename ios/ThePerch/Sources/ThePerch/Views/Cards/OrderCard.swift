@@ -3,7 +3,11 @@ import SwiftUI
 struct OrderCard: View {
     @Environment(\.perchPalette) private var palette
 
-    @Environment(\.openURL) private var openURL
+    // R13 audit (HIGH H-1): dropped @Environment(\.openURL). The
+    // shipment tracking URL is server-controlled (PostgREST PATCHable
+    // via shipments_update_own); openURL doesn't restrict schemes, so
+    // a malicious user could rewrite their own row to `shortcuts://...`
+    // and self-trigger it on tap. ExternalURLOpener allowlists http(s).
 
     let model: OrderWithShipments
     /// Whether the items section is expanded. Owned by the parent
@@ -354,7 +358,7 @@ struct OrderCard: View {
         if let shipmentLine {
             if let trackingURL {
                 Button {
-                    openURL(trackingURL)
+                    ExternalURLOpener.openExternal(trackingURL)
                 } label: {
                     shipmentSummaryContent(shipmentLine: shipmentLine, isTrackable: true)
                 }

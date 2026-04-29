@@ -40,6 +40,24 @@ final class DashboardViewModel {
             // (~2N iterations + 2 String heap allocs per UPDATE).
             // A 30-message burst over 1000 records was 60K iterations
             // on MainActor in <1s. Caching halves that.
+            //
+            // Round 13 perf: if the caller already knows this is a real
+            // change (the realtime merger sets `_recordsScanHint` to
+            // the new record's updatedAt before mutating), skip the
+            // O(N) scan and update the cached fingerprint incrementally.
+            // For a 30-msg burst over 1000 records this drops 30 × N
+            // = 30K iterations to 30 single-step updates.
+            if let hint = _recordsScanHint {
+                _recordsScanHint = nil
+                let newCount = allRecords.count
+                let newMax = max(_recordsFingerprintCache.maxUpdated, hint)
+                if newCount != _recordsFingerprintCache.count
+                    || newMax != _recordsFingerprintCache.maxUpdated {
+                    _recordsFingerprintCache = (count: newCount, maxUpdated: newMax)
+                    rebuildFilteredArrays()
+                }
+                return
+            }
             let new = Self.recordsFingerprint(allRecords)
             if new != _recordsFingerprintCache {
                 _recordsFingerprintCache = new
@@ -51,6 +69,16 @@ final class DashboardViewModel {
     /// Memoized fingerprint of the current `allRecords`. Survives across
     /// didSet calls so we never re-iterate `oldValue`.
     private var _recordsFingerprintCache: (count: Int, maxUpdated: TimeInterval) = (0, 0)
+
+    /// Round 13: when set, the next `allRecords` mutation skips its full
+    /// fingerprint scan and instead updates the cached fingerprint
+    /// incrementally. The hint is the `updatedAt.timeIntervalSince1970`
+    /// of the record being inserted/updated. The realtime merger sets
+    /// this immediately before the mutation; the didSet observes it and
+    /// nil's it. Initial-load and debounced-refresh paths leave it nil
+    /// and the full O(N) scan still runs there (cheap because those
+    /// paths fire 1–2× per session).
+    private var _recordsScanHint: TimeInterval?
 
     /// Cheap fingerprint for `allRecords` change detection.
     ///
@@ -872,6 +900,7 @@ final class DashboardViewModel {
                 // message burst that meant 30+ sync decode passes on
                 // MainActor, defeating the purpose of the async helper).
                 Self.preDecodeRecordsAsync([record])
+                _recordsScanHint = record.updatedAt.timeIntervalSince1970
                 allRecords.insert(record, at: 0)
                 NotificationService.shared.handleRecordChange(record: record, action: .insert)
             } else {
@@ -890,6 +919,11 @@ final class DashboardViewModel {
                 // decode is ~50µs; cheap enough on MainActor and overwrites
                 // the prior cache entry under the same key.
                 Self.preDecodeRecords([record])
+                // Round 13 perf: tell the didSet to skip its O(N) scan
+                // and just update the cached max(updatedAt) with this
+                // record's stamp. Burst-bound iteration drops from
+                // O(burst × N) to O(burst).
+                _recordsScanHint = record.updatedAt.timeIntervalSince1970
                 allRecords[index] = record
                 NotificationService.shared.handleRecordChange(record: record, action: .update)
             } else {
@@ -897,6 +931,9 @@ final class DashboardViewModel {
             }
 
         case .delete:
+            // No hint: a delete shrinks the array — count change drives
+            // the rebuild, so let the full scan run. Cheap (deletes are
+            // single-record events; the scan after one removal is ~50µs).
             if let oldId = change.oldId {
                 allRecords.removeAll { $0.id == oldId }
             } else {

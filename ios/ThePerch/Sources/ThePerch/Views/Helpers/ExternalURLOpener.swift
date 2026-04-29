@@ -14,6 +14,18 @@ import UIKit
 /// All call sites that originally passed a server-derived URL must route
 /// through `openExternal(_:)`. Only `http` and `https` URLs are dispatched;
 /// anything else is silently dropped (with a `#if DEBUG` log).
+///
+/// Round 13 audit (HIGH H-1): the R12 sweep grepped for
+/// `UIApplication.shared.open` only and missed SwiftUI's `Link(destination:)`
+/// and `@Environment(\.openURL)`, both of which call the same underlying
+/// API and inherit the same scheme problem. All server-derived-URL sites
+/// using those APIs were also routed through here. The rule is now:
+/// **any URL string that originated from Supabase, an LLM, an email
+/// classifier, Karakeep, or any other server source MUST be opened via
+/// ExternalURLOpener** — never via Link, openURL, or
+/// UIApplication.shared.open directly. Locally-constructed system-scheme
+/// URLs (`calshow:`, `maps:`) are exempt because they're not user-tappable
+/// in a way that lets server data choose the scheme.
 enum ExternalURLOpener {
     /// Opens `url` via `UIApplication.shared.open` only if its scheme is
     /// `http` or `https`. Returns `true` when the open was attempted,
