@@ -12,7 +12,11 @@ final class InsightFeedbackService {
 
     private let supabaseService: SupabaseService
 
-    init(supabaseService: SupabaseService = .shared) {
+    init() {
+        self.supabaseService = .shared
+    }
+
+    init(supabaseService: SupabaseService) {
         self.supabaseService = supabaseService
     }
 

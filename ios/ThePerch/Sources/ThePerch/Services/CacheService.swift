@@ -2,7 +2,13 @@ import Foundation
 
 /// Persists records and sections to local JSON files for offline access.
 /// Cache is keyed by user ID to support multi-user scenarios.
-final class CacheService: @unchecked Sendable {
+///
+/// `nonisolated` because the project's default actor-isolation is
+/// MainActor — but every CacheService method is explicitly off-main
+/// (we hop onto `ioQueue` for I/O, or call from `Task.detached`).
+/// Marking the class nonisolated avoids the per-method annotation and
+/// keeps Sendable-conformance for nested types like `CacheMetadata`.
+nonisolated final class CacheService: @unchecked Sendable {
     static let shared = CacheService()
 
     /// Maximum cache age in seconds (7 days).

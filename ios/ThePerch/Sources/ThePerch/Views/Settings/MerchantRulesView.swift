@@ -141,7 +141,7 @@ struct MerchantRulesView: View {
                 try await MerchantRulesService.shared.setEnabled(rule.id, enabled: newValue)
                 // Optimistic local update — avoids a full reload flicker.
                 if let i = rules.firstIndex(where: { $0.id == rule.id }) {
-                    var copy = rules[i]
+                    let copy = rules[i]
                     rules[i] = MerchantRule(
                         id: copy.id, userId: copy.userId,
                         matchKind: copy.matchKind, matchValue: copy.matchValue,
@@ -150,7 +150,6 @@ struct MerchantRulesView: View {
                         notes: copy.notes, enabled: newValue,
                         createdAt: copy.createdAt, updatedAt: Date()
                     )
-                    _ = copy  // silence unused warning when builder optimizes
                 }
             } catch {
                 loadError = error.localizedDescription

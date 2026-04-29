@@ -2,7 +2,11 @@ import Foundation
 
 /// A flexible JSON value enum that handles arbitrary JSON structures.
 /// Supports null, bool, int, double, string, array, and object types.
-enum JSONValue: Equatable, Codable, Sendable {
+///
+/// `nonisolated` so its Codable + Equatable conformances are usable
+/// from the off-main `JSONValueDecoder` predecode path. JSONValue is
+/// a value type with no shared state, so it's safe outside MainActor.
+nonisolated enum JSONValue: Equatable, Codable, Sendable {
     case null
     case bool(Bool)
     case int(Int)

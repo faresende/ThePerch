@@ -231,7 +231,12 @@ struct Record: Identifiable, Codable, Equatable, Sendable {
 
 /// Caches decoded JSON payloads keyed by record ID + type name.
 /// Avoids re-decoding the same record data on every view render.
-final class DecodingCache {
+///
+/// `nonisolated` because the project's default actor-isolation is
+/// MainActor — but `Record.decodeData` is intentionally callable
+/// off-main from `Task.detached`. NSCache is documented thread-safe
+/// by Foundation, so the underlying mutation is fine outside MainActor.
+nonisolated final class DecodingCache: @unchecked Sendable {
     static let shared = DecodingCache()
 
     private let cache = NSCache<NSString, AnyObject>()
@@ -268,7 +273,13 @@ extension Record {
     /// Attempts to decode the record's flexible JSON `data` field into a specific typed struct.
     /// Uses JSONValueDecoder to walk the JSONValue enum tree directly (no encode→Data round-trip).
     /// Results are cached by record ID + type to avoid redundant decoding.
-    func decodeData<T: Decodable>(as type: T.Type) -> T? {
+    ///
+    /// `nonisolated` because the project's default actor-isolation is
+    /// MainActor — but `preDecodeRecords` runs this off-main from a
+    /// `Task.detached` to keep the UI thread free. Record values are
+    /// Sendable, JSONValueDecoder is pure, and DecodingCache wraps a
+    /// thread-safe NSCache, so it's safe outside MainActor.
+    nonisolated func decodeData<T: Decodable>(as type: T.Type) -> T? {
         // Check cache first
         if let cached: T = DecodingCache.shared.get(id, as: type) {
             return cached

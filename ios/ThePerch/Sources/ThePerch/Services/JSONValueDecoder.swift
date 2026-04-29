@@ -3,7 +3,11 @@ import Foundation
 /// Decodes `Decodable` types directly from a `JSONValue` enum tree,
 /// skipping the JSONEncoder → Data → JSONDecoder round-trip.
 /// ~2x faster per-decode vs the encode/decode path.
-enum JSONValueDecoder {
+///
+/// `nonisolated` so it can run from `Task.detached` (off-main predecode
+/// path) without crossing actor isolation. The decoder is pure: input
+/// is a Sendable JSONValue, output is `T?` where T is Decodable.
+nonisolated enum JSONValueDecoder {
 
     /// Decodes a `Decodable` type from a `JSONValue`.
     static func decode<T: Decodable>(_ type: T.Type, from value: JSONValue) -> T? {
@@ -14,7 +18,7 @@ enum JSONValueDecoder {
 
 // MARK: - Internal Decoder
 
-private struct _JSONValueDecoder: Decoder {
+nonisolated private struct _JSONValueDecoder: Decoder {
     let value: JSONValue
     var codingPath: [CodingKey] = []
     var userInfo: [CodingUserInfoKey: Any] = [:]
@@ -42,7 +46,7 @@ private struct _JSONValueDecoder: Decoder {
 
 // MARK: - Keyed Container
 
-private struct _KeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
+nonisolated private struct _KeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
     let dict: [String: JSONValue]
     var codingPath: [CodingKey]
     var allKeys: [Key] { dict.keys.compactMap { Key(stringValue: $0) } }
@@ -152,7 +156,7 @@ private struct _KeyedContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
 
 // MARK: - Unkeyed Container
 
-private struct _UnkeyedContainer: UnkeyedDecodingContainer {
+nonisolated private struct _UnkeyedContainer: UnkeyedDecodingContainer {
     let array: [JSONValue]
     var codingPath: [CodingKey]
     var count: Int? { array.count }
@@ -223,7 +227,7 @@ private struct _UnkeyedContainer: UnkeyedDecodingContainer {
 
 // MARK: - Single Value Container
 
-private struct _SingleValueContainer: SingleValueDecodingContainer {
+nonisolated private struct _SingleValueContainer: SingleValueDecodingContainer {
     let value: JSONValue
     var codingPath: [CodingKey]
 
@@ -250,7 +254,7 @@ private struct _SingleValueContainer: SingleValueDecodingContainer {
 
 // MARK: - JSONValue Conversion Helpers
 
-private extension JSONValue {
+nonisolated private extension JSONValue {
     func toBool(_ path: [CodingKey]) throws -> Bool {
         if case .bool(let v) = self { return v }
         throw DecodingError.typeMismatch(Bool.self, .init(codingPath: path, debugDescription: "Expected Bool, got \(self)"))
@@ -283,14 +287,14 @@ private extension JSONValue {
 // MARK: - Special Type Handling (Date, URL, etc.)
 
 /// ISO8601 formatter matching the existing JSONDecoder's .iso8601 strategy.
-private let iso8601Formatter: ISO8601DateFormatter = {
+nonisolated(unsafe) private let iso8601Formatter: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return f
 }()
 
 /// Fallback without fractional seconds.
-private let iso8601FormatterNoFrac: ISO8601DateFormatter = {
+nonisolated(unsafe) private let iso8601FormatterNoFrac: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime]
     return f
@@ -300,7 +304,7 @@ private let iso8601FormatterNoFrac: ISO8601DateFormatter = {
 /// ("2026-04-24T00:00:00"). Some producers (e.g. the Oura pipeline
 /// writing sleep_duration midnight stamps) do this. We treat those as
 /// local-time wall clocks rather than dropping the whole record.
-private let iso8601FormatterNaive: DateFormatter = {
+nonisolated private let iso8601FormatterNaive: DateFormatter = {
     let f = DateFormatter()
     f.calendar = Calendar(identifier: .iso8601)
     f.locale = Locale(identifier: "en_US_POSIX")
@@ -311,7 +315,7 @@ private let iso8601FormatterNaive: DateFormatter = {
 
 /// Decodes a value, handling special types (Date, URL, Data, Decimal) that don't
 /// natively decode from JSONValue, then falling back to the standard Decoder protocol.
-private func decodeValue<T: Decodable>(_ type: T.Type, from value: JSONValue, codingPath: [CodingKey]) throws -> T {
+nonisolated private func decodeValue<T: Decodable>(_ type: T.Type, from value: JSONValue, codingPath: [CodingKey]) throws -> T {
     // Handle optionals: if the value is null, try to decode nil
     if value == .null {
         // For Optional types, return nil through the decoder

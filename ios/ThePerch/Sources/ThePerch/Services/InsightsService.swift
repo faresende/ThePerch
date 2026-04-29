@@ -1,6 +1,36 @@
 import Foundation
 import Supabase
 
+// MARK: - File-scope formatters
+//
+// Insight rows mix two date shapes — full ISO 8601 with offset (for
+// `timestamptz` columns) and bare `YYYY-MM-DD` (for the `valid_for_date`
+// column). The default `.iso8601` strategy throws on the bare-date
+// form, which killed the whole insight decode silently and left the
+// Today tab stuck on the "BioChecha takes the morning…" empty state.
+//
+// `nonisolated(unsafe)` because Foundation's date formatters are
+// thread-safe per Apple but not Sendable — and `dateDecodingStrategy =
+// .custom { ... }` is a `@Sendable` closure that needs to capture them.
+nonisolated(unsafe) private let insightISOFormatterFractional: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+}()
+nonisolated(unsafe) private let insightISOFormatterPlain: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime]
+    return f
+}()
+nonisolated private let insightDateOnlyFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.calendar = Calendar(identifier: .iso8601)
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(secondsFromGMT: 0)
+    f.dateFormat = "yyyy-MM-dd"
+    return f
+}()
+
 /// Service for reading agent-generated insights from `public.insights`.
 /// Writes happen server-side (via the Python BioChecha agent + others);
 /// iOS is read-only for now. Surfaces a couple of focused queries the
@@ -12,31 +42,12 @@ final class InsightsService {
     private let supabaseService: SupabaseService
     private let decoder: JSONDecoder = {
         let dec = JSONDecoder()
-        // Insight rows mix two date shapes:
-        //   - timestamptz columns (generated_at, shown_at, etc.) →
-        //     PostgREST returns ISO 8601 with time + offset.
-        //   - `date` column (valid_for_date) → PostgREST returns
-        //     bare "YYYY-MM-DD".
-        // The .iso8601 strategy throws on the bare-date form, which
-        // killed the whole insight decode silently and left the
-        // Today tab stuck on the "BioChecha takes the morning…"
-        // empty state. Custom strategy: try ISO 8601 first, fall
-        // back to "yyyy-MM-dd" for the date-only column.
-        let isoFmt = ISO8601DateFormatter()
-        isoFmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let isoFmtNoFrac = ISO8601DateFormatter()
-        isoFmtNoFrac.formatOptions = [.withInternetDateTime]
-        let dateOnly = DateFormatter()
-        dateOnly.calendar = Calendar(identifier: .iso8601)
-        dateOnly.locale = Locale(identifier: "en_US_POSIX")
-        dateOnly.timeZone = TimeZone(secondsFromGMT: 0)
-        dateOnly.dateFormat = "yyyy-MM-dd"
         dec.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let raw = try container.decode(String.self)
-            if let d = isoFmt.date(from: raw) { return d }
-            if let d = isoFmtNoFrac.date(from: raw) { return d }
-            if let d = dateOnly.date(from: raw) { return d }
+            if let d = insightISOFormatterFractional.date(from: raw) { return d }
+            if let d = insightISOFormatterPlain.date(from: raw) { return d }
+            if let d = insightDateOnlyFormatter.date(from: raw) { return d }
             throw DecodingError.dataCorruptedError(
                 in: container,
                 debugDescription: "Unrecognized date format: \(raw)"

@@ -27,7 +27,11 @@ final class MerchantRulesService {
     private var cachedAt: Date?
     private let cacheTTL: TimeInterval = 30  // seconds
 
-    init(supabaseService: SupabaseService = .shared) {
+    init() {
+        self.supabaseService = .shared
+    }
+
+    init(supabaseService: SupabaseService) {
         self.supabaseService = supabaseService
     }
 

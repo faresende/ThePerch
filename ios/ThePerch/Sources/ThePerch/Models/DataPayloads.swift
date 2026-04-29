@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Measurement Data
 
 /// Structured data for a measurement record.
-struct MeasurementData: Codable, Sendable {
+nonisolated struct MeasurementData: Codable, Sendable {
     let metric: String
     let value: Double
     let unit: String
@@ -26,7 +26,7 @@ struct MeasurementData: Codable, Sendable {
 // MARK: - Macros Data
 
 /// Structured data for a daily macronutrient record with targets.
-struct MacrosData: Codable, Sendable {
+nonisolated struct MacrosData: Codable, Sendable {
     let protein: Double
     let proteinTarget: Double?
     let carbs: Double
@@ -57,7 +57,7 @@ struct MacrosData: Codable, Sendable {
 // MARK: - Cron Job Data
 
 /// Structured data for a scheduled cron job (for admin dashboard).
-struct CronJobData: Codable, Sendable {
+nonisolated struct CronJobData: Codable, Sendable {
     let name: String
     let schedule: String
     let model: String?
@@ -75,7 +75,7 @@ struct CronJobData: Codable, Sendable {
 // MARK: - Gateway Status Data
 
 /// Structured data for the OpenClaw gateway status.
-struct GatewayStatusData: Codable, Sendable {
+nonisolated struct GatewayStatusData: Codable, Sendable {
     let isRunning: Bool
     let activeModels: [ActiveModel]?
     let activeSessionCount: Int?
@@ -104,7 +104,7 @@ struct ActiveModel: Codable, Sendable {
 // MARK: - Delivery Data
 
 /// Structured data for a delivery record.
-struct DeliveryData: Codable, Equatable, Sendable {
+nonisolated struct DeliveryData: Codable, Equatable, Sendable {
     let orderId: String
     let carrier: String
     let trackingNumber: String
@@ -125,7 +125,7 @@ struct DeliveryData: Codable, Equatable, Sendable {
 }
 
 /// A single item in a delivery.
-struct DeliveryItem: Codable, Equatable, Sendable {
+nonisolated struct DeliveryItem: Codable, Equatable, Sendable {
     let name: String
     let quantity: Int
     let description: String?
@@ -134,7 +134,7 @@ struct DeliveryItem: Codable, Equatable, Sendable {
 // MARK: - Event Data
 
 /// Structured data for an event record.
-struct EventData: Codable, Sendable {
+nonisolated struct EventData: Codable, Sendable {
     let title: String
     let start: Date
     let end: Date
@@ -153,7 +153,7 @@ struct EventData: Codable, Sendable {
 // MARK: - Status Data
 
 /// Structured data for a status record.
-struct StatusData: Codable, Sendable {
+nonisolated struct StatusData: Codable, Sendable {
     let state: String
     let uptimeHours: Double?
     let lastActivity: Date?
@@ -170,7 +170,7 @@ struct StatusData: Codable, Sendable {
 // MARK: - Reminder Data
 
 /// Structured data for a reminder record.
-struct ReminderData: Codable, Sendable {
+nonisolated struct ReminderData: Codable, Sendable {
     let title: String
     let due: Date
     let list: String?
@@ -181,7 +181,7 @@ struct ReminderData: Codable, Sendable {
 // MARK: - Cost Summary Data
 
 /// Structured data for a cost summary record.
-struct CostSummaryData: Codable, Sendable {
+nonisolated struct CostSummaryData: Codable, Sendable {
     let period: String
     let date: Date
     let totalCostUsd: Double
@@ -198,7 +198,7 @@ struct CostSummaryData: Codable, Sendable {
 // MARK: - Text Note Data
 
 /// Structured data for a text note record.
-struct TextNoteData: Codable, Sendable {
+nonisolated struct TextNoteData: Codable, Sendable {
     let body: String
     let tags: [String]?
 }
@@ -206,7 +206,7 @@ struct TextNoteData: Codable, Sendable {
 // MARK: - Checklist Data
 
 /// Structured data for a checklist record.
-struct ChecklistData: Codable, Sendable {
+nonisolated struct ChecklistData: Codable, Sendable {
     let items: [ChecklistItem]
 }
 
@@ -235,7 +235,7 @@ enum BookmarkSource: String, Codable, Sendable {
 /// Structured data for a bookmark record.
 /// Bookmarks are submitted from the iOS Share Extension or Safari Extension,
 /// then asynchronously enriched by the Archie agent on OpenClaw.
-struct BookmarkData: Codable, Sendable {
+nonisolated struct BookmarkData: Codable, Sendable {
     let url: String
     let originalTitle: String?
     let enrichedTitle: String?
@@ -277,7 +277,7 @@ struct BookmarkData: Codable, Sendable {
 // MARK: - Medication Checklist Data
 
 /// Structured data for a daily medication checklist record.
-struct MedicationChecklistData: Codable, Sendable {
+nonisolated struct MedicationChecklistData: Codable, Sendable {
     let items: [MedicationItem]
 
     struct MedicationItem: Codable, Identifiable, Sendable {
@@ -296,7 +296,7 @@ struct MedicationChecklistData: Codable, Sendable {
 // MARK: - Weather Data
 
 /// Structured data for a weather forecast record.
-struct WeatherData: Codable, Sendable {
+nonisolated struct WeatherData: Codable, Sendable {
     let temperature: Double
     let feelsLike: Double?
     let conditions: String
@@ -315,7 +315,7 @@ struct WeatherData: Codable, Sendable {
 // MARK: - Email Summary Data
 
 /// Structured data for an important emails summary record.
-struct EmailSummaryData: Codable, Sendable {
+nonisolated struct EmailSummaryData: Codable, Sendable {
     let emails: [EmailItem]
     let totalUnread: Int?
 
@@ -344,7 +344,7 @@ struct EmailSummaryData: Codable, Sendable {
 // MARK: - Admin Command Data
 
 /// Structured data for a remote admin command (restart gateway, doctor fix, etc.).
-struct AdminCommandData: Codable, Sendable {
+nonisolated struct AdminCommandData: Codable, Sendable {
     let command: AdminCommand
     let status: CommandStatus
     let result: CommandResult?
@@ -402,7 +402,7 @@ struct AdminCommandData: Codable, Sendable {
 // MARK: - Trip Data
 
 /// Structured data for a trip record (the container for a journey).
-struct TripData: Codable, Sendable {
+nonisolated struct TripData: Codable, Sendable {
     let destination: String
     let destinationCountry: String?
     let origin: String?
@@ -479,7 +479,7 @@ struct TripData: Codable, Sendable {
 // MARK: - Itinerary Data
 
 /// Structured data for a travel itinerary segment (flight, hotel, train, etc.).
-struct ItineraryData: Codable, Sendable {
+nonisolated struct ItineraryData: Codable, Sendable {
     let tripId: String
     let segmentType: String      // flight, hotel, train, car_rental, restaurant
     let carrier: String?
@@ -534,7 +534,7 @@ struct ItineraryData: Codable, Sendable {
 // MARK: - Travel Alert Data
 
 /// Structured data for a travel disruption alert.
-struct TravelAlertData: Codable, Sendable {
+nonisolated struct TravelAlertData: Codable, Sendable {
     let tripId: String
     let alertType: String        // gate_change, delay, cancellation, disruption
     let severity: String         // info, warning, critical
@@ -558,7 +558,7 @@ struct TravelAlertData: Codable, Sendable {
 // MARK: - Weather Forecast Data
 
 /// Structured data for a destination weather forecast.
-struct WeatherForecastData: Codable, Sendable {
+nonisolated struct WeatherForecastData: Codable, Sendable {
     let tripId: String
     let destination: String
     let date: String             // yyyy-MM-dd
@@ -598,7 +598,7 @@ struct WeatherForecastData: Codable, Sendable {
 // MARK: - Travel Task Data
 
 /// Structured data for a trip-linked to-do item.
-struct TravelTaskData: Codable, Sendable {
+nonisolated struct TravelTaskData: Codable, Sendable {
     let tripId: String
     let task: String
     let date: String?          // yyyy-MM-dd, nil = pre-trip
@@ -650,7 +650,7 @@ struct OverloadStatus: Codable {
 }
 
 /// Structured data for a workout session record.
-struct WorkoutSessionData: Codable {
+nonisolated struct WorkoutSessionData: Codable {
     let sessionNumber: Int?
     let date: String
     let muscleGroups: [String]

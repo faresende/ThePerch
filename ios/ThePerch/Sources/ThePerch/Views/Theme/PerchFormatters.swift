@@ -2,7 +2,13 @@ import Foundation
 
 /// Centralized static formatters to avoid recreating them on every render.
 /// DateFormatter and NumberFormatter are expensive to create — these are reused.
-enum PerchFormatters {
+///
+/// `nonisolated` because the project's default actor-isolation is
+/// MainActor — but these formatters are accessed from off-main paths
+/// (decode helpers in `DataPayloads.swift`, `Task.detached` predecode,
+/// etc.). Foundation's date/number formatters are documented
+/// thread-safe.
+nonisolated enum PerchFormatters {
     // MARK: - Date Formatters
 
     /// "Mar 8" — short month + day
