@@ -57,9 +57,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Pre-public scrub: deleted classifier-test fixtures (carried real Fastmail PII + live Shopify customer-auth tokens), removed maintainer-personal screenshots from `docs/Images/` and `docs/screenshots/`, scrubbed personal prescription identifiers from design docs, rewrote `SECURITY.md` to match actual prevention tooling, locked `prune_agent_runs` to `service_role` only
 - Templated `ops/launchd/com.theperch.inbody-watcher.plist` (was hardcoded user paths) + `scripts/install-inbody-watcher.sh` renderer
 - App Store Connect API identifiers (`KEY_ID`, `ISSUER`) now read from env in `deploy-testflight.sh`
-- `002_seed_demo.sql` ships generic agent IDs (main / health / calendar / orders / legal) and a Demo User display name
+- `002_seed_demo.sql` ships canonical agent IDs (`main`, `biochecha`, `calendario`, `entregas`, `legal` — kept as project-internal identifiers referenced throughout the iOS + Python code) with neutral user-visible display names (`Main`, `Health`, `Calendar`, `Orders`, `Legal`) and a `Demo User` display name on the seed user
 - DEBUG mock orders in `OrdersService.swift` swapped real-looking tracker numbers for synthetic placeholders
 - 13 byte-identical root-level docs (`DESIGN_REVIEW.md`, `PLAN.md`, `WORKLOG.md`, etc.) deleted; canonical copies remain in `docs/archive/`
+
+---
+
+## [Build 74] - 2026-04-29
+
+The latest tagged build before the public flip. Comprehensive
+pre-public hardening (security, perf, docs) ran across Rounds 1–6 in
+the Unreleased section above. The "Build 43" / "Build 42" entries
+below pre-date that work and document an earlier release lane that
+was never published as a Git tag (build/42 / build/43 were renumbered
+when the build pipeline switched to the current `CURRENT_PROJECT_VERSION`
+scheme — current value is 102).
 
 ---
 
@@ -121,6 +133,7 @@ _Pre-changelog. See git history for details._
 
 ---
 
-[Unreleased]: https://github.com/faresende/ThePerch/compare/build/43...HEAD
-[Build 43]: https://github.com/faresende/ThePerch/compare/build/42...build/43
-[Build 42]: https://github.com/faresende/ThePerch/releases/tag/build/42
+[Unreleased]: https://github.com/faresende/ThePerch/compare/build/74...HEAD
+[Build 74]: https://github.com/faresende/ThePerch/releases/tag/build/74
+[Build 43]: https://github.com/faresende/ThePerch/tree/main/CHANGELOG.md#build-43---2026-03-18
+[Build 42]: https://github.com/faresende/ThePerch/tree/main/CHANGELOG.md#build-42---2026-02-xx

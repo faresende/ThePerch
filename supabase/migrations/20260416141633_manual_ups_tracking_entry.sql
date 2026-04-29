@@ -1,8 +1,25 @@
--- Manual UPS tracking entry for Fábio
--- Adds a single order + shipment so the current Hub > Orders UI can display it.
--- Idempotent: upserts on (merchant, order_number) and (order_id, tracking_number).
+-- Historical: manual UPS tracking entry from before the orders-autopilot
+-- pipeline existed. Original purpose was to seed a single in-transit
+-- order so the maintainer's Hub > Orders UI had something to render
+-- pre-pipeline.
+--
+-- For fresh installs this would create a synthetic UPS order under a
+-- placeholder zero-UUID user that doesn't exist in `auth.users`. The
+-- guard below skips the insert unless that placeholder user actually
+-- exists — keeping the migration idempotent for the maintainer's
+-- existing database while turning it into a no-op everywhere else.
 
 BEGIN;
+
+DO $do$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = '00000000-0000-0000-0000-000000000000'::uuid
+  ) THEN
+    RAISE NOTICE 'manual_ups_tracking_entry: placeholder user not present, skipping';
+    RETURN;
+  END IF;
 
 WITH upserted_order AS (
   INSERT INTO public.orders (
@@ -79,7 +96,7 @@ SELECT
   'UPS',
   NULL,
   'in_transit',
-  'Added manually from Hermes using UPS tracking URL.',
+  'Added manually from a UPS tracking URL (pre-autopilot seed).',
   NOW(),
   NULL,
   ARRAY['hermes_manual_tracking_add'],
@@ -97,5 +114,7 @@ DO UPDATE SET
   source_email_ids = EXCLUDED.source_email_ids,
   confidence_score = GREATEST(COALESCE(public.shipments.confidence_score, 0), EXCLUDED.confidence_score),
   updated_at = NOW();
+END;
+$do$;
 
 COMMIT;

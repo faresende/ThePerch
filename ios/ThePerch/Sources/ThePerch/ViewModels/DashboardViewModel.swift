@@ -38,15 +38,28 @@ final class DashboardViewModel {
         }
     }
 
-    /// Cheap fingerprint for `allRecords` change detection. Picks up
-    /// every mutation pattern we care about — count change, latest
-    /// mutation, addition/removal at any position — without paying for
-    /// full-array equality.
+    /// Cheap fingerprint for `allRecords` change detection.
+    ///
+    /// The previous "first + last + count + last.updatedAt" form was a
+    /// false economy: realtime UPDATE-by-id mutates a mid-array entry
+    /// without changing count, first, or last — so the fingerprint
+    /// stayed identical and `rebuildFilteredArrays` skipped, leaving
+    /// the typed slices (healthRecords / calendarRecords / etc.) stale
+    /// vs. allRecords. Caught by Round 7 audit.
+    ///
+    /// The new form uses count + max(updatedAt) — the realtime path
+    /// always bumps `updated_at` server-side, so any UPDATE that
+    /// matters bumps the max. Iterating once over a 1000-record array
+    /// to find the max is ~50 µs (vs. 60–120 ms of full rebuild we'd
+    /// pay if we just dropped the dedup entirely). Cheap enough.
     private static func recordsFingerprint(_ rs: [Record]) -> String {
-        guard let last = rs.last else { return "0|" }
-        // include first to catch swap-style mutations.
-        let first = rs.first
-        return "\(rs.count)|\(first?.id.uuidString ?? "")|\(last.id.uuidString)|\(last.updatedAt.timeIntervalSince1970)"
+        if rs.isEmpty { return "0|0" }
+        var maxUpdated: TimeInterval = 0
+        for r in rs {
+            let t = r.updatedAt.timeIntervalSince1970
+            if t > maxUpdated { maxUpdated = t }
+        }
+        return "\(rs.count)|\(maxUpdated)"
     }
 
     // MARK: - Pre-filtered Record Arrays
@@ -809,8 +822,11 @@ final class DashboardViewModel {
         switch change.action {
         case .insert:
             if let record = change.record {
-                // Pre-decode the new record and insert at the front (newest first)
-                Self.preDecodeRecords([record])
+                // Pre-decode off-main via preDecodeRecordsAsync (was
+                // running synchronously via preDecodeRecords; for a 30+
+                // message burst that meant 30+ sync decode passes on
+                // MainActor, defeating the purpose of the async helper).
+                Self.preDecodeRecordsAsync([record])
                 allRecords.insert(record, at: 0)
                 NotificationService.shared.handleRecordChange(record: record, action: .insert)
             } else {
@@ -820,8 +836,7 @@ final class DashboardViewModel {
         case .update:
             if let record = change.record,
                let index = allRecords.firstIndex(where: { $0.id == record.id }) {
-                // Pre-decode and replace in-place
-                Self.preDecodeRecords([record])
+                Self.preDecodeRecordsAsync([record])
                 allRecords[index] = record
                 NotificationService.shared.handleRecordChange(record: record, action: .update)
             } else {

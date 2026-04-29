@@ -45,6 +45,6 @@ _None._
 
 ## What this skill writes
 
-- Writes go to **records** with `category=bookmarks` and `type` in `bookmark`.
+- Writes go to **dashboard_records** with `category=bookmarks` and `type` in `bookmark`.
 
 Full contract: [`CONTRACT.md`](./CONTRACT.md).

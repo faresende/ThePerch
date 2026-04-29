@@ -45,6 +45,6 @@ Use `SKILL.md` as a prompt you give to any LLM via their tool-use API, and call 
 
 ## What this skill writes
 
-- Writes go to **records** with `category=health` and `type` in `health_summary`, `body_metrics`.
+- Writes go to **dashboard_records** with `category=health` and `type` in `health_summary`, `body_metrics`.
 
 Full contract: [`CONTRACT.md`](./CONTRACT.md).

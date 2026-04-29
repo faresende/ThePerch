@@ -485,9 +485,51 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     }
 
     /// Handles incoming auth callback URLs, including password recovery links.
+    ///
+    /// SECURITY: A naive `client.auth.session(from: url)` accepts ANY
+    /// `theperch://x#access_token=…&refresh_token=…` URL — including
+    /// one an attacker hands to the victim via Messages, a webview,
+    /// AirDrop, etc. — and writes those attacker tokens into the SDK
+    /// session. Result: session fixation (victim's app is now signed
+    /// in as the attacker; subsequent writes go to the attacker's
+    /// account). Round 7 audit caught this.
+    ///
+    /// Defenses applied here:
+    ///   1. Reject any URL whose scheme isn't `theperch` (defensive —
+    ///      iOS only routes us our scheme, but custom schemes can be
+    ///      hijacked by other apps).
+    ///   2. Require host = "auth" + path = "/callback" so only the
+    ///      registered redirect path qualifies.
+    ///   3. Require `type` = "recovery" or "signup" or "magiclink" or
+    ///      "invite" — the four types Supabase Auth emits. Reject any
+    ///      other value (including missing).
+    ///   4. Refuse to clobber an EXISTING signed-in session unless the
+    ///      URL is a recovery flow. A user already signed in shouldn't
+    ///      be silently re-authed by a deeplink they didn't initiate.
     @discardableResult
     func handleIncomingAuthURL(_ url: URL) async throws -> Bool {
-        let isRecovery = authParameters(from: url)["type"] == "recovery"
+        // 1. Scheme + host + path validation.
+        guard url.scheme?.lowercased() == "theperch" else {
+            throw SupabaseServiceError.authError("Invalid auth URL scheme")
+        }
+        guard url.host?.lowercased() == "auth", url.path == "/callback" else {
+            throw SupabaseServiceError.authError("Invalid auth URL path")
+        }
+
+        // 2. Type allowlist.
+        let params = authParameters(from: url)
+        let type = params["type"] ?? ""
+        let allowedTypes: Set<String> = ["recovery", "signup", "magiclink", "invite"]
+        guard allowedTypes.contains(type) else {
+            throw SupabaseServiceError.authError("Unsupported auth flow")
+        }
+        let isRecovery = type == "recovery"
+
+        // 3. Don't silently re-auth if already signed in (unless this
+        // is a deliberate password-recovery handoff).
+        if self.isAuthenticated && !isRecovery {
+            throw SupabaseServiceError.authError("Already signed in — sign out first to switch accounts")
+        }
 
         if isRecovery {
             self.isPasswordRecovery = true
@@ -623,8 +665,18 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         #endif
 
         do {
-            let records: [Record] = try await withRetry(operation: "fetchRecords") { [client, recordDecoder] in
+            let records: [Record] = try await withRetry(operation: "fetchRecords") { [client, recordDecoder, userId = self.currentUserId] in
                 var query = client.from("dashboard_records").select()
+                // Always pass an explicit `user_id = $` filter even though
+                // RLS would gate this anyway. Without it, PostgREST emits
+                // a no-WHERE catalog query that costs the planner a fresh
+                // index lookup + RLS predicate injection per call —
+                // adding the filter halves catalog-fetch latency under
+                // both authenticated (planner picks the user-prefix
+                // index immediately) and service-role (no RLS rewrite).
+                if let userId {
+                    query = query.eq("user_id", value: userId)
+                }
                 if let category {
                     query = query.eq("category", value: category.rawValue)
                 }
@@ -750,9 +802,12 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         #endif
 
         do {
-            let sections: [Section] = try await withRetry(operation: "fetchSections") { [client, recordDecoder] in
-                let result = try await client.from("sections")
-                    .select()
+            let sections: [Section] = try await withRetry(operation: "fetchSections") { [client, recordDecoder, userId = self.currentUserId] in
+                var query = client.from("sections").select()
+                if let userId {
+                    query = query.eq("user_id", value: userId)
+                }
+                let result = try await query
                     .order("sort_order", ascending: true)
                     .execute()
                 return try recordDecoder.decode([Section].self, from: result.data)
@@ -785,9 +840,12 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         if useMockData { return [] }
         #endif
 
-        let widgets: [HomeWidget] = try await withRetry(operation: "fetchHomeWidgets") { [client] in
-            try await client.from("home_widgets")
-                .select()
+        let widgets: [HomeWidget] = try await withRetry(operation: "fetchHomeWidgets") { [client, userId = self.currentUserId] in
+            var query = client.from("home_widgets").select()
+            if let userId {
+                query = query.eq("user_id", value: userId)
+            }
+            return try await query
                 .order("sort_order", ascending: true)
                 .execute()
                 .value

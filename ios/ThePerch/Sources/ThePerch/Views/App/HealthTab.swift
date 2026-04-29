@@ -180,7 +180,12 @@ struct HealthOverviewSegment: View {
     /// today's NutritionTargets (calories/macros) and the meals logged
     /// so far today.
     private var todayNutritionRow: (title: String, subtitle: String) {
-        let records = dashboardViewModel.healthRecords
+        // `dashboardViewModel.healthRecords` only collects `.health` and
+        // `.workouts` categories — nutrition records live under
+        // `.nutrition` and would silently come back empty here. Read
+        // from the full record set so meal totals + targets-from-meals
+        // resolve correctly.
+        let records = dashboardViewModel.allRecords
         let targets = NutritionTargets.resolved(for: .now, records: records)
 
         let cal = Calendar.current

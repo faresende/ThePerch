@@ -438,11 +438,19 @@ struct DeliveredOrdersSection: View {
         orders.firstIndex(where: { $0.id == order.id }) ?? 0
     }
 
+    /// Cached "MMMM yyyy" formatter — was allocated per call inside
+    /// each month-header render in PastOrdersSheet. With ~12 month
+    /// groups visible, that's 12 fresh DateFormatter instances per
+    /// sheet render.
+    private static let monthTitleFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = .autoupdatingCurrent
+        f.dateFormat = "MMMM yyyy"
+        return f
+    }()
+
     private func monthTitle(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = .autoupdatingCurrent
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: date)
+        Self.monthTitleFormatter.string(from: date)
     }
 
     private func monthHeader(for group: DeliveredMonthGroup) -> some View {

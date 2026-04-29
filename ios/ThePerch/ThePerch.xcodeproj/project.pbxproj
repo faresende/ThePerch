@@ -14,7 +14,6 @@
 		0E50A94D53915532514488F3 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2C66748185CBE6B7695DCE /* ShakeDetector.swift */; };
 		100A10707D468684093D41DF /* WeeklyVolumeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */; };
 		137B70EC203CFFD874359DBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03B91F417EA96A65024733B2 /* Foundation.framework */; };
-		1B755C70FCA165202C6C7A83 /* BookmarksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */; };
 		1C78119AA900E1C8B90682DF /* PerchQuickGlanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */; };
 		24C1850ACFD14218804CCF55 /* TextCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525629949349400A9FE8F436 /* TextCardRenderer.swift */; };
 		24E01E82C27855BE3C903E98 /* ThePerchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F87BB270D865F974F20E7C1D /* ThePerchWidgets.appex */; };
@@ -48,7 +47,6 @@
 		35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435E2F52411F00204F77 /* MainTabView.swift */; };
 		35F5438B2F52411F00204F77 /* HealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543702F52411F00204F77 /* HealthView.swift */; };
 		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
-		35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436D2F52411F00204F77 /* BookmarksView.swift */; };
 		35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436A2F52411F00204F77 /* WidgetRouter.swift */; };
 		35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543602F52411F00204F77 /* BookmarkCard.swift */; };
 		35F543922F52411F00204F77 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543712F52411F00204F77 /* HomeView.swift */; };
@@ -253,7 +251,6 @@
 		35F543692F52411F00204F77 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 		35F5436A2F52411F00204F77 /* WidgetRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRouter.swift; sourceTree = "<group>"; };
 		35F5436C2F52411F00204F77 /* AdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminView.swift; sourceTree = "<group>"; };
-		35F5436D2F52411F00204F77 /* BookmarksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarksView.swift; sourceTree = "<group>"; };
 		35F5436E2F52411F00204F77 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		35F543702F52411F00204F77 /* HealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthView.swift; sourceTree = "<group>"; };
 		35F543712F52411F00204F77 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -278,7 +275,6 @@
 		67B3A75B7A7E48B21926A1D3 /* SparklineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparklineView.swift; sourceTree = "<group>"; };
 		6D7EA07E407B07D203CB746D /* SwipeActionsContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SwipeActionsContainer.swift; path = Components/SwipeActionsContainer.swift; sourceTree = "<group>"; };
 		7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PerchSegmentedPicker.swift; sourceTree = "<group>"; };
-		7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookmarksViewModel.swift; sourceTree = "<group>"; };
 		74CD75691612F863C564CCFA /* MerchantRulesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MerchantRulesView.swift; sourceTree = "<group>"; };
 		77336DFC4F6F7E518760202A /* InsightFeedbackService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightFeedbackService.swift; sourceTree = "<group>"; };
 		7B0F37171FFD8E15DBBC9F84 /* SettingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsTab.swift; sourceTree = "<group>"; };
@@ -609,7 +605,6 @@
 			isa = PBXGroup;
 			children = (
 				35F5436C2F52411F00204F77 /* AdminView.swift */,
-				35F5436D2F52411F00204F77 /* BookmarksView.swift */,
 				35F5436E2F52411F00204F77 /* CalendarView.swift */,
 				ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */,
 				35F543702F52411F00204F77 /* HealthView.swift */,
@@ -813,7 +808,6 @@
 		95698937ECDAE3786035A499 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				7376DBACDD6D100513E1D06C /* BookmarksViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -1137,7 +1131,6 @@
 				36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */,
 				2CF0C0B59F40B034EA963EAD /* TravelView.swift in Sources */,
 				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
-				35F5438D2F52411F00204F77 /* BookmarksView.swift in Sources */,
 				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,
 				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
 				NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */,
@@ -1221,7 +1214,6 @@
 				3429EDFA0796555E65E3D6B9 /* HubTab.swift in Sources */,
 				7AA553DE4461A63E9734C58F /* SettingsTab.swift in Sources */,
 				734F347171D48F8BB737E546 /* KarakeepService.swift in Sources */,
-				1B755C70FCA165202C6C7A83 /* BookmarksViewModel.swift in Sources */,
 				F5445DCE2E590BC759DACA34 /* NewCardStyle.swift in Sources */,
 				4E65A462FA9DE4BE19EB9F06 /* SwipeActionsContainer.swift in Sources */,
 				3E300B906C36C47DA1B66E75 /* UndoCorrectionToast.swift in Sources */,

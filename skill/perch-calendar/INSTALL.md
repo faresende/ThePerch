@@ -45,6 +45,6 @@ _None required beyond what your runtime needs to reach Supabase._
 
 ## What this skill writes
 
-- Writes go to **records** with `category=calendar` and `type` in `event`.
+- Writes go to **dashboard_records** with `category=calendar` and `type` in `event`.
 
 Full contract: [`CONTRACT.md`](./CONTRACT.md).

@@ -45,6 +45,6 @@ _None._
 
 ## What this skill writes
 
-- Writes go to **records** with `category=workouts` and `type` in `workout_session`.
+- Writes go to **dashboard_records** with `category=workouts` and `type` in `workout_session`.
 
 Full contract: [`CONTRACT.md`](./CONTRACT.md).

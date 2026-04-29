@@ -103,15 +103,18 @@ Package tracking records. Linked to orders via `order_id`.
 
 ---
 
-### `profiles`
+### `users`
 
-User profiles. Auto-created on signup via trigger.
+User profile rows mirroring `auth.users`. The seed migration
+(`002_seed_demo.sql`) inserts the demo user; new installs add a row
+manually after creating the auth user (see SETUP-FOR-AGENTS.md
+Step 3).
 
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
-| `id` | UUID | NO | — | Primary key, references `auth.users(id)` |
-| `display_name` | TEXT | YES | — | User's display name |
-| `tier` | TEXT | NO | `'free'` | Subscription tier: `free`, `pro`, `team` |
+| `id` | UUID | NO | — | Primary key, matches `auth.users(id)` |
+| `display_name` | TEXT | YES | — | User's display name (drives the iOS greeting) |
+| `preferences` | JSONB | NO | `'{}'` | UI preferences (theme, language, timezone, etc.) |
 | `created_at` | TIMESTAMPTZ | NO | `now()` | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | NO | `now()` | Last update |
 
@@ -166,10 +169,9 @@ CREATE POLICY "Users can delete their own records"
 
 Trigger function that auto-updates `updated_at` on row modification. Applied to all tables with `updated_at` columns.
 
-### `handle_new_user()`
-
-Trigger on `auth.users` that auto-creates a `profiles` row on signup.
-
 ### `provision_new_user(p_user_id UUID)`
 
-Seeds default sections for a new user. Called from server-side after signup.
+Seeds default sections + agents for a new user. Called once after the
+auth user is created (see SETUP-FOR-AGENTS.md Step 3 — the manual
+INSERT into `public.users` is the typical entry point; this function
+is also reachable via service-role for batch provisioning).
