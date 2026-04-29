@@ -1,6 +1,6 @@
 -- 20260429910000_round13_alter_policies_to_authenticated.sql
 --
--- Round 13 audit (MEDIUM M-2): 33 RLS policies across 11 public tables
+-- Round 13 audit (MEDIUM M-2): 34 RLS policies across 11 public tables
 -- target role `{public}` instead of `{authenticated}`. `public` matches
 -- every role including anon. Today this is safe because R12 revoked
 -- anon's table grants AND `auth.uid()` is NULL for anon (so the USING

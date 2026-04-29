@@ -47,6 +47,18 @@ final class DashboardViewModel {
             // O(N) scan and update the cached fingerprint incrementally.
             // For a 30-msg burst over 1000 records this drops 30 × N
             // = 30K iterations to 30 single-step updates.
+            //
+            // Round 14 perf: the SCAN dedup (R9, R13) was only half the
+            // cost. `rebuildFilteredArrays()` itself is O(N) and was
+            // firing per-message during burst (30 rebuilds × 60–120ms
+            // each). Now: hint-driven didSet schedules a debounced
+            // rebuild instead of running it inline. Body reads of
+            // `allRecords` still see fresh values (Swift assignment is
+            // synchronous + @Observable broadcasts); typed slices
+            // (healthRecords, recordsBySlug, etc.) catch up after a
+            // 50ms quiet window. Initial-load and debounced-refresh
+            // paths still rebuild synchronously (no hint set →
+            // rebuilds run inline as before).
             if let hint = _recordsScanHint {
                 _recordsScanHint = nil
                 let newCount = allRecords.count
@@ -54,7 +66,7 @@ final class DashboardViewModel {
                 if newCount != _recordsFingerprintCache.count
                     || newMax != _recordsFingerprintCache.maxUpdated {
                     _recordsFingerprintCache = (count: newCount, maxUpdated: newMax)
-                    rebuildFilteredArrays()
+                    scheduleFilteredArraysRebuild()
                 }
                 return
             }
@@ -79,6 +91,30 @@ final class DashboardViewModel {
     /// and the full O(N) scan still runs there (cheap because those
     /// paths fire 1–2× per session).
     private var _recordsScanHint: TimeInterval?
+
+    /// Round 14: trailing-debounce coalescer for `rebuildFilteredArrays()`
+    /// on the realtime-burst path. Each hint-driven didSet calls
+    /// `scheduleFilteredArraysRebuild`; the rebuild fires after 50ms of
+    /// quiet (one rebuild per burst, not one per message). Cancelled +
+    /// re-scheduled on each new burst event.
+    private var _filteredRebuildTask: Task<Void, Never>?
+
+    /// Schedule a debounced rebuild of the typed-slice arrays. Body
+    /// reads of `allRecords` see fresh values immediately (the
+    /// assignment that triggered didSet is synchronous and observed);
+    /// the typed slices catch up after the quiet window. 50ms is the
+    /// realtime-burst tick window (mergeRealtimeChange typically
+    /// receives bursts in <30ms total) plus a small margin.
+    private func scheduleFilteredArraysRebuild() {
+        _filteredRebuildTask?.cancel()
+        _filteredRebuildTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                self?.rebuildFilteredArrays()
+            }
+        }
+    }
 
     /// Cheap fingerprint for `allRecords` change detection.
     ///
@@ -800,7 +836,17 @@ final class DashboardViewModel {
         let newPinnedState = !allRecords[index].pinned
         do {
             try await supabaseService.updateRecordPin(id: recordId, pinned: newPinnedState)
+            // Round 14 audit (HIGH F-1): in-place mutation of `pinned`
+            // doesn't change `updatedAt` (no realtime echo of the local
+            // optimistic write yet), so the fingerprint stays identical
+            // and didSet's `rebuildFilteredArrays()` is skipped. Net
+            // effect: typed slices (healthRecords, recordsBySlug, etc.)
+            // keep the stale `pinned` value until the next realtime
+            // UPDATE for that record arrives. Force the rebuild here.
+            // Pin toggle is rare (one tap → one rebuild) so the cost
+            // is negligible vs. the correctness win.
             allRecords[index].pinned = newPinnedState
+            rebuildFilteredArrays()
         } catch {
             #if DEBUG
             print("[DashboardVM] toggleRecordPin failed: \(error)")
