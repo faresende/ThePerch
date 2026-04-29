@@ -1,10 +1,12 @@
 import SwiftUI
+import Combine
 import Photos
 import PhotosUI
 import AVFoundation
 
 struct MainTabView: View {
     @Environment(\.perchPalette) private var palette
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(DashboardViewModel.self) var dashboardViewModel
 
     @State private var selectedTab: RootTab = Self.initialTab()
@@ -14,6 +16,15 @@ struct MainTabView: View {
     /// Shown briefly after Accept to confirm the capture was routed.
     /// Lives at the TabView level so it can overlay every tab.
     @State private var composeToastMessage: String?
+
+    /// Tracks the current time-of-day bracket, refreshed every 5 minutes
+    /// AND when the app foregrounds. Without this, SwiftUI never re-evaluates
+    /// `PerchTimeOfDay.current` after the wall clock crosses a bracket
+    /// boundary (e.g. noon, 5pm), so the greeting + hero stay frozen at
+    /// whatever they were when the body last rendered. 5-minute granularity
+    /// is enough for a value that only changes at hour boundaries.
+    @State private var timeOfDay: PerchTimeOfDay = .current
+    private let timeOfDayPulse = Timer.publish(every: 300, on: .main, in: .common).autoconnect()
 
     enum RootTab: String, Hashable {
         case today
@@ -58,7 +69,9 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        let timeOfDay = PerchTimeOfDay.current
+        // `timeOfDay` is @State + driven by timeOfDayPulse + scenePhase, so
+        // the greeting / hero / palette all refresh when the clock crosses
+        // a bracket boundary even with the app sitting open.
         let palette = PerchPalette.forTimeOfDay(timeOfDay)
 
         TabView(selection: $selectedTab) {
@@ -107,6 +120,22 @@ struct MainTabView: View {
             didHandleDebugLaunchRouting = true
             if Self.debugLaunchesSettings {
                 isShowingSettings = true
+            }
+        }
+        // Refresh time-of-day every 5 minutes while the app is open.
+        // Captures hour-boundary transitions (5/12/17/22) so the
+        // greeting + hero update without needing a tab switch or
+        // pull-to-refresh.
+        .onReceive(timeOfDayPulse) { _ in
+            let fresh = PerchTimeOfDay.current
+            if fresh != timeOfDay { timeOfDay = fresh }
+        }
+        // Foreground re-entry can land hours after backgrounding —
+        // refresh immediately rather than waiting for the next 5-min tick.
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                let fresh = PerchTimeOfDay.current
+                if fresh != timeOfDay { timeOfDay = fresh }
             }
         }
         // The previous "safety-net" task here would race the

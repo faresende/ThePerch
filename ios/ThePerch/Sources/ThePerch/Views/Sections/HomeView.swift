@@ -5,6 +5,7 @@ import SwiftUI
 /// Reads all records from DashboardViewModel (single-fetch architecture).
 struct HomeView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(\.perchTimeOfDay) private var timeOfDay
     @State private var viewModel = HomeViewModel()
     @State private var showSettings = false
     @State private var searchText = ""
@@ -277,12 +278,14 @@ struct HomeView: View {
     }
 
     private var greetingText: String {
-        let hour = Calendar.current.component(.hour, from: Date.now)
-        switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        case 17..<22: return "Good evening"
-        default: return "Good night"
+        // Drive off the env value (which MainTabView refreshes every 5 min)
+        // so this label updates with the rest of the time-of-day surfaces
+        // when the clock crosses a bracket boundary while the app is open.
+        switch timeOfDay {
+        case .sunrise: return "Good morning"
+        case .midday:  return "Good afternoon"
+        case .dusk:    return "Good evening"
+        case .night:   return "Good night"
         }
     }
 
