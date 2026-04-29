@@ -22,6 +22,9 @@ AuthKey_*.p8
 *.p12
 *.pem
 *.key
+*.cer
+*.mobileprovision
+*.provisionprofile
 id_rsa
 id_rsa.*
 id_ecdsa
@@ -95,3 +98,14 @@ skill/dashboard-sync/test/fixtures/rejections/*.json
 # ─── Personal screenshot drops — never commit user-state captures ─────────
 docs/Images/
 docs/screenshots/
+
+# ─── Local agent state (cron, logs, secrets) ──────────────────────────────
+# Never commit a real ~/.openclaw/cron/jobs.json — use ops/cron-jobs.example.json
+# as a starting template instead.
+.openclaw/
+~/.openclaw/
+
+# ─── Misc secrets noise ───────────────────────────────────────────────────
+*.secrets
+secrets.json
+secrets.json.*

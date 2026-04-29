@@ -65,11 +65,10 @@ final class BackgroundRefreshService {
                 let sections = try await service.fetchSections(forceRefresh: true)
                 cacheService.saveSections(sections, userId: userId)
 
-                // Fetch widgets (currently in-memory only; no disk cache API yet)
-                let widgets = try await service.fetchHomeWidgets(forceRefresh: true)
-
+                // home_widgets fetch removed in Round 4 — table is empty
+                // in production and no view consumes the array.
 #if DEBUG
-                print("[BGRefresh] Successfully refreshed \(records.count) records, \(sections.count) sections, \(widgets.count) widgets")
+                print("[BGRefresh] Successfully refreshed \(records.count) records, \(sections.count) sections")
 #endif
                 task.setTaskCompleted(success: true)
             } catch {

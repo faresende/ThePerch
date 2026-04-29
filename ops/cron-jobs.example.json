@@ -1,0 +1,131 @@
+{
+  "_comment": "ThePerch openclaw cron job template. Copy into ~/.openclaw/cron/jobs.json (merging with any existing jobs your install already has) and adjust paths/timezone. The 9 jobs below are the ones SETUP-FOR-AGENTS.md Step 13 enumerates. All use the lightContext + exec + zai/glm-5 + NO_REPLY pattern so the cron agent runs the script silently on success. Each `payload.message` invokes a wrapper script via `bash`; ship those wrappers under your openclaw workspace (e.g. ~/.openclaw/workspace/scripts/run_<name>.sh) — they should `set -a && source ~/.openclaw/secrets/perch.env && set +a && python3 ~/.openclaw/workspace/scripts/health-integrations/<script>.py`.",
+  "jobs": [
+    {
+      "name": "oura-ingest",
+      "description": "Pull Oura sleep + readiness; primary sleep source.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "*/30 * * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_oura_ingest.sh\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "8sleep-ingest",
+      "description": "Pull 8sleep sessions; fallback sleep source. Reverse-engineered, may break.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "*/30 * * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_eight_sleep_ingest.sh\n\nRules: same NO_REPLY pattern as oura-ingest.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "withings-ingest",
+      "description": "Pull Withings body composition; fallback to InBody.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "13 * * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_withings_ingest.sh\n\nRules: same NO_REPLY pattern.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "calendar-sync",
+      "description": "macOS Calendar.app → dashboard_records for opportunity insights.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "*/15 6-22 * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_calendar_sync.sh\n\nRules: same NO_REPLY pattern.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "biochecha-morning-insight",
+      "description": "Pre-wake forward-looking plan-of-day. Time-aware insight slot 1/4.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "3 7 * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_biochecha_dynamic_insight.sh morning\n\nRules: same NO_REPLY pattern.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "biochecha-midday-insight",
+      "description": "Anticipatory midday insight. Time-aware slot 2/4.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "5 12 * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_biochecha_dynamic_insight.sh midday\n\nRules: same NO_REPLY pattern.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "biochecha-afternoon-insight",
+      "description": "Gap-aware opportunity insight. Time-aware slot 3/4.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "7 15 * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_biochecha_dynamic_insight.sh afternoon\n\nRules: same NO_REPLY pattern.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "biochecha-evening-insight",
+      "description": "Recap insight. Time-aware slot 4/4.",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "9 20 * * *", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_biochecha_dynamic_insight.sh evening\n\nRules: same NO_REPLY pattern.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 300,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    },
+    {
+      "name": "agent-runs-prune",
+      "description": "Weekly retention prune of agent_runs (success rows older than 90d). Calls public.prune_agent_runs(90).",
+      "enabled": true,
+      "schedule": { "kind": "cron", "expr": "0 4 * * 0", "tz": "Europe/Lisbon" },
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Run exactly this command once and wait for it to complete:\n\nbash $HOME/.openclaw/workspace/scripts/run_prune_agent_runs.sh\n\nRules: same NO_REPLY pattern.",
+        "model": "zai/glm-5",
+        "timeoutSeconds": 60,
+        "lightContext": true,
+        "toolsAllow": ["exec"]
+      }
+    }
+  ]
+}

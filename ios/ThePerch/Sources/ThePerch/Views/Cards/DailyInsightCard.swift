@@ -68,7 +68,7 @@ struct DailyInsightCard: View {
                 .fill(palette.muted.opacity(0.3))
                 .frame(width: 6, height: 6)
 
-            Text("BioChecha takes the morning to read your data. Today's insight will land here.")
+            Text("The insight engine takes the morning to read your data. Today's insight will land here.")
                 .font(.system(size: 13, design: .serif).italic())
                 .foregroundStyle(palette.muted)
                 .lineSpacing(2)

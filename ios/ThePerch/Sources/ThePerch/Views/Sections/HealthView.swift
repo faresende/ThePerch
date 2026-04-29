@@ -102,7 +102,7 @@ struct HealthView: View {
                             .cardAppear(index: 0, appeared: cardsAppeared)
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         } else {
-                            placeholderCard(title: "Daily Calories", emoji: "🔥", hint: "Log food with Claudinho")
+                            placeholderCard(title: "Daily Calories", emoji: "🔥", hint: "Log food via the agent or share an InBody scan")
                         }
 
                         // Daily macros card
@@ -119,7 +119,7 @@ struct HealthView: View {
                             .cardAppear(index: 1, appeared: cardsAppeared)
                             .padding(.horizontal, PerchTheme.Spacing.large)
                         } else {
-                            placeholderCard(title: "Daily Macros", emoji: "🥩", hint: "Log food with Claudinho")
+                            placeholderCard(title: "Daily Macros", emoji: "🥩", hint: "Log food via the agent or share an InBody scan")
                         }
 
                         // One chart card per metric — tap to see full detail
@@ -275,13 +275,13 @@ struct HealthView: View {
     private func placeholderHint(for metricKey: String) -> String {
         switch metricKey {
         case "weight":
-            return "Sync Apple Health or log with Claudinho"
+            return "Sync Apple Health or log via the agent"
         case "skeletal_muscle", "body_fat_mass":
-            return "Share your InBody scan with Claudinho"
+            return "Share an InBody scan with the agent"
         case "sleep_duration", "deep_sleep", "lowest_sleep_hr", "avg_sleep_hrv":
-            return "Share your Oura data with Claudinho"
+            return "Share Oura data with the agent"
         default:
-            return "Ask Claudinho to log this metric"
+            return "Ask the agent to log this metric"
         }
     }
 

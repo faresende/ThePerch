@@ -113,8 +113,8 @@ form.addEventListener('submit', async (e) => {
       throw new Error('No bookmark ID returned');
     }
 
-    // Insert into records table
-    const recordResponse = await fetch(`${supabaseUrl}/rest/v1/records`, {
+    // Insert into dashboard_records table
+    const recordResponse = await fetch(`${supabaseUrl}/rest/v1/dashboard_records`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

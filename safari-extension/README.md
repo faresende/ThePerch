@@ -73,7 +73,7 @@ Eventually, you may want to convert this to a signed Safari App Extension for di
 
 ### "Failed to save bookmark" error
 - Check that your Supabase project is accessible and the `bookmarks` table exists
-- Verify your anon key has INSERT permissions on both `bookmarks` and `records` tables
+- Verify your anon key has INSERT permissions on both `bookmarks` and `dashboard_records` tables
 - Check browser console (Develop → JavaScript Console) for detailed error messages
 
 ### Settings not saving

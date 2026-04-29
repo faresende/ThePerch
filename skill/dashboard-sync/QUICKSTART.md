@@ -4,7 +4,7 @@
 
 ### 1. Install Dependencies
 ```bash
-cd /sessions/practical-amazing-tesla/mnt/ThePerch/skill/dashboard-sync
+cd ~/Developer/ThePerch/skill/dashboard-sync   # adjust to your clone path
 npm install
 ```
 

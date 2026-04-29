@@ -1043,17 +1043,38 @@ struct PerchPalette: Equatable, Sendable {
 
     /// Subordinate panel fill inside a card (e.g. Travel flight strip).
     /// One step closer to `bg` than `card`. Always opaque.
-    var cardDim: Color {
-        // Midday reference: #F5CECF. Computed from card/bg midpoint.
-        let m = Self.midpoint(self.card, self.bg, t: 0.35)
-        return m
-    }
+    /// Stored — used to be computed and allocated 2 UIColor objects per
+    /// access. Section/divider views read this dozens of times per
+    /// render; the allocation churn was visible in profiles. Initialized
+    /// in the custom init from card/bg via `Self.midpoint`.
+    let cardDim: Color
 
     /// Soft divider inside a card (row separator). Lighter than `line`.
-    var lineSoft: Color {
-        // Midday reference: #EABBBD. Midpoint of card and line.
-        let m = Self.midpoint(self.card, self.line, t: 0.6)
-        return m
+    /// Stored for the same reason as `cardDim`.
+    let lineSoft: Color
+
+    /// Custom init so the four `static let` palettes don't have to spell
+    /// out cardDim/lineSoft — they get derived from card/bg/line once
+    /// at module load.
+    init(
+        bg: Color, card: Color, chipBg: Color, line: Color,
+        ink: Color, muted: Color, faint: Color,
+        kinetic: Color, wellness: Color,
+        scrimDark: Color, error: Color
+    ) {
+        self.bg = bg
+        self.card = card
+        self.chipBg = chipBg
+        self.line = line
+        self.ink = ink
+        self.muted = muted
+        self.faint = faint
+        self.kinetic = kinetic
+        self.wellness = wellness
+        self.scrimDark = scrimDark
+        self.error = error
+        self.cardDim = Self.midpoint(card, bg, t: 0.35)
+        self.lineSoft = Self.midpoint(card, line, t: 0.6)
     }
 
     /// Positive delta (e.g. +22m, +4%). Moss green, ink-adjacent.

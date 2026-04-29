@@ -306,10 +306,15 @@ The orders skill will use it on next inbox scan.
 
 ## Step 13 — Cron jobs
 
-The Perch's data pipeline runs on cron. Open the user's openclaw cron file:
+The Perch's data pipeline runs on cron. A complete template ships at
+`ops/cron-jobs.example.json`. Copy it (merging with whatever already
+exists) into the openclaw cron file:
 
 ```bash
-$EDITOR ~/.openclaw/cron/jobs.json
+mkdir -p ~/.openclaw/cron
+# If you already have jobs.json, merge by hand. If not:
+cp ops/cron-jobs.example.json ~/.openclaw/cron/jobs.json
+$EDITOR ~/.openclaw/cron/jobs.json   # adjust paths + tz to your install
 ```
 
 The full set is **8 ingest + insight jobs + 1 retention job**. All use the

@@ -156,7 +156,7 @@ export interface OrderItemRecord {
  * Replace all items on an order with the new list. Used when re-running
  * the LLM extractor against a re-classified email — we delete-then-insert
  * rather than upsert because items don't have a stable identity (the
- * LLM might rename "Tasche Camera Bag" to "Hardgraft Tasche" between
+ * LLM might rename "Tasche Camera Bag" to "Demo Merchant Tasche" between
  * runs and we'd rather have one canonical list than two near-duplicates).
  *
  * No-op when `items` is empty (some emails are real orders with no
@@ -211,24 +211,50 @@ export async function getOrderItems(orderId: string): Promise<OrderItemRecord[]>
  * Upsert an order. Returns the order ID.
  */
 export async function upsertOrder(order: OrderRecord): Promise<{ id: string; isNew: boolean }> {
-  // Try to find existing order by normalized_merchant + order_number
-  let query = supabase
+  const now = new Date().toISOString();
+
+  // Fast path: order_number present → native PostgREST upsert keyed
+  // on the unique partial index `idx_orders_user_merchant_number_unique
+  // (user_id, normalized_merchant, order_number) WHERE order_number IS
+  // NOT NULL`. One round-trip; the index is the conflict target.
+  if (order.order_number) {
+    const row = {
+      ...order,
+      created_at: now,
+      updated_at: now,
+    };
+    const { data, error } = await supabase
+      .from('orders')
+      .upsert([row], {
+        onConflict: 'user_id,normalized_merchant,order_number',
+        ignoreDuplicates: false,
+      })
+      .select('id')
+      .single();
+    if (error) throw new Error(`Failed to upsert order: ${error.message}`);
+    // PostgREST doesn't tell us insert-vs-update; default to false (the
+    // safer assumption — caller logs "updated existing" rather than
+    // double-fire onboarding).
+    return { id: data.id, isNew: false };
+  }
+
+  // Slow path: order_number is null. The partial unique index doesn't
+  // cover this, so fall back to the legacy find-then-update-or-insert
+  // pattern with the null-stripping update logic. We don't want to
+  // clobber a good order_number from an earlier classification with a
+  // null from a sibling email that didn't expose one.
+  const { data: existing, error: findError } = await supabase
     .from('orders')
     .select('id')
     .eq('user_id', order.user_id)
-    .eq('normalized_merchant', order.normalized_merchant);
-
-  if (order.order_number) {
-    query = query.eq('order_number', order.order_number);
-  }
-
-  const { data: existing, error: findError } = await query.maybeSingle();
+    .eq('normalized_merchant', order.normalized_merchant)
+    .is('order_number', null)
+    .maybeSingle();
 
   if (findError) {
     throw new Error(`Failed to find existing order: ${findError.message}`);
   }
 
-  const now = new Date().toISOString();
   const baseRecord = {
     ...order,
     updated_at: now,
@@ -236,10 +262,8 @@ export async function upsertOrder(order: OrderRecord): Promise<{ id: string; isN
   };
 
   if (existing) {
-    // Update path: strip null/undefined fields so a re-classification with
-    // a missing value (e.g. order_number couldn't be re-extracted from a
-    // sibling email) doesn't clobber a perfectly good earlier value.
-    // Insert path keeps nulls — those are intentional empty fields.
+    // Strip null/undefined fields so a re-classification with a
+    // missing value doesn't clobber a perfectly good earlier value.
     const updateRecord: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(baseRecord)) {
       if (value !== null && value !== undefined) updateRecord[key] = value;
@@ -250,19 +274,18 @@ export async function upsertOrder(order: OrderRecord): Promise<{ id: string; isN
       .eq('id', existing.id)
       .select('id')
       .single();
-
     if (error) throw new Error(`Failed to update order: ${error.message}`);
     return { id: data.id, isNew: false };
-  } else {
-    const { data, error } = await supabase
-      .from('orders')
-      .insert([baseRecord])
-      .select('id')
-      .single();
-
-    if (error) throw new Error(`Failed to insert order: ${error.message}`);
-    return { id: data.id, isNew: true };
   }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .insert([baseRecord])
+    .select('id')
+    .single();
+
+  if (error) throw new Error(`Failed to insert order: ${error.message}`);
+  return { id: data.id, isNew: true };
 }
 
 /**
@@ -310,43 +333,32 @@ export async function updateOrderStatus(
 
 /**
  * Upsert a shipment. Returns the shipment ID.
+ *
+ * Single-RT native PostgREST upsert keyed on the unique
+ * `(order_id, tracking_number)` index. The previous "find by
+ * tracking_number alone" approach (Round 4) was both 2-RT and a soft
+ * cross-tenant bug: tracking numbers aren't globally unique per
+ * carrier, so we'd occasionally pick someone else's shipment.
+ *
+ * `isNew` is intentionally `undefined` — PostgREST doesn't return
+ * per-row insert-vs-update info, and adding a probe to populate it
+ * for log lines pulled the path back to 2-RT (defeating the upsert
+ * win). Callers that legitimately need the value should use raw SQL.
  */
 export async function upsertShipment(
   shipment: Omit<ShipmentRecord, 'id' | 'created_at' | 'updated_at'>,
-): Promise<{ id: string; isNew: boolean }> {
-  // Find existing by tracking number
-  const { data: existing, error: findError } = await supabase
-    .from('shipments')
-    .select('id')
-    .eq('tracking_number', shipment.tracking_number)
-    .maybeSingle();
-
-  if (findError) {
-    throw new Error(`Failed to find existing shipment: ${findError.message}`);
-  }
-
+): Promise<{ id: string; isNew?: boolean }> {
   const now = new Date().toISOString();
+  const row = { ...shipment, created_at: now, updated_at: now };
 
-  if (existing) {
-    const { data, error } = await supabase
-      .from('shipments')
-      .update({ ...shipment, updated_at: now })
-      .eq('id', existing.id)
-      .select('id')
-      .single();
+  const { data, error } = await supabase
+    .from('shipments')
+    .upsert([row], { onConflict: 'order_id,tracking_number', ignoreDuplicates: false })
+    .select('id')
+    .single();
 
-    if (error) throw new Error(`Failed to update shipment: ${error.message}`);
-    return { id: data.id, isNew: false };
-  } else {
-    const { data, error } = await supabase
-      .from('shipments')
-      .insert([{ ...shipment, created_at: now, updated_at: now }])
-      .select('id')
-      .single();
-
-    if (error) throw new Error(`Failed to insert shipment: ${error.message}`);
-    return { id: data.id, isNew: true };
-  }
+  if (error) throw new Error(`Failed to upsert shipment: ${error.message}`);
+  return { id: data.id };
 }
 
 /**
@@ -492,19 +504,34 @@ export function deriveOrderStatusFromShipments(
 }
 
 /**
- * Reconcile order + shipment state: link shipments to orders, create review items for orphans.
+ * Reconcile order + shipment state: link shipments to orders, create
+ * review items for orphans.
+ *
+ * Single-query JOIN replaces the previous N+1 (one getShipmentsForOrder
+ * call per order — 51 round-trips with 50 orders). PostgREST embeds
+ * shipments via the FK, so we get all orders + their shipment counts
+ * in one fetch.
  */
 export async function reconcileOrderShipment(
   userId: string,
 ): Promise<{ linked: number; orphans: number }> {
-  // Find all orders with no shipments
-  const orders = await getOrders(userId);
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, merchant_name, order_number, status, shipments(id)')
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(`Failed to load orders+shipments for reconcile: ${error.message}`);
+  }
+
+  const orders = data ?? [];
   let orphans = 0;
 
   for (const order of orders) {
-    const shipments = await getShipmentsForOrder(order.id!);
-    if (shipments.length === 0 && order.status !== 'delivered' && order.status !== 'cancelled') {
-      // Order has no shipments — create review item
+    const shipmentCount = Array.isArray((order as { shipments?: unknown[] }).shipments)
+      ? ((order as { shipments: unknown[] }).shipments).length
+      : 0;
+    if (shipmentCount === 0 && order.status !== 'delivered' && order.status !== 'cancelled') {
       await createReviewItem({
         user_id: userId,
         type: 'order_no_shipment',

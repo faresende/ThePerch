@@ -1,6 +1,6 @@
 # The Perch
 
-A personal life dashboard for iOS. The kind that knows what your sleep was like last night, that the package from Body & Fit is arriving Tuesday, and that you should probably eat something with protein in it today. It's powered by a fleet of small agents that write structured data into Supabase, and an iOS app that reads it out and renders it in a tone that doesn't sound like a fitness watch.
+A personal life dashboard for iOS. The kind that knows what your sleep was like last night, that the package you ordered is arriving Tuesday, and that you should probably eat something with protein in it today. It's powered by a fleet of small agents that write structured data into Supabase, and an iOS app that reads it out and renders it in a tone that doesn't sound like a fitness watch.
 
 Built for one user. Yours, hopefully, not mine.
 

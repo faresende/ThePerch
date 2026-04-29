@@ -1,7 +1,7 @@
 /**
  * tracking-candidates.ts
  *
- * Phase 1.5 — Body & Fit fix: replace first-match-wins tracking-number
+ * Phase 1.5 — Demo Outdoors fix: replace first-match-wins tracking-number
  * extraction with priority-rank-wins. The old `extractTrackingNumber()`
  * returned whatever pattern matched first in the body; for emails that
  * contain BOTH a carrier-authoritative URL (e.g. dhl.com/track/...) AND

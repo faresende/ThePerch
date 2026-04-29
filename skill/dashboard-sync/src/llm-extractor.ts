@@ -90,7 +90,7 @@ Rules:
 Examples (input → expected JSON output):
 
 EXAMPLE 1 — real online order confirmation (DemoOutdoors, Dutch):
-From: DemoOutdoors Customer Service <noreply@bodyandfit.com>
+From: DemoOutdoors Customer Service <noreply@demo-outdoors.com>
 Subject: Your DemoOutdoors order is confirmed!
 Body: Hi Alex, thanks for your order BF-DEMO-0001.
 1× Whey Protein Isolate Vanilla 2.5kg — €54.99

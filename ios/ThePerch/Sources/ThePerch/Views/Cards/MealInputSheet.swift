@@ -26,7 +26,7 @@ struct MealInputSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
-                    Text("Tell Claudinho what you ate or attach a meal photo for analysis.")
+                    Text("Tell the agent what you ate or attach a meal photo for analysis.")
                         .font(PerchTheme.Font.body)
                         .foregroundColor(PerchTheme.textSecondary)
 

@@ -444,7 +444,7 @@ function analyzeSignals(text: string, senderEmail: string): EmailSignals {
     'demo-merchant': 'Demo Merchant',
     'jacquesmariemage': 'Jacques Marie Mage',
     'vulkit': 'Vulkit',
-    'bodyandfit': 'DemoOutdoors',
+    'demo-outdoors': 'DemoOutdoors',
     'matadorequipment': 'Matador',
     'matadorup': 'Matador',
     'vollebak': 'Vollebak',
@@ -831,7 +831,7 @@ export function cleanDisplayName(name: string): string | null {
  * Pretty-print a domain stem into a plausible merchant name when no
  * better source is available. Heuristic — not always right, but better
  * than the bare lowercase domain.
- *   "bodyandfit" -> "Demo Outdoors"
+ *   "demo-outdoors" -> "Demo Outdoors"
  *   "mrporter"   -> "MR PORTER" (special-cased common pattern)
  *   "apple"      -> "Apple"
  *   "jacquesmariemage" -> "Jacquesmariemage" (untouched — too dense)
@@ -923,7 +923,7 @@ const KNOWN_MERCHANTS: Record<string, string> = {
   'demo-merchant': 'Demo Merchant',
   'jacquesmariemage': 'Jacques Marie Mage',
   'vulkit': 'Vulkit',
-  'bodyandfit': 'DemoOutdoors',
+  'demo-outdoors': 'DemoOutdoors',
   'matadorequipment': 'Matador',
   'matadorup': 'Matador',
   'vollebak': 'Vollebak',

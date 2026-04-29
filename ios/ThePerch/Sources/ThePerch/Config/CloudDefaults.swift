@@ -24,9 +24,13 @@ import Foundation
 /// Most users are expected to bring their own Supabase project.
 enum CloudDefaults {
 
-    /// ThePerch Cloud Supabase project URL. Not a secret — visible in
-    /// any network trace. Safe to commit.
-    static let defaultManagedCloudURL = "https://ulmerwkvcczgjcxdhfuo.supabase.co"
+    /// ThePerch Cloud Supabase project URL. Empty by default to match
+    /// the empty anon key below — the cloud tier is unconfigured for
+    /// public forks. If you stand up your own managed-cloud tier,
+    /// paste your project URL here alongside the anon key. Project
+    /// URLs aren't secrets (they're visible in any network trace) so
+    /// committing the value is fine.
+    static let defaultManagedCloudURL = ""
 
     /// ThePerch Cloud publishable / anon key. Empty by default. Paste
     /// the real key here if you want to ship a public cloud tier — then
@@ -37,9 +41,9 @@ enum CloudDefaults {
     /// by RLS policies on the database side.
     static let defaultManagedCloudAnonKey = ""
 
-    /// True when a real key has been pasted above. Used by AppConfig to
-    /// decide whether the managed cloud tier is actually available.
+    /// True when both URL and anon key are populated. Used by AppConfig
+    /// to decide whether the managed cloud tier is actually available.
     static var isManagedCloudConfigured: Bool {
-        !defaultManagedCloudAnonKey.isEmpty
+        !defaultManagedCloudURL.isEmpty && !defaultManagedCloudAnonKey.isEmpty
     }
 }

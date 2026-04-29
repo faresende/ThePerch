@@ -1,7 +1,7 @@
 /**
  * quoted-prior-order.ts
  *
- * Topfoams-bug fix (2026-04-27): a customer-satisfaction reply ("How
+ * Demo Foams-bug fix (2026-04-27): a customer-satisfaction reply ("How
  * are you enjoying your foam mattress?") was being parsed as a NEW
  * order because the body quoted the original purchase confirmation
  * verbatim, including "Order #12345". Tier 1 + Tier 2 both saw the

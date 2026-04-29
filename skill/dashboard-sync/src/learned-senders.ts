@@ -44,7 +44,7 @@ export interface LearnedSenderMatch {
 
 /**
  * Derive the lowercase domain stem from a sender email.
- *   "Orders@HardGraft.com"  → "hardgraft"
+ *   "Orders@DemoMerchant.com"  → "demo-merchant"
  *   "store+abc@t.shopifyemail.com" → "shopifyemail"
  *   ""                       → null
  */

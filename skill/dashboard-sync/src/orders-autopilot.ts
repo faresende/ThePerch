@@ -202,7 +202,7 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
       }
     }
 
-    // Phase-1 short-circuit: detect Topfoams-style replies that quote a
+    // Phase-1 short-circuit: detect Demo Foams-style replies that quote a
     // prior order. Runs BEFORE the classifier because tier1+LLM both
     // see the quoted "Order #X" as a strong purchase signal and would
     // create a duplicate. We need to bail out before they fire.
@@ -396,7 +396,7 @@ async function handlePurchaseConfirmation(
 
   // Tier 4 change: always call the LLM on every purchase confirmation,
   // primarily to extract per-line ITEMS so the iOS card can render an
-  // expanded detail view ("1× Hardgraft Tasche bag · 1× leather strap").
+  // expanded detail view ("1× Demo Merchant Tasche bag · 1× leather strap").
   // The LLM also opportunistically recovers merchant / order_number /
   // total when the regex extractors missed them. Merchant resolution
   // from the `learnedSender` / `known` paths is still locked below — we
@@ -618,8 +618,8 @@ async function handleShippingNotification(
   // Resolve merchant for the shipment-to-order link.
   //
   // For non-carrier senders, the sender's display-name / domain stem is
-  // a reliable merchant signal — a Hardgraft shipping email comes from
-  // hardgraft.com and we want merchant = "Hardgraft".
+  // a reliable merchant signal — a Demo Merchant shipping email comes from
+  // demo-merchant.com and we want merchant = "Demo Merchant".
   //
   // For carrier senders (Correos, DHL, UPS, …), the sender IS the
   // carrier — useless for matching. We try TWO things in order:
@@ -820,7 +820,7 @@ async function findSourceMerchantFromTracking(
     if (senderIsCarrier(c.fromEmail)) continue;
 
     // 1. Try the alphanum-normalized known-list match against the
-    //    sender's email + display name. Catches "Hardgraft", "Body&Fit",
+    //    sender's email + display name. Catches "Demo Merchant", "DemoOutdoors",
     //    "Matador" etc. — the merchants we already curate.
     const senderJoined = `${c.fromEmail} ${c.fromName}`;
     const known = inferMerchantNameFromBody(senderJoined);
