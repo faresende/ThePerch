@@ -138,6 +138,70 @@ struct HealthOverviewSegment: View {
         return "\(f.string(from: weekAgo)) – \(f.string(from: now))"
     }
 
+    /// "Updated\n5:42 am" — derived from the freshest record we have.
+    /// Returns "—" if no records loaded yet.
+    private var lastUpdatedAside: String {
+        guard let latest = dashboardViewModel.healthRecords.map(\.updatedAt).max() else {
+            return "Updated\n—"
+        }
+        return "Updated\n\(PerchFormatters.healthFreshness.string(from: latest))"
+    }
+
+    /// Most recent workout session, if any.
+    private var latestWorkout: WorkoutSessionData? {
+        dashboardViewModel.healthRecords
+            .filter { $0.type == .workoutSession }
+            .compactMap { $0.asWorkoutSession() }
+            .max { ($0.dateParsed ?? .distantPast) < ($1.dateParsed ?? .distantPast) }
+    }
+
+    /// Title + subtitle for the Today card's workout row, derived from
+    /// the most recent logged session. Falls back to a "no sessions"
+    /// state until the user has any history.
+    private var todayWorkoutRow: (title: String, subtitle: String) {
+        guard let session = latestWorkout else {
+            return ("No sessions yet", "Log your first workout")
+        }
+        let muscleLabel = session.muscleGroups.map { $0.capitalized }.joined(separator: " + ")
+        let title: String = {
+            if let num = session.sessionNumber {
+                return "\(muscleLabel) · Session \(num)"
+            }
+            return muscleLabel.isEmpty ? "Workout session" : muscleLabel
+        }()
+        let when = session.dateParsed?.relativeTime ?? "recent"
+        if let dur = session.durationMin {
+            return (title, "\(when) · \(dur) min")
+        }
+        return (title, when)
+    }
+
+    /// Title + subtitle for the Today card's nutrition row, derived from
+    /// today's NutritionTargets (calories/macros) and the meals logged
+    /// so far today.
+    private var todayNutritionRow: (title: String, subtitle: String) {
+        let records = dashboardViewModel.healthRecords
+        let targets = NutritionTargets.resolved(for: .now, records: records)
+
+        let cal = Calendar.current
+        let consumedCalories = records
+            .filter { $0.category == .nutrition && $0.type == .meal }
+            .map { MealRecord(from: $0) }
+            .filter { cal.isDate($0.mealTime, inSameDayAs: .now) }
+            .reduce(0.0) { $0 + $1.calories }
+
+        let calTarget = Int(targets.calories.rounded())
+        let p = Int(targets.protein.rounded())
+        let c = Int(targets.carbs.rounded())
+        let f = Int(targets.fat.rounded())
+        let logged = Int(consumedCalories.rounded())
+        let remaining = max(0, calTarget - logged)
+
+        let title = "Target: \(calTarget.formatted()) kcal · \(p)P / \(c)C / \(f)F"
+        let subtitle = "\(logged.formatted()) logged · \(remaining.formatted()) to go"
+        return (title, subtitle)
+    }
+
     var body: some View {
         // Real-data pulls against Oura records. Defaults match the handoff
         // mocks so the screen doesn't look broken while waiting for the
@@ -159,7 +223,7 @@ struct HealthOverviewSegment: View {
                 SectionTitle(
                     kicker: todayKicker,
                     title: "Well-rested. Ready when you are.",
-                    aside: "Updated\n5:42 am"
+                    aside: lastUpdatedAside
                 )
 
                 // ── Readiness hero card ────────────────────────────
@@ -235,16 +299,18 @@ struct HealthOverviewSegment: View {
                     PerchKicker("Today")
                         .padding(.bottom, 10)
 
+                    let workoutRow = todayWorkoutRow
+                    let nutritionRow = todayNutritionRow
                     VStack(alignment: .leading, spacing: 14) {
                         TodayPlanRow(
                             symbol: "dumbbell",
-                            title: "Chest & Triceps · Session 48",
-                            subtitle: "Suggested · 18:00 · ~55 min"
+                            title: workoutRow.title,
+                            subtitle: workoutRow.subtitle
                         )
                         TodayPlanRow(
                             symbol: "leaf",
-                            title: "Target: 2,900 kcal · 190P / 350C / 80F",
-                            subtitle: "1,331 logged · 1,569 to go"
+                            title: nutritionRow.title,
+                            subtitle: nutritionRow.subtitle
                         )
                     }
                 }
