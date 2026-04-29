@@ -28,7 +28,7 @@ ln -s ~/Developer/ThePerch/agents/health-integrations \
 | `oura_ingest.py` | Last-14d sleep sessions + daily sleep score + readiness from the Oura Cloud API v2. **Primary sleep source.** | every 30min |
 | `eight_sleep_ingest.py` | Last-24h sleep stages, HRV, RHR from the 8sleep API. **Fallback / fill-in for Oura** (e.g. nights the ring's off the charger). | every 30min |
 | `withings_ingest.py` | Last-7d weight + body comp + BP + HR from Withings. **Fallback for InBody on body comp.** | hourly |
-| `inbody_ingest.py` | Parses any `InBody-*.csv` in `~/Documents/Claudio/` → 22 metrics. **Primary body-composition source.** Deletes file after success. | watcher (60s poll) |
+| `inbody_ingest.py` | Parses any `InBody-*.csv` in `~/Documents/InBody/` → 22 metrics. **Primary body-composition source.** Deletes file after success. | watcher (60s poll) |
 | `inbody_backfill_from_json.py` | One-shot: imports historical scans from the legacy `body-composition.json` into `health_metrics`. | manual, idempotent |
 | `calendar_sync.py` | macOS Calendar.app → `dashboard_records` (category=calendar) for opportunity-based insight categories. | every 15min |
 
@@ -114,13 +114,17 @@ The `biochecha` Telegram bot must exist in your openclaw config:
 ### 4. InBody watcher launchd agent
 
 ```bash
-cp ops/launchd/com.theperch.inbody-watcher.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.theperch.inbody-watcher.plist
+./scripts/install-inbody-watcher.sh                 # default ~/Documents/InBody
+WATCH_DIR=~/iCloud/InBody ./scripts/install-inbody-watcher.sh  # override
 ```
 
-Polls `~/Documents/Claudio/` every 60s. Drop a CSV from the LookinBody
-Connect app and within a minute you get a fresh iOS card + Telegram DM.
-See `docs/post-wake-pipeline.md` for the full flow.
+The install script renders the launchd plist template
+(`ops/launchd/com.theperch.inbody-watcher.plist.template`) with the
+chosen paths and `launchctl load`s it. Idempotent — re-run any time.
+
+The watcher polls the chosen folder every 60s. Drop a CSV from the
+LookinBody Connect app and within a minute you get a fresh iOS card
++ Telegram DM. See `docs/post-wake-pipeline.md` for the full flow.
 
 ### 5. Cron entries (4 scheduled slots + 2 ingests)
 
@@ -142,7 +146,7 @@ python3 .../oura_ingest.py
 python3 .../eight_sleep_ingest.py
 python3 .../withings_ingest.py
 
-# Drop an InBody CSV in ~/Documents/Claudio/ then either wait 60s OR:
+# Drop an InBody CSV in ~/Documents/InBody/ then either wait 60s OR:
 python3 .../inbody_ingest.py
 python3 .../biochecha_post_wake_insight.py
 

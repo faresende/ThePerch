@@ -54,7 +54,7 @@ def _read_today_events() -> list[dict]:
     events: list[dict] = []
     current: dict | None = None
     # Format example:
-    #   • Lunch with Marta
+    #   • Lunch with someone
     #       2026-04-28
     #       12:30 - 13:30
     for line in out.splitlines():

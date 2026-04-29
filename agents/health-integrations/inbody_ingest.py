@@ -3,10 +3,10 @@
 inbody_ingest.py — InBody Dial H30 CSV → health_metrics.
 
 Mac-only. The H30's companion app exports a CSV per measurement to a
-folder the user picks (we use ~/Documents/Claudio/). This script:
+folder the user picks (we use ~/Documents/InBody/). This script:
 
   1. Reads each `InBody-*.csv` in the watch folder (default
-     ~/Documents/Claudio/, override with INBODY_WATCH_DIR).
+     ~/Documents/InBody/, override with INBODY_WATCH_DIR).
   2. Parses the row, extracts the timestamp + every non-`-` field.
   3. Bulk-upserts the values into `public.health_metrics` under
      source='inbody', source_id='inbody-<file-stem>-<metric>' so the
@@ -30,7 +30,7 @@ Fields with `-` are skipped (segmental fields the H30 doesn't measure).
 
 Env required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PERCH_USER_ID.
 
-Triggered by: ~/Documents/Claudio/ launchd watcher (see
+Triggered by: ~/Documents/InBody/ launchd watcher (see
 ops/launchd/com.theperch.inbody-watcher.plist).
 """
 from __future__ import annotations
@@ -154,7 +154,7 @@ def main() -> int:
         return 2
 
     watch_dir = Path(os.environ.get("INBODY_WATCH_DIR")
-                     or (Path.home() / "Documents" / "Claudio"))
+                     or (Path.home() / "Documents" / "InBody"))
 
     started = datetime.now(timezone.utc)
     written = 0

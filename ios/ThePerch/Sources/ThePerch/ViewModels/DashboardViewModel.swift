@@ -238,7 +238,7 @@ final class DashboardViewModel {
                 // Preserve allRecords; don't mutate.
             } else {
                 self.allRecords = merged
-                Self.preDecodeRecords(merged)
+                Self.preDecodeRecordsAsync(merged)
             }
             self.error = nil
         case .failure(let err):
@@ -348,7 +348,7 @@ final class DashboardViewModel {
         // Load cached records (all categories)
         if allRecords.isEmpty, let cachedRecords = cacheService.loadRecords(category: nil, userId: cacheUserId), !cachedRecords.isEmpty {
             self.allRecords = cachedRecords
-            Self.preDecodeRecords(cachedRecords)
+            Self.preDecodeRecordsAsync(cachedRecords)
             loaded = true
         }
 
@@ -367,8 +367,23 @@ final class DashboardViewModel {
     }
 
     /// Pre-populates the DecodingCache for all records in a single pass.
+    /// Schedule a background pre-decode pass. Returns immediately so the
+    /// caller can update UI without paying decode cost on the main thread.
+    /// `Record.decodeData` writes into `DecodingCache.shared` (NSCache),
+    /// which is thread-safe — racing with view-time decodes is fine
+    /// (the worst case is a duplicated decode, never a corrupted cache).
+    nonisolated private static func preDecodeRecordsAsync(_ records: [Record]) {
+        guard !records.isEmpty else { return }
+        Task.detached(priority: .utility) {
+            preDecodeRecords(records)
+        }
+    }
+
     /// Front-loads ALL decoding after network response so views never pay the cost.
-    private static func preDecodeRecords(_ records: [Record]) {
+    /// `nonisolated` because it's safe to run off-main: every operation it
+    /// performs is on Sendable / thread-safe state (Record values are value
+    /// types, DecodingCache wraps NSCache, JSONValueDecoder is pure).
+    nonisolated private static func preDecodeRecords(_ records: [Record]) {
         for record in records {
             switch record.category {
             case .health:
@@ -444,7 +459,7 @@ final class DashboardViewModel {
             trackedDeliveries = Self.activeForToday(trackedOrders).map(\.trackedDeliveryData)
             syncDeliveryLiveActivities()
             error = nil
-            Self.preDecodeRecords(merged)
+            Self.preDecodeRecordsAsync(merged)
         } catch let error as SupabaseServiceError {
             self.error = error
         } catch {

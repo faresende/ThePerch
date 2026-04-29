@@ -126,7 +126,7 @@ def _read_today_events() -> list[dict]:
     events: list[dict] = []
     current: dict | None = None
     # Format example:
-    #   • Lunch with Marta
+    #   • Lunch with someone
     #       2026-04-28
     #       12:30 - 13:30
     for line in out.splitlines():
@@ -524,13 +524,13 @@ class CategoryResult:
 
 Run:
 ```bash
-python3 -c "import importlib.util, sys; spec = importlib.util.spec_from_file_location('m', '/Users/faresende/Developer/ThePerch/agents/health-integrations/biochecha_dynamic_insight.py'); m = importlib.util.module_from_spec(spec); spec.loader.exec_module.__call__ if False else 0"
+python3 -c "import importlib.util, sys; spec = importlib.util.spec_from_file_location('m', '~/Developer/ThePerch/agents/health-integrations/biochecha_dynamic_insight.py'); m = importlib.util.module_from_spec(spec); spec.loader.exec_module.__call__ if False else 0"
 ```
 Expected: no output, exit code 0. (Just imports the module without running main.)
 
 Or simpler:
 ```bash
-python3 -c "import ast; ast.parse(open('/Users/faresende/Developer/ThePerch/agents/health-integrations/biochecha_dynamic_insight.py').read())"
+python3 -c "import ast; ast.parse(open('~/Developer/ThePerch/agents/health-integrations/biochecha_dynamic_insight.py').read())"
 ```
 Expected: no output, exit code 0.
 
@@ -714,7 +714,7 @@ Run:
 set -a && source ~/.openclaw/secrets/perch.env && set +a
 python3 -c "
 import sys
-sys.path.insert(0, '/Users/faresende/Developer/ThePerch/agents/health-integrations')
+sys.path.insert(0, '~/Developer/ThePerch/agents/health-integrations')
 from biochecha_dynamic_insight import gather_state
 s = gather_state('morning')
 print(f'meals: {len(s.today_meals)}')
@@ -1379,7 +1379,7 @@ def gather_state(slot: str, event_trigger: Optional[EventTrigger] = None) -> App
 set -a && source ~/.openclaw/secrets/perch.env && set +a
 python3 -c "
 import sys
-sys.path.insert(0, '/Users/faresende/Developer/ThePerch/agents/health-integrations')
+sys.path.insert(0, '~/Developer/ThePerch/agents/health-integrations')
 from biochecha_dynamic_insight import gather_state
 s = gather_state('midday')
 print(f'meals: {len(s.today_meals)}')
@@ -2873,7 +2873,7 @@ Paste the output into `jobs.json`'s `jobs` array (between existing entries, vali
 - [ ] **Step 4: Verify the file still parses**
 
 ```bash
-python3 -c "import json; d=json.load(open('/Users/faresende/.openclaw/cron/jobs.json')); print(f'jobs: {len(d[\"jobs\"])}')"
+python3 -c "import json; d=json.load(open('~/.openclaw/cron/jobs.json')); print(f'jobs: {len(d[\"jobs\"])}')"
 ```
 Expected: count is 4 more than before (3 added + 0 removed; the rename doesn't change count).
 
@@ -2882,7 +2882,7 @@ Expected: count is 4 more than before (3 added + 0 removed; the rename doesn't c
 ```bash
 python3 -c "
 import json
-d = json.load(open('/Users/faresende/.openclaw/cron/jobs.json'))
+d = json.load(open('~/.openclaw/cron/jobs.json'))
 for j in d['jobs']:
     if 'biochecha' in j['name']:
         print(j['name'], '→', j['schedule']['expr'])
@@ -3175,13 +3175,13 @@ Find the outermost `ScrollView` body and append (just before the `.background()`
 ```bash
 ruby -e "
 require 'xcodeproj'
-proj = Xcodeproj::Project.open('/Users/faresende/Developer/ThePerch/ios/ThePerch/ThePerch.xcodeproj')
+proj = Xcodeproj::Project.open('~/Developer/ThePerch/ios/ThePerch/ThePerch.xcodeproj')
 target = proj.targets.find { |t| t.name == 'ThePerch' }
 services = proj.main_group.find_subpath('Sources/ThePerch/Services', false)
 components = proj.main_group.find_subpath('Sources/ThePerch/Views/Components', false)
 [
-  ['/Users/faresende/Developer/ThePerch/ios/ThePerch/Sources/ThePerch/Services/InsightFeedbackService.swift', services],
-  ['/Users/faresende/Developer/ThePerch/ios/ThePerch/Sources/ThePerch/Views/Components/ShakeDetector.swift', components],
+  ['~/Developer/ThePerch/ios/ThePerch/Sources/ThePerch/Services/InsightFeedbackService.swift', services],
+  ['~/Developer/ThePerch/ios/ThePerch/Sources/ThePerch/Views/Components/ShakeDetector.swift', components],
 ].each do |path, group|
   next if group.files.any? { |f| f.real_path.to_s == path }
   ref = group.new_reference(path)

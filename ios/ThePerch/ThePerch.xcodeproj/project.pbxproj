@@ -90,6 +90,7 @@
 		8F813C89A6CE17B35626C206 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C27DBAD9446B0EA0E5642376 /* KeychainService.swift */; };
 		90DFF890397DC12B11B48020 /* TravelHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A049A845B4237145C09E3 /* TravelHomeCard.swift */; };
 		99E67B0E893542999222D13B /* UniversalCardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DE6B247A0B420FB08AB66C /* UniversalCardContainer.swift */; };
+		9C4C7E36270A7DE975CCB6B5 /* FailableDecodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40DB35E8985DAE99DD669ABB /* FailableDecodable.swift */; };
 		A1327FFE76188D06F10B001E /* TodayTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2CBEA125F2BF3482151382 /* TodayTab.swift */; };
 		A32D71F096EFEDB436B4521A /* PerchSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7298FAE4BF84A6E923610F68 /* PerchSegmentedPicker.swift */; };
 		A47AD3C7225A7D96AE34077A /* MerchantRulesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0154A95B9449EAD381DEDA3 /* MerchantRulesService.swift */; };
@@ -260,6 +261,7 @@
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		3664A70FD03DCC02C7322621 /* TimeOfDayAtmosphere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOfDayAtmosphere.swift; sourceTree = "<group>"; };
+		40DB35E8985DAE99DD669ABB /* FailableDecodable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FailableDecodable.swift; sourceTree = "<group>"; };
 		4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KarakeepService.swift; sourceTree = "<group>"; };
 		44E4BAE3418A661ACF7991AE /* SectionHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		475C19D5C753E98B76EF220A /* ETAChipText.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ETAChipText.swift; sourceTree = "<group>"; };
@@ -488,6 +490,7 @@
 				35F543502F52411F00204F77 /* Section.swift */,
 				35F543512F52411F00204F77 /* TokenUsage.swift */,
 				35F543522F52411F00204F77 /* UserProfile.swift */,
+				40DB35E8985DAE99DD669ABB /* FailableDecodable.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1228,6 +1231,7 @@
 				0E50A94D53915532514488F3 /* ShakeDetector.swift in Sources */,
 				029173D8E73EE9E8E1C45C3C /* MerchantRulesView.swift in Sources */,
 				A47AD3C7225A7D96AE34077A /* MerchantRulesService.swift in Sources */,
+				9C4C7E36270A7DE975CCB6B5 /* FailableDecodable.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

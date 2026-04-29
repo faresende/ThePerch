@@ -45,7 +45,7 @@ final class CrashReporter {
             let crashInfo = """
             Crash: \(name)
             Reason: \(reason)
-            Date: \(ISO8601DateFormatter().string(from: Date()))
+            Date: \(PerchFormatters.iso8601.string(from: Date()))
             Stack Trace:
             \(symbols)
             """

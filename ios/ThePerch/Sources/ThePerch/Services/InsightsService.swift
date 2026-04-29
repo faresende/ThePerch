@@ -69,15 +69,18 @@ final class InsightsService {
             .from("insights")
             .select()
             .eq("agent_id", value: "biochecha")
-            .or("valid_for_date.eq.\(today),valid_for_date.is.null")
+            .eq("valid_for_date", value: today)
             .order("generated_at", ascending: false)
             .limit(1)
             .execute()
 
-        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
-        guard let item = rawArray.first else { return nil }
-        let data = try JSONSerialization.data(withJSONObject: item)
-        return try decoder.decode(Insight.self, from: data)
+        // Decode the array directly — was previously running every row
+        // through JSONSerialization → JSONEncoder → JSONDecoder, which
+        // is ~3× the JSON work per element. Direct decode skips all of
+        // that and the response is small (limit 1) so we don't need
+        // the per-row failable wrapper here.
+        let items = try decoder.decode([Insight].self, from: result.data)
+        return items.first
     }
 
     /// Fetch recent insights of any type for the user, newest first.
@@ -91,20 +94,19 @@ final class InsightsService {
             .limit(limit)
             .execute()
 
-        let rawArray = try JSONSerialization.jsonObject(with: result.data) as? [[String: Any]] ?? []
-        var items: [Insight] = []
-        items.reserveCapacity(rawArray.count)
-        for item in rawArray {
-            do {
-                let data = try JSONSerialization.data(withJSONObject: item)
-                items.append(try decoder.decode(Insight.self, from: data))
-            } catch {
+        // Permissive decode: a single malformed insight should not
+        // black-hole the whole list. FailableDecodable absorbs per-row
+        // failures without the JSONSerialization round-trip the older
+        // version did per row.
+        let wrapped = try decoder.decode([FailableDecodable<Insight>].self, from: result.data)
+        return wrapped.compactMap { entry in
 #if DEBUG
-                print("[InsightsService] Dropping malformed insight: \(error)")
-#endif
+            if case .failure(let err) = entry.result {
+                print("[InsightsService] Dropping malformed insight: \(err)")
             }
+#endif
+            return entry.value
         }
-        return items
     }
 
     /// Mark an insight as shown to the user (sets shown_at = now()
@@ -113,7 +115,7 @@ final class InsightsService {
     func markShown(_ insight: Insight) async {
         guard insight.shownAt == nil else { return }
         struct ShownPayload: Encodable { let shown_at: String }
-        let now = ISO8601DateFormatter().string(from: .now)
+        let now = PerchFormatters.iso8601.string(from: .now)
         do {
             try await supabaseService.databaseClient
                 .from("insights")

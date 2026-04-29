@@ -496,22 +496,44 @@ def _gather_recent_feedback(limit: int = 5) -> list[str]:
 
 
 def gather_state(slot: str, event_trigger: Optional[EventTrigger] = None) -> AppState:
-    """Gather everything categories might need. Single round of queries."""
-    calendar = _gather_today_calendar()
-    return AppState(
-        slot=slot,
-        now=datetime.now(timezone.utc),
-        today_meals=_gather_today_meals(),
-        today_targets=_gather_targets(),
-        today_calendar_remaining=calendar,
-        today_orders_in_transit=_gather_orders_in_transit(),
-        sleep_last_7=_gather_sleep_last_7(),
-        body_comp_last_30=_gather_body_comp_last_30(),
-        workout_schedule_today=_classify_workout_today(calendar),
-        avg_steps_last_7_at_this_hour=0,
-        event_trigger=event_trigger,
-        recent_feedback=_gather_recent_feedback(limit=5),
-    )
+    """Gather everything categories might need.
+
+    The 7 _gather_* helpers are independent network round-trips against
+    Supabase. Running them sequentially adds 700ms-1.4s of pure latency
+    (network RTT × N) to every slot generation; running them in parallel
+    via a small thread pool collapses that to one RTT (~150-300ms).
+
+    Each helper is plain stdlib urllib + JSON parsing — no shared state,
+    no GIL contention worth worrying about. ThreadPoolExecutor is enough.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=7) as pool:
+        f_calendar = pool.submit(_gather_today_calendar)
+        f_meals    = pool.submit(_gather_today_meals)
+        f_targets  = pool.submit(_gather_targets)
+        f_orders   = pool.submit(_gather_orders_in_transit)
+        f_sleep    = pool.submit(_gather_sleep_last_7)
+        f_body     = pool.submit(_gather_body_comp_last_30)
+        f_feedback = pool.submit(_gather_recent_feedback, 5)
+
+        calendar = f_calendar.result()
+        return AppState(
+            slot=slot,
+            now=datetime.now(timezone.utc),
+            today_meals=f_meals.result(),
+            today_targets=f_targets.result(),
+            today_calendar_remaining=calendar,
+            today_orders_in_transit=f_orders.result(),
+            sleep_last_7=f_sleep.result(),
+            body_comp_last_30=f_body.result(),
+            # _classify_workout_today is pure-CPU; cheap to do on main
+            # thread once `calendar` resolves.
+            workout_schedule_today=_classify_workout_today(calendar),
+            avg_steps_last_7_at_this_hour=0,
+            event_trigger=event_trigger,
+            recent_feedback=f_feedback.result(),
+        )
 
 
 # ─── Ranker ─────────────────────────────────────────────────────────

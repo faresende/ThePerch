@@ -17,7 +17,7 @@ via the existing health_metrics upsert — re-running is a no-op.
 Usage:
     python3 inbody_backfill_from_json.py [--dry-run] [--json PATH]
 
-Default JSON path: ~/Documents/Claudio/openclaw-sync/agents/biochecha/data/body-composition.json
+Default JSON path: ~/Documents/InBody/openclaw-sync/agents/biochecha/data/body-composition.json
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from _supabase_client import bulk_upsert_health_metrics, insert_agent_run  # noqa: E402
 
-DEFAULT_JSON = (Path.home() / "Documents" / "Claudio" / "openclaw-sync"
+DEFAULT_JSON = (Path.home() / "Documents" / "InBody" / "openclaw-sync"
                 / "agents" / "biochecha" / "data" / "body-composition.json")
 
 # Map JSON keys → (metric_key, unit). Keys mirror inbody_ingest.py and

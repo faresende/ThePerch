@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# inbody-watch-tick.sh — fires when ~/Documents/Claudio/ changes (via
+# inbody-watch-tick.sh — fires when ~/Documents/InBody/ changes (via
 # launchd WatchPaths). Ingests any InBody-*.csv into health_metrics
 # and, if at least one CSV got consumed, regenerates the BioChecha
 # post-wake insight (iOS card + Telegram briefing).
@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-WATCH_DIR="${INBODY_WATCH_DIR:-$HOME/Documents/Claudio}"
+WATCH_DIR="${INBODY_WATCH_DIR:-$HOME/Documents/InBody}"
 REPO_ROOT="$HOME/Developer/ThePerch"
 SECRETS="$HOME/.openclaw/secrets/perch.env"
 

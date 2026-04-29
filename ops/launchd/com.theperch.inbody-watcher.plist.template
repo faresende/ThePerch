@@ -3,7 +3,7 @@
 <!--
   com.theperch.inbody-watcher.plist
   ─────────────────────────────────────────────────────────────────
-  Polls ~/Documents/Claudio/ every 60s for new InBody-*.csv files
+  Polls __WATCH_DIR__ every 60s for new InBody-*.csv files
   exported from the H30 companion app. When one is found, runs
   scripts/inbody-watch-tick.sh which ingests any CSVs and (on success)
   regenerates the BioChecha post-wake insight on iOS + Telegram.
@@ -27,7 +27,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/faresende/Developer/ThePerch/scripts/inbody-watch-tick.sh</string>
+    <string>__REPO_ROOT__/scripts/inbody-watch-tick.sh</string>
   </array>
 
   <!-- Poll every 60s. The tick script is a no-op when no CSV is
@@ -46,16 +46,21 @@
   <false/>
 
   <key>StandardOutPath</key>
-  <string>/Users/faresende/.openclaw/logs/inbody-watcher.out.log</string>
+  <string>__LOG_DIR__/inbody-watcher.out.log</string>
 
   <key>StandardErrorPath</key>
-  <string>/Users/faresende/.openclaw/logs/inbody-watcher.err.log</string>
+  <string>__LOG_DIR__/inbody-watcher.err.log</string>
 
-  <!-- Inherit a sensible PATH so /usr/bin/env can find python3. -->
+  <!-- Inherit a sensible PATH so /usr/bin/env can find python3.
+       INBODY_WATCH_DIR is templated by scripts/install-inbody-watcher.sh
+       so the watcher and the tick script agree on which folder to watch
+       even when the user picked a non-default location. -->
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
     <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>INBODY_WATCH_DIR</key>
+    <string>__WATCH_DIR__</string>
   </dict>
 </dict>
 </plist>

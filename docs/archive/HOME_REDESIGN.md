@@ -508,7 +508,7 @@ Agent (BioChecha/Claudinho/Entregas)
 
 **To verify:** Query Supabase for calendar events:
 ```bash
-node /Users/faresende/.openclaw/skills/dashboard-sync/cli.js query \
+node ~/.openclaw/skills/dashboard-sync/cli.js query \
   --user_id 00000000-0000-0000-0000-000000000000 \
   --category calendar --type event --limit 20
 ```

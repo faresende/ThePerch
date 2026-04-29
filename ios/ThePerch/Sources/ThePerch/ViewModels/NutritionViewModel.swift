@@ -162,7 +162,7 @@ final class NutritionViewModel {
                     "fat": .number(suggestion.fat),
                     "analysis": .string(suggestion.analysisLine),
                     "corrected": .bool(false),
-                    "meal_time": .string(ISO8601DateFormatter().string(from: .now)),
+                    "meal_time": .string(PerchFormatters.iso8601.string(from: .now)),
                 ],
                 displayHint: .unknown
             )

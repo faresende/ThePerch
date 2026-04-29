@@ -32,10 +32,10 @@ These are the decisions this plan assumes and should not re-open during implemen
 ## Current repo and sequencing guardrail
 
 Current app trunk for iOS work:
-- `/Users/faresende/Documents/Apps/ThePerch`
+- `~/Documents/Apps/ThePerch`
 
 Current Wife Mode correctness work in progress:
-- worktree: `/Users/faresende/Documents/Apps/ThePerch-wife-slice-a`
+- worktree: `~/Documents/Apps/ThePerch-wife-slice-a`
 - branch: `wife-slice-a-phase1`
 
 Important sequencing rule:
@@ -73,8 +73,8 @@ A successful V1 shell and capture rollout means:
 Objective: Make second-user correctness the floor before UI expansion.
 
 Files:
-- Review existing changes in `/Users/faresende/Documents/Apps/ThePerch-wife-slice-a`
-- Land to `/Users/faresende/Documents/Apps/ThePerch`
+- Review existing changes in `~/Documents/Apps/ThePerch-wife-slice-a`
+- Land to `~/Documents/Apps/ThePerch`
 
 Step 1: Review the current diff and preserve only the intended Slice A files.
 

@@ -25,6 +25,8 @@ final class MerchantRulesService {
     }
 
     /// Load every rule for the current user, newest-first.
+    /// Permissive — a malformed row is logged and skipped without
+    /// blocking the rest of the list.
     func fetchRules() async throws -> [MerchantRule] {
         let response = try await supabaseService.databaseClient
             .from("merchant_rules")
@@ -32,18 +34,16 @@ final class MerchantRulesService {
             .order("created_at", ascending: false)
             .execute()
 
-        // Decode permissively: skip malformed rows so a single bad row
-        // doesn't black-hole the whole list.
-        let raws = try JSONSerialization.jsonObject(with: response.data) as? [[String: Any]] ?? []
-        var rules: [MerchantRule] = []
-        rules.reserveCapacity(raws.count)
-        for raw in raws {
-            guard let data = try? JSONSerialization.data(withJSONObject: raw) else { continue }
-            if let rule = try? decoder.decode(MerchantRule.self, from: data) {
-                rules.append(rule)
+        let wrapped = try decoder.decode([FailableDecodable<MerchantRule>].self,
+                                         from: response.data)
+        return wrapped.compactMap { entry in
+#if DEBUG
+            if case .failure(let err) = entry.result {
+                print("[MerchantRulesService] Dropping malformed rule: \(err)")
             }
+#endif
+            return entry.value
         }
-        return rules
     }
 
     /// Toggle a rule on/off. Disabled rules stay in the table for

@@ -1,19 +1,14 @@
 -- 20260428120000_register_calendar_sync_agent.sql
--- Registers the calendar-sync agent so its dashboard_records rows
--- (category='calendar', type='event') satisfy the
--- dashboard_records_agent_id_fkey foreign key.
 --
--- The agent is the macOS-only calendar_sync.py worker that runs
--- every 15 minutes during waking hours and feeds today's Calendar.app
--- events into dashboard_records for BioChecha's time-aware insights.
+-- (Historical) The calendar-sync agent used to be inserted here with a
+-- hardcoded owner_id, which (a) leaked the maintainer's user UUID into
+-- the public repo and (b) failed on replay against any other Supabase
+-- project where that UUID doesn't exist.
+--
+-- The runtime now auto-registers any agent on first `insert_agent_run`
+-- (see agents/health-integrations/_supabase_client.py:_ensure_agent_registered),
+-- so this migration is a no-op left in place purely for sequence
+-- continuity.
 
-INSERT INTO public.agents (id, display_name, emoji, model, is_active, owner_id)
-VALUES (
-  'calendar-sync',
-  'Calendar Sync',
-  '📆',
-  'python:calendar-sync',
-  true,
-  '00000000-0000-0000-0000-000000000000'
-)
-ON CONFLICT (id) DO NOTHING;
+-- intentionally empty
+SELECT 1;

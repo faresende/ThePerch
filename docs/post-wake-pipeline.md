@@ -25,13 +25,13 @@ The slot the user actually feels as "morning summary" is
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  User: weighs in on InBody H30 → exports CSV from LookinBody     │
-│        Connect → file lands in ~/Documents/Claudio/              │
+│        Connect → file lands in ~/Documents/InBody/              │
 └──────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │  launchd: com.theperch.inbody-watcher                            │
-│    Polls ~/Documents/Claudio/ every 60s                          │
+│    Polls ~/Documents/InBody/ every 60s                          │
 │    On finding InBody-*.csv → runs scripts/inbody-watch-tick.sh   │
 └──────────────────────────────────────────────────────────────────┘
                               │
@@ -126,7 +126,7 @@ priority list rank last (still surfaced when no other source has data).
 
 5. **Watch directory exists:**
    ```bash
-   mkdir -p ~/Documents/Claudio
+   mkdir -p ~/Documents/InBody
    ```
    Configure LookinBody Connect's CSV export destination to land here.
 
@@ -144,7 +144,7 @@ priority list rank last (still surfaced when no other source has data).
 1. Wake up.
 2. Open Oura on phone (lets it sync overnight data).
 3. Step on InBody H30. Reading goes to LookinBody Connect on phone.
-4. Export the day's CSV from LookinBody Connect → `~/Documents/Claudio/`.
+4. Export the day's CSV from LookinBody Connect → `~/Documents/InBody/`.
 5. Walk away.
 6. Within ≤60s:
    - The CSV is ingested + deleted
@@ -173,7 +173,7 @@ tail -50 ~/.openclaw/logs/inbody-watcher.out.log
 tail -50 ~/.openclaw/logs/inbody-watcher.err.log
 
 # 3. Was the CSV consumed?
-ls ~/Documents/Claudio/InBody-*.csv
+ls ~/Documents/InBody/InBody-*.csv
 
 # 4. Did agent_runs record the run?
 # Open Supabase Studio → public.agent_runs, filter agent_id='biochecha'
@@ -190,7 +190,7 @@ Either:
   metric='body_fat_pct' AND measured_at::date > now() - 7;` and remove
   the bad source if needed.
 
-### CSV not consumed (still sitting in `~/Documents/Claudio/`)
+### CSV not consumed (still sitting in `~/Documents/InBody/`)
 
 Run the tick manually with verbose tracing:
 
