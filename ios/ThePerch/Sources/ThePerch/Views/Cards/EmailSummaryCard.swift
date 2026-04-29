@@ -130,13 +130,13 @@ struct EmailSummaryCard: View {
     private func openFastmailSearch(sender: String, subject: String) {
         // Try Fastmail app deep link, fallback to web
         if let url = URL(string: "https://app.fastmail.com/mail/") {
-            UIApplication.shared.open(url)
+            ExternalURLOpener.openExternal(url)
         }
     }
 
     private func openFastmail() {
         if let url = URL(string: "https://app.fastmail.com/mail/") {
-            UIApplication.shared.open(url)
+            ExternalURLOpener.openExternal(url)
         }
     }
 }

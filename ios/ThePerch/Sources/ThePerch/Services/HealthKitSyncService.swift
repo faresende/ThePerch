@@ -124,7 +124,9 @@ final class HealthKitSyncService {
             print("[HealthKitSync] Weight: \(newSamples.count) new samples")
 #endif
         } catch {
+            #if DEBUG
             print("[HealthKitSync] Weight sync error: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -145,7 +147,9 @@ final class HealthKitSyncService {
             print("[HealthKitSync] Heart Rate: \(dailySamples.count) new samples")
 #endif
         } catch {
+            #if DEBUG
             print("[HealthKitSync] Heart Rate sync error: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -163,7 +167,9 @@ final class HealthKitSyncService {
             print("[HealthKitSync] Blood Pressure: \(newSamples.count) new samples")
 #endif
         } catch {
+            #if DEBUG
             print("[HealthKitSync] Blood Pressure sync error: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -181,7 +187,9 @@ final class HealthKitSyncService {
             print("[HealthKitSync] Steps: \(newSamples.count) new samples")
 #endif
         } catch {
+            #if DEBUG
             print("[HealthKitSync] Steps sync error: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -199,7 +207,9 @@ final class HealthKitSyncService {
             print("[HealthKitSync] Sleep: \(newSamples.count) new samples")
 #endif
         } catch {
+            #if DEBUG
             print("[HealthKitSync] Sleep sync error: \(error.localizedDescription)")
+            #endif
         }
     }
 

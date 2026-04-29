@@ -265,10 +265,8 @@ struct OrderItem: Identifiable, Codable, Sendable, Equatable, Hashable {
     /// Formatted unit price respecting the currency. Empty when nil.
     var displayUnitPrice: String {
         guard let unitPrice else { return "" }
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = currency ?? "USD"
-        return f.string(from: NSDecimalNumber(decimal: unitPrice)) ?? ""
+        return PerchFormatters.currency(code: currency ?? "USD")
+            .string(from: NSDecimalNumber(decimal: unitPrice)) ?? ""
     }
 }
 

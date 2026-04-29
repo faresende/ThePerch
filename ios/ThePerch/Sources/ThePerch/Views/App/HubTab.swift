@@ -210,11 +210,9 @@ private struct OrdersSectionContent: View {
         let totals = active.compactMap { $0.order.total }
         guard !totals.isEmpty else { return nil }
         let sum = totals.reduce(Decimal(0), +)
-        let fmt = NumberFormatter()
-        fmt.numberStyle = .currency
-        fmt.currencyCode = active.first?.order.currency ?? "EUR"
-        fmt.maximumFractionDigits = 0
-        return fmt.string(from: sum as NSDecimalNumber)
+        let code = active.first?.order.currency ?? "EUR"
+        return PerchFormatters.currency(code: code, fractionDigits: 0)
+            .string(from: sum as NSDecimalNumber)
     }
 
     var body: some View {
@@ -457,10 +455,8 @@ private struct OrderCardV2: View {
 
     private var priceText: String {
         guard let total = order.order.total else { return "—" }
-        let fmt = NumberFormatter()
-        fmt.numberStyle = .currency
-        fmt.currencyCode = order.order.currency
-        return fmt.string(from: total as NSDecimalNumber) ?? "\(total)"
+        return PerchFormatters.currency(code: order.order.currency)
+            .string(from: total as NSDecimalNumber) ?? "\(total)"
     }
 
     private var trackingText: String {
@@ -527,7 +523,7 @@ private struct OrderCardV2: View {
                 if let shipment = order.primaryShipment,
                    let url = shipment.resolvedTrackingURL {
                     Button {
-                        UIApplication.shared.open(url)
+                        ExternalURLOpener.openExternal(url)
                     } label: {
                         HStack(spacing: 5) {
                             Text("Track")
@@ -831,7 +827,7 @@ private struct BookmarksSectionContent: View {
                     ForEach(Array(bookmarks.enumerated()), id: \.element.0.id) { i, pair in
                         BookmarkRowV2(bookmark: pair.1, onTap: {
                             if let url = URL(string: pair.1.url) {
-                                UIApplication.shared.open(url)
+                                ExternalURLOpener.openExternal(url)
                             }
                         })
                         if i < bookmarks.count - 1 {

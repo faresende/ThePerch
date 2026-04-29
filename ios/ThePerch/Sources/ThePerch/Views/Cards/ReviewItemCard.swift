@@ -226,21 +226,24 @@ struct ReviewItemCard: View {
     /// the same either way; user just sees Safari open instead of
     /// the app on the fallback path.
     private func openInFastmail(_ url: URL) {
+        // Universal-links-only path is itself an allowlist (only matches
+        // an installed app that claims the URL). The fallback path opens
+        // in the browser; route it through ExternalURLOpener for the
+        // R12 scheme allowlist (the URL is computed locally from a
+        // hardcoded https://app.fastmail.com prefix, but routing keeps
+        // the policy uniform if the construction ever changes).
         UIApplication.shared.open(url, options: [.universalLinksOnly: true]) { opened in
             if !opened {
-                // App not installed / didn't claim → open in browser.
                 DispatchQueue.main.async {
-                    UIApplication.shared.open(url)
+                    ExternalURLOpener.openExternal(url)
                 }
             }
         }
     }
 
     private func formatCurrency(_ amount: Decimal, code: String) -> String {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = code
-        return f.string(from: NSDecimalNumber(decimal: amount)) ?? "\(amount)"
+        PerchFormatters.currency(code: code).string(from: NSDecimalNumber(decimal: amount))
+            ?? "\(amount)"
     }
 
     private var relativeTime: String {

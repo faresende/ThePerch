@@ -197,7 +197,7 @@ struct WidgetRouter: View {
                 bookmark: bookmarkData,
                 onTap: {
                     if let url = URL(string: bookmarkData.url) {
-                        UIApplication.shared.open(url)
+                        ExternalURLOpener.openExternal(url)
                     }
                 }
             )

@@ -66,6 +66,8 @@ supabase db push --project-ref <YOUR-PROJECT-REF>
 
 (`db push` reads from `supabase/migrations/`. The two `001_*` / `002_*` files at `supabase/` root won't be picked up automatically — paste those into the SQL Editor first.)
 
+> **Migration ledger note** (R12 audit): `supabase/migrations/` represents the schema state targetable by a fresh fork. Several of the timestamps in repo filenames don't exactly match what the prod project's `supabase_migrations.schema_migrations` ledger has (some early migrations were applied via dashboard before the file naming convention was settled). For a fresh project this is a non-issue — every statement is idempotent (`CREATE TABLE IF NOT EXISTS` / `CREATE OR REPLACE` / `ALTER TABLE … IF EXISTS`). Don't run `supabase db push` against an already-converged prod project from this repo without first running `supabase migration repair --status applied <version>` for any ledger gaps.
+
 Verify a few key tables exist after migrations land:
 
 ```sql
@@ -381,12 +383,12 @@ Per-job fillings:
 | `oura-ingest`              | `*/30 * * * *`   | `oura_ingest.py`         | 300 |
 | `8sleep-ingest`            | `*/30 * * * *`   | `eight_sleep_ingest.py`  | 300 |
 | `withings-ingest`          | `13 * * * *`     | `withings_ingest.py`     | 300 |
-| `calendar-sync`            | `*/15 6-22 * * *`| `calendar_sync.py`       |  60 |
-| `biochecha-morning-insight`   | `3 7 * * *`   | `biochecha_dynamic_insight.py morning`   | 600 |
-| `biochecha-midday-insight`    | `5 12 * * *`  | `biochecha_dynamic_insight.py midday`    | 600 |
-| `biochecha-afternoon-insight` | `7 15 * * *`  | `biochecha_dynamic_insight.py afternoon` | 600 |
-| `biochecha-evening-insight`   | `9 20 * * *`  | `biochecha_dynamic_insight.py evening`   | 600 |
-| `agent-runs-prune`         | `0 4 * * 0`      | `prune_agent_runs.py`    | 120 |
+| `calendar-sync`            | `*/15 6-22 * * *`| `calendar_sync.py`       | 300 |
+| `biochecha-morning-insight`   | `3 7 * * *`   | `biochecha_dynamic_insight.py morning`   | 300 |
+| `biochecha-midday-insight`    | `5 12 * * *`  | `biochecha_dynamic_insight.py midday`    | 300 |
+| `biochecha-afternoon-insight` | `7 15 * * *`  | `biochecha_dynamic_insight.py afternoon` | 300 |
+| `biochecha-evening-insight`   | `9 20 * * *`  | `biochecha_dynamic_insight.py evening`   | 300 |
+| `agent-runs-prune`         | `0 4 * * 0`      | `prune_agent_runs.py`    |  60 |
 
 The minute offsets (13, 3, 5, 7, 9) and the Sunday-only (`* * 0`) prune
 schedule are deliberate — staggered minute marks avoid lock contention
@@ -434,6 +436,10 @@ Tell the user:
 >    - `SUPABASE_ANON_KEY` (from Step 1, the **anon** one not service_role)
 >    - `KARAKEEP_BASE_URL` and `KARAKEEP_TOKEN` — leave blank if you don't have a Karakeep instance. The Bookmarks tab will show a friendly empty state.
 > 4. Build + Run on your device (not simulator — push notifications and JMAP-via-share don't work in sim).
+
+> **Privacy manifest:** `ios/ThePerch/PrivacyInfo.xcprivacy` (and the matching one under `ThePerchWidgets/`) declare the required-reason APIs the app uses (`UserDefaults` `CA92.1`, `FileTimestamp` `C617.1`). Apple has been rejecting App Store / TestFlight submissions without these since iOS 17. If you remove an integration that uses one of these APIs (e.g., delete the crash reporter), prune the corresponding entry from both `.xcprivacy` files. If you add a new required-reason API, add it to both files.
+>
+> **Karakeep token note:** values in `Secrets.xcconfig` get substituted into `Info.plist` at build time. The resulting IPA on your device contains the literal token (recoverable by anyone with the IPA). For a single-user, single-device install this is fine. If you ever ship to multiple devices or build for someone else, move `KARAKEEP_TOKEN` to Keychain via an onboarding step instead.
 
 First launch should show the Today tab with empty states for everything that doesn't have data yet. As cron runs and data accumulates, the cards populate.
 

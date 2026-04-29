@@ -131,7 +131,7 @@ struct DeliveryCard: View {
 
     private func openTracking() {
         if let urlStr = delivery.trackingUrl, let url = URL(string: urlStr) {
-            UIApplication.shared.open(url)
+            ExternalURLOpener.openExternal(url)
         }
     }
 

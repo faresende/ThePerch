@@ -1038,11 +1038,8 @@ struct NutritionSegment: View {
     }
 
     private static func integerString(_ v: Double) -> String {
-        let fmt = NumberFormatter()
-        fmt.numberStyle = .decimal
-        fmt.groupingSeparator = ","
-        fmt.maximumFractionDigits = 0
-        return fmt.string(from: NSNumber(value: Int(v.rounded()))) ?? "\(Int(v))"
+        PerchFormatters.integer.string(from: NSNumber(value: Int(v.rounded())))
+            ?? "\(Int(v))"
     }
 }
 

@@ -236,7 +236,9 @@ final class AdminViewModel {
             let commands = try await commandService.getRecentCommands(limit: 5)
             recentCommands = commands
         } catch {
+            #if DEBUG
             print("[AdminViewModel] Failed to load recent commands: \(error)")
+            #endif
         }
     }
 

@@ -26,6 +26,7 @@
 		356EB7112F5251A3009D0A53 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 356EB7102F5251A3009D0A53 /* Assets.xcassets */; };
 		35AA00022F60000100000002 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 35AA00012F60000100000001 /* LaunchScreen.storyboard */; };
 		PRVCY00B2PRVCY00B2PRVCY /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRVCY00B1PRVCY00B1PRVCY /* PrivacyInfo.xcprivacy */; };
+		WPRVCY0002WPRVCY0002WPR /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = WPRVCY0001WPRVCY0001WPR /* PrivacyInfo.xcprivacy */; };
 		35E8ADA32F5B18A100BAC8FE /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */; };
 		35E8ADA82F5B19CB00BAC8FE /* HealthKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADA72F5B19CB00BAC8FE /* HealthKitSyncService.swift */; };
 		35E8ADA92F5B19CB00BAC8FE /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8ADA62F5B19CB00BAC8FE /* HealthKitService.swift */; };
@@ -45,6 +46,7 @@
 		35F5438A2F52411F00204F77 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5435E2F52411F00204F77 /* MainTabView.swift */; };
 		35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5434D2F52411F00204F77 /* DataPayloads.swift */; };
 		35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F5436A2F52411F00204F77 /* WidgetRouter.swift */; };
+		EXTURL02EXTURL02EXTURL02 /* ExternalURLOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = EXTURL01EXTURL01EXTURL01 /* ExternalURLOpener.swift */; };
 		35F543912F52411F00204F77 /* BookmarkCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543602F52411F00204F77 /* BookmarkCard.swift */; };
 		35F543932F52411F00204F77 /* ChecklistCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543632F52411F00204F77 /* ChecklistCard.swift */; };
 		35F543942F52411F00204F77 /* TokenUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F543512F52411F00204F77 /* TokenUsage.swift */; };
@@ -213,6 +215,7 @@
 		353BF3D22F5B4C7900AC60C3 /* MacrosCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacrosCard.swift; sourceTree = "<group>"; };
 		356EB7102F5251A3009D0A53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		PRVCY00B1PRVCY00B1PRVCY /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
+		WPRVCY0001WPRVCY0001WPR /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = ThePerchWidgets/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		35AA00012F60000100000001 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		35E8ADA02F5B181200BAC8FE /* ThePerch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ThePerch.entitlements; sourceTree = SOURCE_ROOT; };
 		35E8ADA12F5B189D00BAC8FE /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
@@ -245,6 +248,7 @@
 		35F543652F52411F00204F77 /* SingleValueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleValueCard.swift; sourceTree = "<group>"; };
 		35F543692F52411F00204F77 /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
 		35F5436A2F52411F00204F77 /* WidgetRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRouter.swift; sourceTree = "<group>"; };
+		EXTURL01EXTURL01EXTURL01 /* ExternalURLOpener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalURLOpener.swift; sourceTree = "<group>"; };
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
@@ -584,6 +588,7 @@
 				HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */,
 				AMBM0001AMBM0001AMBM0001 /* AmbienceManager.swift */,
 				CFRL0001CFRL0001CFRL0001 /* CardFreshnessLabel.swift */,
+				EXTURL01EXTURL01EXTURL01 /* ExternalURLOpener.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -811,6 +816,7 @@
 				DFCD7D5C9B5060BC4525E940 /* PerchQuickGlanceWidget.swift */,
 				LKSW0001LKSW0001LKSW0001 /* PerchLockScreenWidgets.swift */,
 				CC7D0B6317F5B64FDBE6E312 /* DeliveryLiveActivity.swift */,
+				WPRVCY0001WPRVCY0001WPR /* PrivacyInfo.xcprivacy */,
 			);
 			name = ThePerchWidgets;
 			sourceTree = "<group>";
@@ -1032,6 +1038,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				WPRVCY0002WPRVCY0002WPR /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1110,6 +1117,7 @@
 				36EB632B6CF1C68BF7778CAD /* WorkoutView.swift in Sources */,
 				35F5438C2F52411F00204F77 /* DataPayloads.swift in Sources */,
 				35F5438E2F52411F00204F77 /* WidgetRouter.swift in Sources */,
+				EXTURL02EXTURL02EXTURL02 /* ExternalURLOpener.swift in Sources */,
 				35E8ADAB2F5B19E100BAC8FE /* HealthViewModel.swift in Sources */,
 				NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */,
 				ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */,

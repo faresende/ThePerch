@@ -582,7 +582,9 @@ final class DashboardViewModel {
         } catch let error as SupabaseServiceError {
             self.error = error
         } catch {
+            #if DEBUG
             print("[DashboardVM] refreshRecords threw: \(error)")
+            #endif
             self.error = .unknownError(error.localizedDescription)
         }
     }
@@ -706,7 +708,9 @@ final class DashboardViewModel {
         do {
             agents = try await supabaseService.fetchAgents(forceRefresh: forceRefresh)
         } catch {
+            #if DEBUG
             print("[DashboardVM] fetchAgents threw: \(error)")
+            #endif
         }
     }
 
@@ -770,7 +774,9 @@ final class DashboardViewModel {
             try await supabaseService.updateRecordPin(id: recordId, pinned: newPinnedState)
             allRecords[index].pinned = newPinnedState
         } catch {
+            #if DEBUG
             print("[DashboardVM] toggleRecordPin failed: \(error)")
+            #endif
         }
     }
 
@@ -848,7 +854,9 @@ final class DashboardViewModel {
             }
             return true
         } catch {
+            #if DEBUG
             print("[DashboardVM] Realtime reconnect failed: \(error.localizedDescription)")
+            #endif
             return false
         }
     }

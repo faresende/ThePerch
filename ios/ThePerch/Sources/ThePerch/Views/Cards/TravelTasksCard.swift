@@ -102,7 +102,9 @@ struct TravelTasksCard: View {
                 )
             } catch {
                 PerchHaptics.error()
+                #if DEBUG
                 print("[TravelTasksCard] Toggle failed: \(error)")
+                #endif
             }
         }
     }
@@ -162,7 +164,9 @@ struct InlineTaskRow: View {
                 )
             } catch {
                 PerchHaptics.error()
+                #if DEBUG
                 print("[InlineTaskRow] Toggle failed: \(error)")
+                #endif
             }
         }
     }

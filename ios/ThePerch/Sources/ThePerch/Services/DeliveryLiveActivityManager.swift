@@ -55,7 +55,9 @@ final class DeliveryLiveActivityManager {
                 )
             } catch {
                 // Best-effort: Live Activities should never crash the app.
+                #if DEBUG
                 print("Failed to start Live Activity: \(error)")
+                #endif
             }
         }
     }

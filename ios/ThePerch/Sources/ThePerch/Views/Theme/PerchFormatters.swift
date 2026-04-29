@@ -183,6 +183,48 @@ nonisolated enum PerchFormatters {
         return f
     }()
 
+    /// Plain integer formatter ("1,234") — for body kcal / step counts /
+    /// review item totals. R12 audit caught half a dozen call sites
+    /// constructing a fresh NumberFormatter per body render.
+    static let integer: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 0
+        return f
+    }()
+
+    // MARK: - Currency Cache
+    //
+    // Currency formatters are heavier than DateFormatters (~50–150µs per
+    // init: locale lookup + currency-symbol resolution). 6+ call sites
+    // were creating one per body render, costing 0.5–2ms of avoidable
+    // main-actor work per re-render. R12 fix: cache by (currency code,
+    // fraction digits). NSCache isn't needed — total currency codes used
+    // by the app is small and bounded; a plain dict on a serial queue
+    // is fine for read-mostly access.
+
+    private static let currencyLock = NSLock()
+    nonisolated(unsafe) private static var currencyCache: [String: NumberFormatter] = [:]
+
+    /// Returns a cached `NumberFormatter` configured for `code` (an ISO
+    /// 4217 currency code, e.g. "EUR", "USD"). Defaults to 2 fraction
+    /// digits — pass 0 for whole-currency contexts. Foundation's
+    /// NumberFormatter is documented thread-safe for read access; mutation
+    /// (setCurrencyCode etc.) is what's not safe, so we lock at insert.
+    static func currency(code: String, fractionDigits: Int = 2) -> NumberFormatter {
+        let key = "\(code)|\(fractionDigits)"
+        currencyLock.lock()
+        defer { currencyLock.unlock() }
+        if let cached = currencyCache[key] { return cached }
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = code
+        f.maximumFractionDigits = fractionDigits
+        f.minimumFractionDigits = fractionDigits
+        currencyCache[key] = f
+        return f
+    }
+
     // MARK: - Helpers
 
     static func uptimeString(from hours: Double) -> String {

@@ -45,13 +45,9 @@ struct OrderCard: View {
 
     private var totalText: String {
         guard let total = model.order.total else { return "Total unavailable" }
-
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = model.order.currency
-
         let amount = NSDecimalNumber(decimal: total)
-        return formatter.string(from: amount) ?? "\(model.order.currency) \(amount)"
+        return PerchFormatters.currency(code: model.order.currency).string(from: amount)
+            ?? "\(model.order.currency) \(amount)"
     }
 
     private var trackingReferenceDisplay: String? {

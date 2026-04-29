@@ -272,7 +272,7 @@ private struct SearchResultRow: View {
         switch item {
         case .record(let record):
             if let bookmark = record.asBookmark(), let url = URL(string: bookmark.url) {
-                UIApplication.shared.open(url)
+                ExternalURLOpener.openExternal(url)
             } else if let event = record.asEvent() {
                 let interval = event.start.timeIntervalSinceReferenceDate
                 if let url = URL(string: "calshow:\(interval)") {
@@ -281,7 +281,7 @@ private struct SearchResultRow: View {
             }
         case .delivery(let delivery):
             if let urlStr = delivery.trackingUrl, let url = URL(string: urlStr) {
-                UIApplication.shared.open(url)
+                ExternalURLOpener.openExternal(url)
             }
         }
     }

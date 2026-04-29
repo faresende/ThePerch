@@ -136,7 +136,9 @@ struct MedicationsCard: View {
                 )
             } catch {
                 PerchHaptics.error()
+                #if DEBUG
                 print("[MedicationsCard] Toggle failed: \(error)")
+                #endif
             }
         }
     }

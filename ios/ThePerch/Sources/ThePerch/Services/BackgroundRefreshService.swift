@@ -34,7 +34,9 @@ final class BackgroundRefreshService {
             print("[BGRefresh] Scheduled next refresh in ~15 min")
 #endif
         } catch {
+            #if DEBUG
             print("[BGRefresh] Failed to schedule: \(error)")
+            #endif
         }
     }
 
@@ -72,7 +74,9 @@ final class BackgroundRefreshService {
 #endif
                 task.setTaskCompleted(success: true)
             } catch {
+                #if DEBUG
                 print("[BGRefresh] Failed: \(error)")
+                #endif
                 task.setTaskCompleted(success: false)
             }
         }

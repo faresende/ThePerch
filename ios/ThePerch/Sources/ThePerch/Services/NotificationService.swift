@@ -32,7 +32,9 @@ final class NotificationService: ObservableObject {
             print("[NotificationService] Permission granted: \(granted)")
 #endif
         } catch {
+            #if DEBUG
             print("[NotificationService] Permission request failed: \(error)")
+            #endif
             self.isAuthorized = false
             self.permissionRequested = true
         }
@@ -78,7 +80,9 @@ final class NotificationService: ObservableObject {
 
         center.add(request) { error in
             if let error {
+                #if DEBUG
                 print("[NotificationService] Failed to schedule delivery notification: \(error)")
+                #endif
             } else {
 #if DEBUG
                 print("[NotificationService] Scheduled delivery notification: \(identifier)")
@@ -116,7 +120,9 @@ final class NotificationService: ObservableObject {
 
         center.add(request) { error in
             if let error {
+                #if DEBUG
                 print("[NotificationService] Failed to schedule event reminder: \(error)")
+                #endif
             } else {
 #if DEBUG
                 print("[NotificationService] Scheduled event reminder: \(identifier) in \(Int(interval / 60))m")

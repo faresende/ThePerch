@@ -136,7 +136,9 @@ final class AdminCommandService {
             )
             return records.first(where: { $0.id == id })?.asAdminCommand()
         } catch {
+            #if DEBUG
             print("[AdminCommandService] Failed to fetch command status: \(error)")
+            #endif
             return nil
         }
     }

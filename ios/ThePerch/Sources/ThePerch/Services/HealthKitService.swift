@@ -139,7 +139,9 @@ final class HealthKitService: NSObject, HealthKitServiceProtocol, @unchecked Sen
 #endif
             return true
         } catch {
+            #if DEBUG
             print("[HealthKitService] Authorization failed: \(error.localizedDescription)")
+            #endif
             return false
         }
     }

@@ -25,6 +25,16 @@
 DROP POLICY IF EXISTS agents_read_accessible       ON public.agents;
 DROP POLICY IF EXISTS agent_users_manage_by_owner  ON public.agent_users;
 
+-- Round 12 audit (CRITICAL): the R11 stub migration
+-- 20260429162035_fix_rls_recursion_agents.sql also creates
+-- agents_select_own / agent_users_select_own. On a fresh
+-- `supabase db push`, the stub runs first (lower timestamp), then
+-- this file fails with 42710 "policy already exists". Postgres 17
+-- doesn't support `CREATE POLICY IF NOT EXISTS`, so we DROP first
+-- to make this idempotent across replay orderings.
+DROP POLICY IF EXISTS agents_select_own       ON public.agents;
+DROP POLICY IF EXISTS agent_users_select_own  ON public.agent_users;
+
 CREATE POLICY agents_select_own
   ON public.agents FOR SELECT TO authenticated
   USING (owner_id = (select auth.uid()));

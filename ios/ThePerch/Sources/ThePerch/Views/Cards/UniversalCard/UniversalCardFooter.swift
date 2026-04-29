@@ -17,10 +17,11 @@ struct UniversalCardFooter: View {
             HStack(spacing: PerchTheme.Spacing.small) {
                 ForEach(actions) { action in
                     Button {
-                        // Deep links are executed by higher-level router.
-                        // For now, we just open URL.
+                        // R12: action.deepLink is server-controlled (agents
+                        // populate the action records). Route through the
+                        // scheme allowlist — http/https only.
                         if let url = URL(string: action.deepLink) {
-                            UIApplication.shared.open(url)
+                            ExternalURLOpener.openExternal(url)
                         }
                     } label: {
                         HStack(spacing: 6) {
