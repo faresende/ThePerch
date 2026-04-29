@@ -44,6 +44,17 @@ VALID_SLOTS = {
     "event_logistics",
 }
 
+# Time-ordered scheduled slots. The 4-cron daily rotation. Used by the
+# self-catchup logic: when a later slot fires, any earlier slot that
+# hasn't been written for today gets run FIRST so the iOS time-of-day
+# fallback ladder always has the right rungs to choose from. Order
+# matches the Lisbon-local cron schedule (07:03, 12:05, 15:07, 20:09).
+#
+# `morning_post_wake` and `event_logistics` are NOT in this chain —
+# both are event-fired (InBody scale watcher / 17track shipment poll)
+# and require fresh upstream data that catchup can't synthesize.
+SCHEDULED_SLOT_ORDER: list[str] = ["morning", "midday", "afternoon", "evening"]
+
 
 # ─── Types ──────────────────────────────────────────────────────────
 
@@ -1481,15 +1492,35 @@ def _fetch_most_recent_today_insight() -> Optional[dict[str, Any]]:
     return out
 
 
+def _slot_has_row_today(slot: str) -> bool:
+    """True iff today's insights row already exists for this slot.
+    Used by the catchup coordinator to skip slots that already ran."""
+    today = date.today().isoformat()
+    insight_type = (
+        "event_logistics" if slot == "event_logistics"
+        else f"daily_health_{slot}"
+    )
+    rows = _supabase_get(
+        "insights",
+        {
+            "agent_id": "eq.biochecha",
+            "valid_for_date": f"eq.{today}",
+            "insight_type": f"eq.{insight_type}",
+            "select": "id",
+            "limit": "1",
+        },
+    )
+    return len(rows) > 0
+
+
 # ─── Main ───────────────────────────────────────────────────────────
 
 
-def main() -> int:
-    if len(sys.argv) != 2 or sys.argv[1] not in VALID_SLOTS:
-        sys.stderr.write(f"usage: {sys.argv[0]} <{'|'.join(sorted(VALID_SLOTS))}>\n")
-        return 2
-    slot = sys.argv[1]
-
+def _run_one_slot(slot: str) -> int:
+    """Generate + persist the insight for ONE slot. Returns process-style
+    exit code (0 = ok / quiet skip, 1 = error). Refactored out of main()
+    so the catchup coordinator can call it for earlier missed slots in
+    the same run."""
     started = datetime.now(timezone.utc)
     error: Optional[str] = None
     body: Optional[str] = None
@@ -1597,6 +1628,50 @@ def main() -> int:
     print(f"[biochecha-dynamic:{slot}] generated ({len(body)} chars)")
     print(body)
     return 0
+
+
+def main() -> int:
+    """Entry point. Validates the slot arg, runs catchup for any missed
+    earlier scheduled slots today, then runs the requested slot.
+
+    Catchup rationale: openclaw cron is best-effort — a flapping network,
+    a model timeout, or an offline laptop at the cron tick can drop a
+    slot. With catchup enabled, any later slot that DOES fire will fill
+    the missing earlier ones first. Net effect: as long as at least the
+    evening cron lands, the user sees a complete daily rotation on iOS.
+
+    Catchup applies only to `morning|midday|afternoon|evening`.
+    `morning_post_wake` is event-fired (InBody scale), `event_logistics`
+    is event-fired (17track shipment poll) — both depend on upstream
+    triggers, so cron-style catchup can't synthesize them. They run
+    only when their event fires.
+    """
+    if len(sys.argv) != 2 or sys.argv[1] not in VALID_SLOTS:
+        sys.stderr.write(f"usage: {sys.argv[0]} <{'|'.join(sorted(VALID_SLOTS))}>\n")
+        return 2
+    requested_slot = sys.argv[1]
+
+    # Catchup chain: only for time-ordered scheduled slots.
+    if requested_slot in SCHEDULED_SLOT_ORDER:
+        for earlier in SCHEDULED_SLOT_ORDER:
+            if earlier == requested_slot:
+                break  # reached the requested slot; stop catching up
+            try:
+                if not _slot_has_row_today(earlier):
+                    print(f"[biochecha-dynamic:catchup] {earlier} missing today, running it first")
+                    rc = _run_one_slot(earlier)
+                    if rc != 0:
+                        # Don't abort the requested slot just because
+                        # catchup failed — log and continue.
+                        sys.stderr.write(
+                            f"[biochecha-dynamic:catchup] {earlier} failed (rc={rc}), continuing to {requested_slot}\n"
+                        )
+            except Exception as e:
+                sys.stderr.write(
+                    f"[biochecha-dynamic:catchup] {earlier} exception: {type(e).__name__}: {e}; continuing\n"
+                )
+
+    return _run_one_slot(requested_slot)
 
 
 if __name__ == "__main__":

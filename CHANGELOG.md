@@ -153,6 +153,33 @@ After Round 12, R13+ remain on the table — the audits found 2 CRITICAL items (
 - Migration `20260429910000_round13_alter_policies_to_authenticated.sql` header and CHANGELOG R13 entry corrected: 33 → 34 ALTER POLICY statements (off-by-one).
 - SETUP-FOR-AGENTS.md Step 2 ledger note tightened with the R14-measured actual scale: "~35 repo files with no matching prod version + ~32 prod versions with no matching repo file" instead of the prior "~13 early migrations and several mid-April files."
 
+### BioChecha rotation fix (2026-04-29 evening)
+
+User reported the iOS Today card was "stuck on the afternoon insight, never rotated to the others." Investigation surfaced three independent failures stacked on top of each other:
+
+**Root cause 1 — wrong model in cron payloads.** The 4 `biochecha-*-insight` cron entries in `~/.openclaw/cron/jobs.json` (and in `ops/cron-jobs.example.json`, the public template) specified `model: "zai/glm-5"`. The openclaw gateway is rejecting that model — `gateway.err.log` shows `[cron] payload.model 'zai/glm-5' not allowed, falling back to agent defaults` firing every ~10 minutes. The fallback chain (minimax → openai-codex) sometimes times out, leading to dropped insight rows. Working ingest jobs (`8sleep-ingest`, `withings-ingest`, `oura-ingest`) used `minimax-portal/MiniMax-M2.7-highspeed` directly and fired reliably — that's the working pattern. **Fix:** swapped the 4 biochecha-insight payloads to the working model. Also patched `ops/cron-jobs.example.json` (10 occurrences total) so fresh forks don't inherit the broken pattern. Note: 15 OTHER cron jobs in the user's local config (orders-autopilot, paperless-doc-sync, agent-runs-prune, etc.) still use `zai/glm-5` — out of scope of this fix but flagged for follow-up.
+
+**Root cause 2 — symlinks decayed into stale copies.** SETUP-FOR-AGENTS Step 6 says `ln -sf ~/Developer/ThePerch/agents/health-integrations/* ~/.openclaw/workspace/scripts/health-integrations/`, but only `calendar_sync.py` was actually a symlink — everything else was a stale copy from Apr 28. Critically, `biochecha_dynamic_insight.py`, `biochecha_post_wake_insight.py`, `biochecha_event_insight.py`, `oura_ingest.py`, `inbody_*.py`, `prune_agent_runs.py`, and `_telegram_client.py` were **missing entirely** from the workspace dir — so even when cron tried to invoke them via the documented path, they'd fail with FileNotFoundError. **Fix:** removed all stale copies and re-symlinked the entire dir from the repo. Going forward, any `git pull` automatically reaches the running cron.
+
+**Root cause 3 — no catchup when a slot misses.** Even with the cron fixed, a single network hiccup or model timeout drops a slot for the day. The script had no recovery mechanism. **Fix:** `biochecha_dynamic_insight.py` now runs a catchup pass before the requested slot. Refactored `main()` into `_run_one_slot(slot)` + a thin coordinator that walks `["morning", "midday", "afternoon", "evening"]` in order, runs any slot whose row is missing for today (via new `_slot_has_row_today` helper), then runs the requested slot. So even if morning misses at 7am, when midday fires at 12pm it'll write morning first, then midday. The evening cron is the safety net — as long as it lands, the user sees a complete daily rotation. `morning_post_wake` and `event_logistics` are excluded from catchup since both are event-fired (InBody scale / 17track shipment poll) and depend on upstream triggers.
+
+**iOS — fixed the "latest generated wins" rule.** `InsightsService.fetchTodayDailyInsight` previously sorted by `generated_at DESC LIMIT 1`. That meant a slot firing late (e.g. afternoon catchup writing at 14:00 before midday's normal 12:05) would display all afternoon even though midday was the semantically-current slot. Now uses time-of-day-aware selection with a fallback ladder per current local hour:
+
+```
+20:00–06:59 → evening → afternoon → midday → morning_post_wake → morning → legacy
+15:00–19:59 → afternoon → midday → morning_post_wake → morning → legacy
+12:00–14:59 → midday → morning_post_wake → morning → legacy
+07:00–11:59 → morning_post_wake → morning → legacy
+```
+
+Plus an explicit yesterday-evening fallback for 00:00–06:59 so the card isn't empty during the overnight gap before today's morning fires. Single round-trip — fetches today's rows + yesterday's evening with one `in (today, yesterday)` filter, picks in-memory.
+
+**iOS — slot label visible on card.** The kicker now shows `MORNING · BIOCHECHA` / `MIDDAY · BIOCHECHA` / `AFTERNOON · BIOCHECHA` / `EVENING · BIOCHECHA` so the user sees which take they're reading and visually confirms the rotation is working. Legacy `daily_health` rows still show `TODAY · BIOCHECHA`. `event_logistics` rows show `DELIVERY · BIOCHECHA`.
+
+**Backfill.** Today's missing morning + evening insights generated manually and inserted into `public.insights` so the iOS card immediately rotates to the right slot per the new selection rule.
+
+---
+
 ### Round 15 — DIMINISHING RETURNS REACHED
 All three R15 audits (security, iOS perf, backend+docs) returned **DIMINISHING RETURNS REACHED — NO NEW FINDINGS.** The audit cadence has saturated. Per the loop's stop rule ("stop on first empty round"), R15 is the natural terminator. R16 unnecessary.
 

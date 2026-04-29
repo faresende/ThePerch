@@ -1,5 +1,5 @@
 {
-  "_comment": "ThePerch openclaw cron job template. Copy into ~/.openclaw/cron/jobs.json (merging with any existing jobs your install already has) and adjust paths/timezone. The 9 jobs below are the ones SETUP-FOR-AGENTS.md Step 13 enumerates. All use the lightContext + exec + zai/glm-5 + NO_REPLY pattern so the cron agent runs the script silently on success. Each payload invokes the python script directly via the set -a && source perch.env && set +a && python3 ... idiom \u2014 no separate wrapper shell scripts needed. Adjust the script root path if your openclaw workspace isn't at the default ~/.openclaw/workspace/scripts/ location.",
+  "_comment": "ThePerch openclaw cron job template. Copy into ~/.openclaw/cron/jobs.json (merging with any existing jobs your install already has) and adjust paths/timezone. The 9 jobs below are the ones SETUP-FOR-AGENTS.md Step 13 enumerates. All use the lightContext + exec + minimax-portal/MiniMax-M2.7-highspeed + NO_REPLY pattern so the cron agent runs the script silently on success. (Earlier versions specified `zai/glm-5` here, but the openclaw gateway rejects that model with `payload.model 'zai/glm-5' not allowed, falling back to agent defaults`, breaking cron reliability — caught and fixed in the BioChecha rotation diagnostic pass.) Each payload invokes the python script directly via the set -a && source perch.env && set +a && python3 ... idiom \u2014 no separate wrapper shell scripts needed. Adjust the script root path if your openclaw workspace isn't at the default ~/.openclaw/workspace/scripts/ location.",
   "jobs": [
     {
       "name": "oura-ingest",
@@ -13,7 +13,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/oura_ingest.py'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -33,7 +33,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/eight_sleep_ingest.py'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -53,7 +53,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/withings_ingest.py'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -73,7 +73,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/calendar_sync.py'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -93,7 +93,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py morning'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -113,7 +113,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py midday'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -133,7 +133,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py afternoon'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -153,7 +153,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/biochecha_dynamic_insight.py evening'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 300,
         "lightContext": true,
         "toolsAllow": [
@@ -173,7 +173,7 @@
       "payload": {
         "kind": "agentTurn",
         "message": "Run exactly this command once and wait for it to complete:\n\nbash -lc 'set -a && source $HOME/.openclaw/secrets/perch.env && set +a && python3 $HOME/.openclaw/workspace/scripts/health-integrations/prune_agent_runs.py'\n\nRules:\n- Do not change the command.\n- If it succeeds with no output, reply exactly NO_REPLY.\n- If it produces output, reply with a brief summary.\n- If it fails, do not mask or summarize.",
-        "model": "zai/glm-5",
+        "model": "minimax-portal/MiniMax-M2.7-highspeed",
         "timeoutSeconds": 60,
         "lightContext": true,
         "toolsAllow": [

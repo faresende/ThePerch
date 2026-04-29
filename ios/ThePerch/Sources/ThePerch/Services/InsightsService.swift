@@ -64,34 +64,96 @@ final class InsightsService {
         self.supabaseService = supabaseService
     }
 
-    /// Fetch the most recent BioChecha insight valid for today, regardless
-    /// of slot. With time-aware insights live, the latest of
-    /// daily_health_morning/midday/afternoon/evening (or event_logistics)
-    /// always wins — the iOS card simply shows the freshest take.
-    /// Falls back to the legacy `daily_health` rows that pre-date the
-    /// migration (the SQL rename should have caught these, but the OR
-    /// keeps things working if a stray remains).
-    /// Returns nil when no insight exists for today yet — expected in
-    /// the early morning before BioChecha's 7am cron has run. Caller
-    /// renders an empty state.
+    /// Fetch the BioChecha insight that best matches the current local
+    /// time of day, falling back through earlier slots when the
+    /// time-matched one hasn't been generated yet.
+    ///
+    /// Old behavior (`ORDER BY generated_at DESC LIMIT 1`) had a sharp
+    /// edge: a slot that fired LATE (e.g. afternoon catchup writing at
+    /// 14:00 before midday) would display all afternoon even though
+    /// midday is the semantically-current slot at 13:00. And once
+    /// evening's cron fired late or missed, the user got "stuck" on
+    /// afternoon for the rest of the day.
+    ///
+    /// New selection rule, by current local hour:
+    ///   00:00–06:59 → evening (+ fallbacks below)
+    ///   07:00–11:59 → morning_post_wake → morning
+    ///   12:00–14:59 → midday → morning_post_wake → morning
+    ///   15:00–19:59 → afternoon → midday → morning_post_wake → morning
+    ///   20:00–23:59 → evening → afternoon → midday → morning_post_wake → morning
+    ///
+    /// At any hour the legacy `daily_health` row is the last fallback
+    /// before yesterday's evening (early-morning carry-over) and finally
+    /// nil. `event_logistics` is event-fired and only surfaces when its
+    /// `generated_at` is more recent than the time-matched slot's row
+    /// — otherwise it sits behind the rotation.
     func fetchTodayDailyInsight() async throws -> Insight? {
         let today = ISO8601DateFormatter.dateOnly.string(from: .now)
+        let yesterday = ISO8601DateFormatter.dateOnly.string(
+            from: Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now
+        )
+
+        // Pull all of today's BioChecha rows + yesterday's evening as a
+        // safety net for the 00:00–06:59 window. Keeps it to one round
+        // trip via an `in` filter on valid_for_date.
         let result = try await supabaseService.databaseClient
             .from("insights")
             .select()
             .eq("agent_id", value: "biochecha")
-            .eq("valid_for_date", value: today)
+            .in("valid_for_date", values: [today, yesterday])
             .order("generated_at", ascending: false)
-            .limit(1)
             .execute()
 
-        // Decode the array directly — was previously running every row
-        // through JSONSerialization → JSONEncoder → JSONDecoder, which
-        // is ~3× the JSON work per element. Direct decode skips all of
-        // that and the response is small (limit 1) so we don't need
-        // the per-row failable wrapper here.
-        let items = try decoder.decode([Insight].self, from: result.data)
-        return items.first
+        let allRows = try decoder.decode([Insight].self, from: result.data)
+        let todayRows = allRows.filter { row in
+            guard let v = row.validForDate else { return false }
+            return ISO8601DateFormatter.dateOnly.string(from: v) == today
+        }
+
+        // Build the per-hour preference order. First match wins.
+        let hour = Calendar.current.component(.hour, from: .now)
+        let preference: [String]
+        switch hour {
+        case 20...23:
+            preference = ["daily_health_evening", "daily_health_afternoon",
+                          "daily_health_midday", "daily_health_morning_post_wake",
+                          "daily_health_morning", "daily_health"]
+        case 15..<20:
+            preference = ["daily_health_afternoon", "daily_health_midday",
+                          "daily_health_morning_post_wake", "daily_health_morning",
+                          "daily_health"]
+        case 12..<15:
+            preference = ["daily_health_midday", "daily_health_morning_post_wake",
+                          "daily_health_morning", "daily_health"]
+        case 7..<12:
+            preference = ["daily_health_morning_post_wake", "daily_health_morning",
+                          "daily_health"]
+        default: // 00:00–06:59
+            preference = ["daily_health_evening", "daily_health_afternoon",
+                          "daily_health_midday", "daily_health_morning_post_wake",
+                          "daily_health_morning", "daily_health"]
+        }
+
+        for slot in preference {
+            if let match = todayRows.first(where: { $0.insightType == slot }) {
+                return match
+            }
+        }
+
+        // Nothing for today matched. Last-mile fallback for the
+        // 00:00–06:59 window: yesterday's evening (so the card isn't
+        // empty during the overnight gap before today's morning fires).
+        if hour < 7 {
+            let ydayEvening = allRows
+                .filter { row in
+                    guard let v = row.validForDate else { return false }
+                    return ISO8601DateFormatter.dateOnly.string(from: v) == yesterday
+                        && row.insightType == "daily_health_evening"
+                }
+                .first
+            if let ydayEvening { return ydayEvening }
+        }
+        return nil
     }
 
     /// Fetch recent insights of any type for the user, newest first.

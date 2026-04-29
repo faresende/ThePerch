@@ -62,20 +62,28 @@ struct Insight: Identifiable, Codable, Sendable, Equatable {
         Kind(rawValue: insightType) ?? .unknown
     }
 
-    /// Display kicker: "TODAY · BIOCHECHA" / "ANOMALY · BIOCHECHA" / etc.
+    /// Display kicker. For BioChecha daily_health slots the slot name
+    /// is shown so the user can see the rotation through the day —
+    /// "MORNING · BIOCHECHA", "AFTERNOON · BIOCHECHA", etc. This was
+    /// added when the iOS slot selection was made time-of-day-aware
+    /// (the user explicitly asked for visibility into which take
+    /// they're reading).
     var kicker: String {
         let prefix: String
         switch kind {
-        case .dailyHealth, .dailyHealthMorning, .dailyHealthMorningPostWake,
-             .dailyHealthMidday, .dailyHealthAfternoon, .dailyHealthEvening,
-             .eventLogistics:
-            prefix = "TODAY"
-        case .crossDomain:    prefix = "PATTERN"
-        case .spendingPattern: prefix = "SPENDING"
-        case .anomaly:        prefix = "WORTH NOTING"
-        case .negativeSpace:  prefix = "WORTH A CHECK"
-        case .latency:        prefix = "RUNNING LATE"
-        case .unknown:        prefix = "INSIGHT"
+        case .dailyHealth:                 prefix = "TODAY"   // legacy, no slot info
+        case .dailyHealthMorning:          prefix = "MORNING"
+        case .dailyHealthMorningPostWake:  prefix = "MORNING"
+        case .dailyHealthMidday:           prefix = "MIDDAY"
+        case .dailyHealthAfternoon:        prefix = "AFTERNOON"
+        case .dailyHealthEvening:          prefix = "EVENING"
+        case .eventLogistics:              prefix = "DELIVERY"
+        case .crossDomain:                 prefix = "PATTERN"
+        case .spendingPattern:             prefix = "SPENDING"
+        case .anomaly:                     prefix = "WORTH NOTING"
+        case .negativeSpace:               prefix = "WORTH A CHECK"
+        case .latency:                     prefix = "RUNNING LATE"
+        case .unknown:                     prefix = "INSIGHT"
         }
         return "\(prefix) · \(agentId.uppercased())"
     }
