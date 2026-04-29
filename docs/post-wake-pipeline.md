@@ -89,7 +89,7 @@ the higher-priority source wins.
 
 ```
 Body composition: InBody  > Withings
-Sleep:            Oura    > 8sleep   (Oura ingest TBD)
+Sleep:            Oura    > 8sleep
 ```
 
 Implementation: `biochecha_dynamic_insight.py:_pick_by_priority`. The

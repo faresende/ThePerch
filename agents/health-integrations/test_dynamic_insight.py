@@ -375,7 +375,63 @@ class TestDontChurnGuard(unittest.TestCase):
         self.assertFalse(is_recent_topic_overlap(recent, "any-tracking"))
 
 
-from biochecha_dynamic_insight import _pick_by_priority
+from biochecha_dynamic_insight import _pick_by_priority, _gather_sleep_last_7
+from unittest.mock import patch
+
+
+class TestSleepGatherSessionAware(unittest.TestCase):
+    """The picker alone wasn't enough — Oura emits multiple sessions
+    per day (main night + nap). Naive 'latest measured_at wins' picked
+    the nap and reported a 30-min night. The fix: pre-filter to the
+    main session per (day, source) before applying source priority."""
+
+    def _row(self, day, source, metric, value, hour):
+        return {
+            "metric": metric,
+            "value": value,
+            "source": source,
+            "measured_at": f"{day}T{hour:02d}:00:00+00:00",
+        }
+
+    def test_main_night_wins_over_later_nap_within_oura(self):
+        rows = [
+            # Oura main session: woke up at 07:00, slept 529min
+            self._row("2026-04-27", "oura", "sleep_duration_min", 529.5, 7),
+            self._row("2026-04-27", "oura", "hrv_rmssd_ms",       45.0,  7),
+            self._row("2026-04-27", "oura", "resting_heart_rate_bpm", 55.0, 7),
+            # Oura nap: woke at 16:00, slept 30min — naive picker would pick this
+            self._row("2026-04-27", "oura", "sleep_duration_min", 30.0,  16),
+            self._row("2026-04-27", "oura", "hrv_rmssd_ms",       80.0,  16),
+            self._row("2026-04-27", "oura", "resting_heart_rate_bpm", 70.0, 16),
+        ]
+        with patch("biochecha_dynamic_insight._supabase_get", return_value=rows):
+            nights = _gather_sleep_last_7()
+        self.assertEqual(len(nights), 1)
+        n = nights[0]
+        self.assertEqual(n.duration_min, 529.5,
+            "main session wins over later nap within the same source")
+        self.assertEqual(n.hrv, 45.0,
+            "HRV must come from the same session as duration, not the nap")
+        self.assertEqual(n.rhr, 55.0,
+            "RHR must come from the same session as duration, not the nap")
+
+    def test_oura_wins_over_8sleep_when_both_present(self):
+        rows = [
+            self._row("2026-04-29", "oura",   "sleep_duration_min", 359.5, 7),
+            self._row("2026-04-29", "8sleep", "sleep_duration_min", 430.0, 7),
+        ]
+        with patch("biochecha_dynamic_insight._supabase_get", return_value=rows):
+            nights = _gather_sleep_last_7()
+        self.assertEqual(nights[0].duration_min, 359.5)
+
+    def test_8sleep_fills_when_oura_silent(self):
+        rows = [
+            self._row("2026-04-28", "8sleep", "sleep_duration_min", 446.0, 7),
+        ]
+        with patch("biochecha_dynamic_insight._supabase_get", return_value=rows):
+            nights = _gather_sleep_last_7()
+        self.assertEqual(nights[0].duration_min, 446.0,
+            "fallback source must populate when primary is silent")
 
 
 class TestPickByPriority(unittest.TestCase):

@@ -225,6 +225,27 @@ def _pick_by_priority(
 
 
 def _gather_sleep_last_7() -> list[SleepNight]:
+    """Sleep over the last 7 days with source-of-truth precedence
+    AND session-aware aggregation.
+
+    A single day can have multiple sleep sessions (a main night plus
+    a nap, or a fragmented night the tracker split in two). Naive
+    "latest measured_at wins" picks the nap, polluting the trailing
+    average with a 30-min reading.
+
+    Resolution order per (day, source):
+      1. Pick the MAIN session — the one with the longest
+         `sleep_duration_min`. That session's bedtime_end becomes the
+         canonical measured_at for the day.
+      2. Carry every metric from THAT session (duration, HRV, RHR,
+         score) so HRV/RHR aren't mixed across sessions.
+    Then apply SLEEP_SOURCE_PRIORITY across the surviving (day, source)
+    rows.
+
+    Within Oura specifically, every metric in one session shares the
+    same `measured_at` (= bedtime_end). 8sleep follows the same pattern.
+    So filtering rows by "matches the main-session measured_at" is
+    equivalent to "rows from the main session"."""
     since = (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
     rows = _supabase_get(
         "health_metrics",
@@ -235,7 +256,46 @@ def _gather_sleep_last_7() -> list[SleepNight]:
             "order": "measured_at.asc",
         },
     )
-    chosen = _pick_by_priority(rows, SLEEP_SOURCE_PRIORITY)
+
+    # 1. Identify the main session per (day, source) by largest duration.
+    main_session_at: dict[tuple[str, str], str] = {}
+    for r in rows:
+        if r["metric"] != "sleep_duration_min":
+            continue
+        key = (r["measured_at"][:10], r.get("source") or "")
+        prev_at = main_session_at.get(key)
+        if prev_at is None:
+            main_session_at[key] = r["measured_at"]
+        else:
+            # Find the row with larger value among the candidates.
+            prev_row = next(
+                (x for x in rows
+                 if x["metric"] == "sleep_duration_min"
+                 and x["measured_at"] == prev_at
+                 and (x.get("source") or "") == key[1]),
+                None,
+            )
+            if prev_row is None or float(r["value"]) > float(prev_row["value"]):
+                main_session_at[key] = r["measured_at"]
+
+    # 2. Filter to rows that came from the main session of their (day,source).
+    # Daily-grain metrics (sleep_score, etc.) live at their own measured_at
+    # (Oura emits them at 23:59 of the day) — they're not session-bound, so
+    # they pass through untouched. Only session-bound metrics get filtered.
+    SESSION_METRICS = {"sleep_duration_min", "hrv_rmssd_ms", "resting_heart_rate_bpm"}
+    main_rows = []
+    for r in rows:
+        if r["metric"] not in SESSION_METRICS:
+            main_rows.append(r)
+            continue
+        if main_session_at.get(
+            (r["measured_at"][:10], r.get("source") or "")
+        ) == r["measured_at"]:
+            main_rows.append(r)
+
+    # 3. Apply source priority over the cleaned rows.
+    chosen = _pick_by_priority(main_rows, SLEEP_SOURCE_PRIORITY)
+
     by_day: dict[str, dict[str, Any]] = {}
     for (day, metric), r in chosen.items():
         d = by_day.setdefault(day, {"date": day})

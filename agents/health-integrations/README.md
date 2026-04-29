@@ -25,7 +25,8 @@ ln -s ~/Developer/ThePerch/agents/health-integrations \
 
 | File | Purpose | Schedule |
 |---|---|---|
-| `eight_sleep_ingest.py` | Last-24h sleep stages, HRV, RHR from the 8sleep API. **Fallback / fill-in for Oura.** | every 30min |
+| `oura_ingest.py` | Last-14d sleep sessions + daily sleep score + readiness from the Oura Cloud API v2. **Primary sleep source.** | every 30min |
+| `eight_sleep_ingest.py` | Last-24h sleep stages, HRV, RHR from the 8sleep API. **Fallback / fill-in for Oura** (e.g. nights the ring's off the charger). | every 30min |
 | `withings_ingest.py` | Last-7d weight + body comp + BP + HR from Withings. **Fallback for InBody on body comp.** | hourly |
 | `inbody_ingest.py` | Parses any `InBody-*.csv` in `~/Documents/Claudio/` → 22 metrics. **Primary body-composition source.** Deletes file after success. | watcher (60s poll) |
 | `inbody_backfill_from_json.py` | One-shot: imports historical scans from the legacy `body-composition.json` into `health_metrics`. | manual, idempotent |
@@ -56,15 +57,14 @@ the higher-priority source wins. Lower-priority sources fill gaps.
 | Domain | Primary | Fallback |
 |---|---|---|
 | Body composition (weight, body fat %, fat mass, muscle mass) | InBody | Withings |
-| Sleep (duration, score, HRV, RHR) | Oura *(ingest TBD)* | 8sleep |
+| Sleep (duration, score, HRV, RHR) | Oura | 8sleep |
 
 The picker lives in `biochecha_dynamic_insight.py:_pick_by_priority`. Ranks
 are `SLEEP_SOURCE_PRIORITY` and `BODY_COMP_SOURCE_PRIORITY` constants —
 add a new source by appending it to the tuple.
 
-**Heads-up:** there's no Oura ingest yet. Sleep data is currently
-8sleep-only. Build an `oura_ingest.py` to flip the precedence; the
-gather code is already ready.
+Add a new source: append it to `BODY_COMP_SOURCE_PRIORITY` or
+`SLEEP_SOURCE_PRIORITY` in `biochecha_dynamic_insight.py`.
 
 ## Setup
 
@@ -81,11 +81,17 @@ export PERCH_USER_ID=...
 # OpenAI (insight generation)
 export OPENAI_API_KEY=...
 
-# 8sleep
+# Oura (primary sleep source)
+# Generate a personal access token at:
+#   https://cloud.ouraring.com/personal-access-tokens
+export OURA_PERSONAL_TOKEN=...
+
+# 8sleep (fallback sleep source + bed-temp / room-temp signals Oura doesn't have)
 export EIGHT_SLEEP_EMAIL=you@example.com
 export EIGHT_SLEEP_PASSWORD=...
 
-# Withings — register at https://developer.withings.com/dashboard/
+# Withings (fallback body-comp source — InBody is primary)
+# Register at https://developer.withings.com/dashboard/
 export WITHINGS_CLIENT_ID=...
 export WITHINGS_CLIENT_SECRET=...
 ```
@@ -132,6 +138,7 @@ them: `docs/superpowers/plans/2026-04-28-time-aware-insights.md` Task 4.4.
 set -a && source ~/.openclaw/secrets/perch.env && set +a
 
 # Pull latest data
+python3 .../oura_ingest.py
 python3 .../eight_sleep_ingest.py
 python3 .../withings_ingest.py
 
