@@ -34,19 +34,28 @@ def _base_state(slot: str = "morning") -> AppState:
 
 
 class TestReflectiveMorning(unittest.TestCase):
+    """Reflective morning runs in `morning_post_wake` only — the 7am
+    pre-wake slot can't see fresh sleep / weight data so retrospection
+    there would be misleading."""
+
     def test_baseline_score_is_at_least_threshold(self):
-        state = _base_state("morning")
+        state = _base_state("morning_post_wake")
         result = score_reflective_morning(state)
         self.assertIsNotNone(result)
         self.assertGreaterEqual(result.score, 0.3)
         self.assertEqual(result.category, "reflective_morning")
+
+    def test_returns_none_in_pre_wake_morning_slot(self):
+        state = _base_state("morning")
+        self.assertIsNone(score_reflective_morning(state),
+            "pre-wake 7am slot must NOT trigger reflective categories")
 
     def test_returns_none_when_slot_isnt_morning(self):
         state = _base_state("midday")
         self.assertIsNone(score_reflective_morning(state))
 
     def test_short_nights_streak_boosts_score(self):
-        state = _base_state("morning")
+        state = _base_state("morning_post_wake")
         short_nights = [
             SleepNight(date=f"2026-04-{d}", duration_min=300.0)
             for d in (25, 26, 27, 28)
@@ -229,7 +238,90 @@ from biochecha_dynamic_insight import (
     score_logistics_event_out_for_delivery,
     score_logistics_event_eta_today,
     is_recent_topic_overlap,
+    score_anticipatory_today_training,
+    score_anticipatory_today_macros,
+    score_body_composition_change,
+    BodyComp,
 )
+
+
+class TestAnticipatoryTodayTraining(unittest.TestCase):
+    def test_only_pre_wake_morning(self):
+        state = _base_state("morning_post_wake")
+        self.assertIsNone(score_anticipatory_today_training(state))
+        state = _base_state("midday")
+        self.assertIsNone(score_anticipatory_today_training(state))
+
+    def test_training_day_with_meetings_scores_high(self):
+        state = _base_state("morning")
+        state = replace(state,
+            workout_schedule_today="training",
+            today_calendar_remaining=[
+                CalendarEvent(
+                    start=datetime(2026, 4, 28, 9, 0, tzinfo=timezone.utc),
+                    end=datetime(2026, 4, 28, 13, 0, tzinfo=timezone.utc),
+                    title="Workshop"),
+                CalendarEvent(
+                    start=datetime(2026, 4, 28, 14, 0, tzinfo=timezone.utc),
+                    end=datetime(2026, 4, 28, 15, 0, tzinfo=timezone.utc),
+                    title="1:1"),
+            ],
+        )
+        result = score_anticipatory_today_training(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.7)
+        self.assertEqual(result.fact_bundle["workout_today"], "training")
+        self.assertGreaterEqual(result.fact_bundle["meetings_today_minutes"], 240)
+
+
+class TestAnticipatoryTodayMacros(unittest.TestCase):
+    def test_only_pre_wake_morning(self):
+        state = _base_state("evening")
+        self.assertIsNone(score_anticipatory_today_macros(state))
+
+    def test_busy_day_with_no_eating_gap_scores_high(self):
+        state = _base_state("morning")
+        # 8am-9pm with back-to-back meetings → tight eating window
+        events = []
+        for hour in range(9, 20):
+            events.append(CalendarEvent(
+                start=datetime(2026, 4, 28, hour, 0, tzinfo=timezone.utc),
+                end=datetime(2026, 4, 28, hour, 50, tzinfo=timezone.utc),
+                title=f"Meeting {hour}"))
+        state = replace(state, today_calendar_remaining=events)
+        result = score_anticipatory_today_macros(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.7)
+        self.assertLess(result.fact_bundle["biggest_eating_gap_min"], 90)
+
+
+class TestBodyCompositionChange(unittest.TestCase):
+    def test_only_post_wake_slot(self):
+        state = _base_state("morning")
+        self.assertIsNone(score_body_composition_change(state))
+
+    def test_returns_none_when_no_data(self):
+        state = _base_state("morning_post_wake")
+        self.assertIsNone(score_body_composition_change(state))
+
+    def test_significant_drop_scores_high(self):
+        state = _base_state("morning_post_wake")
+        state = replace(state,
+            now=datetime(2026, 4, 28, 8, 0, tzinfo=timezone.utc),
+            body_comp_last_30=[
+                BodyComp(date=f"2026-04-{d}", weight_kg=99.5)
+                for d in range(21, 28)
+            ] + [
+                BodyComp(date="2026-04-28", weight_kg=98.0,
+                         body_fat_pct=18.0, fat_mass_kg=17.6,
+                         muscle_mass_kg=53.3),
+            ],
+        )
+        result = score_body_composition_change(state)
+        self.assertIsNotNone(result)
+        self.assertGreater(result.score, 0.7)
+        self.assertEqual(result.fact_bundle["weight_kg_today"], 98.0)
+        self.assertLess(result.fact_bundle["weight_delta_kg"], -1.0)
 
 
 class TestLogisticsEventCategories(unittest.TestCase):

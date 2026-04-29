@@ -35,7 +35,14 @@ from _supabase_client import insert_agent_run  # noqa: E402
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_MODEL = os.environ.get("OPENAI_INSIGHT_MODEL", "gpt-4o-mini")
 
-VALID_SLOTS = {"morning", "midday", "afternoon", "evening", "event_logistics"}
+VALID_SLOTS = {
+    "morning",            # 7am cron — pre-wake, forward-looking only
+    "morning_post_wake",  # event-fired by inbody_ingest watcher — sleep + body comp + plan
+    "midday",
+    "afternoon",
+    "evening",
+    "event_logistics",
+}
 
 
 # ─── Types ──────────────────────────────────────────────────────────
@@ -447,8 +454,11 @@ def rank(results: list[CategoryResult]) -> CategoryResult:
 
 
 def score_reflective_morning(state: AppState) -> Optional[CategoryResult]:
-    """Always-eligible morning fallback. Baseline 0.5; signals add."""
-    if state.slot != "morning":
+    """Always-eligible morning fallback. Baseline 0.5; signals add.
+    Runs in the post-wake slot (where sleep/HRV data is fresh) — NOT
+    in the 7am pre-wake slot, where retrospection on stale data is
+    actively misleading."""
+    if state.slot != "morning_post_wake":
         return None
 
     score = 0.5
@@ -781,6 +791,180 @@ def score_behavioral_capture_gap(state: AppState) -> Optional[CategoryResult]:
     )
 
 
+# ─── Forward-looking morning categories ─────────────────────────────
+
+
+def score_anticipatory_today_training(state: AppState) -> Optional[CategoryResult]:
+    """Pre-wake MORNING slot. Surfaces today's workout context against
+    the calendar so the user can plan around it. Fires when there's
+    a training day ahead AND a meaningful gap exists (or doesn't)."""
+    if state.slot != "morning":
+        return None
+
+    workout = state.workout_schedule_today  # 'training' | 'light' | 'rest' | 'unknown'
+    cal = state.today_calendar_remaining
+
+    # Pre-wake: calendar windows we care about are the whole day, not "remaining"
+    today_meeting_minutes = sum(
+        max(0, int((e.end - e.start).total_seconds() / 60))
+        for e in cal
+    )
+    meeting_count = len(cal)
+
+    # Score: training days + heavy calendar = high value (need to plan).
+    # Rest days + heavy calendar = medium (still useful to flag the load).
+    # Unknown workout + light calendar = low (not enough signal).
+    if workout == "unknown" and meeting_count == 0:
+        return None
+    base = 0.4
+    if workout == "training":
+        base = 0.7
+    elif workout == "light":
+        base = 0.55
+    if today_meeting_minutes >= 240:  # ≥4h of meetings
+        base += 0.1
+    return CategoryResult(
+        category="anticipatory_today_training",
+        score=min(base, 1.0),
+        fact_bundle={
+            "workout_today": workout,
+            "meetings_today_count": meeting_count,
+            "meetings_today_minutes": today_meeting_minutes,
+            "first_meeting_iso": cal[0].start.isoformat() if cal else None,
+            "first_meeting_title": cal[0].title if cal else None,
+        },
+    )
+
+
+def score_anticipatory_today_macros(state: AppState) -> Optional[CategoryResult]:
+    """Pre-wake MORNING slot. Frames today's macro targets against
+    today's calendar density so the user knows when their eating
+    windows will be tight."""
+    if state.slot != "morning":
+        return None
+
+    target_cal = state.today_targets.calories
+    target_prot = state.today_targets.protein
+    if target_cal <= 0 or target_prot <= 0:
+        return None
+
+    cal = state.today_calendar_remaining
+    # Find the largest contiguous gap between meetings during waking
+    # hours (8am-9pm). That's the user's biggest eating window.
+    waking_start = state.now.replace(hour=8, minute=0, second=0, microsecond=0)
+    waking_end = state.now.replace(hour=21, minute=0, second=0, microsecond=0)
+    if cal:
+        # Sort by start, walk the gaps.
+        sorted_events = sorted(cal, key=lambda e: e.start)
+        cursor = waking_start
+        biggest_gap_min = 0
+        for ev in sorted_events:
+            if ev.start <= waking_start or ev.start >= waking_end:
+                continue
+            gap = int((ev.start - cursor).total_seconds() / 60)
+            if gap > biggest_gap_min:
+                biggest_gap_min = gap
+            cursor = max(cursor, ev.end)
+        # Gap from last event to waking_end
+        tail = int((waking_end - cursor).total_seconds() / 60)
+        if tail > biggest_gap_min:
+            biggest_gap_min = tail
+    else:
+        biggest_gap_min = int((waking_end - waking_start).total_seconds() / 60)
+
+    # Score: tight day (largest gap < 90min) + high protein target = highly worth flagging.
+    score = 0.45
+    if biggest_gap_min < 90:
+        score = 0.75
+    elif biggest_gap_min < 150:
+        score = 0.6
+
+    return CategoryResult(
+        category="anticipatory_today_macros",
+        score=min(score, 1.0),
+        fact_bundle={
+            "target_calories": int(target_cal),
+            "target_protein": int(target_prot),
+            "target_carbs": int(state.today_targets.carbs),
+            "target_fat": int(state.today_targets.fat),
+            "biggest_eating_gap_min": biggest_gap_min,
+            "meetings_today_count": len(cal),
+            "workout_today": state.workout_schedule_today,
+        },
+    )
+
+
+# ─── Post-wake morning categories ───────────────────────────────────
+
+
+def score_body_composition_change(state: AppState) -> Optional[CategoryResult]:
+    """Post-wake MORNING slot. Compares today's weigh-in against the
+    7-day trailing average so the user gets a delta worth noticing
+    (or a 'nothing's moved' confirmation)."""
+    if state.slot != "morning_post_wake":
+        return None
+
+    series = state.body_comp_last_30
+    if not series:
+        return None
+
+    today = state.now.date().isoformat()
+    today_row = next((b for b in reversed(series) if b.date == today), None)
+    if today_row is None or today_row.weight_kg is None:
+        # Today's weigh-in didn't land — the watcher may have fired before
+        # the ingest committed. Don't surface a stale comparison.
+        return None
+
+    # Trailing 7-day average, excluding today
+    trail = [b for b in series if b.date != today and b.weight_kg is not None][-7:]
+    if len(trail) < 2:
+        # Not enough history yet — first few weigh-ins
+        return CategoryResult(
+            category="body_composition_change",
+            score=0.5,
+            fact_bundle={
+                "weight_kg_today": round(today_row.weight_kg, 2),
+                "trail_count": len(trail),
+                "note": "early_data",
+            },
+        )
+
+    avg = sum(b.weight_kg for b in trail) / len(trail)
+    delta = today_row.weight_kg - avg
+
+    # Body fat % delta (if we have it)
+    bf_today = today_row.body_fat_pct
+    bf_trail = [b.body_fat_pct for b in trail if b.body_fat_pct is not None]
+    bf_avg = sum(bf_trail) / len(bf_trail) if bf_trail else None
+    bf_delta = (bf_today - bf_avg) if (bf_today is not None and bf_avg is not None) else None
+
+    # Score: bigger weight or body fat moves are higher-signal.
+    abs_delta = abs(delta)
+    score = 0.5
+    if abs_delta >= 1.0:
+        score = 0.85
+    elif abs_delta >= 0.5:
+        score = 0.7
+    if bf_delta is not None and abs(bf_delta) >= 0.5:
+        score = max(score, 0.75)
+
+    return CategoryResult(
+        category="body_composition_change",
+        score=min(score, 1.0),
+        fact_bundle={
+            "weight_kg_today": round(today_row.weight_kg, 2),
+            "weight_kg_7d_avg": round(avg, 2),
+            "weight_delta_kg": round(delta, 2),
+            "body_fat_pct_today": round(bf_today, 2) if bf_today is not None else None,
+            "body_fat_pct_7d_avg": round(bf_avg, 2) if bf_avg is not None else None,
+            "body_fat_delta_pct": round(bf_delta, 2) if bf_delta is not None else None,
+            "fat_mass_kg_today": round(today_row.fat_mass_kg, 2) if today_row.fat_mass_kg is not None else None,
+            "muscle_mass_kg_today": round(today_row.muscle_mass_kg, 2) if today_row.muscle_mass_kg is not None else None,
+            "trail_days": len(trail),
+        },
+    )
+
+
 # ─── Event categories ───────────────────────────────────────────────
 
 
@@ -886,8 +1070,17 @@ paragraph. No bullets. No headers. No emoji. 30-55 words, hard 60 max."""
 
 SLOT_PROMPT_ADDENDUM: dict[str, str] = {
     "morning": (
-        "This is the MORNING slot — reflect on overnight + recent. "
-        "Frame what's coming today gently, not as instruction."
+        "This is the PRE-WAKE MORNING slot — fires at 7am before the user "
+        "is up. Sleep, weight, and HRV data aren't fresh yet, so DO NOT "
+        "retrospect on last night. Look forward: today's training, today's "
+        "macros, the calendar load, anything in transit. Plan the day, "
+        "don't reflect on yesterday."
+    ),
+    "morning_post_wake": (
+        "This is the POST-WAKE MORNING slot — fires after the user weighed "
+        "in and Oura synced overnight data. Sleep, HRV, weight, body comp "
+        "are all fresh now. THIS is the slot for retrospection: how the "
+        "night went, what the body's saying, today's plan adjusted for it."
     ),
     "midday": (
         "This is the MIDDAY slot — what's worth noticing now, before "
@@ -945,6 +1138,101 @@ def _generate_insight(slot: str, fact_bundle: dict[str, Any], recent_feedback: O
         ],
         "temperature": 0.8,
         "max_tokens": 250,
+    }).encode()
+    req = Request(
+        OPENAI_URL,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+    )
+    with urlopen(req, timeout=60) as resp:
+        payload = json.loads(resp.read())
+    return payload["choices"][0]["message"]["content"].strip()
+
+
+# ─── Long-form Telegram summary (post-wake only, for now) ───────────
+
+
+SYSTEM_PROMPT_TELEGRAM = """You are BioChecha, the user's AI health & nutrition coach.
+
+You're writing the POST-WAKE Telegram briefing. The user has just
+weighed in, Oura synced overnight, and the day's plan is taking
+shape. They opened Telegram looking for a useful read of where
+their body is and what's worth knowing.
+
+LENGTH: 4-6 short lines, 200-400 chars. Multi-section is welcome.
+You have more space than the iOS card — use it for context, not
+filler.
+
+VOICE: same as the iOS card — smart-friend texting style, ~20%
+snark. Earned snark only — when the data warrants it. Not jokey,
+not cute, never an exclamation.
+
+ALLOWED IN THIS FORMAT (forbidden in the iOS card):
+  ✅ Specific numbers when they carry the meaning (98.1 kg, 15 ms HRV)
+  ✅ Markdown for emphasis: *bold* or _italics_
+  ✅ Two short sections separated by a blank line — e.g. overnight
+     read first, today's plan second. Pick the structure that
+     serves the data, not a template.
+
+STILL FORBIDDEN:
+  ❌ "indicating", "suggesting", "hinting" — hedge verbs
+  ❌ "consider taking", "you should", "remember to" — preachy
+  ❌ Cliché metaphors (rollercoaster, yo-yo, recharge, recalibrate)
+  ❌ Exclamation points, emoji, headers like "Today:" or "Body:"
+  ❌ Greetings ("Good morning"), signoffs ("Have a great day")
+  ❌ Bullet lists. Markdown headers (#, ##). Tables.
+  ❌ Saying "your body" 3 times in 4 lines (rotate phrasing)
+
+PREFER COMPARATIVE OVER ABSOLUTE — but when the absolute is the
+point, use it. "Weight dropped 1.2 kg from your 7-day average"
+beats both "weight is 98.1 kg" and "weight dropped a lot".
+
+Output ONLY the briefing. No preamble, no signoff, no metadata."""
+
+
+def _build_telegram_prompt(slot: str, fact_bundle: dict[str, Any],
+                           recent_feedback: Optional[list[str]] = None) -> str:
+    today = date.today()
+    parts = [
+        f"Today: {today.isoformat()} ({today.strftime('%A')})",
+        f"Slot: {slot}",
+        SLOT_PROMPT_ADDENDUM.get(slot, ""),
+    ]
+    if recent_feedback:
+        parts.append("")
+        parts.append("RECENT USER FEEDBACK (correct course accordingly):")
+        for r in recent_feedback[:5]:
+            parts.append(f"  - {r[:300]}")
+    parts += [
+        "",
+        "FACTS (real numbers from today's data — write the briefing from these):",
+        json.dumps(fact_bundle, indent=2, default=str),
+        "",
+        "Write the briefing (4-6 lines, 200-400 chars, multi-section ok, no preamble).",
+    ]
+    return "\n".join(parts)
+
+
+def _generate_telegram_summary(slot: str, fact_bundle: dict[str, Any],
+                               recent_feedback: Optional[list[str]] = None) -> str:
+    """Generate the long-form Telegram briefing. Same model as
+    _generate_insight but a different system prompt + user prompt
+    that grants the longer format. Higher max_tokens budget."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not set")
+    body = json.dumps({
+        "model": OPENAI_MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT_TELEGRAM},
+            {"role": "user", "content": _build_telegram_prompt(slot, fact_bundle, recent_feedback)},
+        ],
+        "temperature": 0.8,
+        "max_tokens": 500,
     }).encode()
     req = Request(
         OPENAI_URL,
@@ -1057,10 +1345,22 @@ def main() -> int:
 
         candidates: list[CategoryResult] = []
         SLOT_CATEGORY_FNS: dict[str, list] = {
+            # Pre-wake — sleep / weight / HRV are stale at 7am, so no
+            # reflective categories here. All forward-looking.
             "morning": [
+                score_anticipatory_today_training,
+                score_anticipatory_today_macros,
+                score_logistics_arriving_today,
+                score_behavioral_capture_gap,
+            ],
+            # Post-wake — fired by inbody_ingest watcher after fresh
+            # data lands. Reflective categories now make sense.
+            "morning_post_wake": [
+                score_body_composition_change,
                 score_reflective_morning,
                 score_anomaly_recent_pattern,
-                score_behavioral_capture_gap,
+                score_anticipatory_today_training,
+                score_anticipatory_today_macros,
             ],
             "midday": [
                 score_anticipatory_lunch_window,

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.theperch.inbody-watcher.plist
+  ─────────────────────────────────────────────────────────────────
+  Polls ~/Documents/Claudio/ every 60s for new InBody-*.csv files
+  exported from the H30 companion app. When one is found, runs
+  scripts/inbody-watch-tick.sh which ingests any CSVs and (on success)
+  regenerates the BioChecha post-wake insight on iOS + Telegram.
+
+  Why polling instead of WatchPaths: macOS TCC sandboxing blocks
+  launchd's FSEvents subscription on ~/Documents without Full Disk
+  Access. Polling sidesteps the permission dance — the tick script
+  inherits the user's interactive shell context (which already has
+  Documents access via terminal grants). Latency is bounded by
+  StartInterval; for a once-a-day weigh-in, 60s is invisible.
+
+  Install: cp this plist into ~/Library/LaunchAgents/ (or symlink) and
+  `launchctl load ~/Library/LaunchAgents/com.theperch.inbody-watcher.plist`.
+  Uninstall: `launchctl unload ...` then rm.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.theperch.inbody-watcher</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/faresende/Developer/ThePerch/scripts/inbody-watch-tick.sh</string>
+  </array>
+
+  <!-- Poll every 60s. The tick script is a no-op when no CSV is
+       present, so this is cheap (one ls + one stat). -->
+  <key>StartInterval</key>
+  <integer>60</integer>
+
+  <!-- Fire once at agent load so the user gets immediate feedback
+       if a CSV is sitting there at install time. The script is
+       idempotent and exits cleanly when there's nothing to do. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Polling agent — let launchd schedule, don't keep alive. -->
+  <key>KeepAlive</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/faresende/.openclaw/logs/inbody-watcher.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/faresende/.openclaw/logs/inbody-watcher.err.log</string>
+
+  <!-- Inherit a sensible PATH so /usr/bin/env can find python3. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

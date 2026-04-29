@@ -45,6 +45,7 @@ struct Insight: Identifiable, Codable, Sendable, Equatable {
     enum Kind: String, Sendable {
         case dailyHealth = "daily_health"          // legacy — kept until migration runs
         case dailyHealthMorning = "daily_health_morning"
+        case dailyHealthMorningPostWake = "daily_health_morning_post_wake"
         case dailyHealthMidday = "daily_health_midday"
         case dailyHealthAfternoon = "daily_health_afternoon"
         case dailyHealthEvening = "daily_health_evening"
@@ -65,8 +66,8 @@ struct Insight: Identifiable, Codable, Sendable, Equatable {
     var kicker: String {
         let prefix: String
         switch kind {
-        case .dailyHealth, .dailyHealthMorning, .dailyHealthMidday,
-             .dailyHealthAfternoon, .dailyHealthEvening,
+        case .dailyHealth, .dailyHealthMorning, .dailyHealthMorningPostWake,
+             .dailyHealthMidday, .dailyHealthAfternoon, .dailyHealthEvening,
              .eventLogistics:
             prefix = "TODAY"
         case .crossDomain:    prefix = "PATTERN"
