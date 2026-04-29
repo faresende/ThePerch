@@ -127,7 +127,6 @@
 		HCOR0002HCOR0002HCOR0002 /* HomeCardOrdering.swift in Sources */ = {isa = PBXBuildFile; fileRef = HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */; };
 		HKSP0002HKSP0002HKSP0002 /* HealthKitServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */; };
 		HMVM0002HMVM0002HMVM0002 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */; };
-		HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */; };
 		HSHC0002HSHC0002HSHC0002 /* HealthSummaryHomeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */; };
 		INSGHT0002INSGHT0002INS /* Insight.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSGHT0001INSGHT0001INS /* Insight.swift */; };
 		INSSVC0002INSSVC0002INS /* InsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSSVC0001INSSVC0001INS /* InsightsService.swift */; };
@@ -318,7 +317,6 @@
 		HCOR0001HCOR0001HCOR0001 /* HomeCardOrdering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCardOrdering.swift; sourceTree = "<group>"; };
 		HKSP0001HKSP0001HKSP0001 /* HealthKitServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitServiceProtocol.swift; sourceTree = "<group>"; };
 		HMVM0001HMVM0001HMVM0001 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
-		HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryCard.swift; sourceTree = "<group>"; };
 		HSHC0001HSHC0001HSHC0001 /* HealthSummaryHomeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSummaryHomeCard.swift; sourceTree = "<group>"; };
 		INSGHT0001INSGHT0001INS /* Insight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Insight.swift; sourceTree = "<group>"; };
 		INSSVC0001INSSVC0001INS /* InsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsService.swift; sourceTree = "<group>"; };
@@ -537,7 +535,6 @@
 		35F543682F52411F00204F77 /* Cards */ = {
 			isa = PBXGroup;
 			children = (
-				HSCARD01HSCARD01HSCARD01 /* HealthSummaryCard.swift */,
 				353BF3D12F5B4C7900AC60C3 /* CaloriesCard.swift */,
 				DSBR0001DSBR0001DSBR0001 /* DailySummaryBar.swift */,
 				BE97E85780D50FF7DFE46BAE /* WeeklyVolumeCard.swift */,
@@ -1074,7 +1071,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DLAM0002DLAM0002DLAM0002 /* DeliveryLiveActivityManager.swift in Sources */,
-				HSCARD02HSCARD02HSCARD02 /* HealthSummaryCard.swift in Sources */,
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* RecordDetailView.swift in Sources */,
 				353BF3D32F5B4C7900AC60C3 /* MacrosCard.swift in Sources */,
 				353BF3D42F5B4C7900AC60C3 /* CaloriesCard.swift in Sources */,

@@ -1005,13 +1005,16 @@ private struct CalendarSectionContent: View {
     /// Pre-bucketed event counts per `Calendar.current.startOfDay(...)`.
     /// Replaces the 7×/render filter loop in the day-chip strip.
     @State private var eventsByDay: [Date: Int] = [:]
+    /// Round 10 audit (M-4): also cache `dayEvents` so the four body
+    /// reads (title, nextEventAside, isEmpty gate, CalendarAgenda)
+    /// hit a single pre-filtered array instead of re-filtering
+    /// `cachedEvents` per access. Recomputed on selectedDate change
+    /// or when cachedEvents is rebuilt.
+    @State private var cachedDayEvents: [EventData] = []
 
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
-    private var dayEvents: [EventData] {
-        let cal = Calendar.current
-        return cachedEvents.filter { cal.isDate($0.start, inSameDayAs: selectedDate) }
-    }
+    private var dayEvents: [EventData] { cachedDayEvents }
 
     /// Recompute `cachedEvents` and `eventsByDay` from the current sources.
     /// Called from .onAppear and .onChange. Static so it can be called
@@ -1044,6 +1047,38 @@ private struct CalendarSectionContent: View {
         )
         cachedEvents = events
         eventsByDay = byDay
+        recomputeDayEvents()
+    }
+
+    private func recomputeDayEvents() {
+        let cal = Calendar.current
+        cachedDayEvents = cachedEvents.filter { cal.isDate($0.start, inSameDayAs: selectedDate) }
+    }
+
+    /// Round 10 audit (F3): single Hashable fingerprint covering both
+    /// `calendarRecords` and `eventKitEvents` so we coalesce the two
+    /// `.onChange` handlers into one. Cold start used to fire 3+
+    /// passes (cached records, EventKit, network records); now fires
+    /// at most once per logical change.
+    private struct CalendarSourceFingerprint: Hashable {
+        let recordsCount: Int
+        let recordsMaxUpdated: TimeInterval
+        let ekEventsCount: Int
+        let ekEventsLastStart: TimeInterval
+
+        static func from(records: [Record], ekEvents: [EventData]) -> CalendarSourceFingerprint {
+            var maxUpd: TimeInterval = 0
+            for r in records {
+                let t = r.updatedAt.timeIntervalSince1970
+                if t > maxUpd { maxUpd = t }
+            }
+            return CalendarSourceFingerprint(
+                recordsCount: records.count,
+                recordsMaxUpdated: maxUpd,
+                ekEventsCount: ekEvents.count,
+                ekEventsLastStart: ekEvents.last?.start.timeIntervalSince1970 ?? 0
+            )
+        }
     }
 
     private var weekDates: [Date] {
@@ -1117,8 +1152,11 @@ private struct CalendarSectionContent: View {
         .padding(.horizontal, 18)
         .padding(.bottom, 20)
         .onAppear { refreshEventsCache() }
-        .onChange(of: dashboardViewModel.calendarRecords) { _, _ in refreshEventsCache() }
-        .onChange(of: dashboardViewModel.eventKitEvents) { _, _ in refreshEventsCache() }
+        .onChange(of: CalendarSourceFingerprint.from(
+            records: records,
+            ekEvents: dashboardViewModel.eventKitEvents
+        )) { _, _ in refreshEventsCache() }
+        .onChange(of: selectedDate) { _, _ in recomputeDayEvents() }
     }
 }
 

@@ -25,7 +25,49 @@ struct CalendarTodayCard: View {
     @State private var now = Date.now
     @AppStorage("card_compact_calendar") private var isCompact = false
 
-    private var todayEvents: [IdentifiedEvent] {
+    /// Round 10 audit (F11): cached today-events. The prior computed property
+    /// ran compactMap+merge+dedupe+sort on EVERY body access (5+ reads per
+    /// render via upcomingEvents/pastEvents/compactSummary/calendarPhrase/
+    /// body itself). Now recomputed only when records or eventKitEvents
+    /// fingerprint change.
+    @State private var cachedTodayEvents: [IdentifiedEvent] = []
+
+    private var todayEvents: [IdentifiedEvent] { cachedTodayEvents }
+
+    private var upcomingEvents: [IdentifiedEvent] {
+        cachedTodayEvents.filter { $0.event.end >= now }
+    }
+
+    private var pastEvents: [IdentifiedEvent] {
+        cachedTodayEvents.filter { $0.event.end < now }
+    }
+
+    /// Hashable fingerprint for `.onChange(of:)`.
+    private struct CalendarFingerprint: Hashable {
+        let recordsCount: Int
+        let recordsMaxUpdated: TimeInterval
+        let ekEventsCount: Int
+        let ekEventsLastStart: TimeInterval
+
+        static func from(records: [Record], ekEvents: [EventData]) -> CalendarFingerprint {
+            var maxUpd: TimeInterval = 0
+            for r in records {
+                let t = r.updatedAt.timeIntervalSince1970
+                if t > maxUpd { maxUpd = t }
+            }
+            return CalendarFingerprint(
+                recordsCount: records.count,
+                recordsMaxUpdated: maxUpd,
+                ekEventsCount: ekEvents.count,
+                ekEventsLastStart: ekEvents.last?.start.timeIntervalSince1970 ?? 0
+            )
+        }
+    }
+
+    private static func computeTodayEvents(
+        records: [Record],
+        eventKitEvents: [EventData]
+    ) -> [IdentifiedEvent] {
         let supabaseEvents: [IdentifiedEvent] = records.compactMap { record in
             guard record.category == .calendar,
                   record.type == .event,
@@ -46,14 +88,6 @@ struct CalendarTodayCard: View {
             }
         }
         return merged.sorted { $0.event.start < $1.event.start }
-    }
-
-    private var upcomingEvents: [IdentifiedEvent] {
-        todayEvents.filter { $0.event.end >= now }
-    }
-
-    private var pastEvents: [IdentifiedEvent] {
-        todayEvents.filter { $0.event.end < now }
     }
 
     /// Compact summary for calendar card
@@ -114,6 +148,12 @@ struct CalendarTodayCard: View {
         // a wakeup + full body invalidation (events recomputes 4× per body).
         .onReceive(Timer.publish(every: 300, on: .main, in: .common).autoconnect()) { _ in
             now = Date.now
+        }
+        .onAppear {
+            cachedTodayEvents = Self.computeTodayEvents(records: records, eventKitEvents: eventKitEvents)
+        }
+        .onChange(of: CalendarFingerprint.from(records: records, ekEvents: eventKitEvents)) { _, _ in
+            cachedTodayEvents = Self.computeTodayEvents(records: records, eventKitEvents: eventKitEvents)
         }
     }
 

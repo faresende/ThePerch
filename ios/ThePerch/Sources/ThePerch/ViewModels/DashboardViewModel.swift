@@ -402,7 +402,7 @@ final class DashboardViewModel {
     func loadEventKitEvents() async {
         do {
             let events = try await EventKitService.shared.fetchUpcomingEvents(days: 14)
-            self.eventKitEvents = events.map { ekEvent in
+            let newEvents = events.map { ekEvent in
                 EventData(
                     title: ekEvent.title,
                     start: ekEvent.startDate,
@@ -411,12 +411,23 @@ final class DashboardViewModel {
                     agentNotes: nil
                 )
             }
+            // Round 10 audit (F13): @Observable fires observers on EVERY
+            // assignment regardless of value equality. loadEventKitEvents
+            // runs on every cold start + scenePhase=active foreground; if
+            // the device's calendar hasn't changed (the common case),
+            // this still triggered Calendar*Card body re-renders. Guard
+            // with explicit equality. EventData is now Equatable (R9).
+            if newEvents != self.eventKitEvents {
+                self.eventKitEvents = newEvents
+            }
             self.eventKitPermissionStatus = .granted
         } catch {
 #if DEBUG
             print("[DashboardVM] EventKit fetch failed: \(error.localizedDescription)")
 #endif
-            self.eventKitEvents = []
+            if !self.eventKitEvents.isEmpty {
+                self.eventKitEvents = []
+            }
             self.eventKitPermissionStatus = .denied
         }
     }
@@ -769,6 +780,11 @@ final class DashboardViewModel {
 
     /// Debounce task for coalescing rapid realtime fallback refreshes.
     private var refreshDebounceTask: Task<Void, Never>?
+    /// Round 10: agents-realtime callback used to call `loadAgents(forceRefresh: true)`
+    /// directly, with no debounce — so a 5-agent burst (typical at the 7am
+    /// cron tick) fired 5 sequential network round-trips on the main actor.
+    /// Mirrors `refreshDebounceTask` for the records path.
+    private var agentsRefreshDebounceTask: Task<Void, Never>?
 
     /// Sets up realtime subscriptions to listen for dashboard changes.
     /// Merges changes locally (INSERT/UPDATE/DELETE) instead of full refetch.
@@ -790,7 +806,7 @@ final class DashboardViewModel {
                 print("[DashboardVM] Realtime agent change: \(action)")
 #endif
                 Task { @MainActor [weak self] in
-                    await self?.loadAgents(forceRefresh: true)
+                    self?.scheduleDebouncedAgentsRefresh()
                 }
             }
 
@@ -851,7 +867,15 @@ final class DashboardViewModel {
         case .update:
             if let record = change.record,
                let index = allRecords.firstIndex(where: { $0.id == record.id }) {
-                Self.preDecodeRecordsAsync([record])
+                // Round 10 audit (F1): synchronous predecode for the SINGLE
+                // updated record. The async version raced with the SwiftUI
+                // body invalidation that fires on `allRecords[index] = ...` —
+                // body reads `record.asMeasurement()` saw the STALE cache
+                // entry from the prior version and the visible UI didn't
+                // update until the next loadDashboard. A single typed
+                // decode is ~50µs; cheap enough on MainActor and overwrites
+                // the prior cache entry under the same key.
+                Self.preDecodeRecords([record])
                 allRecords[index] = record
                 NotificationService.shared.handleRecordChange(record: record, action: .update)
             } else {
@@ -876,6 +900,18 @@ final class DashboardViewModel {
             try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
             guard !Task.isCancelled else { return }
             await self?.refreshRecords()
+        }
+    }
+
+    /// Round 10: same coalescing for the agents-realtime path. The 7am cron tick
+    /// can flip 5+ agent rows in a burst; without this, every flip triggers a
+    /// fresh `fetchAgents` HTTP round-trip on the main actor.
+    private func scheduleDebouncedAgentsRefresh() {
+        agentsRefreshDebounceTask?.cancel()
+        agentsRefreshDebounceTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+            guard !Task.isCancelled else { return }
+            await self?.loadAgents(forceRefresh: true)
         }
     }
 

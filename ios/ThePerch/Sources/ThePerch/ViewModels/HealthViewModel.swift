@@ -144,14 +144,7 @@ final class HealthViewModel {
         _recordsByMetric[metric] ?? []
     }
 
-    /// Weight records only, sorted newest first.
-    var weightRecords: [Record] {
-        records.filter { $0.asMeasurement()?.metric == "weight" }
-            .sorted {
-                guard let m0 = $0.asMeasurement(), let m1 = $1.asMeasurement() else { return false }
-                return effectiveDate(for: $0, measurement: m0) > effectiveDate(for: $1, measurement: m1)
-            }
-    }
+    // `weightRecords` removed (Round 10): zero call sites across the codebase.
 
     /// All distinct metric keys found in the records.
     var availableMetrics: [String] {

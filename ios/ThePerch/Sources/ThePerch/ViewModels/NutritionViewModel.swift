@@ -41,16 +41,33 @@ final class NutritionViewModel {
     }
 
     func loadMeals(from records: [Record]) {
-        let containsTargetContext = records.contains {
-            $0.asMeasurement()?.metric == "daily_calories" || $0.asMacros() != nil
+        // Round 10 audit (M-3): the prior gating used `meal.asMacros() != nil`
+        // as a proxy for "this batch carries target context" — but meals
+        // ALSO have asMacros() (per-meal macros), so a meals-only batch
+        // (e.g., from refreshMeals after correctMeal) overwrote
+        // targetSourceRecords with no daily_calories rows, dropping the
+        // user's actual target and falling back to defaults. Tighten the
+        // gate to only fire on a batch that REALLY carries target context.
+        let hasDailyCalories = records.contains {
+            $0.asMeasurement()?.metric == "daily_calories"
         }
-        if containsTargetContext || targetSourceRecords.isEmpty {
+        let hasMacrosBar = records.contains {
+            $0.displayHint == .macrosBar
+        }
+        if hasDailyCalories || hasMacrosBar || targetSourceRecords.isEmpty {
             targetSourceRecords = records
         }
 
-        meals = records
+        let newMeals = records
             .filter { $0.category == .nutrition && $0.type == .meal }
             .sorted { $0.createdAt > $1.createdAt }
+        // Round 10 audit (F4): short-circuit on equality. didSet has no
+        // built-in equality check, so an unconditional `meals = newMeals`
+        // fires recomputeDaySections every realtime tick (~5–10 ms)
+        // even when the meal set is unchanged.
+        if newMeals != meals {
+            meals = newMeals
+        }
 
         let availableDays = daySections.count
         if availableDays > 0 {

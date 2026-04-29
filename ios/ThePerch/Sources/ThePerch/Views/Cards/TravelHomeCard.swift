@@ -67,8 +67,11 @@ struct TravelHomeCard: View {
                     }
                 }
             }
-            .onChange(of: records) { _, new in travelVM.records = new }
-            .onAppear { travelVM.records = records }
+            // Round 10 audit (F5): dropped the `records → travelVM.records`
+            // writes here. After R9 hoisted TravelViewModel to .environment,
+            // HubTab is the canonical writer (subscribes to the trimmed
+            // `travelRecords` slice on the right cadence). This card was
+            // re-firing recomputeTrips on EVERY allRecords change.
         }
     }
 

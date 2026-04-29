@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS public.bookmarks (
   processed_at          timestamptz,
   created_at            timestamptz                DEFAULT now(),
   updated_at            timestamptz                DEFAULT now(),
-  fts                   tsvector,
+  -- (Round 10: `fts tsvector` column omitted — see note below the
+  -- index block.)
   CONSTRAINT bookmarks_status_check
     CHECK (status = ANY (ARRAY['pending', 'processing', 'processed', 'failed'])),
   CONSTRAINT bookmarks_submitted_from_check
@@ -60,9 +61,21 @@ CREATE INDEX IF NOT EXISTS idx_bookmarks_record_id    ON public.bookmarks (recor
 CREATE INDEX IF NOT EXISTS idx_bookmarks_user_created ON public.bookmarks (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_bookmarks_domain       ON public.bookmarks (user_id, domain);
 CREATE INDEX IF NOT EXISTS idx_bookmarks_tags         ON public.bookmarks USING GIN (tags);
-CREATE INDEX IF NOT EXISTS idx_bookmarks_fts          ON public.bookmarks USING GIN (fts);
+
+-- Round 10 audit: the `fts` column + idx_bookmarks_fts GIN index were
+-- dead code at create time — there's no `tsvector_update_trigger` that
+-- populates fts, no GENERATED ALWAYS expression, and no consumer in
+-- iOS / Safari extension that does to_tsquery against bookmarks.fts.
+-- The column would have stayed 100% NULL forever and the index would
+-- have been pure write-amp. Both omitted.
 
 ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
+-- Round 10 audit (M-1): explicit REVOKE on `anon` for defense-in-depth.
+-- RLS already denies anon (no policy with TO anon → false) but the
+-- table-level GRANTs from the Supabase template say anon has ALL.
+-- If a future migration ever adds an anon policy by mistake, the
+-- REVOKE keeps it harmless.
+REVOKE ALL ON TABLE public.bookmarks FROM anon;
 
 DROP POLICY IF EXISTS bookmarks_read_own   ON public.bookmarks;
 DROP POLICY IF EXISTS bookmarks_insert_own ON public.bookmarks;

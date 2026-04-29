@@ -114,8 +114,12 @@ def _login(email: str, password: str) -> dict[str, Any]:
         with urlopen(req, timeout=15) as resp:
             return json.loads(resp.read())
     except HTTPError as e:
-        body_text = e.read().decode(errors="replace")[:300]
-        raise RuntimeError(f"login HTTP {e.code}: {body_text}") from None
+        # Round 10 audit (LOW): the prior message echoed up to 300 chars
+        # of the server response body, which on 401/429 may include the
+        # email. The exception ends up persisted in ~/.openclaw/logs/.
+        # Log the status code only; the caller can debug with curl if
+        # they need the body.
+        raise RuntimeError(f"login HTTP {e.code}") from None
 
 
 def _load_cached_session() -> tuple[str, str] | None:

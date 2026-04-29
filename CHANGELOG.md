@@ -75,6 +75,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Round 9**: ungated `print` in `SupabaseService.swift` (no-active-session catch) wrapped in `#if DEBUG` to match the rest of the file's release-log discipline
 - **Round 9**: dead `keychain-access-groups` entitlement removed (the Share Extension that justified it was deleted in R8)
 - **Round 9**: `001_initial_schema.sql` `display_hint` default aligned with prod (`'card'` → `'single_value'`)
+- **Round 10**: dropped `bookmarks.fts tsvector` column + `idx_bookmarks_fts` GIN index — both were created in R9 but had no populator (no trigger, no GENERATED expression) and no consumer; dead column + pure write-amp index
+- **Round 10**: prompt-injection wrapper bypass closed in both `dashboard-sync/llm-extractor.ts` and `nutrition-copilot/llm.ts` — `sanitizeForPrompt` now replaces `<` and `>` with full-width forms so a user typing `</user-input>` or `</email_body>` literally can't close the wrapper and inject directives
+- **Round 10**: `insertRecord` error path in `SupabaseService.swift` wrapped in `#if DEBUG` (the only ungated print left after R9); PostgREST FK-violation messages can include row column values
+- **Round 10**: realtime listener tasks now tracked PER-CHANNEL (`recordsTasks`/`agentsTasks`) so a re-subscribe that removes the channel correctly cancels the dead listener tasks instead of leaking them into the global `realtimeTasks` array
+- **Round 10**: `prune_email_classifications` 7-day floor guard added in R9 was correct — R10 added a public.bookmarks `REVOKE ALL ... FROM anon` defense-in-depth statement (RLS already denies anon, but the table-level GRANT inherited from the Supabase template was not explicitly revoked)
+- **Round 10**: `eight_sleep_ingest._login` HTTPError no longer interpolates response body into the exception message (it could echo the email back on 401/429); now reports the status code only
+- **Round 10**: stub migrations committed for `20260429165022_round7_idle_in_transaction_timeout` + `20260429170724_round8_idle_tx_timeout_at_login_role` so `supabase db push` against prod doesn't refuse for "missing migration files" — the prod ledger references both
+
+### Performance — Round 10
+- iOS: `DashboardViewModel.subscribeToAgents` callback now goes through `scheduleDebouncedAgentsRefresh` — the prior path called `loadAgents(forceRefresh: true)` directly per realtime tick, so a 5-agent burst at the 7am cron tick fired 5 sequential HTTP round-trips on the main actor
+- iOS: `mergeRealtimeChange` UPDATE path uses **synchronous** `preDecodeRecords` for the single updated record (was async detached), so `DecodingCache` is hot before SwiftUI body invalidation fires — closes a real correctness bug where realtime UPDATEs showed the prior value until the next cold load
+- iOS: `WorkoutsSegment` no longer maintains a private `HealthViewModel` instance; reads directly from `dashboardViewModel.healthRecords` (eliminates a duplicate `recomputeMetricCaches` pass per realtime tick)
+- iOS: `NutritionHomeCard` now uses the same `Snapshot`-via-Hashable-`Fingerprint` pattern that R9 introduced for `HealthSummaryHomeCard` — collapses 5+ redundant filter+map+filter+reduce passes per body render
+- iOS: `CalendarTodayCard` got the same Snapshot pattern (5+ passes → 1)
+- iOS: `CalendarSectionContent` (HubTab) coalesced its two `.onChange(of:)` handlers (`calendarRecords` + `eventKitEvents`) behind a single Hashable fingerprint, plus cached `dayEvents` so the four body-side reads hit a single pre-filtered array
+- iOS: `NutritionViewModel.loadMeals` now equality-checks before assigning to `meals` — the didSet has no built-in short-circuit and unconditional reassignment was firing `recomputeDaySections` on every realtime tick even when the meal set was unchanged
+- iOS: `NutritionViewModel.loadMeals` target-context gate tightened — used to fire on any meal that had `asMacros() != nil` (i.e., every meal), so a meals-only batch from `refreshMeals` overwrote `targetSourceRecords` with rows that lacked the user's daily target. Now requires explicit `daily_calories` measurement OR `display_hint=macros_bar` records
+- iOS: `TravelHomeCard` no longer writes to the (R9-hoisted) shared `TravelViewModel.records` — HubTab is the canonical writer with the right cadence; the card's redundant write was firing `recomputeTrips` on every full-records change
+- iOS: `loadEventKitEvents` now equality-checks before assigning to `eventKitEvents` (`@Observable` doesn't equality-check on its own; cold start + every scenePhase=active foreground was triggering Calendar*Card body re-renders even when the device's calendar was unchanged)
+- iOS: dead `weightRecords` computed property removed from `HealthViewModel`; dead `HealthSummaryCard.swift` (215 LOC, only referenced by its own #Preview) deleted
+- iOS: `LazyView` doc corrected — the prior comment claimed it deferred building inside `TabView(.page(...))`, which it doesn't (paged TabView eagerly evaluates page bodies for swipe preview). The wrapper is a passthrough; kept only to avoid touching the ~6 call sites
 
 ---
 

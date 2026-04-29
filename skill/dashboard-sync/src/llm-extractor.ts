@@ -157,13 +157,24 @@ function stripEmailHtml(body: string): string {
 // stripped the unicode chars between them.
 const CONTROL_CHARS_RE = new RegExp("[\\u0000-\\u001F\\u007F-\\u009F]", "g");
 const ZERO_WIDTH_RE = new RegExp("[\\u200B-\\u200F\\u2028-\\u202F\\u2060-\\u206F\\uFEFF]", "g");
+// Round 10 audit: the prior version stripped control + zero-width chars
+// but left literal `<` `>` intact — so a malicious sender's email body
+// containing `</email_body>{ instructions }` closed the wrapper and the
+// rest became instructions to the model. Replace with full-width forms
+// so the visible meaning is preserved while no `<email_*>`-shaped
+// tokens can appear in user-controlled text.
+const ANGLE_BRACKETS_RE = new RegExp("[<>]", "g");
 
 function sanitizeForPrompt(s: string): string {
   // Strip C0/C1 control characters and zero-width / direction-control
   // chars that an attacker could embed to break out of the <email_*>
   // delimiters or smuggle invisible directives. Round 8 audit caught
-  // the prior regex was a no-op for control chars.
-  return s.replace(CONTROL_CHARS_RE, " ").replace(ZERO_WIDTH_RE, "");
+  // the prior regex was a no-op for control chars; Round 10 added the
+  // angle-bracket replacement.
+  return s
+    .replace(CONTROL_CHARS_RE, " ")
+    .replace(ZERO_WIDTH_RE, "")
+    .replace(ANGLE_BRACKETS_RE, (m) => (m === "<" ? "＜" : "＞"));
 }
 
 function buildUserPrompt(subject: string, sender: string, body: string): string {

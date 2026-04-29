@@ -147,7 +147,11 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
     private var agentsChannel: RealtimeChannelV2?
 
     /// Managed tasks for realtime stream listeners (cancelled on unsubscribe).
-    private var realtimeTasks: [Task<Void, Never>] = []
+    /// Round 10: tracked PER-CHANNEL so a re-subscribe that removes the
+    /// underlying channel can cancel its dead listener tasks without
+    /// stomping the OTHER channel's still-live tasks.
+    private var recordsTasks: [Task<Void, Never>] = []
+    private var agentsTasks: [Task<Void, Never>] = []
 
     /// Tracks when each category was last fetched for data freshness.
     @Published var lastFetchTimes: [RecordCategory: Date] = [:]
@@ -1000,7 +1004,12 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 #endif
             recordsCache.removeAll()
         } catch {
+#if DEBUG
+            // Round 10 audit: this print was the only ungated one left after
+            // R9. Errors here can include row column values from PostgREST FK
+            // violation messages — keep them out of the release log.
             print("[SupabaseService] insertRecord error: \(error)")
+#endif
             throw SupabaseServiceError.queryError(error.localizedDescription)
         }
     }
@@ -1028,9 +1037,13 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
         if useMockData { return }
         #endif
 
-        // Remove existing channel if reconnecting
+        // Remove existing channel if reconnecting. Cancel + drop the stale
+        // listener tasks tied to the dead channel, otherwise they stay in
+        // the tasks array forever — Round 10 audit caught the leak.
         if let existing = recordsChannel {
             await client.realtimeV2.removeChannel(existing)
+            for task in recordsTasks { task.cancel() }
+            recordsTasks.removeAll()
         }
 
         let channel = client.realtimeV2.channel("dashboard_records_changes")
@@ -1069,7 +1082,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 }
             }
         }
-        realtimeTasks.append(insertTask)
+        recordsTasks.append(insertTask)
 
         // Listen for updates
         let updateTask = Task {
@@ -1082,7 +1095,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 }
             }
         }
-        realtimeTasks.append(updateTask)
+        recordsTasks.append(updateTask)
 
         // Listen for deletions
         let deleteTask = Task {
@@ -1100,7 +1113,7 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 onChange(RealtimeRecordChange(action: .delete, record: nil, oldId: oldId))
             }
         }
-        realtimeTasks.append(deleteTask)
+        recordsTasks.append(deleteTask)
     }
 
     /// Subscribes to realtime agent status changes on `agents`.
@@ -1111,6 +1124,8 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
 
         if let existing = agentsChannel {
             await client.realtimeV2.removeChannel(existing)
+            for task in agentsTasks { task.cancel() }
+            agentsTasks.removeAll()
         }
 
         let channel = client.realtimeV2.channel("agents_changes")
@@ -1133,16 +1148,16 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
                 onChange(action)
             }
         }
-        realtimeTasks.append(agentTask)
+        agentsTasks.append(agentTask)
     }
 
     /// Unsubscribes from all realtime channels and cancels stream listener tasks.
     func unsubscribeAll() async {
-        // Cancel all managed realtime tasks
-        for task in realtimeTasks {
-            task.cancel()
-        }
-        realtimeTasks.removeAll()
+        // Cancel all managed realtime tasks (per-channel tracking, R10).
+        for task in recordsTasks { task.cancel() }
+        recordsTasks.removeAll()
+        for task in agentsTasks { task.cancel() }
+        agentsTasks.removeAll()
 
         if let channel = recordsChannel {
             await client.realtimeV2.removeChannel(channel)

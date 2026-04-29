@@ -477,7 +477,10 @@ private struct TodayPlanRow: View {
 struct WorkoutsSegment: View {
     @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @State private var viewModel = HealthViewModel()
+    // Round 10: dropped a private `@State HealthViewModel` instance — its
+    // only purpose was to mirror `dashboardViewModel.healthRecords` into
+    // `viewModel.records`, but the recomputeMetricCaches it triggered was
+    // never read here (we only use the workoutSession compactMap below).
     /// Which session is currently expanded in the feed (by session record id).
     /// Nil means all sessions are collapsed (summary view).
     @State private var expandedSessionId: UUID?
@@ -505,9 +508,9 @@ struct WorkoutsSegment: View {
     }
 
     /// Recompute the cached `workoutRecords` and `heatmapCells` from
-    /// `viewModel.records`. Called from .onAppear and .onChange.
+    /// `dashboardViewModel.healthRecords`. Called from .onAppear and .onChange.
     private func recomputeWorkoutCaches() {
-        let pairs = viewModel.records.compactMap { r -> (record: Record, session: WorkoutSessionData)? in
+        let pairs = dashboardViewModel.healthRecords.compactMap { r -> (record: Record, session: WorkoutSessionData)? in
             guard r.type == .workoutSession, let ws = r.asWorkoutSession() else { return nil }
             return (record: r, session: ws)
         }
@@ -706,14 +709,10 @@ struct WorkoutsSegment: View {
             await dashboardViewModel.loadDashboard(forceRefresh: true)
             PerchHaptics.success()
         }
-        .onChange(of: dashboardViewModel.healthRecords) { _, newRecords in
-            viewModel.records = newRecords
+        .onChange(of: dashboardViewModel.healthRecords) { _, _ in
             recomputeWorkoutCaches()
         }
         .onAppear {
-            if !dashboardViewModel.healthRecords.isEmpty {
-                viewModel.records = dashboardViewModel.healthRecords
-            }
             recomputeWorkoutCaches()
         }
     }

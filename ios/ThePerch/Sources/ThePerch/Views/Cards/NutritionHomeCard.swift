@@ -17,70 +17,110 @@ struct NutritionHomeCard: View {
     @State private var showGoalCelebration = false
     @AppStorage("card_compact_nutrition") private var isCompact = false
 
+    /// Round 10 audit (F10): single-pass snapshot of nutrition derivations.
+    /// Replaces 5+ redundant filter+map+filter+reduce passes per body
+    /// render (displayedMeals × 5, latestUpdate × 1, targets × 2). With
+    /// 500 records and ~30 meal records, this saves ~150 MealRecord
+    /// allocations + 5 full-array filters per render.
+    @State private var snapshot: Snapshot = .empty
+
+    private struct Snapshot {
+        var displayedMeals: [MealRecord]
+        var consumed: Double
+        var target: Double
+        var macros: MacrosData?
+        var latestUpdate: Date?
+        var dateString: String
+        var hasData: Bool
+
+        static let empty = Snapshot(
+            displayedMeals: [], consumed: 0, target: 0,
+            macros: nil, latestUpdate: nil, dateString: "", hasData: false
+        )
+
+        @MainActor
+        static func compute(from records: [Record]) -> Snapshot {
+            let isMorning = Calendar.current.component(.hour, from: .now) < 2
+            let referenceDate: Date = isMorning
+                ? (Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now)
+                : .now
+            let dateString = PerchFormatters.isoDate.string(from: referenceDate)
+            let targets = NutritionTargets.resolved(for: referenceDate, records: records)
+
+            // Single pass: filter+decode meals, AND track latest update.
+            var meals: [MealRecord] = []
+            var latestUpdate: Date?
+            for r in records {
+                if r.updatedAt > (latestUpdate ?? .distantPast) {
+                    if r.asMeasurement()?.metric == "daily_calories" || r.asMacros() != nil {
+                        latestUpdate = r.updatedAt
+                    }
+                }
+                guard r.category == .nutrition, r.type == .meal else { continue }
+                let meal = MealRecord(from: r)
+                if PerchFormatters.isoDate.string(from: meal.mealTime) == dateString {
+                    meals.append(meal)
+                }
+            }
+
+            let consumed = meals.reduce(0.0) { $0 + $1.calories }
+            let macros: MacrosData? = meals.isEmpty ? nil : MacrosData(
+                protein: meals.reduce(0) { $0 + $1.protein },
+                proteinTarget: targets.protein,
+                carbs: meals.reduce(0) { $0 + $1.carbs },
+                carbsTarget: targets.carbs,
+                fat: meals.reduce(0) { $0 + $1.fat },
+                fatTarget: targets.fat,
+                date: dateString
+            )
+            return Snapshot(
+                displayedMeals: meals,
+                consumed: consumed,
+                target: targets.calories,
+                macros: macros,
+                latestUpdate: latestUpdate,
+                dateString: dateString,
+                hasData: !meals.isEmpty || targets.calories > 0
+            )
+        }
+    }
+
+    /// Hashable fingerprint that drives `.onChange(of:)` recompute.
+    /// Counts nutrition meals + tracks max(updatedAt) over the relevant
+    /// records. Keeps recompute cost at one short pass per render.
+    private struct Fingerprint: Hashable {
+        let mealCount: Int
+        let maxUpdated: TimeInterval
+
+        static func from(_ records: [Record]) -> Fingerprint {
+            var c = 0
+            var m: TimeInterval = 0
+            for r in records {
+                let isRelevant = (r.category == .nutrition && r.type == .meal)
+                    || r.asMeasurement()?.metric == "daily_calories"
+                    || r.asMacros() != nil
+                guard isRelevant else { continue }
+                c += 1
+                let t = r.updatedAt.timeIntervalSince1970
+                if t > m { m = t }
+            }
+            return Fingerprint(mealCount: c, maxUpdated: m)
+        }
+    }
+
+    // Convenience accessors so the rest of the body reads unchanged.
+    private var displayedMeals: [MealRecord] { snapshot.displayedMeals }
+    private var consumed: Double             { snapshot.consumed }
+    private var target: Double               { snapshot.target }
+    private var macrosData: MacrosData?      { snapshot.macros }
+    private var latestUpdate: Date?          { snapshot.latestUpdate }
+    private var dateString: String           { snapshot.dateString }
+    private var hasData: Bool                { snapshot.hasData }
+
     private var isMorning: Bool {
         Calendar.current.component(.hour, from: .now) < 2
     }
 
-    private var dateString: String {
-        if isMorning {
-            return PerchFormatters.isoDate.string(from: Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now)
-        }
-        return PerchFormatters.isoDate.string(from: .now)
-    }
-
-    /// Meal records matching the displayed date (today, or yesterday when
-    /// `isMorning`). Summing these directly decouples the card from the
-    /// `nutrition-aggregator` cron that writes `daily_calories` measurement
-    /// records — when that cron is broken or lagging, the card still
-    /// reflects what's actually logged.
-    private var displayedMeals: [MealRecord] {
-        records
-            .filter { $0.category == .nutrition && $0.type == .meal }
-            // Spell out the closure (rather than `.map(MealRecord.init(from:))`)
-            // so Swift 6 inherits this view's MainActor isolation; an unapplied
-            // initializer reference is inferred as nonisolated and trips the
-            // MainActor JSONValue accessors inside MealRecord.init.
-            .map { MealRecord(from: $0) }
-            .filter { meal in
-                PerchFormatters.isoDate.string(from: meal.mealTime) == dateString
-            }
-    }
-
-    private var referenceDate: Date {
-        if isMorning {
-            return Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now
-        }
-        return .now
-    }
-
-    /// Targets sourced via NutritionTargets.resolved (progress_summary →
-    /// legacy daily_calories fallback → hardcoded default).
-    private var targets: NutritionTargets {
-        NutritionTargets.resolved(for: referenceDate, records: records)
-    }
-
-    private var macrosData: MacrosData? {
-        guard !displayedMeals.isEmpty else { return nil }
-        return MacrosData(
-            protein: displayedMeals.reduce(0) { $0 + $1.protein },
-            proteinTarget: targets.protein,
-            carbs: displayedMeals.reduce(0) { $0 + $1.carbs },
-            carbsTarget: targets.carbs,
-            fat: displayedMeals.reduce(0) { $0 + $1.fat },
-            fatTarget: targets.fat,
-            date: dateString
-        )
-    }
-
-    private var hasData: Bool {
-        !displayedMeals.isEmpty || target > 0
-    }
-
-    private var consumed: Double {
-        displayedMeals.reduce(0) { $0 + $1.calories }
-    }
-
-    private var target: Double { targets.calories }
     private var progress: Double {
         guard target > 0 else { return 0 }
         return min(consumed / target, 1.5)
@@ -100,13 +140,6 @@ struct NutritionHomeCard: View {
     /// through a library of variants so the dashboard doesn't feel robotic.
     private var nutritionPhrase: String {
         PerchPhrase.nutritionPhrase(consumed: consumed, target: target)
-    }
-
-    private var latestUpdate: Date? {
-        records
-            .filter { $0.asMeasurement()?.metric == "daily_calories" || $0.asMacros() != nil }
-            .map(\.updatedAt)
-            .max()
     }
 
     // Macro colors
@@ -169,10 +202,14 @@ struct NutritionHomeCard: View {
         }
         .animation(PerchMotion.prefersReduced ? .none : .easeOut(duration: 0.25), value: hasData)
         .onAppear {
+            snapshot = Snapshot.compute(from: records)
             animateRingTo(progress, color: progressColor)
             PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {
                 animateMacros = true
             }
+        }
+        .onChange(of: Fingerprint.from(records)) { _, _ in
+            snapshot = Snapshot.compute(from: records)
         }
         .onChange(of: progress) { _, newProgress in
             animateRingTo(newProgress, color: progressColor)
