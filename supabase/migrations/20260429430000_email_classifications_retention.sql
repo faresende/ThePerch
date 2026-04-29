@@ -17,6 +17,12 @@ AS $$
 DECLARE
   deleted integer;
 BEGIN
+  -- Round 9 audit (MEDIUM): mirror prune_agent_runs's floor guard.
+  -- Without it, a service-role compromise could `SELECT
+  -- prune_email_classifications(0)` and wipe all classification history.
+  IF days < 7 THEN
+    RAISE EXCEPTION 'prune_email_classifications: refuse to prune anything younger than 7 days (got %)', days;
+  END IF;
   DELETE FROM public.email_classifications
   WHERE classified_at < (now() - (days || ' days')::interval);
 

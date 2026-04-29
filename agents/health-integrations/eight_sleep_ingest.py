@@ -170,7 +170,13 @@ def _get_session() -> tuple[str, str]:
         datetime.now(timezone.utc) + timedelta(seconds=expires_in)
     ).isoformat()
     if not token or not user_id:
-        raise RuntimeError(f"login response missing access_token/userId: {resp}")
+        # Round 9 audit (HIGH): never interpolate the full response into the
+        # exception message — partial-failure responses can still include
+        # access_token/refresh_token, and this exception ends up persisted
+        # in ~/.openclaw/logs/. Surface only the shape of what came back.
+        raise RuntimeError(
+            f"login response missing access_token/userId; got keys: {sorted(resp.keys())}"
+        )
     _save_session(token, user_id, expires_at)
     return token, user_id
 

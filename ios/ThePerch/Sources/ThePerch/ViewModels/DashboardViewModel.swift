@@ -27,16 +27,30 @@ final class DashboardViewModel {
     /// Setting this rebuilds all filtered category arrays — but only
     /// when the new value is materially different from the old one.
     /// Cold launch hits this path twice in quick succession (cache load
-    /// → network response, often the same data); the count+lastId+
-    /// lastUpdatedAt fingerprint elides the duplicate rebuild when both
+    /// → network response, often the same data); the (count, max
+    /// updatedAt) fingerprint elides the duplicate rebuild when both
     /// payloads agree.
     var allRecords: [Record] = [] {
         didSet {
-            if Self.recordsFingerprint(allRecords) != Self.recordsFingerprint(oldValue) {
+            // Round 9 perf: cache the prior fingerprint instead of
+            // recomputing it from `oldValue`. Under realtime burst,
+            // mergeRealtimeChange does `allRecords[i] = record` per
+            // message → didSet fires per message → previously we
+            // iterated BOTH `allRecords` AND `oldValue` each time
+            // (~2N iterations + 2 String heap allocs per UPDATE).
+            // A 30-message burst over 1000 records was 60K iterations
+            // on MainActor in <1s. Caching halves that.
+            let new = Self.recordsFingerprint(allRecords)
+            if new != _recordsFingerprintCache {
+                _recordsFingerprintCache = new
                 rebuildFilteredArrays()
             }
         }
     }
+
+    /// Memoized fingerprint of the current `allRecords`. Survives across
+    /// didSet calls so we never re-iterate `oldValue`.
+    private var _recordsFingerprintCache: (count: Int, maxUpdated: TimeInterval) = (0, 0)
 
     /// Cheap fingerprint for `allRecords` change detection.
     ///
@@ -47,19 +61,20 @@ final class DashboardViewModel {
     /// the typed slices (healthRecords / calendarRecords / etc.) stale
     /// vs. allRecords. Caught by Round 7 audit.
     ///
-    /// The new form uses count + max(updatedAt) — the realtime path
-    /// always bumps `updated_at` server-side, so any UPDATE that
-    /// matters bumps the max. Iterating once over a 1000-record array
-    /// to find the max is ~50 µs (vs. 60–120 ms of full rebuild we'd
-    /// pay if we just dropped the dedup entirely). Cheap enough.
-    private static func recordsFingerprint(_ rs: [Record]) -> String {
-        if rs.isEmpty { return "0|0" }
+    /// Uses count + max(updatedAt) — the realtime path always bumps
+    /// `updated_at` server-side, so any UPDATE that matters bumps the
+    /// max. Iterating once over a 1000-record array to find the max is
+    /// ~50 µs (vs. 60–120 ms of full rebuild we'd pay if we just
+    /// dropped the dedup entirely). Round 9: returns a tuple instead
+    /// of a String to skip the heap allocation entirely.
+    private static func recordsFingerprint(_ rs: [Record]) -> (count: Int, maxUpdated: TimeInterval) {
+        if rs.isEmpty { return (0, 0) }
         var maxUpdated: TimeInterval = 0
         for r in rs {
             let t = r.updatedAt.timeIntervalSince1970
             if t > maxUpdated { maxUpdated = t }
         }
-        return "\(rs.count)|\(maxUpdated)"
+        return (rs.count, maxUpdated)
     }
 
     // MARK: - Pre-filtered Record Arrays

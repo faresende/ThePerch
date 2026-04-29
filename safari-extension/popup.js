@@ -19,11 +19,22 @@ function extractDomain(url) {
 }
 
 // Show status message
+//
+// Round 9 audit (HIGH): the prior implementation used .innerHTML for the
+// error path with `${message}` interpolation. `message` traces back to
+// server response statusText / error.message — server-controlled if the
+// configured Supabase URL is ever attacker-controlled or compromised.
+// XSS in the popup origin yields chrome.storage + chrome.tabs access.
+// Replaced with createElement so the message is always set as text.
 function showStatus(type, message) {
   statusDiv.className = `status show ${type}`;
-  statusDiv.textContent = message;
+  statusDiv.textContent = '';
+  statusDiv.appendChild(document.createTextNode(message));
   if (type === 'error') {
-    statusDiv.innerHTML = `${message}<div class="error-message">Check extension options for configuration.</div>`;
+    const sub = document.createElement('div');
+    sub.className = 'error-message';
+    sub.textContent = 'Check extension options for configuration.';
+    statusDiv.appendChild(sub);
   }
 }
 

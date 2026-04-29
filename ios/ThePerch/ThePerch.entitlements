@@ -8,13 +8,11 @@
 	<array>
 		<string>group.com.theperch.shared</string>
 	</array>
-	<!-- Cross-target keychain access for the Share Extension. The team
-	     prefix is auto-injected by Xcode at build time from the active
-	     signing identity, so each team's binary scopes the keychain
-	     access group to itself. -->
-	<key>keychain-access-groups</key>
-	<array>
-		<string>$(AppIdentifierPrefix)group.com.theperch.shared</string>
-	</array>
+	<!-- R9: removed `keychain-access-groups`. The Share Extension that
+	     justified the cross-target keychain group was deleted in R8
+	     (its scaffold lives in docs/archive/share-extension-scaffold/).
+	     Only the main app target uses any keychain now, so this group
+	     was dead scope. The App Group above is still legit — the Today
+	     widget reads from it. -->
 </dict>
 </plist>

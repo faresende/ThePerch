@@ -6,6 +6,12 @@ import SwiftUI
 struct ThePerchApp: App {
     @State private var authViewModel = AuthViewModel()
     @State private var dashboardViewModel = DashboardViewModel()
+    /// R9: NutritionViewModel and TravelViewModel were instantiated 2× and 3×
+    /// respectively across MainTabView/HealthTab/HubTab/TravelHomeCard. Each
+    /// fired its own loadMeals/refresh path on cold start. Hoisting both
+    /// here gives every consumer the same instance via .environment.
+    @State private var nutritionViewModel = NutritionViewModel()
+    @State private var travelViewModel = TravelViewModel()
     @State private var networkMonitor = NetworkMonitor.shared
     @AppStorage("darkModeEnabled") private var darkModeEnabled = false
     @Environment(\.scenePhase) private var scenePhase
@@ -59,6 +65,8 @@ if !isConfigured {
                     MainTabView()
                         .environment(authViewModel)
                         .environment(dashboardViewModel)
+                        .environment(nutritionViewModel)
+                        .environment(travelViewModel)
                         .environment(networkMonitor)
                         .preferredColorScheme(darkModeEnabled ? .dark : nil)
                         .onChange(of: scenePhase) { oldPhase, newPhase in

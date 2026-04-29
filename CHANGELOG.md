@@ -60,6 +60,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `002_seed_demo.sql` ships canonical agent IDs (`main`, `biochecha`, `calendario`, `entregas`, `legal` — kept as project-internal identifiers referenced throughout the iOS + Python code) with neutral user-visible display names (`Main`, `Health`, `Calendar`, `Orders`, `Legal`) and a `Demo User` display name on the seed user
 - DEBUG mock orders in `OrdersService.swift` swapped real-looking tracker numbers for synthetic placeholders
 - 13 byte-identical root-level docs (`DESIGN_REVIEW.md`, `PLAN.md`, `WORKLOG.md`, etc.) deleted; canonical copies remain in `docs/archive/`
+- **Round 7**: hardened `handleIncomingAuthURL` with scheme/host/path/type allowlist + already-signed-in guard so server-controlled URL fields (bookmark.url, shipment.tracking_url) can't trigger session swaps via `theperch://` deeplinks
+- **Round 7**: explicit `user_id = auth.uid()` filter added to `fetchRecords` / `fetchSections` / `fetchHomeWidgets` (defense-in-depth on top of RLS); R7 + R8 unified the existence-oracle errors so `cancel_order_correction` / `apply_merchant_rule` etc. return identical "not accessible" messages whether the row is missing or owned by another user
+- **Round 8**: removed the recovery-flow carve-out from `handleIncomingAuthURL` — ALL flows now refuse to clobber an existing session (closes a session-fixation chain through `theperch://auth/callback?type=recovery#access_token=ATTACKER` URLs)
+- **Round 8**: `idle_in_transaction_session_timeout = 60s` set at DATABASE + `authenticator` (login) role level; R7's setting on `authenticated`/`anon` was a no-op since both are nologin roles
+- **Round 8**: `sanitizeForPrompt` regex in `skill/dashboard-sync/src/llm-extractor.ts` rebuilt with explicit `RegExp` constructor + unicode escape strings — the prior literal `/[<unicode>]/g` had collapsed to `/[ -]/g` (just space + hyphen) at commit time, silently disabling control-char + zero-width stripping
+- **Round 8**: `dashboard_records` CREATE TABLE added to `supabase/001_initial_schema.sql` (4 later migrations referenced it without it being created); `002_seed_demo.sql` gained an `IF NOT EXISTS auth.users` guard so fresh installs no longer FK-violate before the user is created
+- **Round 8**: rewrote `ops/cron-jobs.example.json` to invoke python directly (the prior payloads referenced wrapper scripts that don't exist in the repo)
+- **Round 9**: committed missing migration `20260429810000_round9_repo_state_sync.sql` for state that had been applied to prod via dashboard but never landed in `supabase/migrations/` — `idle_in_transaction_session_timeout` at DATABASE + login-role level, `public.bookmarks` table + RLS + indexes (referenced by the Safari extension and iOS but never created by any committed migration), `rls_auto_enable` event-trigger function (defense-in-depth that auto-enables RLS on every new public-schema table)
+- **Round 9**: `prune_email_classifications` 7-day floor guard added to mirror `prune_agent_runs` — refuses `days < 7` so a service-role compromise can't one-call wipe email classification history
+- **Round 9**: Safari extension `popup.js` `showStatus` rewritten with `createElement` instead of `innerHTML` interpolation — the prior path interpolated server-controlled response text into the popup's innerHTML, an XSS surface in an origin with chrome.storage + chrome.tabs access
+- **Round 9**: `eight_sleep_ingest.py` no longer leaks the full OAuth response into `RuntimeError(...)` (which gets persisted to `~/.openclaw/logs/`); now reports only the response's keys
+- **Round 9**: nutrition-copilot edge function now sanitizes user-supplied meal text and correction text with the same C0/C1-control + zero-width-char strip as `llm-extractor.ts`, and wraps user input in explicit `<user-input>` delimiters
+- **Round 9**: ungated `print` in `SupabaseService.swift` (no-active-session catch) wrapped in `#if DEBUG` to match the rest of the file's release-log discipline
+- **Round 9**: dead `keychain-access-groups` entitlement removed (the Share Extension that justified it was deleted in R8)
+- **Round 9**: `001_initial_schema.sql` `display_hint` default aligned with prod (`'card'` → `'single_value'`)
 
 ---
 

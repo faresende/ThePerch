@@ -421,7 +421,7 @@ private struct CaptureActionCard: View {
 
 private struct CaptureMealFlowSheet: View {
     @Environment(DashboardViewModel.self) private var dashboardViewModel
-    @State private var nutritionViewModel = NutritionViewModel()
+    @Environment(NutritionViewModel.self) private var nutritionViewModel
     @State private var completedCapture = false
 
     let onComplete: () -> Void

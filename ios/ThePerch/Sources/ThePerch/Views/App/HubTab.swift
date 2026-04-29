@@ -12,8 +12,8 @@ private struct HubTimelineEntry: Identifiable {
 /// Uses a top segmented picker + paged content, mirroring HealthTab layout.
 struct HubTab: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(TravelViewModel.self) private var travelViewModel
     @Environment(\.perchPalette) private var palette
-    @State private var travelViewModel = TravelViewModel()
     @State private var selectedSegment: HubSegment = Self.initialSegment()
 
     let onOpenProfile: () -> Void
@@ -995,14 +995,31 @@ private struct CalendarSectionContent: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
     @State private var selectedDate = Calendar.current.startOfDay(for: Date.now)
 
+    /// Cached merged events. Round 9 audit caught the prior `var events {...}`
+    /// computed-property running ~11× per body render (title, dayEvents,
+    /// nextEventAside, dayEvents.isEmpty, CalendarAgenda, plus 7 day-chip
+    /// filter passes). Each pass did a compactMap + dedupe + sort over
+    /// up to 200 calendar records — easily 80–200ms per body. Now
+    /// recomputed only when the source arrays change.
+    @State private var cachedEvents: [EventData] = []
+    /// Pre-bucketed event counts per `Calendar.current.startOfDay(...)`.
+    /// Replaces the 7×/render filter loop in the day-chip strip.
+    @State private var eventsByDay: [Date: Int] = [:]
+
     private var records: [Record] { dashboardViewModel.calendarRecords }
 
-    /// Merges Supabase-sourced calendar records with live EventKit events
-    /// (deduped by title + start-minute; device wins on ties). Matches the
-    /// behavior of CalendarView + the home calendar cards.
-    private var events: [EventData] {
-        let supabaseEvents = records.compactMap { $0.asEvent() }
-        let deviceEvents = dashboardViewModel.eventKitEvents
+    private var dayEvents: [EventData] {
+        let cal = Calendar.current
+        return cachedEvents.filter { cal.isDate($0.start, inSameDayAs: selectedDate) }
+    }
+
+    /// Recompute `cachedEvents` and `eventsByDay` from the current sources.
+    /// Called from .onAppear and .onChange. Static so it can be called
+    /// without capturing self.
+    private static func mergeEvents(supabaseRecords: [Record], deviceEvents: [EventData])
+        -> (events: [EventData], byDay: [Date: Int])
+    {
+        let supabaseEvents = supabaseRecords.compactMap { $0.asEvent() }
         var seen = Set<String>()
         var merged: [EventData] = []
         for event in deviceEvents + supabaseEvents {
@@ -1011,12 +1028,22 @@ private struct CalendarSectionContent: View {
                 merged.append(event)
             }
         }
-        return merged.sorted { $0.start < $1.start }
+        let sorted = merged.sorted { $0.start < $1.start }
+        let cal = Calendar.current
+        var byDay: [Date: Int] = [:]
+        for event in sorted {
+            byDay[cal.startOfDay(for: event.start), default: 0] += 1
+        }
+        return (sorted, byDay)
     }
 
-    private var dayEvents: [EventData] {
-        let cal = Calendar.current
-        return events.filter { cal.isDate($0.start, inSameDayAs: selectedDate) }
+    private func refreshEventsCache() {
+        let (events, byDay) = Self.mergeEvents(
+            supabaseRecords: records,
+            deviceEvents: dashboardViewModel.eventKitEvents
+        )
+        cachedEvents = events
+        eventsByDay = byDay
     }
 
     private var weekDates: [Date] {
@@ -1055,7 +1082,8 @@ private struct CalendarSectionContent: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let cal = Calendar.current
+        return VStack(alignment: .leading, spacing: 14) {
             SectionTitle(kicker: kicker, title: title, aside: nextEventAside)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -1063,9 +1091,9 @@ private struct CalendarSectionContent: View {
                     ForEach(weekDates, id: \.self) { date in
                         PerchDayChip(
                             date: date,
-                            eventCount: events.filter { Calendar.current.isDate($0.start, inSameDayAs: date) }.count,
-                            isActive: Calendar.current.isDate(date, inSameDayAs: selectedDate),
-                            action: { selectedDate = Calendar.current.startOfDay(for: date) }
+                            eventCount: eventsByDay[cal.startOfDay(for: date), default: 0],
+                            isActive: cal.isDate(date, inSameDayAs: selectedDate),
+                            action: { selectedDate = cal.startOfDay(for: date) }
                         )
                     }
                 }
@@ -1081,13 +1109,16 @@ private struct CalendarSectionContent: View {
                 }
             } else {
                 CalendarAgenda(events: dayEvents,
-                                isToday: Calendar.current.isDateInToday(selectedDate))
+                                isToday: cal.isDateInToday(selectedDate))
             }
 
             Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 20)
+        .onAppear { refreshEventsCache() }
+        .onChange(of: dashboardViewModel.calendarRecords) { _, _ in refreshEventsCache() }
+        .onChange(of: dashboardViewModel.eventKitEvents) { _, _ in refreshEventsCache() }
     }
 }
 
@@ -1301,7 +1332,7 @@ private struct CalendarEventRow: View {
 private struct TravelSectionContent: View {
     @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @State private var viewModel = TravelViewModel()
+    @Environment(TravelViewModel.self) private var viewModel
 
     private var displayTrip: (Record, TripData)? {
         viewModel.currentTrip ?? viewModel.pastTrips.first
@@ -1713,4 +1744,5 @@ private struct TripPointStrip: View {
     HubTab()
         .environment(AuthViewModel())
         .environment(DashboardViewModel())
+        .environment(TravelViewModel())
 }

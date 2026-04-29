@@ -134,7 +134,7 @@ nonisolated struct DeliveryItem: Codable, Equatable, Sendable {
 // MARK: - Event Data
 
 /// Structured data for an event record.
-nonisolated struct EventData: Codable, Sendable {
+nonisolated struct EventData: Codable, Equatable, Sendable {
     let title: String
     let start: Date
     let end: Date

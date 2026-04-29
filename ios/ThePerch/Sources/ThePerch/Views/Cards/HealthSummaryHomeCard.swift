@@ -18,34 +18,82 @@ struct HealthSummaryHomeCard: View {
 
     @Environment(\.perchPalette) private var palette
 
-    private var healthRecords: [MeasurementData] {
-        records
-            .filter { $0.category == .health && $0.type == .measurement }
-            .compactMap { $0.asMeasurement() }
+    /// Round 9 perf: single-pass snapshot of the 5 measurements + latestUpdate.
+    /// Replaces 9 redundant filter+sort passes per body render. Recomputed
+    /// only when `records` materially changes (count + max(updatedAt)).
+    @State private var snapshot: Snapshot = .empty
+
+    private struct Snapshot {
+        var sleepDuration: MeasurementData?
+        var deepSleep: MeasurementData?
+        var hrv: MeasurementData?
+        var readiness: MeasurementData?
+        var sleepScore: MeasurementData?
+        var latestUpdate: Date?
+        var hasData: Bool
+
+        static let empty = Snapshot(
+            sleepDuration: nil, deepSleep: nil, hrv: nil,
+            readiness: nil, sleepScore: nil,
+            latestUpdate: nil, hasData: false
+        )
+
+        /// Single pass over records: filter health-measurements, track
+        /// latest-by-metric and the global max(updatedAt). Tuple
+        /// equality on MeasurementData is `Equatable`-driven (struct).
+        static func compute(from records: [Record]) -> Snapshot {
+            var latestByMetric: [String: (MeasurementData, Date)] = [:]
+            var latestUpdate: Date?
+            for r in records where r.category == .health && r.type == .measurement {
+                if let cur = latestUpdate {
+                    if r.updatedAt > cur { latestUpdate = r.updatedAt }
+                } else {
+                    latestUpdate = r.updatedAt
+                }
+                guard let m = r.asMeasurement() else { continue }
+                let ts = m.timestamp ?? .distantPast
+                if let existing = latestByMetric[m.metric], existing.1 >= ts { continue }
+                latestByMetric[m.metric] = (m, ts)
+            }
+            return Snapshot(
+                sleepDuration: latestByMetric["sleep_duration"]?.0,
+                deepSleep:     latestByMetric["deep_sleep"]?.0,
+                hrv:           latestByMetric["avg_sleep_hrv"]?.0,
+                readiness:     latestByMetric["readiness_score"]?.0,
+                sleepScore:    latestByMetric["sleep_score"]?.0,
+                latestUpdate:  latestUpdate,
+                hasData:       latestByMetric["sleep_duration"] != nil
+            )
+        }
     }
 
-    private func latestMetric(_ name: String) -> MeasurementData? {
-        healthRecords
-            .filter { $0.metric == name }
-            .sorted { ($0.timestamp ?? .distantPast) > ($1.timestamp ?? .distantPast) }
-            .first
+    /// Cheap fingerprint — count of health measurements + max(updatedAt)
+    /// in the source array. Hashable so it can drive `.onChange(of:)`
+    /// without per-render String allocation.
+    private struct Fingerprint: Hashable {
+        let count: Int
+        let maxUpdated: TimeInterval
+
+        static func from(_ records: [Record]) -> Fingerprint {
+            var count = 0
+            var maxUpd: TimeInterval = 0
+            for r in records where r.category == .health && r.type == .measurement {
+                count += 1
+                let t = r.updatedAt.timeIntervalSince1970
+                if t > maxUpd { maxUpd = t }
+            }
+            return Fingerprint(count: count, maxUpdated: maxUpd)
+        }
     }
 
-    private var sleepDuration: MeasurementData? { latestMetric("sleep_duration") }
-    private var deepSleep: MeasurementData? { latestMetric("deep_sleep") }
-    private var hrv: MeasurementData? { latestMetric("avg_sleep_hrv") }
-    private var readiness: MeasurementData? { latestMetric("readiness_score") }
-    private var sleepScore: MeasurementData? { latestMetric("sleep_score") }
-
-    private var hasData: Bool { sleepDuration != nil }
-
-    private var latestUpdate: Date? {
-        records
-            .filter { $0.category == .health && $0.type == .measurement }
-            .map(\.updatedAt)
-            .max()
-    }
-
+    /// Convenience accessors so the rest of the body reads unchanged.
+    private var sleepDuration: MeasurementData? { snapshot.sleepDuration }
+    private var deepSleep:     MeasurementData? { snapshot.deepSleep }
+    private var hrv:           MeasurementData? { snapshot.hrv }
+    private var readiness:     MeasurementData? { snapshot.readiness }
+    private var sleepScore:    MeasurementData? { snapshot.sleepScore }
+    private var hasData:       Bool             { snapshot.hasData }
+    private var latestUpdate:  Date?            { snapshot.latestUpdate }
 
     var body: some View {
         TodayCard {
@@ -80,6 +128,12 @@ struct HealthSummaryHomeCard: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .onAppear {
+            snapshot = Snapshot.compute(from: records)
+        }
+        .onChange(of: Fingerprint.from(records)) { _, _ in
+            snapshot = Snapshot.compute(from: records)
         }
     }
 

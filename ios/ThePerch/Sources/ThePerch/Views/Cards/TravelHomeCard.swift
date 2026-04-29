@@ -7,7 +7,7 @@ struct TravelHomeCard: View {
     let records: [Record]
     let deliveries: [DeliveryData]
 
-    @State private var travelVM = TravelViewModel()
+    @Environment(TravelViewModel.self) private var travelVM
     @Environment(\.perchPalette) private var palette
 
     var body: some View {

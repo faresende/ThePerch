@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.dashboard_records (
   category      text NOT NULL,
   title         text NOT NULL,
   data          jsonb NOT NULL DEFAULT '{}'::jsonb,
-  display_hint  text NOT NULL DEFAULT 'card',
+  display_hint  text NOT NULL DEFAULT 'single_value',
   annotations   jsonb,
   pinned        boolean DEFAULT false,
   created_at    timestamptz DEFAULT now(),

@@ -5,16 +5,27 @@ import UIKit
 @Observable
 @MainActor
 final class NutritionViewModel {
-    var meals: [Record] = []
+    /// Setting `meals` recomputes `daySections`. Round 9 audit caught
+    /// the prior computed-property version doing a Dictionary(grouping:)
+    /// + 3 sorts on every read — and several body paths read it 3×
+    /// per render. Now cached and recomputed only when meals change.
+    var meals: [Record] = [] {
+        didSet { recomputeDaySections() }
+    }
     var visibleDayCount = 7
     var mealSuggestions: [MealSuggestion] = []
     var isAnalyzing = false
     var isLoadingSuggestions = false
     var error: String?
 
+    /// Cached projection of `meals` into per-day sections with target macros.
+    private(set) var daySections: [NutritionDaySection] = []
+
     private let nutritionService: NutritionService
     private let supabaseService: SupabaseServiceProtocol
     private let pageSize = 7
+    /// Set BEFORE `meals` in `loadMeals(from:)` so the meals didSet
+    /// picks up fresh targets — no double-recompute.
     private var targetSourceRecords: [Record] = []
 
     /// Default arguments are `nil` so we don't reference `@MainActor`
@@ -190,7 +201,7 @@ final class NutritionViewModel {
         visibleDayCount = min(visibleDayCount + pageSize, totalDays)
     }
 
-    var daySections: [NutritionDaySection] {
+    private func recomputeDaySections() {
         let calendar = Calendar.current
         // Spell out the closure (rather than `meals.map(MealRecord.init(from:))`)
         // so Swift 6 inherits the enclosing MainActor isolation. The unapplied
@@ -207,7 +218,7 @@ final class NutritionViewModel {
             dates.insert(today, at: 0)
         }
 
-        return dates
+        daySections = dates
             .sorted(by: >)
             .map { date in
                 let mealsForDay = groupedMeals[date, default: []]

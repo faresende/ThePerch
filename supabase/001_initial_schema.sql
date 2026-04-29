@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS public.dashboard_records (
   category      TEXT NOT NULL,
   title         TEXT NOT NULL,
   data          JSONB NOT NULL DEFAULT '{}'::jsonb,
-  display_hint  TEXT NOT NULL DEFAULT 'card',
+  display_hint  TEXT NOT NULL DEFAULT 'single_value',
   annotations   JSONB,
   pinned        BOOLEAN DEFAULT false,
   created_at    TIMESTAMPTZ DEFAULT NOW(),

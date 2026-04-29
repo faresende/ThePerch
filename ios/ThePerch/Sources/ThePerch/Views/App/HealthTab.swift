@@ -485,38 +485,48 @@ struct WorkoutsSegment: View {
     /// chunks of 5 as the user scrolls to the last visible card.
     @State private var visibleSessionCount: Int = 5
 
-    private var workoutRecords: [(Record, WorkoutSessionData)] {
-        let records = viewModel.records.compactMap { r -> (Record, WorkoutSessionData)? in
-            guard r.type == .workoutSession, let ws = r.asWorkoutSession() else { return nil }
-            return (r, ws)
-        }
-        return records.sorted {
-            let date1 = $0.1.dateParsed ?? .distantPast
-            let date2 = $1.1.dateParsed ?? .distantPast
-            return date1 > date2
-        }
-    }
+    /// Cached compactMap+sort of `viewModel.records`. Round 9 audit caught
+    /// the prior `var workoutRecords {...}` computed-property running 6×
+    /// per body render with N=300 sessions → ~50K comparisons per render.
+    /// This @State snapshot is recomputed in `.onChange(of: viewModel.records)`
+    /// instead of every body access.
+    @State private var workoutRecords: [(record: Record, session: WorkoutSessionData)] = []
+    /// Pre-computed 14×7 heatmap matrix. Same caching rationale as `workoutRecords`.
+    @State private var heatmapCells: [Int] = Array(repeating: 0, count: 14 * 7)
 
     private var latestSession: WorkoutSessionData? {
-        workoutRecords.first?.1
+        workoutRecords.first?.session
     }
 
-    /// Labeled projection of `workoutRecords` for use in the in-page
-    /// session feed. Same ordering (most recent first); different call
-    /// sites just read cleaner with named fields.
+    /// `sessionFeed` is now identical to `workoutRecords` (already labeled).
+    /// Kept as a property to minimize the body-render diff.
     private var sessionFeed: [(record: Record, session: WorkoutSessionData)] {
-        workoutRecords.map { (record: $0.0, session: $0.1) }
+        workoutRecords
+    }
+
+    /// Recompute the cached `workoutRecords` and `heatmapCells` from
+    /// `viewModel.records`. Called from .onAppear and .onChange.
+    private func recomputeWorkoutCaches() {
+        let pairs = viewModel.records.compactMap { r -> (record: Record, session: WorkoutSessionData)? in
+            guard r.type == .workoutSession, let ws = r.asWorkoutSession() else { return nil }
+            return (record: r, session: ws)
+        }
+        workoutRecords = pairs.sorted {
+            ($0.session.dateParsed ?? .distantPast) > ($1.session.dateParsed ?? .distantPast)
+        }
+        heatmapCells = Self.buildHeatmap(from: workoutRecords)
     }
 
     /// Build a 14-week × 7-day intensity matrix (0 = rest, 1–4 = level).
     /// When we have real sessions we stamp intensity at their dates;
     /// otherwise we fall back to the handoff's deterministic mock so
-    /// the design still reads as designed.
-    private func heatmapData() -> [Int] {
+    /// the design still reads as designed. Static so it's cheap to call
+    /// from `recomputeWorkoutCaches` outside body context.
+    private static func buildHeatmap(from records: [(record: Record, session: WorkoutSessionData)]) -> [Int] {
         var cells = Array(repeating: 0, count: 14 * 7)
 
         // Attempt real fill first.
-        if !workoutRecords.isEmpty {
+        if !records.isEmpty {
             let cal = Calendar.current
             let today = cal.startOfDay(for: Date.now)
             // Anchor column 13 on Monday of current week.
@@ -525,8 +535,8 @@ struct WorkoutsSegment: View {
                 from: today
             )) ?? today
 
-            for (_, session) in workoutRecords {
-                guard let d = session.dateParsed else { continue }
+            for entry in records {
+                guard let d = entry.session.dateParsed else { continue }
                 let daysBack = cal.dateComponents([.day], from: d, to: mondayThisWeek).day ?? 0
                 let weekOffset = daysBack / 7
                 let dayOfWeek = (cal.component(.weekday, from: d) + 5) % 7 // Mon=0
@@ -534,7 +544,7 @@ struct WorkoutsSegment: View {
                 guard col >= 0, col < 14 else { continue }
                 let idx = col * 7 + dayOfWeek
                 // Intensity by duration. 0–30min = 1, 30–60 = 2, 60–90 = 3, 90+ = 4.
-                let minutes = session.durationMin ?? 45
+                let minutes = entry.session.durationMin ?? 45
                 let intensity: Int = {
                     if minutes >= 90 { return 4 }
                     if minutes >= 60 { return 3 }
@@ -567,7 +577,7 @@ struct WorkoutsSegment: View {
     }
 
     var body: some View {
-        let heatmap = heatmapData()
+        let heatmap = heatmapCells
 
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
@@ -698,11 +708,13 @@ struct WorkoutsSegment: View {
         }
         .onChange(of: dashboardViewModel.healthRecords) { _, newRecords in
             viewModel.records = newRecords
+            recomputeWorkoutCaches()
         }
         .onAppear {
             if !dashboardViewModel.healthRecords.isEmpty {
                 viewModel.records = dashboardViewModel.healthRecords
             }
+            recomputeWorkoutCaches()
         }
     }
 
@@ -800,7 +812,7 @@ struct WorkoutsSegment: View {
 struct NutritionSegment: View {
     @Environment(\.perchPalette) private var palette
     @Environment(DashboardViewModel.self) var dashboardViewModel
-    @State private var viewModel = NutritionViewModel()
+    @Environment(NutritionViewModel.self) private var viewModel
     @State private var showingInputSheet = false
     @State private var showingSuggestionsSheet = false
 
@@ -1370,95 +1382,9 @@ private struct SuggestionMacroPill: View {
     }
 }
 
-// PersonalRecordsCard reused from WorkoutView.swift - no local duplicate needed
-
-// MARK: - Stub to satisfy usages (delegate to WorkoutView's PersonalRecordsCard)
-private struct HealthTabPersonalRecordsCard: View {
-    let sessions: [WorkoutSessionData]
-
-    struct PR {
-        let name: String
-        let weight: Double
-        let reps: Int
-    }
-
-    private var topLifts: [PR] {
-        var bests: [String: (weight: Double, reps: Int)] = [:]
-
-        for session in sessions {
-            for exercise in session.exercises {
-                for set in exercise.sets {
-                    let w = set.weightKg ?? 0
-                    let r = set.reps ?? 0
-                    if w > 0 {
-                        let lowerName = exercise.name.lowercased()
-                        if let current = bests[lowerName] {
-                            if w > current.weight || (w == current.weight && r > current.reps) {
-                                bests[lowerName] = (w, r)
-                            }
-                        } else {
-                            bests[lowerName] = (w, r)
-                        }
-                    }
-                }
-            }
-        }
-
-        return bests.map { PR(name: $0.key.capitalized, weight: $0.value.weight, reps: $0.value.reps) }
-            .sorted { $0.weight > $1.weight }
-            .prefix(5)
-            .map { $0 }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
-            HStack(spacing: PerchTheme.Spacing.xSmall) {
-                Image(systemName: "trophy.fill")
-                    .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.accent)
-                Text("PERSONAL RECORDS")
-                    .font(PerchTheme.Font.cardEyebrow)
-                    .foregroundColor(PerchTheme.textSecondary)
-                    .tracking(0.8)
-                Spacer()
-            }
-
-            if topLifts.isEmpty {
-                Text("No records yet")
-                    .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textTertiary)
-            } else {
-                VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
-                    ForEach(Array(topLifts.enumerated()), id: \.offset) { index, pr in
-                        HStack {
-                            Text("\(index + 1).")
-                                .font(PerchTheme.Font.captionNumeric)
-                                .foregroundColor(PerchTheme.textTertiary)
-                                .frame(width: 20, alignment: .leading)
-
-                            Text(pr.name)
-                                .font(PerchTheme.Font.body)
-                                .foregroundColor(PerchTheme.textPrimary)
-
-                            Spacer()
-
-                            Text("\(Int(pr.weight))kg × \(pr.reps)")
-                                .font(PerchTheme.Font.captionNumeric)
-                                .foregroundColor(PerchTheme.textSecondary)
-                        }
-
-                        if index < topLifts.count - 1 {
-                            Divider()
-                                .background(PerchTheme.border)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(PerchTheme.Card.padding)
-        .cardStyle()
-    }
-}
+// PersonalRecordsCard reused from WorkoutView.swift - no local duplicate.
+// Round 9 audit caught the duplicate `HealthTabPersonalRecordsCard` here
+// (no call sites + un-fingerprinted O(N³) topLifts) — deleted.
 
 // MARK: - Workouts sub-components
 
@@ -1552,25 +1478,7 @@ private struct VolumeRow: View {
     }
 }
 
-/// One of three stats in the session card's top/bottom-ruled row.
-/// Serif number + uppercase micro label below.
-private struct StatCell: View {
-    @Environment(\.perchPalette) private var palette
-
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            PerchNum(value, size: 22)
-            Text(label)
-                .font(.system(size: 10.5, weight: .regular))
-                .tracking(0.4)
-                .foregroundStyle(palette.muted)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
+// `StatCell` removed (Round 9): had a single self-reference, no call sites.
 
 /// Top lift row: exercise name left, sets · best weight×reps right.
 private struct TopLiftRow: View {
@@ -2111,4 +2019,5 @@ struct PerchSpark: View {
     HealthTab()
         .environment(AuthViewModel())
         .environment(DashboardViewModel())
+        .environment(NutritionViewModel())
 }

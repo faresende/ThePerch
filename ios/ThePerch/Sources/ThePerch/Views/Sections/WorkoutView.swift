@@ -1,10 +1,10 @@
 import SwiftUI
 
 // `PersonalRecordsCard` is the only live struct that survived the
-// R8 dead-code purge of `Views/Sections/WorkoutView`. HealthTab
-// reuses it via the `HealthTabPersonalRecordsCard` stub. Don't
-// reintroduce the WorkoutView body — the live workouts surface
-// is `WorkoutsSegment` in `Views/App/HealthTab.swift`.
+// R8 dead-code purge of `Views/Sections/WorkoutView`. The live
+// workouts surface is `WorkoutsSegment` in `Views/App/HealthTab.swift`.
+// (R9: removed stale reference to the deleted `HealthTabPersonalRecordsCard`
+// stub.)
 
 // MARK: - Personal Records Card
 struct PersonalRecordsCard: View {

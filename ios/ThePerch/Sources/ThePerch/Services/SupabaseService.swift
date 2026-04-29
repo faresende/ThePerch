@@ -650,7 +650,14 @@ final class SupabaseService: ObservableObject, SupabaseServiceProtocol {
             self.isAuthenticated = false
             self.isPasswordRecovery = false
             self.currentUserId = nil
+#if DEBUG
+            // Round 9 audit: this print was the only ungated one in
+            // SupabaseService. error.localizedDescription from the SDK
+            // is unlikely to contain JWT material but can carry session
+            // metadata that aids fingerprinting. Match the rest of the
+            // file's #if DEBUG discipline.
             print("[SupabaseService] No active session: \(error.localizedDescription)")
+#endif
         }
     }
 
