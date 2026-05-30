@@ -68,6 +68,7 @@ Reply schema (no prose, no markdown, no code fences):
   "total_amount": number | null,     // The ORDER TOTAL (final amount paid), not a line item or subtotal. Numeric, no currency symbol. null if absent.
   "currency": string | null,         // 3-letter ISO code: "EUR" / "USD" / "GBP" / "BRL" / "JPY" etc. null if you can't tell.
   "is_purchase_confirmation": boolean, // true ONLY for an ONLINE order confirmation where something will be SHIPPED OR DELIVERED to the recipient. false for: shipping notices, marketing/newsletters, trip reminders, hotel reservations, airline check-in nudges, statement/billing summaries, and IN-STORE / electronic receipts ("documento digital" / "fatura eletrônica" / "ticket de compra" with no shipment).
+  "classification": "physical" | "digital" | "unsure", // physical = a tangible item ships to a postal address. digital = nothing ships (downloads, subscriptions, reservations, tickets, statements, in-store receipts). unsure = genuinely ambiguous (could be either, not enough signal to tell).
   "items": [                         // Per-line items the user purchased. Empty array if you can't see line items in the body.
     {
       "name": string,                // Product name as it appears in the email. Strip SKU codes, sizes go in name only when meaningful.
@@ -86,6 +87,7 @@ Rules:
 - Trip/itinerary reminders look textually similar to order confirmations (totals, confirmation numbers, "non-refundable purchase" boilerplate). They are NOT purchase confirmations. Tell-tale signs: subject mentions "upcoming trip" / "your trip" / "review details", body mentions "itinerary" / "check-in" / "before your departure" / "manage your booking".
 - In-store digital receipts are NOT order confirmations for our purposes — they're records of an already-completed in-person transaction with nothing to deliver. Tell-tale signs: very short body, a "download" link to a PDF, no shipping address, no items list, no expected delivery date, sender domain is the in-store retailer's mail-marketing host.
 - If is_purchase_confirmation is false, set items: [].
+- ALWAYS set "classification": physical ONLY when a tangible item ships to a postal address. digital when nothing ships — downloads, subscriptions, reservations, hotel/restaurant bookings, airline tickets, statements/billing summaries, and in-store / electronic receipts. unsure when it is genuinely ambiguous and you cannot tell which it is. "confidence" applies to the classification too.
 
 Examples (input → expected JSON output):
 
@@ -96,19 +98,19 @@ Body: Hi Alex, thanks for your order BF-DEMO-0001.
 1× Whey Protein Isolate Vanilla 2.5kg — €54.99
 2× Creatine Monohydrate 500g — €19.99
 Total: €114.97. We'll let you know when it ships.
-{"merchant_name":"DemoOutdoors","order_number":"BF-DEMO-0001","total_amount":114.97,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Whey Protein Isolate Vanilla 2.5kg","quantity":1,"unit_price":54.99,"currency":"EUR"},{"name":"Creatine Monohydrate 500g","quantity":2,"unit_price":19.99,"currency":"EUR"}],"confidence":0.97}
+{"merchant_name":"DemoOutdoors","order_number":"BF-DEMO-0001","total_amount":114.97,"currency":"EUR","is_purchase_confirmation":true,"classification":"physical","items":[{"name":"Whey Protein Isolate Vanilla 2.5kg","quantity":1,"unit_price":54.99,"currency":"EUR"},{"name":"Creatine Monohydrate 500g","quantity":2,"unit_price":19.99,"currency":"EUR"}],"confidence":0.97}
 
 EXAMPLE 2 — trip itinerary reminder (Amex, NOT an order):
 From: American Express <AmericanExpress@welcome.americanexpress.com>
 Subject: FABIO, review details for your upcoming trip
 Body: Your American Express booking #ZO-AX1042-37980 is coming up. Review your itinerary, manage your booking online. Hotel confirmation #: exp-2435832390. Average benefit value of $550. Cancellation policy: non-refundable.
-{"merchant_name":"American Express","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"items":[],"confidence":0.96}
+{"merchant_name":"American Express","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"classification":"digital","items":[],"confidence":0.96}
 
 EXAMPLE 3 — in-store digital receipt (El Corte Inglés, Portuguese, NOT an order):
 From: El Corte Inglés <elcorteingles@mc.elcorteingles.es>
 Subject: Envio de documento digital
 Body: O documento digital relativo à sua compra com o número 004014005292827202604264 já está disponível. DESCARREGAR. Muito obrigado pela sua confiança.
-{"merchant_name":"El Corte Inglés","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"items":[],"confidence":0.92}
+{"merchant_name":"El Corte Inglés","order_number":null,"total_amount":null,"currency":null,"is_purchase_confirmation":false,"classification":"digital","items":[],"confidence":0.92}
 
 EXAMPLE 4 — real online order confirmation (Demo Merchant):
 From: Demo Merchant <hello@demo-merchant.com>
@@ -117,7 +119,7 @@ Body: Thanks for your order HGMC-DEMO-0001.
 1× Tasche Camera Bag — €145.00
 1× Leather Wrist Strap — €15.93
 Order total: €160.93.
-{"merchant_name":"Demo Merchant","order_number":"HGMC-DEMO-0001","total_amount":160.93,"currency":"EUR","is_purchase_confirmation":true,"items":[{"name":"Tasche Camera Bag","quantity":1,"unit_price":145.00,"currency":"EUR"},{"name":"Leather Wrist Strap","quantity":1,"unit_price":15.93,"currency":"EUR"}],"confidence":0.98}`;
+{"merchant_name":"Demo Merchant","order_number":"HGMC-DEMO-0001","total_amount":160.93,"currency":"EUR","is_purchase_confirmation":true,"classification":"physical","items":[{"name":"Tasche Camera Bag","quantity":1,"unit_price":145.00,"currency":"EUR"},{"name":"Leather Wrist Strap","quantity":1,"unit_price":15.93,"currency":"EUR"}],"confidence":0.98}`;
 
 /**
  * Strip HTML/CSS scaffolding from an email body before handing it to
@@ -242,6 +244,29 @@ function coerceItems(raw: unknown, fallbackCurrency: string | null): LLMExtracte
     });
   }
   return items;
+}
+
+/**
+ * Parse the physical/digital/unsure classification + confidence from a
+ * raw LLM JSON string. Used by the classification cascade's LLM stage
+ * (the repurposed extractor now also returns a top-level
+ * `classification` + `confidence`).
+ *
+ * Defensive by design: any malformed, missing, or non-enum value falls
+ * back to `{ classification: 'unsure', confidence: 0 }` so the cascade
+ * routes the email to the mid-band review path rather than mis-filing
+ * it. Confidence is clamped to [0, 1].
+ */
+export function parseClassificationFromLLM(raw: string): { classification: 'physical' | 'digital' | 'unsure'; confidence: number } {
+  try {
+    const o = JSON.parse(raw);
+    const c = o.classification;
+    if (c === 'physical' || c === 'digital' || c === 'unsure') {
+      const conf = typeof o.confidence === 'number' ? Math.min(1, Math.max(0, o.confidence)) : 0;
+      return { classification: c, confidence: conf };
+    }
+  } catch { /* fall through */ }
+  return { classification: 'unsure', confidence: 0 };
 }
 
 function buildLLMResult(

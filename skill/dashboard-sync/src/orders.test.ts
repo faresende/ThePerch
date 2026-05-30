@@ -14,6 +14,7 @@ import {
   normalizeMerchantName,
 } from './orders';
 import { shipmentRowsForTracking } from './orders-autopilot';
+import { parseClassificationFromLLM } from './llm-extractor';
 
 test('canonical commerce types are supported', () => {
   const orderType: RecordType = 'order';
@@ -133,4 +134,12 @@ test('a multi-piece tracking string yields N shipment rows, deduped', () => {
 });
 test('an empty tracking string yields zero shipment rows (no phantom)', () => {
   assert.deepEqual(shipmentRowsForTracking('', 'DHL'), []);
+});
+
+test('parses physical/digital/confidence from LLM JSON', () => {
+  assert.deepEqual(parseClassificationFromLLM('{"classification":"physical","confidence":0.91}'), { classification: 'physical', confidence: 0.91 });
+  assert.deepEqual(parseClassificationFromLLM('{"classification":"digital","confidence":0.4}'), { classification: 'digital', confidence: 0.4 });
+});
+test('falls back to unsure on unparseable LLM output', () => {
+  assert.deepEqual(parseClassificationFromLLM('not json'), { classification: 'unsure', confidence: 0 });
 });
