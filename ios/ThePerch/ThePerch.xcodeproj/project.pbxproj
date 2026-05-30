@@ -152,6 +152,7 @@
 		ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */; };
 		PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */; };
 		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
+		PFON0002PFON0002PFON0002 /* PerchFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFON0001PFON0001PFON0001 /* PerchFonts.swift */; };
 		REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */; };
 		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
 		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
@@ -251,6 +252,7 @@
 		EXTURL01EXTURL01EXTURL01 /* ExternalURLOpener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalURLOpener.swift; sourceTree = "<group>"; };
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
+		PFON0001PFON0001PFON0001 /* PerchFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFonts.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		40DB35E8985DAE99DD669ABB /* FailableDecodable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FailableDecodable.swift; sourceTree = "<group>"; };
 		4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KarakeepService.swift; sourceTree = "<group>"; };
@@ -616,6 +618,7 @@
 			isa = PBXGroup;
 			children = (
 				PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */,
+				PFON0001PFON0001PFON0001 /* PerchFonts.swift */,
 				35F543762F52411F00204F77 /* PerchTheme.swift */,
 			);
 			path = Theme;
@@ -1153,6 +1156,7 @@
 				EMPT0002EMPT0002EMPT0002 /* EmptyStateView.swift in Sources */,
 				ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */,
 				PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */,
+				PFON0002PFON0002PFON0002 /* PerchFonts.swift in Sources */,
 				NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */,
 				CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */,
 				CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */,
