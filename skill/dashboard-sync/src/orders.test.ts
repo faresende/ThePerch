@@ -13,6 +13,7 @@ import {
   extractShipmentCandidate,
   normalizeMerchantName,
 } from './orders';
+import { shipmentRowsForTracking } from './orders-autopilot';
 
 test('canonical commerce types are supported', () => {
   const orderType: RecordType = 'order';
@@ -123,4 +124,13 @@ test('extractOrderCandidate does not invent an order from shipment-only text', (
   `);
 
   assert.equal(candidate, null);
+});
+
+test('a multi-piece tracking string yields N shipment rows, deduped', () => {
+  const rows = shipmentRowsForTracking('7197712620 / 001959496839433548', 'DHL');
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map(r => r.tracking_number), ['7197712620', '001959496839433548']);
+});
+test('an empty tracking string yields zero shipment rows (no phantom)', () => {
+  assert.deepEqual(shipmentRowsForTracking('', 'DHL'), []);
 });

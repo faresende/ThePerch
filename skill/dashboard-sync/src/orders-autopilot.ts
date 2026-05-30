@@ -57,6 +57,7 @@ import { detectPhysicalVsDigital } from './physical-vs-digital';
 import { detectQuotedPriorOrder } from './quoted-prior-order';
 import { pickETA } from './extract-eta';
 import { resolveETAUpdate } from './resolve-eta';
+import { normalizeTrackingNumbers } from './normalize-tracking';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -550,6 +551,19 @@ async function handlePurchaseConfirmation(
 
 // ─── Shipping notification handler ─────────────────────────────────────────
 
+/**
+ * Expand a (possibly multi-piece) tracking string into N normalized shipment
+ * rows. Routes through normalizeTrackingNumbers so multi-piece carrier strings
+ * become separate trackable rows and empty/junk input yields zero rows (never a
+ * phantom 'pending' shipment). See normalize-tracking.ts for the why.
+ */
+export function shipmentRowsForTracking(
+  raw: string | null | undefined,
+  carrier: string | null,
+): Array<{ tracking_number: string; carrier: string | null }> {
+  return normalizeTrackingNumbers(raw).map(tn => ({ tracking_number: tn, carrier }));
+}
+
 async function handleShippingNotification(
   email: EmailInput,
   baseConfidence: number,
@@ -593,18 +607,41 @@ async function handleShippingNotification(
     };
   }
 
+  // Normalize the (possibly multi-piece) tracking string into N rows. A carrier
+  // can pack several tracking numbers into one field ("A / B"); we want one
+  // trackable shipment row per piece. If normalization yields nothing (the raw
+  // string was present but every piece was junk/too short), SKIP shipment
+  // creation entirely — never write a phantom 'pending' row. The
+  // `!fields.trackingNumber` orphan-review path above still handles the
+  // genuinely-empty case.
+  const trackingRows = shipmentRowsForTracking(fields.trackingNumber, fields.carrier);
+  if (trackingRows.length === 0) {
+    await writeTelemetry(tel, 'skipped', `No valid tracking number after normalization`);
+    return {
+      success: true,
+      type: 'shipping_notification',
+      action: 'skipped',
+      detail: 'No valid tracking number after normalization — skipped to avoid phantom shipment',
+      confidence: baseConfidence,
+    };
+  }
+
   // Try to find matching order via tracking number or merchant
   const userId = await getUserIdFromEmail(sender);
 
-  // Try to find order by tracking number first
-  const { data: existingByTracking } = await supabase
+  // Try to find order by tracking number first. Check ALL normalized pieces:
+  // a piece is "new" only if no shipment row already owns it. If every piece is
+  // already linked, skip (existing already-linked guard, now multi-piece-aware).
+  const trackingNumbers = trackingRows.map(r => r.tracking_number);
+  const { data: alreadyLinkedRows } = await supabase
     .from('shipments')
-    .select('order_id')
-    .eq('tracking_number', fields.trackingNumber)
-    .maybeSingle();
+    .select('tracking_number')
+    .in('tracking_number', trackingNumbers);
+  const alreadyLinked = new Set((alreadyLinkedRows ?? []).map(r => r.tracking_number));
+  const newTrackingRows = trackingRows.filter(r => !alreadyLinked.has(r.tracking_number));
 
-  if (existingByTracking) {
-    // Shipment already linked to an order
+  if (newTrackingRows.length === 0) {
+    // All pieces already linked to an order.
     await writeTelemetry(tel, 'skipped', `Tracking ${fields.trackingNumber} already linked`);
     return {
       success: true,
@@ -700,59 +737,73 @@ async function handleShippingNotification(
     };
   }
 
-  // Phase 1 ETA: pick the highest-ranked ETA candidate from the
-  // email body (if any), then run it through resolveETAUpdate
-  // against the existing shipment row's ETA. Skip the write if the
-  // resolver says "no update" (e.g. existing 17track ETA outranks
-  // this carrier-email ETA).
-  let etaUpdate: { eta_at: string; eta_source: 'carrier_email'; eta_recorded_at: string } | null = null;
-  const etaWinner = pickETA(fields.etaCandidates, new Date());
-  if (etaWinner) {
-    const { data: existingShipment } = await supabase
-      .from('shipments')
-      .select('eta_at, eta_source, eta_recorded_at')
-      .eq('order_id', orderId)
-      .eq('tracking_number', fields.trackingNumber)
-      .maybeSingle();
-    const now = new Date();
-    const resolved = resolveETAUpdate(
-      {
-        eta_at: existingShipment?.eta_at ? new Date(existingShipment.eta_at) : null,
-        eta_source: (existingShipment?.eta_source as string | null) ?? null,
-        eta_recorded_at: existingShipment?.eta_recorded_at ? new Date(existingShipment.eta_recorded_at) : null,
-      },
-      {
-        eta_at: etaWinner.date,
-        eta_source: 'carrier_email',
-        eta_recorded_at: now,
-      },
-    );
-    if (resolved) {
-      etaUpdate = {
-        eta_at: resolved.eta_at.toISOString(),
-        eta_source: resolved.eta_source as 'carrier_email',
-        eta_recorded_at: resolved.eta_recorded_at.toISOString(),
-      };
+  // Upsert one shipment row per normalized tracking piece. A multi-piece
+  // carrier string ("A / B") becomes N trackable rows linked to the same order;
+  // pieces already linked were filtered out above.
+  for (const row of newTrackingRows) {
+    const tn = row.tracking_number;
+
+    // Phase 1 ETA: pick the highest-ranked ETA candidate from the
+    // email body (if any), then run it through resolveETAUpdate
+    // against the existing shipment row's ETA. Skip the write if the
+    // resolver says "no update" (e.g. existing 17track ETA outranks
+    // this carrier-email ETA).
+    let etaUpdate: { eta_at: string; eta_source: 'carrier_email'; eta_recorded_at: string } | null = null;
+    const etaWinner = pickETA(fields.etaCandidates, new Date());
+    if (etaWinner) {
+      const { data: existingShipment } = await supabase
+        .from('shipments')
+        .select('eta_at, eta_source, eta_recorded_at')
+        .eq('order_id', orderId)
+        .eq('tracking_number', tn)
+        .maybeSingle();
+      const now = new Date();
+      const resolved = resolveETAUpdate(
+        {
+          eta_at: existingShipment?.eta_at ? new Date(existingShipment.eta_at) : null,
+          eta_source: (existingShipment?.eta_source as string | null) ?? null,
+          eta_recorded_at: existingShipment?.eta_recorded_at ? new Date(existingShipment.eta_recorded_at) : null,
+        },
+        {
+          eta_at: etaWinner.date,
+          eta_source: 'carrier_email',
+          eta_recorded_at: now,
+        },
+      );
+      if (resolved) {
+        etaUpdate = {
+          eta_at: resolved.eta_at.toISOString(),
+          eta_source: resolved.eta_source as 'carrier_email',
+          eta_recorded_at: resolved.eta_recorded_at.toISOString(),
+        };
+      }
+    }
+
+    // Upsert shipment linked to order
+    const { id: shipmentId } = await upsertShipment({
+      order_id: orderId,
+      tracking_number: tn,
+      carrier: row.carrier,
+      tracking_url: carrierTrackingURL(row.carrier, tn),
+      seventeen_track_id: null,
+      status: fields.status as any,
+      latest_checkpoint: fields.status === 'in_transit' ? `Status: ${fields.status}` : null,
+      shipped_at: fields.shippedAt ? new Date(fields.shippedAt).toISOString() : null,
+      delivered_at: fields.status === 'delivered' ? new Date().toISOString() : null,
+      source_email_ids: [id],
+      confidence_score: baseConfidence,
+      ...(etaUpdate ?? {}),
+    });
+
+    // If 17track API key is available, immediately poll for latest status
+    if (SEVENTEEN_TRACK_API_KEY) {
+      // Fire and forget — update will happen on next poll cycle
+      pollAndUpdateShipment(SEVENTEEN_TRACK_API_KEY, shipmentId, tn, row.carrier)
+        .catch(err => console.warn('[orders-autopilot] 17track poll failed:', err.message));
     }
   }
 
-  // Upsert shipment linked to order
-  const { id: shipmentId } = await upsertShipment({
-    order_id: orderId,
-    tracking_number: fields.trackingNumber,
-    carrier: fields.carrier,
-    tracking_url: carrierTrackingURL(fields.carrier, fields.trackingNumber),
-    seventeen_track_id: null,
-    status: fields.status as any,
-    latest_checkpoint: fields.status === 'in_transit' ? `Status: ${fields.status}` : null,
-    shipped_at: fields.shippedAt ? new Date(fields.shippedAt).toISOString() : null,
-    delivered_at: fields.status === 'delivered' ? new Date().toISOString() : null,
-    source_email_ids: [id],
-    confidence_score: baseConfidence,
-    ...(etaUpdate ?? {}),
-  });
-
-  // Derive and update order status
+  // Derive and update order status once, after all rows are written.
   const shipments = await getShipmentsForOrder(orderId);
   const newStatus = deriveOrderStatusFromShipments(shipments);
   await updateOrderStatus(orderId, newStatus);
@@ -766,13 +817,6 @@ async function handleShippingNotification(
 
   if (updatedOrder) {
     await pushCommerceRecord(orderId, 'order', updatedOrder as any, baseConfidence);
-  }
-
-  // If 17track API key is available, immediately poll for latest status
-  if (SEVENTEEN_TRACK_API_KEY && fields.trackingNumber) {
-    // Fire and forget — update will happen on next poll cycle
-    pollAndUpdateShipment(SEVENTEEN_TRACK_API_KEY, shipmentId, fields.trackingNumber, fields.carrier)
-      .catch(err => console.warn('[orders-autopilot] 17track poll failed:', err.message));
   }
 
   tel.related_order_id = orderId;
