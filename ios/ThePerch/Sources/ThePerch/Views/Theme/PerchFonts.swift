@@ -5,9 +5,9 @@ import UIKit
 #endif
 
 /// Bundled type families for the time-of-day system. Registered at launch
-/// from Asset Catalog Data Sets via CoreText, so no Info.plist/UIAppFonts
-/// or pbxproj edits are needed. Reference families by the names CoreText
-/// reports (see PerchFonts registration log).
+/// from Asset Catalog Data Sets via CoreText, so the font files need no
+/// Info.plist/UIAppFonts entries (this source file is registered in the
+/// pbxproj as usual). Reference families by the names CoreText reports.
 enum PerchFonts {
     /// Asset name → expected family name (verified in PerchFontsTests/log).
     private static let assets = ["Fraunces", "FrauncesItalic", "Inter", "Archivo", "JetBrainsMono"]
