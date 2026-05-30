@@ -15,7 +15,6 @@ private func makeOrder(
         total: Decimal(string: "42.00"),
         currency: "EUR",
         status: status,
-        sourceEmailId: "email_1",
         confidence: 0.9,
         createdAt: .now,
         manualDeliveredAt: manualDeliveredAt
@@ -110,7 +109,6 @@ struct OrderWithShipmentsEffectiveStatusTests {
             total: originalOrder.total,
             currency: originalOrder.currency,
             status: originalOrder.status,
-            sourceEmailId: originalOrder.sourceEmailId,
             confidence: originalOrder.confidence,
             createdAt: originalOrder.createdAt,
             manualDeliveredAt: nil  // cleared
