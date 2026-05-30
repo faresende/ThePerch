@@ -58,6 +58,7 @@ import { detectQuotedPriorOrder } from './quoted-prior-order';
 import { pickETA } from './extract-eta';
 import { resolveETAUpdate } from './resolve-eta';
 import { normalizeTrackingNumbers } from './normalize-tracking';
+import { canonicalMerchant } from './merchant-normalize';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -456,7 +457,12 @@ async function handlePurchaseConfirmation(
   const fields = {
     ...regexFields,
     merchantName: mergedMerchantName,
-    normalizedMerchant: normalizeMerchant(mergedMerchantName),
+    // canonicalMerchant collapses TLD ("Amazon.es"→"amazon") and brand-alias
+    // ("TAP Portugal"→"tap") variants that otherwise fragment into distinct
+    // normalized_merchant keys and spawn duplicate orders; normalizeMerchant
+    // then reduces that to the established stripped match-key format so
+    // shipment→order lookups against existing rows stay compatible.
+    normalizedMerchant: normalizeMerchant(canonicalMerchant(mergedMerchantName)),
     orderNumber: mergedOrderNumber,
     totalAmount: mergedTotal,
     currency: mergedCurrency,
@@ -686,7 +692,9 @@ async function handleShippingNotification(
   } else {
     merchantName = extractOrderFields(email.subject, email.body, sender, id).merchantName;
   }
-  const normalizedMerchant = merchantName ? normalizeMerchant(merchantName) : '';
+  // Same canonical→stripped composition as the order-upsert path so this
+  // shipment's lookup key matches the orders.normalized_merchant it's seeking.
+  const normalizedMerchant = merchantName ? normalizeMerchant(canonicalMerchant(merchantName)) : '';
 
   let orderId: string | null = null;
   if (normalizedMerchant) {
