@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct CardGalleryView: View {
+    @Environment(\.perchPalette) private var palette
+
     struct GalleryItem: Identifiable {
         let id: String
         let name: String
@@ -28,16 +30,16 @@ struct CardGalleryView: View {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                         HStack {
                             Image(systemName: item.systemImage)
-                                .foregroundColor(PerchTheme.accent)
+                                .foregroundColor(palette.kinetic)
                             Text(item.name)
                                 .font(PerchTheme.Font.heading)
-                                .foregroundColor(PerchTheme.textPrimary)
+                                .foregroundColor(palette.ink)
                             Spacer(minLength: 0)
                         }
 
                         Text(item.description)
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
                     .padding(PerchTheme.Card.padding)
                     .cardStyle()
@@ -47,7 +49,7 @@ struct CardGalleryView: View {
             .padding(PerchTheme.Spacing.medium)
         }
         .navigationTitle("Card Gallery")
-        .background(PerchTheme.background)
+        .background(palette.bg)
     }
 }
 
@@ -55,4 +57,5 @@ struct CardGalleryView: View {
     NavigationStack {
         CardGalleryView()
     }
+    .environment(\.perchPalette, PerchPalette.forTimeOfDay(.current))
 }
