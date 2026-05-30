@@ -138,3 +138,43 @@ export function detectPhysicalVsDigital(
     },
   };
 }
+
+// ─── Hard-category sender excludes (classification cascade) ──────────
+// Some senders can NEVER ship a tangible package no matter what their
+// email body says — airlines, restaurants, domain registrars,
+// brokerages, SaaS subscriptions, rideshare. The classification
+// cascade consults this list AFTER the carrier short-circuit and the
+// learned merchant_rules lookup but BEFORE the LLM, so these never burn
+// an LLM call and never surface in the package tracker.
+//
+// Each entry maps a domain-matching regex → a coarse category label
+// (returned for telemetry / the cascade `reason`). Anchored with
+// `(^|\.)…$` so a subdomain (mail.flytap.com) still matches while a
+// look-alike (notflytap.com) does not.
+const HARD_CATEGORY_DOMAINS: ReadonlyArray<[RegExp, string]> = [
+  [/(^|\.)(flytap|ryanair|lufthansa|united|aa|delta|iberia)\.com$/i, 'airline'],
+  [/(^|\.)flytap\.com$/i, 'airline'],
+  [/(^|\.)(noma\.dk|opentable\.com|thefork\.com|resy\.com)$/i, 'restaurant'],
+  [/(^|\.)(godaddy|namecheap|cloudflare|gandi)\.com$/i, 'domains'],
+  [/(^|\.)(schwab|fidelity|vanguard|revolut|wise|amex|americanexpress)\.com$/i, 'financial'],
+  [/(^|\.)(cleancloud|notion|figma|slack|zoom|spotify|netflix)\.com$/i, 'service'],
+  [/(^|\.)(uber|lyft|bolt)\.com$/i, 'rideshare'],
+];
+
+/**
+ * Return a coarse category label when the sender domain belongs to a
+ * business that never ships a physical package (airline, restaurant,
+ * domains, financial, service, rideshare). Returns null for everything
+ * else — including real physical merchants — so the caller falls
+ * through to the LLM stage of the cascade.
+ */
+export function hardCategoryExclude(senderEmail: string | null | undefined): string | null {
+  if (!senderEmail) return null;
+  const at = senderEmail.lastIndexOf('@');
+  if (at < 0) return null;
+  const domain = senderEmail.slice(at + 1).toLowerCase().trim();
+  for (const [re, cat] of HARD_CATEGORY_DOMAINS) {
+    if (re.test(domain)) return cat;
+  }
+  return null;
+}
