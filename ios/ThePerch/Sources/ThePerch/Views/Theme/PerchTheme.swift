@@ -1021,11 +1021,13 @@ struct PerchPalette: Equatable, Sendable {
     /// Wellness accent — nutrition ring, health eyebrows, "Now" chip,
     /// meds check, success. Same rules as kinetic.
     let wellness: Color
-    /// The single highlight per surface (Stet 'marker'). Used ONLY by .perchMark — never as a fill.
+    /// The single highlight per surface (Stet "marker"). Painted by the
+    /// marker primitive (`.perchMark`) behind the one working phrase —
+    /// never used as a fill.
     let marker: Color
     /// Hero scrim base — used in the V1 seam gradient at 0.15 alpha.
-    /// Derived from the hero's dark tones for each time of day.
-    /// NEVER use pure black — that kills the warm palette.
+    /// Derived from the hero's dark tones: ink-toned on the warm
+    /// palettes (raw black would muddy them), pure black on night.
     let scrimDark: Color
     /// Error colour, in the same register as the palette.
     let error: Color
@@ -1121,6 +1123,7 @@ struct PerchPalette: Equatable, Sendable {
         scrimDark: Color(hex: 0x2A1B11),
         error:     Color(hex: 0xBB4527)
     )
+
     /// Afternoon (HERO) — warm peach-pink. 11:00–16:59.
     static let midday = PerchPalette(
         bg:        Color(hex: 0xF3D3C6),
@@ -1136,6 +1139,7 @@ struct PerchPalette: Equatable, Sendable {
         scrimDark: Color(hex: 0x2A1A24),
         error:     Color(hex: 0xBB3D2B)
     )
+
     /// Evening — dusty rose-clay; plum-magenta kinetic earns its place here. 17:00–21:59.
     static let dusk = PerchPalette(
         bg:        Color(hex: 0xD9A39B),
@@ -1151,6 +1155,7 @@ struct PerchPalette: Equatable, Sendable {
         scrimDark: Color(hex: 0x2A1530),
         error:     Color(hex: 0xB33263)
     )
+
     /// Night — deep indigo (true dark, color-scheme: dark), cream ink. 22:00–04:59.
     static let night = PerchPalette(
         bg:        Color(hex: 0x1B1626),
