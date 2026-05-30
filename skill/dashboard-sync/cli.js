@@ -58,6 +58,7 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
 const { dashboard_push, dashboard_query, dashboard_heartbeat } = require('./dist/index.js');
 const { processEmail, pollShipments } = require('./dist/orders-autopilot.js');
 const { supabase } = require('./dist/supabase.js');
+const { runBackfill } = require('./dist/backfill-cli.js');
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -221,6 +222,62 @@ async function main() {
       process.exit(0);
     }
 
+    case 'backfill-tracker': {
+      // One-time order-tracker backfill (Phase 5).
+      //   --dry-run (default): fetch + plan + print counts/samples. Read-only.
+      //   --apply            : perform the plan (hide/archive orders, repair
+      //                        shipments). DESTRUCTIVE — guarded.
+      // Always reversible at the order level (hide-not-delete); shipment repair
+      // deletes phantom/duplicate rows and splits multi-piece rows.
+      if (!params.user_id) {
+        console.error('backfill-tracker: --user_id required');
+        process.exit(2);
+      }
+      const apply = params.apply === true;
+      if (apply) {
+        // Hard guard: --apply alone is NOT enough. The operator must also pass
+        // --i-understand-this-writes-prod so this can never fire by accident.
+        if (params['i-understand-this-writes-prod'] !== true) {
+          console.error(
+            'backfill-tracker --apply is DESTRUCTIVE (sets hidden flags, deletes/splits/collapses shipment rows).\n' +
+            'Refusing to run. Re-run with BOTH --apply and --i-understand-this-writes-prod once a human has\n' +
+            'reviewed the --dry-run counts and explicitly approved the write.'
+          );
+          process.exit(3);
+        }
+      }
+      result = await runBackfill(params.user_id, apply);
+
+      // Human-readable summary to stderr; machine-readable JSON to stdout.
+      const oc = result.orders.counts;
+      const sc = result.shipments.counts;
+      console.error(`\n=== backfill-tracker [${result.mode}] ===`);
+      console.error(`orders: total=${result.orders.total}  keep=${oc.keep}  hide=${oc.hide}  archive=${oc.archive}`);
+      console.error(
+        `shipments: total=${result.shipments.total}  deleteEmpty=${sc.deleteEmpty}  ` +
+        `split=${sc.split} (→${sc.splitInto} rows)  collapseDupes=${sc.collapseDupes}`
+      );
+      const fmtOrders = (arr) => arr.map(a => `${a.id.slice(0, 8)}:${a.reason}`).join(', ') || '(none)';
+      console.error(`  sample hide:    ${fmtOrders(result.orders.sample.hide)}`);
+      console.error(`  sample archive: ${fmtOrders(result.orders.sample.archive)}`);
+      console.error(`  sample keep:    ${fmtOrders(result.orders.sample.keep)}`);
+      console.error(`  sample deleteEmpty:  ${result.shipments.sample.deleteEmpty.map(s => s.id.slice(0, 8)).join(', ') || '(none)'}`);
+      console.error(`  sample split:        ${result.shipments.sample.split.map(s => s.id.slice(0, 8) + '→[' + s.into.join(',') + ']').join('; ') || '(none)'}`);
+      console.error(`  sample collapseDupes:${result.shipments.sample.collapseDupes.map(c => 'keep ' + c.keep.slice(0, 8) + ' drop ' + c.drop.length).join('; ') || '(none)'}`);
+      if (result.mode === 'dry-run') {
+        console.error('\nDRY-RUN: no rows were modified. Re-run with --apply --i-understand-this-writes-prod to execute.');
+      } else if (result.applied) {
+        const a = result.applied;
+        console.error(
+          `\nAPPLIED: ordersHidden=${a.ordersHidden} ordersArchived=${a.ordersArchived} ` +
+          `shipmentsDeleted=${a.shipmentsDeleted} split(${a.shipmentsSplitSource}→${a.shipmentsSplitCreated}) ` +
+          `collapsedDropped=${a.shipmentsCollapsedDropped}`
+        );
+      }
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(0);
+    }
+
     default:
       console.error(
         'Usage:\n' +
@@ -229,7 +286,8 @@ async function main() {
         '  cli.js query --user_id UUID [--type X] [--category X] [--agent_id X] [--limit N] [--since ISO]\n' +
         '  cli.js process-email                        # reads one email JSON from stdin\n' +
         '  cli.js poll-shipments --user_id UUID        # polls 17track for undelivered shipments\n' +
-        "  cli.js record-run --agent_id X --run_type Y [--run_id UUID] [--status ok|error|partial|timeout] [--summary '{...}'] [--error_detail '...']"
+        "  cli.js record-run --agent_id X --run_type Y [--run_id UUID] [--status ok|error|partial|timeout] [--summary '{...}'] [--error_detail '...']\n" +
+        '  cli.js backfill-tracker --user_id UUID [--dry-run | --apply --i-understand-this-writes-prod]'
       );
       process.exit(1);
   }
