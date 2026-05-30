@@ -91,6 +91,10 @@ final class OrdersService {
         let result = try await supabaseService.databaseClient
             .from("orders")
             .select()
+            // Hidden rows are digital/non-package noise (filtered server-side).
+            // The surfaced fetch intentionally excludes them; the column is
+            // NOT NULL default false, so this returns exactly the visible rows.
+            .eq("hidden", value: false)
             .order("created_at", ascending: false)
             .execute()
 

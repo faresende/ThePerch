@@ -16,6 +16,14 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
     /// Coupled with status='dismissed_by_user'. Reversed by cancelCorrection.
     /// Phase-1 corrections-and-rules (2026-04-27).
     let dismissedAt: Date?
+    /// True when this order is digital/non-package noise filtered out of the
+    /// surfaced zones. Stamped server-side (`orders.hidden`, NOT NULL default
+    /// false); the default fetch excludes these. Drives the Hidden zone.
+    let hidden: Bool
+    /// Server-side label for the kind of order (e.g. "physical"). Only stamped
+    /// on NEW orders going forward — NULL on all existing rows — so it is NOT
+    /// used to derive zones. Carried through for future use only.
+    let classification: String?
 
     /// True when the user has manually overridden this order's status to delivered.
     var isManuallyDelivered: Bool { manualDeliveredAt != nil }
@@ -42,6 +50,8 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
         case createdAt = "created_at"
         case manualDeliveredAt = "manual_delivered_at"
         case dismissedAt = "dismissed_at"
+        case hidden
+        case classification
     }
 
     /// Memberwise initializer with `dismissedAt` defaulted so previews
@@ -57,7 +67,9 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
         confidence: Double,
         createdAt: Date,
         manualDeliveredAt: Date? = nil,
-        dismissedAt: Date? = nil
+        dismissedAt: Date? = nil,
+        hidden: Bool = false,
+        classification: String? = nil
     ) {
         self.id = id
         self.merchant = merchant
@@ -69,6 +81,8 @@ struct Order: Identifiable, Codable, Sendable, Equatable {
         self.createdAt = createdAt
         self.manualDeliveredAt = manualDeliveredAt
         self.dismissedAt = dismissedAt
+        self.hidden = hidden
+        self.classification = classification
     }
 }
 
@@ -87,6 +101,8 @@ extension Order {
         let createdAt = try c.decode(Date.self, forKey: .createdAt)
         let manualDeliveredAt = try c.decodeIfPresent(Date.self, forKey: .manualDeliveredAt)
         let dismissedAt = try c.decodeIfPresent(Date.self, forKey: .dismissedAt)
+        let hidden = (try c.decodeIfPresent(Bool.self, forKey: .hidden)) ?? false
+        let classification = try c.decodeIfPresent(String.self, forKey: .classification)
         self.init(
             id: id,
             merchant: merchant,
@@ -97,7 +113,9 @@ extension Order {
             confidence: confidence,
             createdAt: createdAt,
             manualDeliveredAt: manualDeliveredAt,
-            dismissedAt: dismissedAt
+            dismissedAt: dismissedAt,
+            hidden: hidden,
+            classification: classification
         )
     }
 }

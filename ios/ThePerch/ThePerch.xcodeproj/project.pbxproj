@@ -146,8 +146,10 @@
 		NTVM0002NTVM0002NTVM0002 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */; };
 		ORCD0002ORCD0002ORCD0002 /* OrderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */; };
 		ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */; };
+		ORZN0002ORZN0002ORZN0002 /* OrderZones.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORZN0001ORZN0001ORZN0001 /* OrderZones.swift */; };
 		ORDS0002ORDS0002ORDS0002 /* OrdersService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */; };
 		ORDT0002ORDT0002ORDT0002 /* OrderModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */; };
+		ORZT0002ORZT0002ORZT0002 /* OrderZonesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORZT0001ORZT0001ORZT0001 /* OrderZonesTests.swift */; };
 		ORVM0002ORVM0002ORVM0002 /* OrdersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */; };
 		ORVW0002ORVW0002ORVW0002 /* OrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */; };
 		PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */; };
@@ -339,8 +341,10 @@
 		NTVM0001NTVM0001NTVM0001 /* NutritionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		ORCD0001ORCD0001ORCD0001 /* OrderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderCard.swift; sourceTree = "<group>"; };
 		ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModels.swift; sourceTree = "<group>"; };
+		ORZN0001ORZN0001ORZN0001 /* OrderZones.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderZones.swift; sourceTree = "<group>"; };
 		ORDS0001ORDS0001ORDS0001 /* OrdersService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersService.swift; sourceTree = "<group>"; };
 		ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderModelsTests.swift; sourceTree = "<group>"; };
+		ORZT0001ORZT0001ORZT0001 /* OrderZonesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderZonesTests.swift; sourceTree = "<group>"; };
 		ORVM0001ORVM0001ORVM0001 /* OrdersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersViewModel.swift; sourceTree = "<group>"; };
 		ORVW0001ORVW0001ORVW0001 /* OrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersView.swift; sourceTree = "<group>"; };
 		PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperlessCard.swift; sourceTree = "<group>"; };
@@ -472,6 +476,7 @@
 				35F5434D2F52411F00204F77 /* DataPayloads.swift */,
 				35F5434E2F52411F00204F77 /* JSONValue.swift */,
 				ORDR0001ORDR0001ORDR0001 /* OrderModels.swift */,
+				ORZN0001ORZN0001ORZN0001 /* OrderZones.swift */,
 				INSGHT0001INSGHT0001INS /* Insight.swift */,
 				NTRM0001NTRM0001NTRM0001 /* NutritionModels.swift */,
 				35F5434F2F52411F00204F77 /* Record.swift */,
@@ -895,6 +900,7 @@
 				TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */,
 				TEST0031TEST0031TEST0031 /* RecordTests.swift */,
 				ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */,
+				ORZT0001ORZT0001ORZT0001 /* OrderZonesTests.swift */,
 			);
 			path = ThePerchTests;
 			sourceTree = "<group>";
@@ -1102,6 +1108,7 @@
 				ARUN0002ARUN0002ARUN0002 /* AgentRun.swift in Sources */,
 				ARCARD0002ARCARD0002ARCARD0 /* AgentRunsCard.swift in Sources */,
 				ORDR0002ORDR0002ORDR0002 /* OrderModels.swift in Sources */,
+				ORZN0002ORZN0002ORZN0002 /* OrderZones.swift in Sources */,
 				NTRM0002NTRM0002NTRM0002 /* NutritionModels.swift in Sources */,
 				35E8ADAF2F5B270A00BAC8FE /* AgentStatusCard.swift in Sources */,
 				35E8ADB02F5B270A00BAC8FE /* DeliveryCard.swift in Sources */,
@@ -1230,6 +1237,7 @@
 				TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */,
 				TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */,
 				ORDT0002ORDT0002ORDT0002 /* OrderModelsTests.swift in Sources */,
+				ORZT0002ORZT0002ORZT0002 /* OrderZonesTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
