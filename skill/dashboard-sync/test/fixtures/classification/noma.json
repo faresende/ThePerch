@@ -1,0 +1,10 @@
+{
+  "label": "Noma restaurant reservation confirmation",
+  "input": {
+    "subject": "Your reservation at Noma is confirmed",
+    "body": "Dear guest,\n\nWe are delighted to confirm your table for 2 on Friday, 12 June 2026 at 19:00. Your reservation reference is NOMA-2026-44817. A prepayment of DKK 5,000 has been charged to your card as part of the menu deposit.\n\nWe look forward to welcoming you. Please let us know in advance of any dietary restrictions.\n\nWarm regards,\nThe Noma Team",
+    "senderEmail": "reservations@noma.dk",
+    "senderName": "Noma"
+  },
+  "expected": { "classification": "digital" }
+}

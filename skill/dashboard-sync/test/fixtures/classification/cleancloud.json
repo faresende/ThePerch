@@ -1,0 +1,10 @@
+{
+  "label": "CleanCloud laundry service receipt",
+  "input": {
+    "subject": "Your CleanCloud receipt - Order 8841",
+    "body": "Hi Fabio,\n\nThanks for using SparkleWash. Here is the receipt for your laundry order #8841.\n\n3x Wash & Fold (per kg) - EUR 18.00\n1x Express service surcharge - EUR 4.00\nTotal: EUR 22.00\n\nYour items will be ready for in-store pickup on 31 May 2026 after 17:00. Powered by CleanCloud.",
+    "senderEmail": "receipts@cleancloud.com",
+    "senderName": "SparkleWash via CleanCloud"
+  },
+  "expected": { "classification": "digital" }
+}

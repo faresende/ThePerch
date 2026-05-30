@@ -1,0 +1,10 @@
+{
+  "label": "Amazon physical-goods order confirmation (reaches LLM)",
+  "input": {
+    "subject": "Your Amazon.com order of \"Anker USB-C Cable\" has shipped",
+    "body": "Hello Fabio,\n\nYour package is on the way. Order #112-9988776-5544332.\n\nArriving: Tuesday, 2 June\nShip to: Fabio Resende, Rua das Flores 123, 1200-001 Lisboa\n\n1x Anker 643 USB-C to USB-C Cable (100W, 6ft) - EUR 18.99\nOrder total: EUR 18.99\n\nYou can track your package in Your Orders.\n\nThank you for shopping with us.\nAmazon.com",
+    "senderEmail": "ship-confirm@amazon.com",
+    "senderName": "Amazon.com"
+  },
+  "expected": { "classification": "physical" }
+}

@@ -1,0 +1,10 @@
+{
+  "label": "DHL multi-piece shipment notification (carrier sender)",
+  "input": {
+    "subject": "Your DHL shipment 7197712620 is on its way",
+    "body": "Dear customer,\n\nYour parcel is on its way! This is a multi-piece shipment of 2 packages.\n\nWaybill: 7197712620\nPiece 1 of 2: 001959496839433548\nPiece 2 of 2: 001959496839433555\n\nEstimated delivery: 2 June 2026.\nTrack your shipment anytime at dhl.com.\n\nThank you for choosing DHL.",
+    "senderEmail": "noreply@dhl.com",
+    "senderName": "DHL Express"
+  },
+  "expected": { "classification": "physical" }
+}

@@ -1,0 +1,10 @@
+{
+  "label": "TAP Air Portugal flight booking confirmation",
+  "input": {
+    "subject": "Your TAP booking LIS-OPO is confirmed - Reference QW7X2P",
+    "body": "Hello Fabio,\n\nThank you for booking with TAP Air Portugal. Your e-ticket is ready.\n\nBooking reference: QW7X2P\nFlight TP1948  Lisbon (LIS) -> Porto (OPO)\nDeparture: 18 June 2026, 08:15\nPassenger: 1 adult\nTotal paid: EUR 96.40\n\nCheck in online from 36 hours before departure. Manage your booking at flytap.com.\n\nBon voyage,\nTAP Air Portugal",
+    "senderEmail": "booking@flytap.com",
+    "senderName": "TAP Air Portugal"
+  },
+  "expected": { "classification": "digital" }
+}

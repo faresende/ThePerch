@@ -1,0 +1,10 @@
+{
+  "label": "Peak Design online order confirmation (reaches LLM)",
+  "input": {
+    "subject": "Your Peak Design order #PD-1029384 is confirmed",
+    "body": "Hi Fabio,\n\nThanks for your order! We're getting it ready to ship.\n\nOrder #PD-1029384\n1x Everyday Backpack 20L (Black) - USD 279.95\n1x Capture Camera Clip v3 - USD 79.95\nOrder total: USD 359.90\n\nShipping to:\nFabio Resende\nRua das Flores 123\n1200-001 Lisboa\nPortugal\n\nWe'll email you tracking as soon as it ships.\n\nPeak Design",
+    "senderEmail": "orders@peakdesign.com",
+    "senderName": "Peak Design"
+  },
+  "expected": { "classification": "physical" }
+}
