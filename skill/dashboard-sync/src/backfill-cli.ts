@@ -168,28 +168,44 @@ async function applyShipmentPlan(
     deleted++;
   }
 
-  // 2. Split multi-piece rows: insert N rows (one per piece) under the same
-  //    order_id, then delete the original blob row.
+  // Seed the seen-set with all tracking numbers already present, so the
+  // split (and cross-order shared shipments) converge to exactly one row
+  // per distinct tracking number — idempotent against existing data.
+  const { data: existingRows, error: exErr } = await supabase
+    .from('shipments')
+    .select('tracking_number');
+  if (exErr) throw new Error(`fetch existing tracking numbers failed: ${exErr.message}`);
+  const seen = new Set<string>(
+    (existingRows ?? [])
+      .map((r: { tracking_number: string | null }) => (r.tracking_number ?? '').trim())
+      .filter((tn: string) => tn.length > 0),
+  );
+
+  // 2. Split multi-piece rows: insert one row per NEW piece (skip pieces that
+  //    already exist anywhere), then delete the original blob row.
   for (const { id, into } of plan.split) {
     const src = byId.get(id);
     if (!src) continue;
-    const rows = into.map(tn => ({
-      order_id: src.order_id,
-      tracking_number: tn,
-      carrier: src.carrier,
-      status: 'label_created',
-      source_email_ids: src.source_email_ids ?? [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
-    const { error: insErr } = await supabase
-      .from('shipments')
-      .upsert(rows, { onConflict: 'order_id,tracking_number', ignoreDuplicates: true });
-    if (insErr) throw new Error(`split insert for ${id} failed: ${insErr.message}`);
+    const newPieces = into.filter(tn => !seen.has(tn));
+    if (newPieces.length > 0) {
+      const rows = newPieces.map(tn => ({
+        order_id: src.order_id,
+        tracking_number: tn,
+        carrier: src.carrier,
+        status: 'label_created',
+        source_email_ids: src.source_email_ids ?? [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+      const { error: insErr } = await supabase.from('shipments').insert(rows);
+      if (insErr) throw new Error(`split insert for ${id} failed: ${insErr.message}`);
+      for (const tn of newPieces) seen.add(tn);
+      splitCreated += rows.length;
+    }
+    // Always delete the malformed blob source row (its pieces are now covered).
     const { error: delErr } = await supabase.from('shipments').delete().eq('id', id);
     if (delErr) throw new Error(`split delete of source ${id} failed: ${delErr.message}`);
     splitSource++;
-    splitCreated += rows.length;
   }
 
   // 3. Collapse duplicate tracking rows: keep the first, delete the rest.
