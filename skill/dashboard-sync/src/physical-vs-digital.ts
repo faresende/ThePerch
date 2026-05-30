@@ -153,12 +153,11 @@ export function detectPhysicalVsDigital(
 // look-alike (notflytap.com) does not.
 const HARD_CATEGORY_DOMAINS: ReadonlyArray<[RegExp, string]> = [
   [/(^|\.)(flytap|ryanair|lufthansa|united|aa|delta|iberia)\.com$/i, 'airline'],
-  [/(^|\.)flytap\.com$/i, 'airline'],
   [/(^|\.)(noma\.dk|opentable\.com|thefork\.com|resy\.com)$/i, 'restaurant'],
   [/(^|\.)(godaddy|namecheap|cloudflare|gandi)\.com$/i, 'domains'],
   [/(^|\.)(schwab|fidelity|vanguard|revolut|wise|amex|americanexpress)\.com$/i, 'financial'],
   [/(^|\.)(cleancloud|notion|figma|slack|zoom|spotify|netflix)\.com$/i, 'service'],
-  [/(^|\.)(uber|lyft|bolt)\.com$/i, 'rideshare'],
+  [/(^|\.)(uber|lyft)\.com$/i, 'rideshare'],
 ];
 
 /**
