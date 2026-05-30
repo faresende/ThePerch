@@ -15,6 +15,7 @@ import {
 } from './orders';
 import { shipmentRowsForTracking } from './orders-autopilot';
 import { parseClassificationFromLLM } from './llm-extractor';
+import { ruleFromReviewAnswer } from './merchant-rules';
 
 test('canonical commerce types are supported', () => {
   const orderType: RecordType = 'order';
@@ -142,4 +143,17 @@ test('parses physical/digital/confidence from LLM JSON', () => {
 });
 test('falls back to unsure on unparseable LLM output', () => {
   assert.deepEqual(parseClassificationFromLLM('not json'), { classification: 'unsure', confidence: 0 });
+});
+
+test('maps a review answer to a merchant_rule spec on the most specific signal', () => {
+  assert.deepEqual(ruleFromReviewAnswer({ senderEmail: 'orders@peakdesign.com', normalizedMerchant: 'peak design' }, 'yes_track'),
+    { match_kind: 'sender_email', match_value: 'orders@peakdesign.com', action: 'always_physical' });
+});
+test('no_package answer writes skip_purchase', () => {
+  assert.deepEqual(ruleFromReviewAnswer({ senderEmail: null, normalizedMerchant: 'cleancloud' }, 'no_package'),
+    { match_kind: 'normalized_merchant', match_value: 'cleancloud', action: 'skip_purchase' });
+});
+test('bought_but_digital answer writes always_digital', () => {
+  assert.deepEqual(ruleFromReviewAnswer({ senderEmail: 'do@apple.com', normalizedMerchant: 'apple' }, 'bought_but_digital'),
+    { match_kind: 'sender_email', match_value: 'do@apple.com', action: 'always_digital' });
 });

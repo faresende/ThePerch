@@ -77,3 +77,45 @@ export async function lookupMerchantRule(
     return null;
   }
 }
+
+// ─── One-answer learning (classification rework) ─────────────────────
+// The review queue asks the user a single question about an ambiguous
+// commerce email; their answer becomes a durable merchant_rule so we
+// never re-ask. This is the PURE mapping helper — it just turns the
+// (subject, answer) pair into a rule spec. The DB-side write
+// (applyReviewAnswer) + the retroactive sweep over already-classified
+// emails are wired in a later phase.
+
+/** The three answers the review card offers. */
+export type ReviewAnswer = 'yes_track' | 'no_package' | 'bought_but_digital';
+
+/** The minimal identity of the merchant the user is answering about. */
+export interface ReviewSubject {
+  senderEmail: string | null;
+  normalizedMerchant: string;
+}
+
+/** A merchant_rule the learning loop wants written. */
+export interface MerchantRuleSpec {
+  match_kind: 'sender_email' | 'sender_domain' | 'normalized_merchant';
+  match_value: string;
+  action: 'always_physical' | 'always_digital' | 'skip_purchase';
+}
+
+/**
+ * Map a single review answer to a merchant_rule spec, anchored on the
+ * MOST SPECIFIC signal available: prefer the exact sender email (so the
+ * rule is tight), otherwise fall back to the normalized merchant name.
+ *
+ *   yes_track          → always_physical (surface this sender's packages)
+ *   bought_but_digital → always_digital  (real purchase, nothing ships)
+ *   no_package         → skip_purchase   (not a trackable order at all)
+ */
+export function ruleFromReviewAnswer(subj: ReviewSubject, answer: ReviewAnswer): MerchantRuleSpec {
+  const action: MerchantRuleSpec['action'] =
+    answer === 'yes_track' ? 'always_physical' : answer === 'bought_but_digital' ? 'always_digital' : 'skip_purchase';
+  if (subj.senderEmail) {
+    return { match_kind: 'sender_email', match_value: subj.senderEmail.toLowerCase(), action };
+  }
+  return { match_kind: 'normalized_merchant', match_value: subj.normalizedMerchant, action };
+}
