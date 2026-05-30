@@ -375,7 +375,7 @@ private struct ReadinessRing: View {
 
             VStack(spacing: 4) {
                 Text("\(value)")
-                    .font(.system(size: 36, weight: .semibold, design: .serif))
+                    .font(.fraunces(36).weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(palette.ink)
                     .tracking(-1)
@@ -419,7 +419,7 @@ private struct OverviewTrendRow: View {
 
             // Current + delta right-align and hug their content.
             Text(model.current)
-                .font(.system(size: 15, weight: .medium, design: .serif))
+                .font(.fraunces(15).weight(.medium))
                 .monospacedDigit()
                 .foregroundStyle(palette.ink)
 
@@ -596,7 +596,7 @@ struct WorkoutsSegment: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             PerchNum("5", size: 42)
                             Text("weeks")
-                                .font(.system(size: 20, weight: .regular, design: .serif).italic())
+                                .font(.frauncesItalic(20).weight(.regular))
                                 .foregroundStyle(palette.muted)
                         }
                         Spacer()
@@ -787,14 +787,14 @@ struct WorkoutsSegment: View {
                 .font(.system(size: 32))
             Text(title)
                 .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
             Text(hint)
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
-        .background(PerchTheme.cardBackground)
+        .background(palette.card)
         .cornerRadius(PerchTheme.Card.cornerRadius)
         .padding(.horizontal, PerchTheme.Spacing.large)
     }
@@ -880,7 +880,7 @@ struct NutritionSegment: View {
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 PerchNum(Self.integerString(consumedCal), size: 40)
                                 Text("/ \(Self.integerString(targetCal))")
-                                    .font(.system(size: 18, weight: .regular, design: .serif).italic())
+                                    .font(.frauncesItalic(18).weight(.regular))
                                     .foregroundStyle(palette.muted)
                             }
                         }
@@ -946,7 +946,7 @@ struct NutritionSegment: View {
                         Text("Log a meal")
                             .font(.system(size: 15, weight: .semibold))
                     }
-                    .foregroundStyle(Color(red: 1.0, green: 0.96, blue: 0.90))
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(
@@ -1087,11 +1087,11 @@ private struct NutritionMacroBar: View {
                 Spacer()
                 HStack(spacing: 0) {
                     Text("\(Int(current.rounded()))")
-                        .font(.system(size: 13.5, weight: .medium, design: .serif))
+                        .font(.fraunces(13.5).weight(.medium))
                         .monospacedDigit()
                         .foregroundStyle(palette.ink)
                     Text("/\(Int(target.rounded()))g")
-                        .font(.system(size: 13.5, design: .serif))
+                        .font(.fraunces(13.5))
                         .monospacedDigit()
                         .foregroundStyle(palette.muted)
                 }
@@ -1145,7 +1145,7 @@ private struct NutritionMealRow: View {
             Spacer(minLength: 8)
 
             Text("\(Int(meal.calories.rounded()))")
-                .font(.system(size: 15.5, weight: .medium, design: .serif))
+                .font(.fraunces(15.5).weight(.medium))
                 .monospacedDigit()
                 .foregroundStyle(palette.ink)
         }
@@ -1175,6 +1175,8 @@ private struct NutritionMacroInline: View {
 // MARK: - Nutrition Day Header (internal)
 
 private struct NutritionDayHeader: View {
+    @Environment(\.perchPalette) private var palette
+
     let date: Date
 
     private var title: String {
@@ -1192,12 +1194,12 @@ private struct NutritionDayHeader: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxxSmall) {
             Text(title.uppercased())
                 .font(PerchTheme.Font.cardEyebrow)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .tracking(0.8)
 
             Text(PerchFormatters.mediumDate.string(from: date))
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
         }
     }
 }
@@ -1206,6 +1208,7 @@ private struct NutritionDayHeader: View {
 
 private struct MealSuggestionsSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.perchPalette) private var palette
 
     let viewModel: NutritionViewModel
     let userId: String
@@ -1224,21 +1227,21 @@ private struct MealSuggestionsSheet: View {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     Text("Ask for meal ideas based on where you are, what you can cook, or what kind of meal fits right now.")
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
 
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
                         Text("Context")
                             .font(PerchTheme.Font.cardEyebrow)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
 
                         TextField("I'm at a food court", text: $context, axis: .vertical)
                             .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                             .lineLimit(2...4)
                             .padding(PerchTheme.Spacing.medium)
                             .background(
                                 RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                                    .fill(PerchTheme.cardInnerBackground)
+                                    .fill(palette.chipBg)
                             )
                     }
 
@@ -1263,7 +1266,7 @@ private struct MealSuggestionsSheet: View {
                         .padding(.vertical, PerchTheme.Spacing.medium)
                         .background(
                             RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                                .fill(PerchTheme.accent)
+                                .fill(palette.kinetic)
                         )
                     }
                     .buttonStyle(.plain)
@@ -1273,7 +1276,7 @@ private struct MealSuggestionsSheet: View {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                             Text("Suggestions")
                                 .font(PerchTheme.Font.heading)
-                                .foregroundColor(PerchTheme.textPrimary)
+                                .foregroundColor(palette.ink)
 
                             ForEach(viewModel.mealSuggestions.prefix(3)) { suggestion in
                                 SuggestionCard(suggestion: suggestion) {
@@ -1288,7 +1291,7 @@ private struct MealSuggestionsSheet: View {
                 }
                 .padding(PerchTheme.Spacing.large)
             }
-            .background(PerchTheme.background.ignoresSafeArea())
+            .background(palette.bg.ignoresSafeArea())
             .navigationTitle("What should I eat?")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1296,7 +1299,7 @@ private struct MealSuggestionsSheet: View {
                     Button("Close") {
                         dismiss()
                     }
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                 }
             }
         }
@@ -1306,6 +1309,8 @@ private struct MealSuggestionsSheet: View {
 // MARK: - Suggestion Card (internal)
 
 private struct SuggestionCard: View {
+    @Environment(\.perchPalette) private var palette
+
     let suggestion: MealSuggestion
     let onLog: () async -> Void
 
@@ -1314,15 +1319,15 @@ private struct SuggestionCard: View {
             VStack(alignment: .leading, spacing: PerchTheme.Spacing.xxSmall) {
                 Text(suggestion.mealName)
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 Text(suggestion.analysisLine)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
             }
 
             HStack(spacing: PerchTheme.Spacing.small) {
-                SuggestionMacroPill(label: "Cal", value: "\(Int(suggestion.calories))", tint: PerchTheme.accent)
+                SuggestionMacroPill(label: "Cal", value: "\(Int(suggestion.calories))", tint: palette.kinetic)
                 SuggestionMacroPill(label: "P", value: "\(Int(suggestion.protein))g", tint: PerchTheme.macroProtein)
                 SuggestionMacroPill(label: "C", value: "\(Int(suggestion.carbs))g", tint: PerchTheme.macroCarbs)
                 SuggestionMacroPill(label: "F", value: "\(Int(suggestion.fat))g", tint: PerchTheme.macroFat)
@@ -1335,22 +1340,24 @@ private struct SuggestionCard: View {
             }
             .font(PerchTheme.Font.caption)
             .fontWeight(.semibold)
-            .foregroundColor(PerchTheme.accent)
+            .foregroundColor(palette.kinetic)
         }
         .padding(PerchTheme.Card.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
-                .fill(PerchTheme.cardBackground.opacity(0.72))
+                .fill(palette.card.opacity(0.72))
         )
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
-                .stroke(PerchTheme.border.opacity(0.8), lineWidth: 1)
+                .stroke(palette.line.opacity(0.8), lineWidth: 1)
         )
     }
 }
 
 private struct SuggestionMacroPill: View {
+    @Environment(\.perchPalette) private var palette
+
     let label: String
     let value: String
     let tint: Color
@@ -1359,11 +1366,11 @@ private struct SuggestionMacroPill: View {
         HStack(spacing: 6) {
             Text(label)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
 
             Text(value)
                 .font(PerchTheme.Font.captionNumeric)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
         }
         .padding(.horizontal, PerchTheme.Spacing.small)
         .padding(.vertical, 7)
@@ -1465,7 +1472,7 @@ private struct VolumeRow: View {
             .frame(height: 22, alignment: .bottom)
 
             Text("\(weeks.last ?? 0)")
-                .font(.system(size: 14, weight: .medium, design: .serif))
+                .font(.fraunces(14).weight(.medium))
                 .monospacedDigit()
                 .foregroundStyle(palette.ink)
                 .frame(width: 24, alignment: .trailing)
@@ -1494,7 +1501,7 @@ private struct TopLiftRow: View {
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(palette.faint)
             Text(best)
-                .font(.system(size: 15, weight: .medium, design: .serif))
+                .font(.fraunces(15).weight(.medium))
                 .monospacedDigit()
                 .foregroundStyle(palette.ink)
                 .padding(.leading, 10)
@@ -1764,11 +1771,10 @@ struct SectionTitle: View {
                         .foregroundStyle(palette.muted)
                         .textCase(.uppercase)
                 }
-                // SF serif (New York) is a touch lighter than Fraunces at
-                // the same nominal weight. Bumping to .medium brings the
-                // editorial title closer to the design's Fraunces 500.
+                // Bundled Fraunces at .medium ≈ the design's editorial
+                // title weight (Fraunces 500).
                 Text(title)
-                    .font(.system(size: 28, weight: .medium, design: .serif).italic())
+                    .font(.frauncesItalic(28).weight(.medium))
                     .foregroundStyle(palette.ink)
                     .tracking(-0.5)
                     .lineSpacing(-2) // → ~1.1 line-height
@@ -1838,17 +1844,13 @@ struct PerchNum: View {
             // weight; smaller values stay .medium so inline metrics don't
             // feel clunky.
             Text(value)
-                .font(.system(
-                    size: size,
-                    weight: size >= 26 ? .semibold : .medium,
-                    design: .serif
-                ))
+                .font(.fraunces(size).weight(size >= 26 ? .semibold : .medium))
                 .monospacedDigit()
                 .foregroundStyle(palette.ink)
                 .tracking(size > 28 ? -0.8 : -0.3)
             if let suffix {
                 Text(suffix)
-                    .font(.system(size: size * 0.5, weight: .regular, design: .serif))
+                    .font(.fraunces(size * 0.5).weight(.regular))
                     .foregroundStyle(palette.muted)
             }
         }
