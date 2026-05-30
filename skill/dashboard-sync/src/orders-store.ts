@@ -278,6 +278,15 @@ export async function upsertOrder(order: OrderRecord): Promise<{ id: string; isN
     for (const [key, value] of Object.entries(baseRecord)) {
       if (value !== null && value !== undefined) updateRecord[key] = value;
     }
+    // The classification trio is always authoritative when present — a
+    // re-classification (e.g. digital→physical) must be able to CLEAR a
+    // stale hidden_reason and flip hidden back, so these bypass the
+    // null-strip above (a null hidden_reason here means "clear it").
+    if (order.classification !== undefined) {
+      updateRecord.classification = order.classification;
+      updateRecord.hidden = order.hidden ?? false;
+      updateRecord.hidden_reason = order.hidden_reason ?? null;
+    }
     const { data, error } = await supabase
       .from('orders')
       .update(updateRecord)
