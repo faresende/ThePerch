@@ -123,3 +123,62 @@ export function ruleFromReviewAnswer(subj: ReviewSubject, answer: ReviewAnswer):
   }
   return { match_kind: 'normalized_merchant', match_value: subj.normalizedMerchant, action };
 }
+
+/** The exact param object the `apply_review_answer` RPC expects. */
+export interface ReviewAnswerRpcParams {
+  p_user_id: string;
+  p_match_kind: MerchantRuleSpec['match_kind'];
+  p_match_value: string;
+  p_action: MerchantRuleSpec['action'];
+  p_review_item_id: string | null;
+}
+
+/**
+ * PURE core of `applyReviewAnswer`: turn a (user, subject, answer) tuple plus
+ * the triggering review-item id into the exact named params the
+ * `apply_review_answer` SECURITY DEFINER RPC expects. Delegates the
+ * (subject, answer) → rule-spec decision to `ruleFromReviewAnswer` so the
+ * answer→action mapping lives in exactly one place. `reviewItemId` (incl.
+ * null) passes straight through.
+ */
+export function reviewAnswerRpcParams(
+  userId: string,
+  subj: ReviewSubject,
+  answer: ReviewAnswer,
+  reviewItemId: string | null,
+): ReviewAnswerRpcParams {
+  const rule = ruleFromReviewAnswer(subj, answer);
+  return {
+    p_user_id: userId,
+    p_match_kind: rule.match_kind,
+    p_match_value: rule.match_value,
+    p_action: rule.action,
+    p_review_item_id: reviewItemId,
+  };
+}
+
+/**
+ * Apply a single review answer through the `apply_review_answer` RPC: it
+ * upserts the durable merchant_rule, retroactively sweeps already-captured
+ * sibling orders to match the verdict, and resolves the triggering +
+ * sibling review items — all server-side and atomic. Returns the number of
+ * orders swept (0 when the RPC returns a non-numeric payload).
+ *
+ * Unlike the best-effort `lookupMerchantRule`, errors here are THROWN: this
+ * runs in response to a user tap and iOS surfaces failures to the user.
+ */
+export async function applyReviewAnswer(
+  userId: string,
+  subj: ReviewSubject,
+  answer: ReviewAnswer,
+  reviewItemId: string | null = null,
+): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    'apply_review_answer',
+    reviewAnswerRpcParams(userId, subj, answer, reviewItemId),
+  );
+  if (error) {
+    throw new Error(`apply_review_answer RPC failed: ${error.message}`);
+  }
+  return typeof data === 'number' ? data : 0;
+}
