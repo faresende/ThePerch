@@ -59,7 +59,7 @@ struct TodayTab: View {
                 )
 
                 // 2. Padded feed column.
-                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.cardStack) {
+                LazyVStack(alignment: .leading, spacing: 12) {
                     // Error banner (when present).
                     if let loadError = viewModel.loadError ?? dashboardViewModel.error?.errorDescription {
                         ErrorBanner(
@@ -596,8 +596,8 @@ struct TodayEyebrow: View {
                 .fill(accent)
                 .frame(width: 6, height: 6)
             Text(label)
-                .font(PerchTheme.Font.cardEyebrow)
-                .tracking(1.2)
+                .font(.archivoKicker(10.5))
+                .tracking(1.47)
                 .textCase(.uppercase)
                 .foregroundColor(palette.muted)
                 .lineLimit(1)
@@ -606,7 +606,7 @@ struct TodayEyebrow: View {
 
             if let freshness {
                 Text(freshness)
-                    .font(PerchTheme.Font.freshness)
+                    .font(.jbMono(11))
                     .tracking(0.3)
                     .foregroundColor(palette.muted.opacity(0.55))
             }

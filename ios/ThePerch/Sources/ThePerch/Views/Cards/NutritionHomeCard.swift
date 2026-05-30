@@ -168,7 +168,7 @@ struct NutritionHomeCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 TodayEyebrow(
                     label: isMorning ? "NUTRITION · YESTERDAY" : "NUTRITION · TRACKED",
-                    accent: palette.wellness,
+                    accent: palette.kinetic,
                     freshness: freshnessText
                 )
                 TodayPhrase(text: nutritionPhrase)
@@ -204,7 +204,7 @@ struct NutritionHomeCard: View {
         .onAppear {
             snapshot = Snapshot.compute(from: records)
             animateRingTo(progress, color: progressColor)
-            PerchMotion.withOptionalAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+            PerchMotion.withOptionalAnimation(.timingCurve(0.2, 0.8, 0.2, 1, duration: 0.32).delay(0.2)) {
                 animateMacros = true
             }
         }
@@ -266,27 +266,27 @@ struct NutritionHomeCard: View {
 
     // MARK: - Calorie Ring (Linen spec)
     //
-    // 108×108, 6pt stroke, sage-colored arc on a line-colored track.
+    // 108×108, 6pt stroke, kinetic-colored arc on a line-colored track.
     // Center: big tabular serif number (30pt) + "kcal" faint caption.
-    // Ring color flips to kinetic only when goal reached.
+    // Arc is kinetic throughout; didReachFull drives the celebration pulse only.
 
     private var calorieRing: some View {
-        // Track = palette.line, progress = palette.wellness (→ palette.kinetic
-        // on over-goal). Centre: Fraunces-style 28pt tabular num + faint "kcal".
+        // Track = palette.line, progress = palette.kinetic.
+        // Centre: Fraunces-style 28pt tabular num + faint "kcal".
         ZStack {
             Circle()
                 .stroke(palette.line, lineWidth: 6)
             Circle()
                 .trim(from: 0, to: min(animatedProgress, 1.0))
                 .stroke(
-                    didReachFull ? palette.kinetic : palette.wellness,
+                    palette.kinetic,
                     style: StrokeStyle(lineWidth: 6, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
 
             VStack(spacing: 4) {
                 Text(Int(consumed).formatted(.number))
-                    .font(PerchTheme.Font.displayNumeric)
+                    .font(.fraunces(23).weight(.medium).monospacedDigit())
                     .tracking(-0.8)
                     .foregroundColor(palette.ink)
                     .lineLimit(1)
@@ -318,7 +318,7 @@ struct NutritionHomeCard: View {
     // MARK: - Ring Animation
 
     private func animateRingTo(_ newProgress: Double, color: Color) {
-        PerchMotion.withOptionalAnimation(.easeInOut(duration: 0.6)) {
+        PerchMotion.withOptionalAnimation(.timingCurve(0.2, 0.8, 0.2, 1, duration: 0.32)) {
             animatedProgress = newProgress
             animatedColor = color
         }
@@ -377,15 +377,15 @@ struct NutritionHomeCard: View {
                     // concatenation for a tight HStack — visually identical.
                     HStack(spacing: 0) {
                         Text("\(Int(value))")
-                            .font(PerchTheme.Font.rowNumeric)
+                            .font(.jbMono(11.5))
                             .foregroundColor(palette.ink)
                         Text(" / \(Int(target))g")
-                            .font(PerchTheme.Font.rowNumeric)
+                            .font(.jbMono(11.5))
                             .foregroundColor(palette.muted)
                     }
                 } else {
                     Text("\(Int(value))g")
-                        .font(PerchTheme.Font.rowNumeric)
+                        .font(.jbMono(11.5))
                         .foregroundColor(palette.ink)
                 }
             }
@@ -402,7 +402,7 @@ struct NutritionHomeCard: View {
                         .fill(palette.line)
                         .frame(height: 4)
                     Capsule(style: .continuous)
-                        .fill(palette.wellness)
+                        .fill(palette.kinetic)
                         .frame(width: animatedWidth, height: 4)
                 }
             }
