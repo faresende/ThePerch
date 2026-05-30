@@ -111,12 +111,10 @@ struct TodayTab: View {
 
                     }
                 }
-                .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
-                // Pull the card stack a touch up into the hero's lower
-                // seam zone. At y=308–320 the V1 gradient is 100%
-                // palette.bg, so the overlap reads as the same surface —
-                // just tightens the hero-to-feed transition visually.
-                .padding(.top, -12)
+                .padding(.horizontal, 14)
+                // Pull the card stack up into the hero's lower seam zone
+                // so content scrolls visibly over the faded strip edge.
+                .padding(.top, -28)
 
                 // Bottom padding for tab bar.
                 Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
@@ -257,31 +255,25 @@ struct TodayHero: View {
     @Environment(\.perchPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var greetingLines = 1
+    private var stripHeight: CGFloat { greetingLines >= 2 ? 212 : 188 }
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Layer 1 — looping video (morning) or static illustration.
             heroBackground
-                .frame(height: 320)
+                .frame(height: stripHeight)
                 .frame(maxWidth: .infinity)
                 .clipped()
 
-            // Layer 2 — V1 seam gradient. Fades top→bottom from transparent
-            // (untouched image) through scrimDark at 0.15 (for greeting
-            // legibility) into the page bg (so the illustration dissolves
-            // into the feed seamlessly). Per handoff, stops are fixed;
-            // only scrimDark + bg change per palette.
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0.00),
-                    .init(color: .clear, location: 0.35),
-                    .init(color: palette.scrimDark.opacity(0.15), location: 0.55),
-                    .init(color: palette.bg.opacity(0.35),        location: 0.72),
-                    .init(color: palette.bg.opacity(0.75),        location: 0.88),
-                    .init(color: palette.bg,                       location: 1.00),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-            .allowsHitTesting(false)
+            // Layer 2 — seam gradient. Fades the bottom ~35% of the strip
+            // into the page bg so the hero dissolves into the feed.
+            LinearGradient(stops: [
+                .init(color: .clear, location: 0.0),
+                .init(color: .clear, location: 0.55),
+                .init(color: palette.bg.opacity(0.4), location: 0.78),
+                .init(color: palette.bg, location: 1.0),
+            ], startPoint: .top, endPoint: .bottom).allowsHitTesting(false)
 
             // Layer 3 — greeting, bottom-left.
             //
@@ -296,24 +288,16 @@ struct TodayHero: View {
             // greeting alone is enough.
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(greeting)
-                    .font(PerchTheme.Font.greeting)
-                    .foregroundColor(palette.heroText)
-                    .tracking(-0.5)
-                    .lineSpacing(-8) // → effective 1.02 line-height at 34pt
-                    // Palette-tinted shadow: the greeting now carries the
-                    // same wellness accent used elsewhere on the page
-                    // (calorie ring, now chip, health eyebrows). The glow
-                    // shifts with the time-of-day palette — plum on
-                    // midday, lavender on sunrise, teal on dusk, sage on
-                    // night — so the hero text visually threads into the
-                    // rest of the feed's accent language.
-                    //
-                    // Two stacks: wide outer halo for the coloured glow
-                    // + tight high-opacity inner for edge legibility,
-                    // which a light tint alone can't deliver on bright
-                    // illustration zones.
-                    .shadow(color: palette.wellness.opacity(0.95), radius: 16, x: 0, y: 3)
-                    .shadow(color: palette.wellness.opacity(0.85), radius: 4, x: 0, y: 1)
+                    .font(.frauncesItalic(greetingLines >= 2 ? 28 : 32))
+                    .foregroundColor(palette.ink)
+                    .tracking(-0.6).lineSpacing(-6)
+                    .lineLimit(2)
+                    .background(GeometryReader { g in Color.clear
+                        .onAppear { greetingLines = g.size.height > 44 ? 2 : 1 }
+                        .onChange(of: greeting) { _, _ in greetingLines = g.size.height > 44 ? 2 : 1 } })
+                    .shadow(color: (timeOfDay == .night ? Color.black.opacity(0.5)
+                                                        : Color.white.opacity(0.3)),
+                            radius: 8, x: 0, y: 1)
 
                 if isShowingCached {
                     ProgressView()
@@ -333,7 +317,7 @@ struct TodayHero: View {
                 .padding(.top, 54) // clears the status bar
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
-        .frame(height: 320)
+        .frame(height: stripHeight)
         .frame(maxWidth: .infinity)
         .clipped()
         .accessibilityLabel(timeOfDay.accessibilityLabel)
