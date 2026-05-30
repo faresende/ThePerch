@@ -192,7 +192,7 @@ struct DeliveryCard: View {
                             Image(systemName: stepIcon)
                                 .font(PerchTheme.Font.micro)
                                 .fontWeight(.bold)
-                                .foregroundColor(.black)
+                                .foregroundColor(isComplete ? .white : palette.ink)
                         }
                     }
                     .position(x: x, y: lineY)

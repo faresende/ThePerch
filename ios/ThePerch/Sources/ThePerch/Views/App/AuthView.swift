@@ -205,6 +205,7 @@ struct AuthView: View {
             }
             .padding(PerchTheme.Spacing.large)
         }
+        .tint(palette.kinetic)
         .environment(\.perchPalette, palette)
         .environment(\.perchTimeOfDay, resolvedTOD)
         .preferredColorScheme(resolvedTOD.colorScheme)

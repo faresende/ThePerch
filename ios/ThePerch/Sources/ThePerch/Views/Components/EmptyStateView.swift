@@ -45,7 +45,7 @@ struct EmptyStateView: View {
                     Text(actionTitle)
                         .font(PerchTheme.Font.body)
                         .fontWeight(.semibold)
-                        .foregroundColor(.black)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, PerchTheme.Spacing.medium)
                         .background(
