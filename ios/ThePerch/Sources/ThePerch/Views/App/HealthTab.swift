@@ -1253,7 +1253,7 @@ private struct MealSuggestionsSheet: View {
                         HStack {
                             if viewModel.isLoadingSuggestions {
                                 ProgressView()
-                                    .tint(PerchTheme.accentForeground)
+                                    .tint(.white)
                             } else {
                                 Image(systemName: "sparkles")
                             }
@@ -1261,7 +1261,7 @@ private struct MealSuggestionsSheet: View {
                                 .fontWeight(.semibold)
                         }
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.accentForeground)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, PerchTheme.Spacing.medium)
                         .background(
