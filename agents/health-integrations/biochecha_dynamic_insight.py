@@ -1416,12 +1416,30 @@ def _generate_telegram_summary(slot: str, fact_bundle: dict[str, Any],
     return payload["choices"][0]["message"]["content"].strip()
 
 
+def _contains_word(haystack: str, needle: str) -> bool:
+    """True iff `needle` occurs in `haystack` flanked by non-alphanumeric
+    chars (or the string ends) — a whole-word/phrase match. Inputs are
+    expected case-folded by the caller. Mirrors the iOS renderer, which
+    only highlights whole-word matches."""
+    start = 0
+    while True:
+        i = haystack.find(needle, start)
+        if i < 0:
+            return False
+        before_ok = i == 0 or not haystack[i - 1].isalnum()
+        end = i + len(needle)
+        after_ok = end == len(haystack) or not haystack[end].isalnum()
+        if before_ok and after_ok:
+            return True
+        start = i + 1
+
+
 def split_marked_phrase(body: str) -> tuple[str, "str | None"]:
     """Parse the MARK: trailer from the LLM output.
 
     Returns (clean_body, marked_or_None).  Validates:
       - phrase ≤ 22 chars
-      - phrase appears verbatim (case-insensitive) in clean_body
+      - phrase appears as a whole word/phrase (case-insensitive) in clean_body
       - phrase is not the body's first word
     Any failure → marked=None (render unmarked).
     """
@@ -1435,8 +1453,10 @@ def split_marked_phrase(body: str) -> tuple[str, "str | None"]:
     # Validate length
     if len(m) > 22:
         return clean_body, None
-    # Validate phrase appears in body (case-insensitive)
-    if m.lower() not in clean_body.lower():
+    # Validate phrase appears in body on word boundaries (case-insensitive)
+    # so a sub-word like "recover" inside "Recovery" isn't stored as the
+    # mark — the iOS renderer only highlights whole-word matches.
+    if not _contains_word(clean_body.lower(), m.lower()):
         return clean_body, None
     # Validate not sentence-initial (first word of body)
     first_word = clean_body.split()[0] if clean_body.split() else ""

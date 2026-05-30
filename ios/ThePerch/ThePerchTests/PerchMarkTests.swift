@@ -11,11 +11,21 @@ struct PerchMarkTests {
         #expect(r.marked == "get on that")
         #expect(r.after == " before dinner.")
     }
-    @Test("returns nil marked when phrase absent or empty → render plain")
+    @Test("returns nil when phrase absent or empty → render plain")
     func absent() {
-        #expect(PerchMark.runs(in: "All quiet.", phrase: "nope")?.marked == nil
-                || PerchMark.runs(in: "All quiet.", phrase: "nope") == nil)
+        #expect(PerchMark.runs(in: "All quiet.", phrase: "nope") == nil)
         #expect(PerchMark.runs(in: "All quiet.", phrase: "") == nil)
+    }
+    @Test("skips a sub-word match and marks the standalone word instead")
+    func wordBoundaryPrefersStandalone() throws {
+        let r = try #require(PerchMark.runs(in: "Recovery means recover today.", phrase: "recover"))
+        #expect(r.before == "Recovery means ")
+        #expect(r.marked == "recover")
+        #expect(r.after == " today.")
+    }
+    @Test("returns nil when the phrase only appears inside a larger word")
+    func wordBoundarySubwordOnlyIsNil() {
+        #expect(PerchMark.runs(in: "Recovery mode engaged.", phrase: "recover") == nil)
     }
     @Test("decodes marked_phrase from insight data JSON")
     func decode() throws {

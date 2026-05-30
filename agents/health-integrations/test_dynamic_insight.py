@@ -515,6 +515,22 @@ class TestSplitMarkedPhrase(unittest.TestCase):
         self.assertEqual(clean, "Sleep collapsed last night while body fat crept up.")
         self.assertIsNone(marked)
 
+    def test_subword_only_phrase_rejected(self):
+        # "recover" appears only inside "Recovery" — no whole-word match, so
+        # it must not be stored (the iOS renderer would never highlight it).
+        body = "Recovery mode engaged today.\nMARK: recover"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Recovery mode engaged today.")
+        self.assertIsNone(marked)
+
+    def test_standalone_kept_despite_earlier_subword(self):
+        # "recover" is a sub-word of "Recovery" but also a standalone word —
+        # the whole-word match exists, so it is kept.
+        body = "Recovery means recover today.\nMARK: recover"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Recovery means recover today.")
+        self.assertEqual(marked, "recover")
+
 
 if __name__ == "__main__":
     unittest.main()
