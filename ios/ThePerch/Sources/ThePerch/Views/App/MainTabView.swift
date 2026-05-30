@@ -8,6 +8,7 @@ struct MainTabView: View {
     @Environment(\.perchPalette) private var palette
     @Environment(\.scenePhase) private var scenePhase
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var selectedTab: RootTab = Self.initialTab()
     @State private var isShowingSettings = false
@@ -72,7 +73,19 @@ struct MainTabView: View {
         // `timeOfDay` is @State + driven by timeOfDayPulse + scenePhase, so
         // the greeting / hero / palette all refresh when the clock crosses
         // a bracket boundary even with the app sitting open.
-        let palette = PerchPalette.forTimeOfDay(timeOfDay)
+        let resolvedTOD: PerchTimeOfDay = {
+            if let o = ProcessInfo.processInfo.environment["PERCH_TOD_OVERRIDE"] {
+                switch o {
+                case "morning":   return .sunrise
+                case "afternoon": return .midday
+                case "evening":   return .dusk
+                case "night":     return .night
+                default: break
+                }
+            }
+            return timeOfDay
+        }()
+        let palette = PerchPalette.forTimeOfDay(resolvedTOD)
 
         TabView(selection: $selectedTab) {
             Tab(RootTab.today.title, systemImage: RootTab.today.systemImage, value: RootTab.today) {
@@ -103,7 +116,9 @@ struct MainTabView: View {
         .tint(palette.kinetic)
         .tabBarMinimizeBehavior(.onScrollDown)
         .environment(\.perchPalette, palette)
-        .environment(\.perchTimeOfDay, timeOfDay)
+        .environment(\.perchTimeOfDay, resolvedTOD)
+        .preferredColorScheme(resolvedTOD.colorScheme)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.6), value: resolvedTOD)
         .sheet(isPresented: $isShowingSettings) {
             SettingsTab()
         }
