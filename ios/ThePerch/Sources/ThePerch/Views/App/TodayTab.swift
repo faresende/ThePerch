@@ -3,7 +3,7 @@ import AVKit
 
 /// Today tab — The Perch's editorial front page (Linen / Variant A).
 /// Full-bleed time-of-day hero at the top (video for morning, static illustration
-/// for other times), then card stack with 22pt gap and 18pt horizontal padding,
+/// for other times), then card stack with 12pt gap and 14pt horizontal padding,
 /// closing on an `— end of today —` signoff.
 /// Reads all records from DashboardViewModel (single-fetch architecture).
 struct TodayTab: View {

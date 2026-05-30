@@ -267,12 +267,12 @@ struct NutritionHomeCard: View {
     // MARK: - Calorie Ring (Linen spec)
     //
     // 108×108, 6pt stroke, kinetic-colored arc on a line-colored track.
-    // Center: big tabular serif number (30pt) + "kcal" faint caption.
+    // Center: big tabular serif number (23pt) + "kcal" faint caption.
     // Arc is kinetic throughout; didReachFull drives the celebration pulse only.
 
     private var calorieRing: some View {
         // Track = palette.line, progress = palette.kinetic.
-        // Centre: Fraunces-style 28pt tabular num + faint "kcal".
+        // Centre: Fraunces-style 23pt tabular num + faint "kcal".
         ZStack {
             Circle()
                 .stroke(palette.line, lineWidth: 6)
@@ -356,9 +356,9 @@ struct NutritionHomeCard: View {
     // MARK: - Macro Bar (Linen spec)
 
     /// Linen macro row: label + tabular numeric value / target inline,
-    /// 4pt progress bar beneath. Fill color is wellness (sage) for all
-    /// macros — per the Linen spec, macros share the wellness register
-    /// so the card reads as a single unified "nutrition wellness" voice
+    /// 4pt progress bar beneath. Fill color is kinetic for all
+    /// macros — per the Linen spec, macros share one accent register
+    /// so the card reads as a single unified "nutrition" voice
     /// rather than three separate traffic-light signals.
     private func macroBar(label: String, value: Double, target: Double?) -> some View {
         VStack(spacing: 5) {
