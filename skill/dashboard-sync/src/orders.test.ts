@@ -13,7 +13,7 @@ import {
   extractShipmentCandidate,
   normalizeMerchantName,
 } from './orders';
-import { shipmentRowsForTracking } from './orders-autopilot';
+import { shipmentRowsForTracking, isPollable } from './orders-autopilot';
 import { parseClassificationFromLLM } from './llm-extractor';
 import { ruleFromReviewAnswer } from './merchant-rules';
 
@@ -156,4 +156,11 @@ test('no_package answer writes skip_purchase', () => {
 test('bought_but_digital answer writes always_digital', () => {
   assert.deepEqual(ruleFromReviewAnswer({ senderEmail: 'do@apple.com', normalizedMerchant: 'apple' }, 'bought_but_digital'),
     { match_kind: 'sender_email', match_value: 'do@apple.com', action: 'always_digital' });
+});
+
+test('pollable = valid tracking, non-terminal status', () => {
+  assert.equal(isPollable({ tracking_number: '1Z999AA10123456784', status: 'in_transit' }), true);
+  assert.equal(isPollable({ tracking_number: '', status: 'in_transit' }), false);
+  assert.equal(isPollable({ tracking_number: '1Z999AA10123456784', status: 'delivered' }), false);
+  assert.equal(isPollable({ tracking_number: '7197712620 / 0019', status: 'in_transit' }), false);
 });

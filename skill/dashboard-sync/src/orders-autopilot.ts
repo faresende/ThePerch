@@ -57,6 +57,7 @@ import { detectPhysicalVsDigital } from './physical-vs-digital';
 import { detectQuotedPriorOrder } from './quoted-prior-order';
 import { pickETA } from './extract-eta';
 import { resolveETAUpdate } from './resolve-eta';
+import { resolveETA, type ETATiers } from './eta-ladder';
 import { normalizeTrackingNumbers } from './normalize-tracking';
 import { canonicalMerchant } from './merchant-normalize';
 
@@ -917,6 +918,32 @@ async function writeTelemetry(
 // ─── 17track polling ───────────────────────────────────────────────────────
 
 /**
+ * Shipments in a terminal state never need polling — their status is
+ * final, so a poll would only burn 17track quota.
+ */
+const TERMINAL_STATUSES = new Set(['delivered', 'cancelled']);
+
+/**
+ * A single, well-formed tracking number: alphanumeric, 6–40 chars, no
+ * separators. Rejects empty strings and multi-piece strings like
+ * "7197712620 / 0019" (those are expanded into N rows upstream by
+ * shipmentRowsForTracking; a raw composite must never reach 17track).
+ */
+const TRACKING_OK = /^[A-Za-z0-9]{6,40}$/;
+
+/**
+ * A shipment is pollable iff it has a well-formed tracking number AND
+ * is not in a terminal status. This is the single selection gate for
+ * 17track polling — it excludes empty/malformed tracking numbers and
+ * delivered/cancelled shipments uniformly (defense-in-depth: post
+ * Phase 2/5, malformed numbers shouldn't exist, but this guarantees a
+ * bad row can never freeze or poison the batch).
+ */
+export function isPollable(s: { tracking_number: string | null; status: string }): boolean {
+  return !!s.tracking_number && TRACKING_OK.test(s.tracking_number) && !TERMINAL_STATUSES.has(s.status);
+}
+
+/**
  * Poll 17track for all undelivered shipments of a user.
  */
 export async function pollShipments(userId: string): Promise<{
@@ -933,28 +960,25 @@ export async function pollShipments(userId: string): Promise<{
     return { updated: 0, errors: [] };
   }
 
-  // Filter out malformed tracking numbers before sending to 17track.
-  // A malformed entry in the batch (e.g. "7197712620 / 001959496839433548"
-  // from a multi-carrier email) rejects the whole request with -18010013.
-  const isValidTrackingNumber = (n: string | null | undefined): n is string =>
-    typeof n === 'string'
-    && n.length >= 6
-    && n.length <= 40
-    && !/[\s,/\\]/.test(n);
+  // Single selection gate: every valid, non-terminal shipment is polled.
+  // isPollable excludes empty/malformed tracking numbers (e.g. a composite
+  // "7197712620 / 001959496839433548" from a multi-carrier email, which
+  // would reject the whole batch with -18010013) and delivered/cancelled
+  // rows uniformly. This repairs the previous freeze where valid in-transit
+  // shipments were silently dropped alongside the malformed ones.
+  const pollable = undelivered.filter(isPollable);
+
+  if (pollable.length === 0) {
+    return { updated: 0, errors: ['no valid tracking numbers to poll'] };
+  }
 
   // Register all tracking numbers first (17track requires this before it
   // will return tracking info). Registration is idempotent — 17track
   // silently skips numbers already on the account.
-  const toRegister = undelivered
-    .filter(s => isValidTrackingNumber(s.tracking_number))
-    .map(s => ({
-      number: s.tracking_number,
-      ...(s.carrier ? { carrier: normalizeCarrierForTracker(s.carrier) || undefined } : {}),
-    }));
-
-  if (toRegister.length === 0) {
-    return { updated: 0, errors: ['no valid tracking numbers to poll'] };
-  }
+  const toRegister = pollable.map(s => ({
+    number: s.tracking_number,
+    ...(s.carrier ? { carrier: normalizeCarrierForTracker(s.carrier) || undefined } : {}),
+  }));
 
   try {
     await registerTrackingNumbers(SEVENTEEN_TRACK_API_KEY, toRegister);
@@ -962,10 +986,8 @@ export async function pollShipments(userId: string): Promise<{
     return { updated: 0, errors: [(err as Error).message] };
   }
 
-  // Poll for all (same filter as register).
-  const trackingNumbers = undelivered
-    .map(s => s.tracking_number)
-    .filter(isValidTrackingNumber);
+  // Poll for the same set we registered.
+  const trackingNumbers = pollable.map(s => s.tracking_number!);
   const results: TrackerResponse[] = [];
 
   try {
@@ -980,16 +1002,43 @@ export async function pollShipments(userId: string): Promise<{
   let updated = 0;
   const errors: string[] = [];
 
-  for (const shipment of undelivered) {
+  for (const shipment of pollable) {
     const trackerData = resultsMap.get(shipment.tracking_number);
     if (!trackerData) continue;
 
     try {
-      // Phase 1 ETA: resolve 17track's estimated_delivery_date against
-      // the shipment's current eta_* triplet. resolve17trackETA returns
-      // null when no overwrite is warranted (e.g. 17track silent, or
-      // existing source has higher priority).
-      const etaUpdate = await resolve17trackETA(shipment.id!, trackerData.eta_at);
+      // Phase 4 ETA ladder: pick the best ETA across email > 17track >
+      // heuristic before writing. We keep calling resolve17trackETA first
+      // so its DB-backed priority guard (resolve-eta.ts) still runs — it
+      // returns the 17track triplet ONLY when that source should win over
+      // the currently-stored ETA (and null when 17track is silent or a
+      // higher-priority source already holds the slot), carrying the
+      // eta_recorded_at freshness stamp the ladder doesn't model.
+      //   - email:     null — no stored email-parsed ETA column exists;
+      //                carrier-email ETAs are written at ingest as
+      //                eta_source='carrier_email', not a separate pollable
+      //                field. (Email-parse-at-ingest is a separate source;
+      //                do NOT invent a column.)
+      //   - 17track:   the guarded 17track date, if resolve17trackETA OK'd it.
+      //   - heuristic: null — no carrier-transit helper yet (YAGNI).
+      const seventeenTrackUpdate = await resolve17trackETA(shipment.id!, trackerData.eta_at);
+      const tiers: ETATiers = {
+        email: null,
+        seventeenTrack: seventeenTrackUpdate?.eta_at ?? null,
+        heuristic: null,
+      };
+      const resolvedTier = resolveETA(tiers);
+      // Merge the ladder winner with the recorded_at stamp. resolvedTier is
+      // null when no tier has a value (and the spread below is then a no-op,
+      // so a higher-priority stored ETA is never blanked).
+      const etaUpdate =
+        resolvedTier && seventeenTrackUpdate
+          ? {
+              eta_at: resolvedTier.eta_at,
+              eta_source: resolvedTier.eta_source as '17track',
+              eta_recorded_at: seventeenTrackUpdate.eta_recorded_at,
+            }
+          : null;
 
       await updateShipmentFromTracker(shipment.id!, {
         status: trackerData.status,
