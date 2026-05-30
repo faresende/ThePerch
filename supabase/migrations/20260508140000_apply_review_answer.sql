@@ -236,5 +236,14 @@ BEGIN
 END;
 $$;
 
+-- Lock execution down to signed-in users (service_role/postgres keep access
+-- via Supabase defaults). Postgres auto-grants EXECUTE to PUBLIC on CREATE;
+-- revoke PUBLIC + anon so this matches the other merchant_rules RPCs — only
+-- authenticated callers reach it, and the in-body auth guard further confines
+-- each call to the owning user.
+REVOKE EXECUTE ON FUNCTION
+  public.apply_review_answer(uuid, text, text, text, uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION
+  public.apply_review_answer(uuid, text, text, text, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION
   public.apply_review_answer(uuid, text, text, text, uuid) TO authenticated;
