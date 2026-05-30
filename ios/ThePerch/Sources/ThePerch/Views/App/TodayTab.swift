@@ -241,10 +241,10 @@ struct TodayTab: View {
 
 // MARK: - Full-bleed Today hero (video or still + overlaid greeting)
 
-/// Full-bleed hero. 320pt tall, fixed height. V1 seam gradient fades the
-/// illustration into the page bg so the hero dissolves into the feed with
-/// no hard edge — palette-driven scrimDark (NOT pure black) + the active
-/// palette's bg at the bottom of the stack. Greeting overlaid bottom-left,
+/// Full-bleed hero. 188pt strip (grows to 212pt when the greeting wraps to
+/// two lines). The seam gradient fades the bottom ~35% into the active
+/// palette's bg so the hero dissolves into the feed with no hard edge, and
+/// the feed scrolls up over that faded edge. Greeting overlaid bottom-left,
 /// avatar floats top-right.
 struct TodayHero: View {
     let timeOfDay: PerchTimeOfDay
@@ -277,10 +277,10 @@ struct TodayHero: View {
 
             // Layer 3 — greeting, bottom-left.
             //
-            // Aligned to 18pt (PerchTheme.Spacing.screenHorizontal) so the
-            // greeting's left edge sits on the same vertical line as every
-            // card below. At 34pt Fraunces-italic, "Afternoon, [name]."
-            // fits on a single line within the full column width.
+            // Aligned to 14pt so the greeting's left edge sits on the same
+            // vertical line as every card below. At 32pt Fraunces-italic
+            // (28pt when wrapped), "Afternoon, [name]." fits the column;
+            // longer names wrap to a second line (lineLimit 2 → 212pt strip).
             //
             // The cached-data spinner trails the greeting when stale data
             // is being shown — small, non-blocking, disappears once fresh
@@ -308,7 +308,7 @@ struct TodayHero: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
+            .padding(.horizontal, 14)
             .padding(.bottom, 34)
 
             // Layer 4 — avatar, top-right.
