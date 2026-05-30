@@ -14,7 +14,7 @@ import {
   normalizeMerchantName,
 } from './orders';
 import { shipmentRowsForTracking, isPollable } from './orders-autopilot';
-import { parseClassificationFromLLM } from './llm-extractor';
+import { parseClassificationFromLLM, normalizeLLMFields } from './llm-extractor';
 import { ruleFromReviewAnswer } from './merchant-rules';
 import { resolveETAUpdate, type ETAUpdate } from './resolve-eta';
 
@@ -144,6 +144,21 @@ test('parses physical/digital/confidence from LLM JSON', () => {
 });
 test('falls back to unsure on unparseable LLM output', () => {
   assert.deepEqual(parseClassificationFromLLM('not json'), { classification: 'unsure', confidence: 0 });
+});
+
+test('normalizeLLMFields surfaces a physical classification from the raw JSON', () => {
+  const fields = normalizeLLMFields(
+    { is_purchase_confirmation: true, classification: 'physical', confidence: 0.9 },
+    'openai',
+  );
+  assert.equal(fields.classification, 'physical');
+});
+test('normalizeLLMFields defaults classification to unsure when absent or invalid', () => {
+  assert.equal(normalizeLLMFields({ is_purchase_confirmation: true }, 'openai').classification, 'unsure');
+  assert.equal(
+    normalizeLLMFields({ is_purchase_confirmation: true, classification: 'bogus' as never }, 'openai').classification,
+    'unsure',
+  );
 });
 
 test('maps a review answer to a merchant_rule spec on the most specific signal', () => {

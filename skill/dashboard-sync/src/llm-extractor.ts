@@ -23,6 +23,12 @@
  */
 import http from 'node:http';
 
+/** physical = a tangible item ships; digital = nothing ships; unsure =
+ *  genuinely ambiguous. Mirrors `Classification` in classification-cascade.ts;
+ *  kept as a local string-union so this module stays import-free of the
+ *  cascade (and the cascade stays import-free of this module). */
+export type Classification = 'physical' | 'digital' | 'unsure';
+
 export interface LLMExtractedItem {
   /** Best-effort product name. Required. */
   name: string;
@@ -44,6 +50,10 @@ export interface LLMExtractedFields {
    *  the LLM can't see any items (e.g. body is just "your order is
    *  confirmed" with no item list). */
   items: LLMExtractedItem[];
+  /** physical/digital/unsure verdict the model returned alongside the
+   *  extraction. Feeds the classification cascade's LLM stage. Defaults
+   *  to 'unsure' when the model omitted it or returned a non-enum value. */
+  classification: Classification;
   confidence: number; // 0..1
   source: 'openai' | 'ollama' | 'failed';
 }
@@ -269,8 +279,26 @@ export function parseClassificationFromLLM(raw: string): { classification: 'phys
   return { classification: 'unsure', confidence: 0 };
 }
 
-function buildLLMResult(
-  parsed: Partial<LLMExtractedFields> & { items?: unknown },
+/**
+ * Coerce a raw `classification` value into the `Classification` enum.
+ * Mirrors parseClassificationFromLLM's enum-validation: any
+ * missing/non-enum value falls back to 'unsure' so the cascade routes
+ * the email to the review path rather than mis-filing it.
+ */
+function coerceClassification(raw: unknown): Classification {
+  return raw === 'physical' || raw === 'digital' || raw === 'unsure' ? raw : 'unsure';
+}
+
+/**
+ * Build a fully-typed `LLMExtractedFields` from a loosely-typed parsed
+ * JSON object. Defensive: every field is type-checked and falls back to
+ * a safe default rather than trusting the model's output shape.
+ *
+ * Exported as the public normalizer so callers (and tests) can assert
+ * the normalization contract without a live LLM round-trip.
+ */
+export function normalizeLLMFields(
+  parsed: Partial<LLMExtractedFields> & { items?: unknown; classification?: unknown },
   source: LLMExtractedFields['source'],
 ): LLMExtractedFields {
   const currency = typeof parsed.currency === 'string' ? parsed.currency : null;
@@ -281,6 +309,7 @@ function buildLLMResult(
     currency,
     is_purchase_confirmation: !!parsed.is_purchase_confirmation,
     items: coerceItems(parsed.items, currency),
+    classification: coerceClassification(parsed.classification),
     confidence: typeof parsed.confidence === 'number'
       ? Math.min(1, Math.max(0, parsed.confidence))
       : 0.5,
@@ -398,7 +427,7 @@ export async function extractWithLLM(
       const raw = await openaiRequest(userPrompt, 30_000);
       const parsed = safeParse(raw);
       if (parsed && typeof parsed === 'object') {
-        return buildLLMResult(parsed, 'openai');
+        return normalizeLLMFields(parsed, 'openai');
       }
     } catch (e) {
       console.error(`[llm-extractor] OpenAI failed: ${e instanceof Error ? e.message : e}`);
@@ -410,7 +439,7 @@ export async function extractWithLLM(
     const raw = await ollamaRequest(userPrompt, 30_000);
     const parsed = safeParse(raw);
     if (parsed && typeof parsed === 'object') {
-      return buildLLMResult(parsed, 'ollama');
+      return normalizeLLMFields(parsed, 'ollama');
     }
   } catch (e) {
     console.error(`[llm-extractor] Ollama failed: ${e instanceof Error ? e.message : e}`);
