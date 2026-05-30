@@ -325,8 +325,7 @@ private struct OrdersSectionContent: View {
                         resolvingIds: viewModel.resolvingReviewIds,
                         expandedReviewId: expandedReviewId,
                         onToggleExpanded: { item in toggleExpandedReview(item) },
-                        onConfirm: { item in Task { await viewModel.confirmReviewItem(item) } },
-                        onDismiss: { item in Task { await viewModel.dismissReviewItem(item) } }
+                        onAnswer: { item, answer in Task { await viewModel.answerReview(item, answer) } }
                     )
                     .padding(.top, 8)
                 }
@@ -723,8 +722,7 @@ private struct HubReviewQueueSection: View {
     let resolvingIds: Set<UUID>
     let expandedReviewId: UUID?
     let onToggleExpanded: (ReviewItem) -> Void
-    let onConfirm: (ReviewItem) -> Void
-    let onDismiss: (ReviewItem) -> Void
+    let onAnswer: (ReviewItem, ReviewAnswer) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -750,8 +748,7 @@ private struct HubReviewQueueSection: View {
                             item: item,
                             isExpanded: expandedReviewId == item.id,
                             isResolving: resolvingIds.contains(item.id),
-                            onConfirm: { onConfirm(item) },
-                            onDismiss: { onDismiss(item) }
+                            onAnswer: { answer in onAnswer(item, answer) }
                         )
                     }
                     .buttonStyle(.plain)

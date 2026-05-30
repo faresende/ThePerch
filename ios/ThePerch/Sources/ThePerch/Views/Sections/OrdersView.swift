@@ -185,8 +185,7 @@ struct OrdersView: View {
                         resolvingIds: viewModel.resolvingReviewIds,
                         expandedReviewId: expandedReviewId,
                         onToggleExpanded: toggleExpandedReview,
-                        onConfirm: { item in Task { await viewModel.confirmReviewItem(item) } },
-                        onDismiss: { item in Task { await viewModel.dismissReviewItem(item) } }
+                        onAnswer: { item, answer in Task { await viewModel.answerReview(item, answer) } }
                     )
                 }
             }
@@ -215,14 +214,13 @@ struct ReviewQueueSection: View {
     let resolvingIds: Set<UUID>
     let expandedReviewId: UUID?
     let onToggleExpanded: (ReviewItem) -> Void
-    let onConfirm: (ReviewItem) -> Void
-    let onDismiss: (ReviewItem) -> Void
+    let onAnswer: (ReviewItem, ReviewAnswer) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
             OrdersSectionHeader(
                 title: "Needs review",
-                subtitle: "Ambiguous emails the autopilot couldn't confidently classify. Tap to expand. Confirm or dismiss to teach the system.",
+                subtitle: "Ambiguous emails the autopilot couldn't confidently classify. Tap to expand. Answer to teach the system.",
                 icon: "questionmark.circle.fill",
                 tint: palette.kinetic,
                 count: items.count
@@ -238,8 +236,7 @@ struct ReviewQueueSection: View {
                             item: item,
                             isExpanded: expandedReviewId == item.id,
                             isResolving: resolvingIds.contains(item.id),
-                            onConfirm: { onConfirm(item) },
-                            onDismiss: { onDismiss(item) }
+                            onAnswer: { answer in onAnswer(item, answer) }
                         )
                     }
                     .buttonStyle(.plain)

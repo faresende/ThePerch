@@ -2,6 +2,31 @@ import Foundation
 import PostgREST
 import Supabase
 
+/// The three ways a user can answer a review-queue item. Each maps to
+/// a server-side `p_action` for the `apply_review_answer` RPC, which
+/// writes a durable `merchant_rules` rule, retroactively sweeps already-
+/// captured sibling orders, and resolves the item + siblings atomically.
+///
+/// The raw values and the action mapping MUST stay in lock-step with
+/// the server's `ruleFromReviewAnswer`:
+///   yes_track          → always_physical
+///   no_package         → skip_purchase
+///   bought_but_digital → always_digital
+enum ReviewAnswer: String, Sendable {
+    case yesTrack = "yes_track"
+    case noPackage = "no_package"
+    case boughtButDigital = "bought_but_digital"
+
+    /// The `p_action` argument for the `apply_review_answer` RPC.
+    var action: String {
+        switch self {
+        case .yesTrack: return "always_physical"
+        case .noPackage: return "skip_purchase"
+        case .boughtButDigital: return "always_digital"
+        }
+    }
+}
+
 @MainActor
 final class OrdersService {
     static let shared = OrdersService()
@@ -434,11 +459,66 @@ final class OrdersService {
         _ = orderId  // reserved for future "linked order id" telemetry
     }
 
-    /// Dismiss a review item as not-an-order. v1 just resolves; doesn't
-    /// write a `learned_senders` rejection sentinel (deferred per spec —
-    /// revisit if the same sender keeps re-queueing).
-    func dismissReviewItem(_ item: ReviewItem) async throws {
-        try await resolveReviewItem(item.id)
+    /// Answer a review-queue item one of three ways and drive the
+    /// server-side learning RPC.
+    ///
+    /// Match derivation mirrors the server's `ruleFromReviewAnswer`
+    /// (and the existing normalization in `confirmReviewItemAsOrder`):
+    ///   - sender present → `sender_email` + lowercased sender
+    ///   - otherwise      → `normalized_merchant` + alphanumeric-only,
+    ///                       lowercased merchant
+    ///
+    /// `.yesTrack` ALSO creates/merges the tracked order first (via
+    /// `confirmReviewItemAsOrder`) so the package lands in the
+    /// Expected/In-Transit zone — preserving today's "Add as order"
+    /// behaviour. The subsequent `always_physical` RPC writes the
+    /// durable rule and sweeps siblings (which stamps
+    /// `classification='physical'` on the just-created order since it
+    /// shares the sender/merchant). The RPC's resolve is idempotent
+    /// (`resolved_at IS NULL` guarded), so passing the already-resolved
+    /// item id is safe.
+    ///
+    /// `.noPackage` / `.boughtButDigital` create no order — the RPC
+    /// resolves the item, writes the rule, and hides siblings.
+    func answerReview(_ item: ReviewItem, _ answer: ReviewAnswer) async throws {
+        let (matchKind, matchValue) = reviewMatch(for: item)
+
+        do {
+            // yes_track: materialize the order first (and write the
+            // sender→merchant mapping + resolve the item) so it shows up
+            // as a tracked package, THEN apply the durable physical rule
+            // + sibling sweep.
+            if answer == .yesTrack {
+                _ = try await confirmReviewItemAsOrder(item)
+            }
+
+            try await supabaseService.databaseClient
+                .rpc("apply_review_answer",
+                     params: ApplyReviewAnswerArgs(
+                        p_user_id: item.userId.uuidString,
+                        p_match_kind: matchKind,
+                        p_match_value: matchValue,
+                        p_action: answer.action,
+                        p_review_item_id: item.id.uuidString
+                     ))
+                .execute()
+        } catch {
+            throw OrdersServiceError.updateFailed(error.localizedDescription)
+        }
+    }
+
+    /// Derive the `(match_kind, match_value)` pair for a review item,
+    /// mirroring the server's `ruleFromReviewAnswer`. Sender email is
+    /// the common, exact case; the normalized-merchant fallback uses the
+    /// same alphanumeric-lowercasing as `confirmReviewItemAsOrder`.
+    private func reviewMatch(for item: ReviewItem) -> (kind: String, value: String) {
+        if let sender = item.sourceSenderEmail?.lowercased(), !sender.isEmpty {
+            return ("sender_email", sender)
+        }
+        let normalized = item.displayMerchant
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
+        return ("normalized_merchant", normalized)
     }
 
     /// Mark a review_items row resolved. Internal helper.
@@ -624,6 +704,17 @@ nonisolated private struct RecordCorrectionArgs: Encodable, Sendable {
 
 nonisolated private struct CancelCorrectionArgs: Encodable, Sendable {
     let p_correction_id: UUID
+}
+
+// All-string payload for `apply_review_answer` — the RPC takes uuid/text
+// params and PostgREST coerces the string uuids server-side, matching
+// the encoding the other review-queue writes use (uuidString).
+nonisolated private struct ApplyReviewAnswerArgs: Encodable, Sendable {
+    let p_user_id: String
+    let p_match_kind: String
+    let p_match_value: String
+    let p_action: String
+    let p_review_item_id: String
 }
 
 // MARK: - Correction Types

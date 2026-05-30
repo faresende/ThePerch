@@ -94,34 +94,38 @@ final class OrdersViewModel {
 
     // MARK: - Review queue actions
 
-    /// User tapped "Add as order" on a review-queue row. Creates the
-    /// order, writes the (sender → merchant) learned mapping, and
-    /// removes the row from the queue.
-    func confirmReviewItem(_ item: ReviewItem) async {
+    /// User answered a review-queue row one of three ways:
+    ///   - `.yesTrack`         → "Yes, track it"     (creates the order +
+    ///                            writes an always-physical rule + sweeps siblings)
+    ///   - `.noPackage`        → "Not a package"     (skip-purchase rule, hides siblings)
+    ///   - `.boughtButDigital` → "Bought it, digital" (always-digital rule, hides siblings)
+    ///
+    /// Drives `OrdersService.answerReview`, which calls the
+    /// `apply_review_answer` RPC (and, for `.yesTrack`, materializes the
+    /// order first). We optimistically drop the answered row AND its
+    /// same-source siblings so the queue self-empties locally, then
+    /// force-refresh so the new/swept orders and the remaining queue
+    /// reflect server state.
+    func answerReview(_ item: ReviewItem, _ answer: ReviewAnswer) async {
         resolvingReviewIds.insert(item.id)
         defer { resolvingReviewIds.remove(item.id) }
         do {
-            _ = try await ordersService.confirmReviewItemAsOrder(item)
-            // Reload everything — the new order should appear in Active
-            // and the review item should drop off the queue.
+            try await ordersService.answerReview(item, answer)
+
+            // Optimistic local removal. The server rule will hide/sweep
+            // every item from the same source, so drop those siblings
+            // too — when we matched on sender_email, that's every queued
+            // item sharing the (lowercased) sender. The answered item is
+            // always removed regardless of how it matched.
+            if let sender = item.sourceSenderEmail?.lowercased(), !sender.isEmpty {
+                reviewItems.removeAll { $0.sourceSenderEmail?.lowercased() == sender }
+            } else {
+                reviewItems.removeAll { $0.id == item.id }
+            }
+
             await loadOrders(forceRefresh: true)
         } catch {
-            self.error = "Couldn't add as order: \(error.localizedDescription)"
-        }
-    }
-
-    /// User tapped "Not an order" on a review-queue row. Just marks
-    /// the row resolved — no learned-senders write (deferred per spec).
-    func dismissReviewItem(_ item: ReviewItem) async {
-        resolvingReviewIds.insert(item.id)
-        defer { resolvingReviewIds.remove(item.id) }
-        do {
-            try await ordersService.dismissReviewItem(item)
-            // Optimistic local removal — avoids a full reload just to
-            // drop one row.
-            reviewItems.removeAll { $0.id == item.id }
-        } catch {
-            self.error = "Couldn't dismiss: \(error.localizedDescription)"
+            self.error = "Couldn't save your answer: \(error.localizedDescription)"
         }
     }
 

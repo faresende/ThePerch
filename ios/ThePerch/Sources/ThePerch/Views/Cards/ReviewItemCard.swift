@@ -7,7 +7,7 @@ import UIKit
 /// the visual treatment stays in lock-step across surfaces.
 ///
 /// Collapsed state shows the merchant guess + subject + sender + the
-/// two action buttons. Tap anywhere on the card to toggle expanded
+/// three answer buttons. Tap anywhere on the card to toggle expanded
 /// state — that reveals the autopilot's reasoning, its best-guess
 /// fields, and (if we have a JMAP id) a deep-link to Fastmail to read
 /// the source email. Expansion uses the same workout-card pattern as
@@ -19,8 +19,10 @@ struct ReviewItemCard: View {
     let item: ReviewItem
     let isExpanded: Bool
     let isResolving: Bool
-    let onConfirm: () -> Void
-    let onDismiss: () -> Void
+    /// One callback for all three answers (yes-track / not-a-package /
+    /// bought-but-digital). The parent routes it to
+    /// `OrdersViewModel.answerReview`.
+    let onAnswer: (ReviewAnswer) -> Void
 
     var body: some View {
         PerchSectionCard(padding: 14) {
@@ -76,43 +78,58 @@ struct ReviewItemCard: View {
             }
 
             // ─── Action row ────────────────────────────────────────────
-            HStack(spacing: 8) {
-                Spacer()
-                if isResolving {
+            // Three answers. The two "won't track" options (muted pills)
+            // share a leading row; the primary "Yes, track it" CTA sits
+            // on its own trailing row so the three short labels never
+            // collide on narrow iPhones. While resolving, the whole row
+            // collapses to a single trailing spinner.
+            if isResolving {
+                HStack {
+                    Spacer()
                     ProgressView()
                         .scaleEffect(0.75)
                         .tint(palette.kinetic)
-                } else {
-                    Button(action: onDismiss) {
-                        Text("Not an order")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(palette.muted)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(palette.line.opacity(0.5))
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Dismiss \(item.displayMerchant)")
-
-                    Button(action: onConfirm) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 10, weight: .bold))
-                            Text("Add as order")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(palette.kinetic)
-                        .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Add \(item.displayMerchant) as order")
                 }
+                .padding(.top, 8)
+            } else {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        mutedAnswerButton(
+                            "Not a package",
+                            answer: .noPackage,
+                            accessibility: "Mark \(item.displayMerchant) as not a package"
+                        )
+                        mutedAnswerButton(
+                            "Bought it, digital",
+                            answer: .boughtButDigital,
+                            accessibility: "Mark \(item.displayMerchant) as a digital purchase"
+                        )
+                        Spacer(minLength: 0)
+                    }
+
+                    HStack(spacing: 8) {
+                        Spacer(minLength: 0)
+                        Button {
+                            onAnswer(.yesTrack)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .bold))
+                                Text("Yes, track it")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(palette.kinetic)
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Track \(item.displayMerchant)")
+                    }
+                }
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
         }
         // Whole card is the tap target. Outer Button wrapper in the
         // parent (HubReviewQueueSection / ReviewQueueSection) handles
@@ -120,6 +137,32 @@ struct ReviewItemCard: View {
         // styled buttons — SwiftUI defers to the inner button when the
         // tap lands on its content shape.
         .contentShape(Rectangle())
+    }
+
+    // MARK: - Action buttons
+
+    /// A muted/secondary answer pill (the two "won't be tracked"
+    /// options), styled like the old "Not an order" button.
+    @ViewBuilder
+    private func mutedAnswerButton(
+        _ title: String,
+        answer: ReviewAnswer,
+        accessibility: String
+    ) -> some View {
+        Button {
+            onAnswer(answer)
+        } label: {
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(palette.muted)
+                .lineLimit(1)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(palette.line.opacity(0.5))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibility)
     }
 
     // MARK: - Expanded content
