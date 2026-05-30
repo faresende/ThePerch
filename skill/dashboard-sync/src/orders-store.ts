@@ -48,6 +48,16 @@ export interface OrderRecord {
   source_email_ids: string[];
   confidence_score: number;
   status: OrderStatus;
+  // Classification-rework fields (order-tracker rework). The cascade
+  // decides physical/digital/unsure; the disposition mapper stamps
+  // these so iOS surfaces ONLY physical packages. All optional —
+  // legacy/manual call-sites may omit them and the columns carry DB
+  // defaults (hidden defaults false). upsertOrder writes them through
+  // only when present (the null-strip update path preserves prior
+  // values on re-classification).
+  classification?: string;       // 'physical' | 'digital' | 'unsure'
+  hidden?: boolean;              // true → kept out of the surfaced tracker
+  hidden_reason?: string | null; // cascade reason for a hidden row, e.g. 'hard-category:airline'
   // Per-row audit trail of every parser decision. Schema in
   // src/parse-trace.ts (`ParseTrace`). Optional because legacy
   // call-sites (e.g. review-queue manual confirmations) may not

@@ -54,6 +54,8 @@ import {
 } from './seventeen-track';
 import { ParseTraceBuilder } from './parse-trace';
 import { detectPhysicalVsDigital } from './physical-vs-digital';
+import { classifyForTracking } from './classification-cascade';
+import { dispositionForClassification } from './order-disposition';
 import { detectQuotedPriorOrder } from './quoted-prior-order';
 import { pickETA } from './extract-eta';
 import { resolveETAUpdate } from './resolve-eta';
@@ -175,16 +177,20 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
     // table.
     //
     // Best-effort: any failure falls through to normal classification.
-    // The action vocabulary is small for v1:
-    //   - skip_purchase  → exit with action='skipped' (no order, no review)
-    //   - require_review → still exit early, but route to a review_item
-    //     so the user gets to confirm-or-dismiss instead of auto-creating.
-    //     v1 implements skip_purchase only; require_review path is
-    //     stubbed for the user-created rules feature.
+    // The action vocabulary:
+    //   - skip_purchase   → exit here with action='skipped' (not an order
+    //     at all — no order, no review). This is the ONLY early exit.
+    //   - always_physical / always_digital → DO NOT short-circuit. These
+    //     are classification directives, not skips: we fall through to the
+    //     normal pipeline so the classification cascade in
+    //     handlePurchaseConfirmation applies the rule (physical → surfaced
+    //     order, digital → retained-but-hidden order). Re-looking-up the
+    //     rule there (with the resolved normalized_merchant) keeps this
+    //     early pass a cheap skip-only gate.
     if (userIdForTelemetry) {
       try {
         const rule = await lookupMerchantRule(userIdForTelemetry, senderEmail);
-        if (rule) {
+        if (rule && rule.action === 'skip_purchase') {
           tracer.recordMerchantRuleApplied(rule.rule_id);
           tracer.recordShortCircuit(`merchant_rule:${rule.action}`);
           await writeTelemetry(
@@ -199,6 +205,12 @@ export async function processEmail(email: EmailInput): Promise<ProcessEmailResul
             detail: `Merchant rule short-circuit: ${rule.match_kind}=${rule.match_value}`,
             confidence: 0,
           };
+        }
+        // Non-skip rule (always_physical / always_digital): record that a
+        // rule exists for the trace, but fall through to normal
+        // classification so the cascade can apply it.
+        if (rule) {
+          tracer.recordMerchantRuleApplied(rule.rule_id);
         }
       } catch (err) {
         console.warn('[orders-autopilot] merchant_rules lookup skipped:', (err as Error).message);
@@ -491,18 +503,89 @@ async function handlePurchaseConfirmation(
   }
   trace.recordMerchant(fields.merchantName, fields.merchantSource ?? null, merchantCandidates);
 
-  // Phase-1 Apple-bug fix: detect digital vs physical AFTER we've
-  // confirmed it's a purchase. Digital purchases write with
-  // status='digital' and skip shipment creation. The trace records
-  // the decision + signals so the rule engine can later promote
-  // sender-specific rules (e.g. "do@apple.com → always digital").
+  const userId = await getUserIdFromEmail(sender);
+
+  // Classification cascade: decide physical / digital / unsure for this
+  // confirmed purchase. This REPLACES the old detectPhysicalVsDigital
+  // status flip — the cascade layers (carrier → learned merchant_rule →
+  // hard-category → repurposed LLM + confidence banding) decide whether
+  // the order surfaces, hides, or routes to review. We still run the old
+  // detector purely to populate the parse_trace's physical_vs_digital
+  // audit signal (the cascade itself is recorded via short-circuit / the
+  // disposition fields below); its `decision` no longer drives status.
   const pd = detectPhysicalVsDigital(email.subject, email.body);
   trace.recordPhysicalDigital(pd);
-  const orderStatus: 'ordered' | 'digital' = pd.decision === 'digital' ? 'digital' : 'ordered';
 
-  // Upsert order
+  const classifyResult = await classifyForTracking(
+    {
+      subject: email.subject,
+      body: email.body,
+      senderEmail,
+      senderName,
+    },
+    {
+      // Learned merchant_rules: reuse the same lookup as the early
+      // short-circuit, now also passing the resolved normalized merchant
+      // so a normalized_merchant-scoped rule can match. Return the raw
+      // action string (or null) the cascade expects.
+      lookupRule: async () => {
+        const rule = await lookupMerchantRule(userId, senderEmail, fields.normalizedMerchant);
+        return rule?.action ?? null;
+      },
+      // Reuse the LLM result already fetched above — do NOT add a second
+      // round-trip. A missing/failed LLM degrades to unsure@0, which the
+      // cascade routes to the review band.
+      llm: async () => ({
+        classification: llm?.classification ?? 'unsure',
+        confidence: llm?.confidence ?? 0,
+      }),
+    },
+  );
+  trace.recordShortCircuit(`classification:${classifyResult.classification}:${classifyResult.reason}`);
+  const disposition = dispositionForClassification(classifyResult);
+
+  // 'unsure' → do NOT create an order. Queue ONE review_item with the
+  // best-guess fields (same shape as the processEmail ambiguous path) so
+  // the iOS review queue can surface it for a one-tap resolution.
+  if (disposition.review) {
+    const reviewId = await createReviewItem({
+      user_id: userId,
+      type: 'other',
+      related_order_id: null,
+      related_shipment_id: null,
+      reason: `Ambiguous package vs non-package (cascade ${classifyResult.reason}, confidence ${classifyResult.confidence.toFixed(2)}): "${email.subject.slice(0, 80)}" from ${senderEmail}`,
+      suggested_action: 'Review manually — unsure if this is a trackable package',
+      confidence_score: classifyResult.confidence,
+      source_email_id: id,
+      source_subject: email.subject?.slice(0, 500) ?? null,
+      source_sender_email: senderEmail,
+      source_sender_name: senderName || null,
+      suggested_merchant: fields.merchantName ?? llm?.merchant_name ?? senderName ?? null,
+      suggested_order_number: fields.orderNumber ?? llm?.order_number ?? null,
+      suggested_total_amount: typeof fields.totalAmount === 'number' ? fields.totalAmount : null,
+      suggested_currency: fields.currency ?? null,
+    });
+    tel.related_review_item_id = reviewId;
+    await writeTelemetry(tel, 'created_review_item',
+      `Queued for review (cascade unsure @ ${classifyResult.confidence.toFixed(2)})`);
+    return {
+      success: true,
+      type: 'purchase_confirmation',
+      action: 'created_review_item',
+      detail: `Queued for review — unsure if package (cascade ${classifyResult.reason})`,
+      confidence: classifyResult.confidence,
+    };
+  }
+
+  // physical → surfaced order (hidden=false, status='ordered').
+  // digital  → retained-but-hidden order (hidden=true, status='digital')
+  //            stamped with hidden_reason; shipment creation is skipped
+  //            here (this handler never creates shipments anyway — they
+  //            arrive via handleShippingNotification — and a digital row
+  //            won't be matched by the shipment path because it's hidden
+  //            and not in an 'ordered'/'processing' status).
   const { id: orderId, isNew } = await upsertOrder({
-    user_id: await getUserIdFromEmail(sender),
+    user_id: userId,
     merchant_name: fields.merchantName,
     normalized_merchant: fields.normalizedMerchant,
     order_number: fields.orderNumber,
@@ -511,7 +594,10 @@ async function handlePurchaseConfirmation(
     currency: fields.currency,
     source_email_ids: [id],
     confidence_score: baseConfidence,
-    status: orderStatus,
+    status: disposition.status ?? 'ordered',
+    classification: classifyResult.classification,
+    hidden: disposition.hidden,
+    hidden_reason: disposition.hidden_reason,
     parse_trace: trace.build(),
   });
 
@@ -545,12 +631,12 @@ async function handlePurchaseConfirmation(
   tel.resolved_currency = fields.currency;
   tel.related_order_id = orderId;
   await writeTelemetry(tel, isNew ? 'created_order' : 'updated_order',
-    `${isNew ? 'Created' : 'Updated'} order: ${fields.merchantName}${fields.orderNumber ? ` #${fields.orderNumber}` : ''}`);
+    `${isNew ? 'Created' : 'Updated'} ${classifyResult.classification} order: ${fields.merchantName}${fields.orderNumber ? ` #${fields.orderNumber}` : ''}`);
 
   return {
     success: true,
     type: 'purchase_confirmation',
-    action: isNew ? 'created_order' : 'created_order',
+    action: 'created_order',
     detail: `${isNew ? 'Created' : 'Updated'} order: ${fields.merchantName}${fields.orderNumber ? ` #${fields.orderNumber}` : ''}`,
     confidence: baseConfidence,
   };

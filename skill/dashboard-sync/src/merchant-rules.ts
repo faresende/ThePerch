@@ -23,7 +23,11 @@
 
 import { supabase } from './supabase';
 
-export type MerchantRuleAction = 'skip_purchase' | 'require_review';
+// The live DB CHECK is ('skip_purchase','always_physical','always_digital').
+// The legacy 'require_review' action was never shipped server-side and has
+// been dropped; the classification cascade consumes always_physical /
+// always_digital directly (skip_purchase still drops the email).
+export type MerchantRuleAction = 'skip_purchase' | 'always_physical' | 'always_digital';
 
 export interface MerchantRuleMatch {
   rule_id: string;
