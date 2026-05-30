@@ -101,8 +101,13 @@ struct TodayTab: View {
                         // Travel card (contextual — only when trip upcoming/active)
                         TravelHomeCard(records: records, deliveries: deliveries)
 
-                        // Modular cards in time-of-day order
-                        let orderedCards = HomeCardOrdering.orderedCards()
+                        // Modular cards in time-of-day order. The deliveries
+                        // card is contextual: drop it from the stack entirely
+                        // when nothing is imminent so there's no empty card or
+                        // leftover `cardAppear` spacing slot.
+                        let orderedCards = HomeCardOrdering.orderedCards().filter { cardType in
+                            cardType != .deliveries || !DeliveryHomeCard.imminent(deliveries).isEmpty
+                        }
                         let isCompactHealth = HomeCardOrdering.isHealthCompact()
                         ForEach(Array(orderedCards.enumerated()), id: \.element) { index, cardType in
                             homeCard(for: cardType, compactHealth: isCompactHealth, records: records, deliveries: deliveries)

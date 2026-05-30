@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Shows active deliveries as mini sub-cards within a single card.
-/// When nothing is in transit, shows a gentle empty-state illustration
-/// plus a rotating phrase — the card stays part of the feed so the
-/// dashboard reads consistently regardless of whether you have packages
-/// on the way.
+/// Shows the next 1-2 imminent arrivals as mini sub-cards within a single
+/// card — a glanceable "what's arriving next". When nothing is in transit
+/// the card produces no output and TodayTab drops it from the feed entirely
+/// (no empty-state illustration, no leftover layout gap).
 struct DeliveryHomeCard: View {
     let deliveries: [DeliveryData]
 
@@ -13,6 +12,20 @@ struct DeliveryHomeCard: View {
             let status = delivery.status.lowercased().replacingOccurrences(of: " ", with: "_")
             return status != "delivered" && status != "cancelled"
         }
+    }
+
+    /// The soonest 1-2 in-transit deliveries (delivered/cancelled excluded),
+    /// sorted by ETA ascending with unknown-ETA last. Empty when nothing is
+    /// in transit — the card hides in that case.
+    static func imminent(_ deliveries: [DeliveryData]) -> [DeliveryData] {
+        deliveries
+            .filter { d in
+                let s = d.status.lowercased().replacingOccurrences(of: " ", with: "_")
+                return s != "delivered" && s != "cancelled"
+            }
+            .sorted { ($0.eta ?? .distantFuture) < ($1.eta ?? .distantFuture) }
+            .prefix(2)
+            .map { $0 }
     }
 
     /// Rotating interpretive phrase — "Doorstep quiet", "A couple on the
@@ -25,34 +38,32 @@ struct DeliveryHomeCard: View {
     @Environment(\.perchPalette) private var palette
 
     var body: some View {
-        TodayCard {
-            VStack(alignment: .leading, spacing: 0) {
-                TodayEyebrow(
-                    label: "DELIVERIES · EN ROUTE",
-                    accent: palette.kinetic,
-                    freshness: activeDeliveries.isEmpty ? "—" : "\(activeDeliveries.count) active"
-                )
-                TodayPhrase(text: deliveryPhrase)
+        // Soonest 1-2 arrivals only. When nothing is in transit the card
+        // renders nothing — TodayTab also drops it from the stack so there's
+        // no leftover spacing; the EmptyView here is a defensive fallback.
+        let imminent = Self.imminent(deliveries)
+        if imminent.isEmpty {
+            return AnyView(EmptyView())
+        }
 
-                if activeDeliveries.isEmpty {
-                    HStack {
-                        Spacer()
-                        Image("empty-deliveries")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 130)
-                            .accessibilityLabel("Nothing in transit")
-                        Spacer()
-                    }
-                } else {
+        return AnyView(
+            TodayCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    TodayEyebrow(
+                        label: "DELIVERIES · EN ROUTE",
+                        accent: palette.kinetic,
+                        freshness: "\(activeDeliveries.count) active"
+                    )
+                    TodayPhrase(text: deliveryPhrase)
+
                     VStack(spacing: 12) {
-                        ForEach(activeDeliveries, id: \.orderId) { delivery in
+                        ForEach(imminent, id: \.orderId) { delivery in
                             deliverySubCard(delivery: delivery)
                         }
                     }
                 }
             }
-        }
+        )
     }
 
     // MARK: - Sub-card (Linen spec)
