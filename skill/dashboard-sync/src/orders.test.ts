@@ -16,6 +16,7 @@ import {
 import { shipmentRowsForTracking, isPollable } from './orders-autopilot';
 import { parseClassificationFromLLM } from './llm-extractor';
 import { ruleFromReviewAnswer } from './merchant-rules';
+import { resolveETAUpdate, type ETAUpdate } from './resolve-eta';
 
 test('canonical commerce types are supported', () => {
   const orderType: RecordType = 'order';
@@ -163,4 +164,47 @@ test('pollable = valid tracking, non-terminal status', () => {
   assert.equal(isPollable({ tracking_number: '', status: 'in_transit' }), false);
   assert.equal(isPollable({ tracking_number: '1Z999AA10123456784', status: 'delivered' }), false);
   assert.equal(isPollable({ tracking_number: '7197712620 / 0019', status: 'in_transit' }), false);
+});
+
+// Regression (Phase-1 CHECK): the email-ingest write path must emit
+// eta_source='email', NOT the legacy 'carrier_email'. Migration
+// 20260508120000 added CHECK (eta_source IN ('email','17track','heuristic'))
+// and normalized old 'carrier_email' rows to 'email', so a writer that
+// still emitted 'carrier_email' would throw shipments_eta_source_check on
+// the next email-parsed ETA ingest.
+test("email-sourced ETA resolves to eta_source='email', not 'carrier_email'", () => {
+  const now = new Date('2026-05-30T00:00:00Z');
+  const incoming: ETAUpdate = {
+    eta_at: new Date('2026-06-02T00:00:00Z'),
+    eta_source: 'email',
+    eta_recorded_at: now,
+  };
+  // First-time write (no current ETA) — resolver accepts the email triplet
+  // verbatim, so the literal that reaches the DB is exactly what it writes.
+  const resolved = resolveETAUpdate(
+    { eta_at: null, eta_source: null, eta_recorded_at: null },
+    incoming,
+  );
+  assert.ok(resolved);
+  assert.equal(resolved?.eta_source, 'email');
+  // @ts-expect-error — 'carrier_email' is no longer a valid eta_source (Phase-1 CHECK forbids it).
+  const _legacy: ETAUpdate['eta_source'] = 'carrier_email';
+  void _legacy;
+});
+
+test("email ETA still loses to a higher-priority 17track ETA already stored", () => {
+  // The vocab change must not alter the priority ladder: 17track (100) > email (50).
+  const resolved = resolveETAUpdate(
+    {
+      eta_at: new Date('2026-06-01T00:00:00Z'),
+      eta_source: '17track',
+      eta_recorded_at: new Date('2026-05-29T00:00:00Z'),
+    },
+    {
+      eta_at: new Date('2026-06-05T00:00:00Z'),
+      eta_source: 'email',
+      eta_recorded_at: new Date('2026-05-30T00:00:00Z'),
+    },
+  );
+  assert.equal(resolved, null);
 });

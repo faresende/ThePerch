@@ -74,7 +74,7 @@ export interface ShipmentRecord {
   // either carrier-email regex extraction or 17track polling.
   // Resolved via scanner-side resolveETAUpdate (priority + recency).
   eta_at?: string | null;            // ISO 8601
-  eta_source?: '17track' | 'carrier_email' | null;
+  eta_source?: '17track' | 'email' | 'heuristic' | null;
   eta_recorded_at?: string | null;   // ISO 8601
   created_at?: string;
   updated_at?: string;
@@ -411,7 +411,7 @@ export async function updateShipmentFromTracker(
      *  caller has resolved (via resolveETAUpdate) that the new ETA
      *  should overwrite the current one. */
     eta_at?: string;
-    eta_source?: '17track' | 'carrier_email';
+    eta_source?: '17track' | 'email' | 'heuristic';
     eta_recorded_at?: string;
   },
 ): Promise<void> {

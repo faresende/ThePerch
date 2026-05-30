@@ -757,7 +757,7 @@ async function handleShippingNotification(
     // against the existing shipment row's ETA. Skip the write if the
     // resolver says "no update" (e.g. existing 17track ETA outranks
     // this carrier-email ETA).
-    let etaUpdate: { eta_at: string; eta_source: 'carrier_email'; eta_recorded_at: string } | null = null;
+    let etaUpdate: { eta_at: string; eta_source: 'email'; eta_recorded_at: string } | null = null;
     const etaWinner = pickETA(fields.etaCandidates, new Date());
     if (etaWinner) {
       const { data: existingShipment } = await supabase
@@ -775,14 +775,14 @@ async function handleShippingNotification(
         },
         {
           eta_at: etaWinner.date,
-          eta_source: 'carrier_email',
+          eta_source: 'email',
           eta_recorded_at: now,
         },
       );
       if (resolved) {
         etaUpdate = {
           eta_at: resolved.eta_at.toISOString(),
-          eta_source: resolved.eta_source as 'carrier_email',
+          eta_source: resolved.eta_source as 'email',
           eta_recorded_at: resolved.eta_recorded_at.toISOString(),
         };
       }
@@ -1016,7 +1016,7 @@ export async function pollShipments(userId: string): Promise<{
       // eta_recorded_at freshness stamp the ladder doesn't model.
       //   - email:     null — no stored email-parsed ETA column exists;
       //                carrier-email ETAs are written at ingest as
-      //                eta_source='carrier_email', not a separate pollable
+      //                eta_source='email', not a separate pollable
       //                field. (Email-parse-at-ingest is a separate source;
       //                do NOT invent a column.)
       //   - 17track:   the guarded 17track date, if resolve17trackETA OK'd it.

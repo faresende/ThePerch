@@ -10,13 +10,13 @@
  *   1. Never overwrite non-null with null (handles 17track silence).
  *   2. First-time write (current.eta_source is null) — accept incoming.
  *   3. Higher priority always wins, regardless of recorded_at.
- *      Priority: 17track (100) > carrier_email (50).
+ *      Priority: 17track (100) > email (50).
  *   4. Same priority — newer eta_recorded_at wins.
  */
 
 const PRIORITY: Record<string, number> = {
   '17track': 100,
-  'carrier_email': 50,
+  'email': 50,
 };
 
 export interface ETATriplet {
@@ -27,7 +27,7 @@ export interface ETATriplet {
 
 export interface ETAUpdate {
   eta_at: Date;            // never null in an incoming update
-  eta_source: '17track' | 'carrier_email';
+  eta_source: '17track' | 'email' | 'heuristic';
   eta_recorded_at: Date;
 }
 
