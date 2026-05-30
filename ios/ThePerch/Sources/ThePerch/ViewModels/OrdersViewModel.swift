@@ -226,6 +226,13 @@ final class OrdersViewModel {
     var deliveredOrders: [OrderWithShipments] { _deliveredOrders }
     var issueOrders: [OrderWithShipments] { _issueOrders }
 
+    /// Two-zone tracker buckets (In Transit / Expected / Delivered /
+    /// Hidden), recomputed alongside the legacy groupings on every
+    /// `orders` mutation. The Hub renders `inTransit` + `expected`;
+    /// the Past-Orders sheet still leans on the legacy groupings above.
+    private var _zones: OrderZones.Zones = .init(inTransit: [], expected: [], delivered: [], hidden: [])
+    var zones: OrderZones.Zones { _zones }
+
     private func recomputeGroupings() {
         var active: [OrderWithShipments] = []
         var delivered: [OrderWithShipments] = []
@@ -252,6 +259,11 @@ final class OrdersViewModel {
         _activeOrders = active
         _deliveredOrders = delivered
         _issueOrders = issues
+
+        // Two-zone tracker: drop dismissed rows up front (partition still
+        // routes any stray `hidden==true` rows into its own bucket, which
+        // the Hub never renders, so hidden orders can't leak through).
+        _zones = OrderZones.partition(orders.filter { !$0.order.isDismissedByUser })
     }
 
     private func group(for order: OrderWithShipments) -> OrderStatusGroup {

@@ -179,9 +179,6 @@ private struct OrdersSectionContent: View {
     /// Needs review sections) over the Hub.
     @State private var showingPastOrders = false
 
-    private var active: [OrderWithShipments] { viewModel.activeOrders }
-    private var issues: [OrderWithShipments] { viewModel.issueOrders }
-
     /// Toggle expansion for a given order. Tap an open card → close;
     /// tap a different card → move expansion there.
     private func toggleExpanded(_ order: OrderWithShipments) {
@@ -205,14 +202,63 @@ private struct OrdersSectionContent: View {
         }
     }
 
-    /// Sum of active order totals for the aside.
+    /// Sum of in-transit order totals for the aside.
     private var inFlightLabel: String? {
-        let totals = active.compactMap { $0.order.total }
+        let inTransit = viewModel.zones.inTransit
+        let totals = inTransit.compactMap { $0.order.total }
         guard !totals.isEmpty else { return nil }
         let sum = totals.reduce(Decimal(0), +)
-        let code = active.first?.order.currency ?? "EUR"
+        let code = inTransit.first?.order.currency ?? "EUR"
         return PerchFormatters.currency(code: code, fractionDigits: 0)
             .string(from: sum as NSDecimalNumber)
+    }
+
+    /// Builds one order card with the full button/expand/callback wiring,
+    /// shared verbatim by both the In Transit and Expected zones so the
+    /// card behaviour stays identical across them.
+    @ViewBuilder
+    private func orderCard(_ order: OrderWithShipments, featured: Bool) -> some View {
+        Button {
+            PerchHaptics.light()
+            toggleExpanded(order)
+        } label: {
+            OrderCardV2(
+                order: order,
+                featured: featured,
+                isExpanded: expandedOrderId == order.id,
+                onMarkDelivered: { order in
+                    Task { await viewModel.markAsDelivered(order) }
+                },
+                onUndoDelivered: { order in
+                    Task { await viewModel.undoDelivered(order) }
+                },
+                // Phase 1 corrections: long-press surfaces three
+                // correction items. Each calls the
+                // record_order_correction RPC via the viewModel and
+                // triggers the matching state transition.
+                onCorrection: { order, kind in
+                    Task { await viewModel.recordCorrection(order, kind: kind) }
+                }
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Small-caps zone header (label + count), matching the
+    /// `HubReviewQueueSection` treatment already used on this screen.
+    @ViewBuilder
+    private func zoneHeader(_ label: String, count: Int) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(0.8)
+                .foregroundStyle(palette.muted)
+            Spacer()
+            Text("\(count)")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(palette.faint)
+        }
+        .padding(.horizontal, 4)
     }
 
     var body: some View {
@@ -231,62 +277,40 @@ private struct OrdersSectionContent: View {
                     title: "Orders backend unavailable",
                     subtitle: error
                 )
-            } else if active.isEmpty && issues.isEmpty && viewModel.orders.isEmpty {
+            } else if viewModel.zones.inTransit.isEmpty && viewModel.zones.expected.isEmpty && viewModel.orders.isEmpty {
                 EmptyStateView(
                     icon: "cart",
                     title: "No orders yet",
                     subtitle: "Purchase confirmations and tracked shipments will show up here once Orders Autopilot has something to merge."
                 )
             } else {
-                ForEach(active) { order in
-                    Button {
-                        PerchHaptics.light()
-                        toggleExpanded(order)
-                    } label: {
-                        OrderCardV2(
-                            order: order,
-                            featured: order.id == active.first?.id,
-                            isExpanded: expandedOrderId == order.id,
-                            onMarkDelivered: { order in
-                                Task { await viewModel.markAsDelivered(order) }
-                            },
-                            onUndoDelivered: { order in
-                                Task { await viewModel.undoDelivered(order) }
-                            },
-                            // Phase 1 corrections: long-press surfaces
-                            // three correction items. Each calls the
-                            // record_order_correction RPC via the
-                            // viewModel and triggers the matching
-                            // state transition.
-                            onCorrection: { order, kind in
-                                Task { await viewModel.recordCorrection(order, kind: kind) }
-                            }
-                        )
+                // In Transit — orders with a live shipment, already
+                // ETA-sorted by the partition (soonest first, no-ETA
+                // last). Do NOT re-sort here. Featured = the soonest.
+                if !viewModel.zones.inTransit.isEmpty {
+                    VStack(alignment: .leading, spacing: 14) {
+                        zoneHeader("IN TRANSIT", count: viewModel.zones.inTransit.count)
+
+                        ForEach(viewModel.zones.inTransit) { order in
+                            orderCard(order, featured: order.id == viewModel.zones.inTransit.first?.id)
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
 
-                ForEach(issues) { order in
-                    Button {
-                        PerchHaptics.light()
-                        toggleExpanded(order)
-                    } label: {
-                        OrderCardV2(
-                            order: order,
-                            featured: false,
-                            isExpanded: expandedOrderId == order.id,
-                            onMarkDelivered: { order in
-                                Task { await viewModel.markAsDelivered(order) }
-                            },
-                            onUndoDelivered: { order in
-                                Task { await viewModel.undoDelivered(order) }
-                            },
-                            onCorrection: { order, kind in
-                                Task { await viewModel.recordCorrection(order, kind: kind) }
-                            }
-                        )
+                // Expected — visible physical orders we're still waiting
+                // to ship (no live shipment yet). Rendered quieter than
+                // In Transit via a slight opacity step so the live zone
+                // stays the focal point.
+                if !viewModel.zones.expected.isEmpty {
+                    VStack(alignment: .leading, spacing: 14) {
+                        zoneHeader("EXPECTED", count: viewModel.zones.expected.count)
+
+                        ForEach(viewModel.zones.expected) { order in
+                            orderCard(order, featured: false)
+                        }
                     }
-                    .buttonStyle(.plain)
+                    .opacity(0.85)
+                    .padding(.top, 8)
                 }
 
                 // Inline review queue — emails the autopilot couldn't
@@ -364,13 +388,13 @@ private struct OrdersSectionContent: View {
     }
 
     private var orderKicker: String {
-        let count = active.count + issues.count
+        let count = viewModel.zones.inTransit.count + viewModel.zones.expected.count
         let word = count == 1 ? "shipment" : "shipments"
         return count == 0 ? "ORDERS" : "ACTIVE · \(count) \(word.uppercased())"
     }
 
     private var orderTitle: String {
-        let count = active.count
+        let count = viewModel.zones.inTransit.count
         if count == 0 { return "Nothing in flight." }
         if count == 1 { return "One arriving soon." }
         if count == 2 { return "Two arriving this week." }
