@@ -26,23 +26,19 @@ struct DailyInsightCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text(insight.kicker)
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(0.8)
-                    .foregroundStyle(palette.muted)
+                    .font(.archivoKicker(10.5)).tracking(1.47)   // 0.14em × 10.5
+                    .textCase(.uppercase).foregroundStyle(palette.muted)
 
                 Spacer()
 
                 Text(formattedTime(insight.generatedAt))
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(palette.faint)
+                    .font(.jbMono(10.5)).foregroundStyle(palette.faint)
             }
 
-            // Body in serif italic — kept editorial in tone but smaller
-            // than before so the card sits as one signal among many on
-            // Today rather than dominating the tab. Was 18pt; 14pt
-            // matches the visual weight of a typical card body line.
-            Text(insight.body)
-                .font(.system(size: 14, design: .serif).italic())
+            // Body in Fraunces italic — editorial voice with optional
+            // marker highlight on the single working phrase.
+            biochechaBody(insight)
+                .font(.frauncesItalic(16))
                 .foregroundStyle(palette.ink)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -52,13 +48,32 @@ struct DailyInsightCard: View {
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(palette.card)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(palette.line.opacity(0.55), lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private func biochechaBody(_ insight: Insight) -> some View {
+        if let phrase = insight.markedPhrase,
+           let runs = PerchMark.runs(in: insight.body, phrase: phrase) {
+            Text(attributed(runs, marker: palette.marker, ink: palette.ink))
+        } else {
+            Text(insight.body)
+        }
+    }
+
+    private func attributed(_ r: PerchMark.Runs, marker: Color, ink: Color) -> AttributedString {
+        var s = AttributedString(r.before); s.foregroundColor = ink
+        var m = AttributedString(r.marked)
+        m.foregroundColor = ink
+        m.backgroundColor = marker          // baseline band approximation for inline runs
+        var a = AttributedString(r.after); a.foregroundColor = ink
+        return s + m + a
     }
 
     @ViewBuilder
@@ -127,4 +142,13 @@ struct DailyInsightCard: View {
     DailyInsightCard(insight: nil)
         .padding()
         .background(PerchTheme.background)
+}
+
+#Preview("Marked phrase") {
+    DailyInsightCard(insight: Insight.preview(
+        body: "Sleep collapsed last night while body fat's been creeping. Protein's the missing lever — get on that.",
+        dataRaw: #"{"marked_phrase":"get on that"}"#.data(using: .utf8)
+    ))
+    .padding()
+    .background(PerchTheme.background)
 }

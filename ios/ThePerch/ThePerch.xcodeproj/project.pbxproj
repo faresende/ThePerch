@@ -153,12 +153,14 @@
 		PAPC0002PAPC0002PAPC0002 /* PaperlessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAPC0001PAPC0001PAPC0001 /* PaperlessCard.swift */; };
 		PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */; };
 		PFON0002PFON0002PFON0002 /* PerchFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFON0001PFON0001PFON0001 /* PerchFonts.swift */; };
+		PMRK0002PMRK0002PMRK0002 /* PerchMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = PMRK0001PMRK0001PMRK0001 /* PerchMark.swift */; };
 		REVCRD0002REVCRD0002REVC /* ReviewItemCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = REVCRD0001REVCRD0001REVC /* ReviewItemCard.swift */; };
 		RTRM0002RTRM0002RTRM0002 /* RealtimeReconnectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = RTRM0001RTRM0001RTRM0001 /* RealtimeReconnectManager.swift */; };
 		SBSP0002SBSP0002SBSP0002 /* SupabaseServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = SBSP0001SBSP0001SBSP0001 /* SupabaseServiceProtocol.swift */; };
 		TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */; };
 		TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */; };
 		TODT0002TODT0002TODT0002 /* PerchTimeOfDayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TODT0001TODT0001TODT0001 /* PerchTimeOfDayTests.swift */; };
+		PMKT0002PMKT0002PMKT0002 /* PerchMarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PMKT0001PMKT0001PMKT0001 /* PerchMarkTests.swift */; };
 		TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TEST0031TEST0031TEST0031 /* RecordTests.swift */; };
 		TRVT0002TRVT0002TRVT0002 /* TravelTasksCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */; };
 		WTCC0002WTCC0002WTCC0002 /* WeatherCompactCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTCC0001WTCC0001WTCC0001 /* WeatherCompactCard.swift */; };
@@ -254,6 +256,7 @@
 		35F543742F52411F00204F77 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		35F543762F52411F00204F77 /* PerchTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTheme.swift; sourceTree = "<group>"; };
 		PFON0001PFON0001PFON0001 /* PerchFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFonts.swift; sourceTree = "<group>"; };
+		PMRK0001PMRK0001PMRK0001 /* PerchMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchMark.swift; sourceTree = "<group>"; };
 		35F5437A2F52411F00204F77 /* ThePerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThePerchApp.swift; sourceTree = "<group>"; };
 		40DB35E8985DAE99DD669ABB /* FailableDecodable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FailableDecodable.swift; sourceTree = "<group>"; };
 		4414E1E87F9D3388AB10FBBF /* KarakeepService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KarakeepService.swift; sourceTree = "<group>"; };
@@ -354,6 +357,7 @@
 		TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPayloadsTests.swift; sourceTree = "<group>"; };
 		TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchFormattersTests.swift; sourceTree = "<group>"; };
 		TODT0001TODT0001TODT0001 /* PerchTimeOfDayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchTimeOfDayTests.swift; sourceTree = "<group>"; };
+		PMKT0001PMKT0001PMKT0001 /* PerchMarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchMarkTests.swift; sourceTree = "<group>"; };
 		TEST0031TEST0031TEST0031 /* RecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordTests.swift; sourceTree = "<group>"; };
 		TEST0051TEST0051TEST0051 /* ThePerchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThePerchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRVT0001TRVT0001TRVT0001 /* TravelTasksCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelTasksCard.swift; sourceTree = "<group>"; };
@@ -621,6 +625,7 @@
 			children = (
 				PFMT0001PFMT0001PFMT0001 /* PerchFormatters.swift */,
 				PFON0001PFON0001PFON0001 /* PerchFonts.swift */,
+				PMRK0001PMRK0001PMRK0001 /* PerchMark.swift */,
 				35F543762F52411F00204F77 /* PerchTheme.swift */,
 			);
 			path = Theme;
@@ -899,6 +904,7 @@
 				TEST0011TEST0011TEST0011 /* DataPayloadsTests.swift */,
 				TEST0021TEST0021TEST0021 /* PerchFormattersTests.swift */,
 				TODT0001TODT0001TODT0001 /* PerchTimeOfDayTests.swift */,
+				PMKT0001PMKT0001PMKT0001 /* PerchMarkTests.swift */,
 				TEST0031TEST0031TEST0031 /* RecordTests.swift */,
 				ORDT0001ORDT0001ORDT0001 /* OrderModelsTests.swift */,
 			);
@@ -1160,6 +1166,7 @@
 				ERBN0002ERBN0002ERBN0002 /* ErrorBanner.swift in Sources */,
 				PFMT0002PFMT0002PFMT0002 /* PerchFormatters.swift in Sources */,
 				PFON0002PFON0002PFON0002 /* PerchFonts.swift in Sources */,
+				PMRK0002PMRK0002PMRK0002 /* PerchMark.swift in Sources */,
 				NMON0002NMON0002NMON0002 /* NetworkMonitor.swift in Sources */,
 				CRSH0002CRSH0002CRSH0002 /* CrashReporter.swift in Sources */,
 				CACH0002CACH0002CACH0002 /* CacheService.swift in Sources */,
@@ -1236,6 +1243,7 @@
 				TEST0012TEST0012TEST0012 /* DataPayloadsTests.swift in Sources */,
 				TEST0022TEST0022TEST0022 /* PerchFormattersTests.swift in Sources */,
 				TODT0002TODT0002TODT0002 /* PerchTimeOfDayTests.swift in Sources */,
+				PMKT0002PMKT0002PMKT0002 /* PerchMarkTests.swift in Sources */,
 				TEST0032TEST0032TEST0032 /* RecordTests.swift in Sources */,
 				ORDT0002ORDT0002ORDT0002 /* OrderModelsTests.swift in Sources */,
 			);
