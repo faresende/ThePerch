@@ -151,5 +151,6 @@ struct DeliveryHomeCard: View {
         DeliveryHomeCard(deliveries: [])
             .padding(PerchTheme.Spacing.large)
     }
-    .background(PerchTheme.background)
+    .background(PerchPalette.forTimeOfDay(.current).bg)
+    .environment(\.perchPalette, PerchPalette.forTimeOfDay(.current))
 }

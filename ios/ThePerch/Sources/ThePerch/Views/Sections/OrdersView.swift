@@ -20,7 +20,7 @@ struct OrdersView: View {
         @Bindable var vm = viewModel
 
         ZStack {
-            PerchTheme.background.ignoresSafeArea()
+            palette.bg.ignoresSafeArea()
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
@@ -464,7 +464,7 @@ struct DeliveredOrdersSection: View {
                 .foregroundColor(palette.faint)
                 .padding(.horizontal, PerchTheme.Spacing.small)
                 .padding(.vertical, PerchTheme.Spacing.xxxSmall)
-                .background(PerchTheme.background.opacity(0.85))
+                .background(palette.bg.opacity(0.85))
                 .clipShape(Capsule())
                 .overlay(
                     Capsule()
