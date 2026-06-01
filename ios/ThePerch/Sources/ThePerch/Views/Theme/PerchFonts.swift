@@ -33,14 +33,49 @@ enum PerchFonts {
     static let interFamily     = "Inter"
     static let archivoFamily   = "Archivo"
     static let monoFamily      = "JetBrains Mono"
+
+    // PostScript names of the bundled Fraunces masters (the default instance
+    // is 9pt **Black/900** — the heaviest weight), used to instance the
+    // variable `wght`/`opsz` axes directly. See `frauncesAxis`.
+    private static let frauncesUprightPS = "Fraunces-9ptBlack"
+    private static let frauncesItalicPS  = "Fraunces-9ptBlackItalic"
+
+    // Variable-font axis identifiers (4-char tags as FourCharCodes).
+    private static let wghtAxis = NSNumber(value: 0x77676874) // 'wght'
+    private static let opszAxis = NSNumber(value: 0x6F70737A) // 'opsz'
+
+    /// Build a Fraunces `Font` at an explicit variable-font weight.
+    ///
+    /// The bundled TTF's default instance is Black (900), and SwiftUI's
+    /// `.weight()` modifier does **not** drive a CoreText-registered variable
+    /// font's `wght` axis — so the weight must be instanced on the axis here,
+    /// or every glyph renders at 900 (chunky). `opsz` is pinned to the point
+    /// size for proper optical sizing at display sizes.
+    static func frauncesAxis(size: CGFloat, wght: CGFloat, italic: Bool) -> Font {
+        let psName = italic ? frauncesItalicPS : frauncesUprightPS
+        let variations: [NSNumber: NSNumber] = [
+            wghtAxis: NSNumber(value: Double(wght)),
+            opszAxis: NSNumber(value: Double(size)),
+        ]
+        let attributes: [CFString: Any] = [
+            kCTFontNameAttribute: psName,
+            kCTFontVariationAttribute: variations as CFDictionary,
+        ]
+        let descriptor = CTFontDescriptorCreateWithAttributes(attributes as CFDictionary)
+        let ctFont = CTFontCreateWithFontDescriptor(descriptor, size, nil)
+        return Font(ctFont)
+    }
 }
 
 extension Font {
-    /// Fraunces upright (display + tabular figures). Weight via .fontWeight().
-    static func fraunces(_ size: CGFloat) -> Font { .custom(PerchFonts.frauncesFamily, size: size) }
+    /// Fraunces upright (display + tabular figures). The bundled master is
+    /// Black/900, so pass `wght` to pick a lighter cut — `.weight()` won't.
+    static func fraunces(_ size: CGFloat, wght: CGFloat = 340) -> Font {
+        PerchFonts.frauncesAxis(size: size, wght: wght, italic: false)
+    }
     /// Fraunces italic — the brand voice (greeting, biochecha, card titles).
-    static func frauncesItalic(_ size: CGFloat) -> Font {
-        .custom(PerchFonts.frauncesFamily, size: size).italic()
+    static func frauncesItalic(_ size: CGFloat, wght: CGFloat = 340) -> Font {
+        PerchFonts.frauncesAxis(size: size, wght: wght, italic: true)
     }
     /// Inter — running body copy.
     static func inter(_ size: CGFloat) -> Font { .custom(PerchFonts.interFamily, size: size) }
