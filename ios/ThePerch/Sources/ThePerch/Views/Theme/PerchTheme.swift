@@ -1021,15 +1021,18 @@ struct PerchPalette: Equatable, Sendable {
     /// Wellness accent — nutrition ring, health eyebrows, "Now" chip,
     /// meds check, success. Same rules as kinetic.
     let wellness: Color
+    /// The single highlight per surface (Stet "marker"). Painted by the
+    /// marker primitive (`.perchMark`) behind the one working phrase —
+    /// never used as a fill.
+    let marker: Color
     /// Hero scrim base — used in the V1 seam gradient at 0.15 alpha.
-    /// Derived from the hero's dark tones for each time of day.
-    /// NEVER use pure black — that kills the warm palette.
+    /// Derived from the hero's dark tones: ink-toned on the warm
+    /// palettes (raw black would muddy them), pure black on night.
     let scrimDark: Color
     /// Error colour, in the same register as the palette.
     let error: Color
-    /// Cream overlay colour for hero greeting text — a warm off-white
-    /// that reads on every scrimDark.
-    let heroText: Color = Color(red: 0.969, green: 0.941, blue: 0.867) // #F7F0DD
+    /// Hero greeting text — ink-valued (same as `ink`).
+    let heroText: Color
 
     // MARK: v2 extension tokens (Sections redesign)
     //
@@ -1060,6 +1063,7 @@ struct PerchPalette: Equatable, Sendable {
         bg: Color, card: Color, chipBg: Color, line: Color,
         ink: Color, muted: Color, faint: Color,
         kinetic: Color, wellness: Color,
+        marker: Color,
         scrimDark: Color, error: Color
     ) {
         self.bg = bg
@@ -1071,8 +1075,10 @@ struct PerchPalette: Equatable, Sendable {
         self.faint = faint
         self.kinetic = kinetic
         self.wellness = wellness
+        self.marker = marker
         self.scrimDark = scrimDark
         self.error = error
+        self.heroText = ink
         self.cardDim = Self.midpoint(card, bg, t: 0.35)
         self.lineSoft = Self.midpoint(card, line, t: 0.6)
     }
@@ -1102,69 +1108,68 @@ struct PerchPalette: Equatable, Sendable {
 
     // MARK: Palette library
 
-    /// Sunrise — warm peach linen, copper kinetic, dusty lavender wellness.
-    /// 05:00–11:59.
+    /// Morning — pale warm cream-peach. 05:00–10:59.
     static let sunrise = PerchPalette(
-        bg:        Color(red: 0.945, green: 0.863, blue: 0.792),  // #F1DCCA
-        card:      Color(red: 0.984, green: 0.918, blue: 0.859),  // #FBEADB
-        chipBg:    Color(red: 0.925, green: 0.820, blue: 0.745),  // #EDD1BE (derived)
-        line:      Color(red: 0.894, green: 0.776, blue: 0.690),  // #E4C6B0 (derived)
-        ink:       Color(red: 0.141, green: 0.114, blue: 0.188),  // #241D30
-        muted:     Color(red: 0.455, green: 0.388, blue: 0.329),  // #746354 (derived)
-        faint:     Color(red: 0.678, green: 0.584, blue: 0.506),  // #AD9581 (derived)
-        kinetic:   Color(red: 0.898, green: 0.420, blue: 0.243),  // #E56B3E
-        wellness:  Color(red: 0.541, green: 0.490, blue: 0.710),  // #8A7DB5
-        scrimDark: Color(red: 0.227, green: 0.141, blue: 0.086),  // #3A2416
-        error:     Color(red: 0.733, green: 0.271, blue: 0.153)   // #BB4527 (derived warm)
+        bg:        Color(hex: 0xF8E7D2),
+        card:      Color(hex: 0xFCF2E2),
+        chipBg:    Color(hex: 0xECD9C1),  // = rule tone
+        line:      Color(hex: 0xECD9C1),  // handoff rule
+        ink:       Color(hex: 0x2A1B11),
+        muted:     Color(hex: 0x9A7659),  // handoff mute
+        faint:     Color(hex: 0x9A7659).opacity(0.7),
+        kinetic:   Color(hex: 0xDD5A36),
+        wellness:  Color(hex: 0xDD5A36),  // := kinetic (no lavender)
+        marker:    Color(hex: 0xF2A65A),
+        scrimDark: Color(hex: 0x2A1B11),
+        error:     Color(hex: 0xBB4527)
     )
 
-    /// Midday — blush-pink base, red-orange kinetic, plum wellness.
-    /// 12:00–16:59. THE DESIGN DIRECTION'S FINAL PICK.
+    /// Afternoon (HERO) — warm peach-pink. 11:00–16:59.
     static let midday = PerchPalette(
-        bg:        Color(red: 0.953, green: 0.780, blue: 0.788),  // #F3C7C9
-        card:      Color(red: 0.988, green: 0.871, blue: 0.867),  // #FCDEDD
-        chipBg:    Color(red: 0.925, green: 0.722, blue: 0.729),  // #ECB8BA
-        line:      Color(red: 0.890, green: 0.675, blue: 0.682),  // #E3ACAE
-        ink:       Color(red: 0.149, green: 0.078, blue: 0.200),  // #261433
-        muted:     Color(red: 0.431, green: 0.310, blue: 0.369),  // #6E4F5E
-        faint:     Color(red: 0.694, green: 0.541, blue: 0.573),  // #B18A92
-        kinetic:   Color(red: 0.882, green: 0.290, blue: 0.208),  // #E14A35
-        wellness:  Color(red: 0.427, green: 0.290, blue: 0.557),  // #6D4A8E
-        scrimDark: Color(red: 0.220, green: 0.098, blue: 0.153),  // #381927
-        error:     Color(red: 0.733, green: 0.239, blue: 0.169)   // #BB3D2B (derived warm)
+        bg:        Color(hex: 0xF3D3C6),
+        card:      Color(hex: 0xFAE2D6),
+        chipBg:    Color(hex: 0xE7BFB3),
+        line:      Color(hex: 0xE7BFB3),
+        ink:       Color(hex: 0x2A1A24),
+        muted:     Color(hex: 0x8C6571),
+        faint:     Color(hex: 0x8C6571).opacity(0.7),
+        kinetic:   Color(hex: 0xE0563E),
+        wellness:  Color(hex: 0xE0563E),
+        marker:    Color(hex: 0xF0974E),
+        scrimDark: Color(hex: 0x2A1A24),
+        error:     Color(hex: 0xBB3D2B)
     )
 
-    /// Dusk — dusty mauve base, magenta kinetic, teal wellness.
-    /// 17:00–21:59.
+    /// Evening — dusty rose-clay; plum-magenta kinetic earns its place here. 17:00–21:59.
     static let dusk = PerchPalette(
-        bg:        Color(red: 0.918, green: 0.776, blue: 0.831),  // #EAC6D4
-        card:      Color(red: 0.957, green: 0.863, blue: 0.898),  // #F4DCE5
-        chipBg:    Color(red: 0.878, green: 0.702, blue: 0.776),  // #E0B3C6 (derived)
-        line:      Color(red: 0.839, green: 0.655, blue: 0.745),  // #D6A7BE (derived)
-        ink:       Color(red: 0.102, green: 0.200, blue: 0.188),  // #1A3330
-        muted:     Color(red: 0.376, green: 0.278, blue: 0.345),  // #604758 (derived)
-        faint:     Color(red: 0.612, green: 0.502, blue: 0.576),  // #9C8093 (derived)
-        kinetic:   Color(red: 0.757, green: 0.180, blue: 0.604),  // #C12E9A
-        wellness:  Color(red: 0.184, green: 0.486, blue: 0.475),  // #2F7C79
-        scrimDark: Color(red: 0.176, green: 0.090, blue: 0.145),  // #2D1725
-        error:     Color(red: 0.702, green: 0.196, blue: 0.388)   // #B33263 (derived warm)
+        bg:        Color(hex: 0xD9A39B),
+        card:      Color(hex: 0xE3B4AC),
+        chipBg:    Color(hex: 0xCC948D),
+        line:      Color(hex: 0xCC948D),
+        ink:       Color(hex: 0x2A1530),
+        muted:     Color(hex: 0x7E586A),
+        faint:     Color(hex: 0x7E586A).opacity(0.7),
+        kinetic:   Color(hex: 0xA8497F),  // plum-magenta
+        wellness:  Color(hex: 0xA8497F),
+        marker:    Color(hex: 0xE08A52),
+        scrimDark: Color(hex: 0x2A1530),
+        error:     Color(hex: 0xB33263)
     )
 
-    /// Night — cool lavender base, indigo kinetic, soft green wellness.
-    /// 22:00–04:59. Note: ink stays dark (this is a LIGHT palette,
-    /// not a dark-mode flip).
+    /// Night — deep indigo (true dark, color-scheme: dark), cream ink. 22:00–04:59.
     static let night = PerchPalette(
-        bg:        Color(red: 0.788, green: 0.804, blue: 0.941),  // #C9CDF0
-        card:      Color(red: 0.863, green: 0.875, blue: 0.965),  // #DCDFF6
-        chipBg:    Color(red: 0.729, green: 0.745, blue: 0.902),  // #BABFE6 (derived)
-        line:      Color(red: 0.694, green: 0.710, blue: 0.878),  // #B1B5E0 (derived)
-        ink:       Color(red: 0.110, green: 0.145, blue: 0.078),  // #1C2514
-        muted:     Color(red: 0.325, green: 0.353, blue: 0.290),  // #535A4A (derived)
-        faint:     Color(red: 0.529, green: 0.557, blue: 0.494),  // #878E7E (derived)
-        kinetic:   Color(red: 0.180, green: 0.227, blue: 0.839),  // #2E3AD6
-        wellness:  Color(red: 0.329, green: 0.482, blue: 0.306),  // #547B4E
-        scrimDark: Color(red: 0.106, green: 0.122, blue: 0.208),  // #1B1F35
-        error:     Color(red: 0.635, green: 0.173, blue: 0.220)   // #A22C38 (derived warm)
+        bg:        Color(hex: 0x1B1626),
+        card:      Color(hex: 0x241F33),
+        chipBg:    Color(hex: 0x2F2942),
+        line:      Color(hex: 0x2F2942),
+        ink:       Color(hex: 0xECE4D6),  // cream, inverted
+        muted:     Color(hex: 0x8E88A0),
+        faint:     Color(hex: 0x8E88A0).opacity(0.75),
+        kinetic:   Color(hex: 0xE0654A),
+        wellness:  Color(hex: 0xE0654A),
+        marker:    Color(hex: 0xE8B24A),
+        scrimDark: Color(hex: 0x000000),
+        error:     Color(hex: 0xA22C38)
     )
 
     /// Pick the palette for the given time-of-day.
@@ -1185,16 +1190,22 @@ struct PerchPalette: Equatable, Sendable {
 enum PerchTimeOfDay: Sendable {
     case sunrise, midday, dusk, night
 
-    /// Resolve from the current hour.
-    static var current: PerchTimeOfDay {
-        let hour = Foundation.Calendar.current.component(.hour, from: Date.now)
+    /// Pure, testable hour→bracket per the handoff schedule:
+    /// morning 05–10:59 · afternoon 11–16:59 · evening 17–21:59 · night 22–04:59.
+    static func bracket(forHour hour: Int) -> PerchTimeOfDay {
         switch hour {
-        case 5..<12:  return .sunrise
-        case 12..<17: return .midday
-        case 17..<22: return .dusk
+        case 5..<11:  return .sunrise   // "morning"
+        case 11..<17: return .midday    // "afternoon" (11:00 moved here)
+        case 17..<22: return .dusk      // "evening"
         default:      return .night
         }
     }
+
+    static var current: PerchTimeOfDay {
+        bracket(forHour: Foundation.Calendar.current.component(.hour, from: Date.now))
+    }
+
+    var colorScheme: ColorScheme { self == .night ? .dark : .light }
 
     var heroImageName: String {
         switch self {
@@ -1253,6 +1264,19 @@ enum PerchTimeOfDay: Sendable {
         case .dusk:    return "Dusk scene"
         case .night:   return "Night scene"
         }
+    }
+}
+
+// MARK: - Color(hex:) convenience
+
+extension Color {
+    /// 0xRRGGBB → opaque sRGB Color. Used by the locked time-of-day palettes.
+    init(hex: UInt) {
+        self.init(.sRGB,
+                  red:   Double((hex >> 16) & 0xFF) / 255,
+                  green: Double((hex >> 8) & 0xFF) / 255,
+                  blue:  Double(hex & 0xFF) / 255,
+                  opacity: 1)
     }
 }
 

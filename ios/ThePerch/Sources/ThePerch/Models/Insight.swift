@@ -87,6 +87,25 @@ struct Insight: Identifiable, Codable, Sendable, Equatable {
         }
         return "\(prefix) · \(agentId.uppercased())"
     }
+
+    /// The 2–4 word working phrase the marker highlights, if the generator
+    /// emitted one in `data.marked_phrase`. Absent → render the body unmarked.
+    var markedPhrase: String? {
+        guard let raw = data?.raw,
+              let obj = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
+              let s = obj["marked_phrase"] as? String,
+              !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return s
+    }
+
+    #if DEBUG
+    static func preview(body: String, dataRaw: Data?) -> Insight {
+        Insight(id: UUID(), userId: UUID(), agentId: "biochecha", insightType: "daily_health_evening",
+                title: nil, body: body, data: dataRaw.map { AnyJSON(raw: $0) }, sourceRefs: nil,
+                generatedAt: .now, validForDate: nil, shownAt: nil, dismissedAt: nil,
+                pinned: false, expiresAt: nil)
+    }
+    #endif
 }
 
 /// Minimal AnyJSON wrapper so Insight can decode the polymorphic
@@ -95,6 +114,8 @@ struct Insight: Identifiable, Codable, Sendable, Equatable {
 /// into typed structs when needed.
 struct AnyJSON: Codable, Sendable, Equatable {
     let raw: Data
+
+    init(raw: Data) { self.raw = raw }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()

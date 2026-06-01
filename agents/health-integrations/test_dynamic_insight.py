@@ -12,6 +12,7 @@ from biochecha_dynamic_insight import (
     CategoryResult, EventTrigger,
     score_reflective_morning,
     rank,
+    split_marked_phrase,
 )
 
 
@@ -472,6 +473,63 @@ class TestPickByPriority(unittest.TestCase):
         chosen = _pick_by_priority(rows, ("inbody", "withings"))
         # No higher-priority data — keep the unknown-source row.
         self.assertIn(("2026-04-29", "weight_kg"), chosen)
+
+
+class TestSplitMarkedPhrase(unittest.TestCase):
+    """Tests for the split_marked_phrase helper that parses MARK: trailers."""
+
+    def test_happy_path(self):
+        body = "Sleep dropped hard last night. Protein's the missing lever.\nMARK: missing lever"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Sleep dropped hard last night. Protein's the missing lever.")
+        self.assertEqual(marked, "missing lever")
+
+    def test_none_marker(self):
+        body = "Sleep dropped hard last night. Protein is looking good.\nMARK: (none)"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Sleep dropped hard last night. Protein is looking good.")
+        self.assertIsNone(marked)
+
+    def test_missing_mark_line(self):
+        body = "Sleep dropped hard last night. Protein is looking good."
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, body)
+        self.assertIsNone(marked)
+
+    def test_too_long_phrase_rejected(self):
+        # phrase is 23 chars — exceeds 22-char limit
+        body = "HRV dropped this week. Something worth noticing.\nMARK: something worth noticing"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "HRV dropped this week. Something worth noticing.")
+        self.assertIsNone(marked)
+
+    def test_phrase_not_in_body_rejected(self):
+        body = "Sleep collapsed last night.\nMARK: get on that"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Sleep collapsed last night.")
+        self.assertIsNone(marked)
+
+    def test_first_word_rejected(self):
+        body = "Sleep collapsed last night while body fat crept up.\nMARK: Sleep"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Sleep collapsed last night while body fat crept up.")
+        self.assertIsNone(marked)
+
+    def test_subword_only_phrase_rejected(self):
+        # "recover" appears only inside "Recovery" — no whole-word match, so
+        # it must not be stored (the iOS renderer would never highlight it).
+        body = "Recovery mode engaged today.\nMARK: recover"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Recovery mode engaged today.")
+        self.assertIsNone(marked)
+
+    def test_standalone_kept_despite_earlier_subword(self):
+        # "recover" is a sub-word of "Recovery" but also a standalone word —
+        # the whole-word match exists, so it is kept.
+        body = "Recovery means recover today.\nMARK: recover"
+        clean, marked = split_marked_phrase(body)
+        self.assertEqual(clean, "Recovery means recover today.")
+        self.assertEqual(marked, "recover")
 
 
 if __name__ == "__main__":

@@ -1203,14 +1203,14 @@ private struct PerchDayChip: View {
                     .font(.system(size: 9.5, weight: .semibold))
                     .tracking(1)
                     .foregroundStyle(isActive
-                                     ? Color(red: 1, green: 0.96, blue: 0.90).opacity(0.75)
+                                     ? palette.bg.opacity(0.75)
                                      : palette.ink.opacity(0.55))
 
                 Text(dayNumber)
                     .font(.system(size: 20, weight: .medium, design: .serif))
                     .monospacedDigit()
                     .foregroundStyle(isActive
-                                     ? Color(red: 1, green: 0.96, blue: 0.90)
+                                     ? palette.bg
                                      : palette.ink)
                     .tracking(-0.5)
 
@@ -1218,7 +1218,7 @@ private struct PerchDayChip: View {
                     ForEach(0..<min(eventCount, 4), id: \.self) { _ in
                         Circle()
                             .fill(isActive
-                                  ? Color(red: 1, green: 0.96, blue: 0.90).opacity(0.85)
+                                  ? palette.bg.opacity(0.85)
                                   : palette.kinetic)
                             .frame(width: 3, height: 3)
                     }

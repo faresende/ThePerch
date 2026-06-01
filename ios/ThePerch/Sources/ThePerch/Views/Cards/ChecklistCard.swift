@@ -76,7 +76,7 @@ struct ChecklistCard: View {
                                     Image(systemName: "checkmark")
                                         .font(PerchTheme.Font.caption)
                                         .fontWeight(.bold)
-                                        .foregroundColor(.black)
+                                        .foregroundColor(.white)
                                 } else {
                                     Circle()
                                         .strokeBorder(

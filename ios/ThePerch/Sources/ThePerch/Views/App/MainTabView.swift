@@ -8,6 +8,7 @@ struct MainTabView: View {
     @Environment(\.perchPalette) private var palette
     @Environment(\.scenePhase) private var scenePhase
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var selectedTab: RootTab = Self.initialTab()
     @State private var isShowingSettings = false
@@ -72,7 +73,19 @@ struct MainTabView: View {
         // `timeOfDay` is @State + driven by timeOfDayPulse + scenePhase, so
         // the greeting / hero / palette all refresh when the clock crosses
         // a bracket boundary even with the app sitting open.
-        let palette = PerchPalette.forTimeOfDay(timeOfDay)
+        let resolvedTOD: PerchTimeOfDay = {
+            if let o = ProcessInfo.processInfo.environment["PERCH_TOD_OVERRIDE"] {
+                switch o {
+                case "morning":   return .sunrise
+                case "afternoon": return .midday
+                case "evening":   return .dusk
+                case "night":     return .night
+                default: break
+                }
+            }
+            return timeOfDay
+        }()
+        let palette = PerchPalette.forTimeOfDay(resolvedTOD)
 
         TabView(selection: $selectedTab) {
             Tab(RootTab.today.title, systemImage: RootTab.today.systemImage, value: RootTab.today) {
@@ -103,7 +116,9 @@ struct MainTabView: View {
         .tint(palette.kinetic)
         .tabBarMinimizeBehavior(.onScrollDown)
         .environment(\.perchPalette, palette)
-        .environment(\.perchTimeOfDay, timeOfDay)
+        .environment(\.perchTimeOfDay, resolvedTOD)
+        .preferredColorScheme(resolvedTOD.colorScheme)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.6), value: resolvedTOD)
         .sheet(isPresented: $isShowingSettings) {
             SettingsTab()
         }
@@ -195,6 +210,7 @@ struct MainTabView: View {
 
 struct ProfileEntryButton: View {
     @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(\.perchPalette) private var palette
 
     let prominence: Prominence
     let action: () -> Void
@@ -212,7 +228,7 @@ struct ProfileEntryButton: View {
                 .clipShape(Circle())
                 .overlay(
                     Circle()
-                        .stroke(PerchTheme.border, lineWidth: 1)
+                        .stroke(palette.line, lineWidth: 1)
                 )
                 .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
         }
@@ -223,9 +239,9 @@ struct ProfileEntryButton: View {
     private var avatar: some View {
         Text(initials)
             .font(.system(size: prominence == .prominent ? 13 : 12, weight: .bold))
-            .foregroundColor(PerchTheme.accentForeground)
+            .foregroundColor(.white)
             .frame(width: prominence == .prominent ? 34 : 30, height: prominence == .prominent ? 34 : 30)
-            .background(PerchTheme.accent)
+            .background(palette.kinetic)
             .clipShape(Circle())
     }
 
@@ -271,13 +287,6 @@ enum CaptureActionOption: String, CaseIterable, Hashable, Sendable {
         case .quickNote: "note.text.badge.plus"
         }
     }
-    
-    var accentColor: Color {
-        switch self {
-        case .logMeal: PerchTheme.accent
-        case .quickNote: PerchTheme.steel
-        }
-    }
 }
 
 struct QuickNoteDraft: Equatable, Sendable {
@@ -305,6 +314,7 @@ struct QuickNoteDraft: Equatable, Sendable {
 
 struct CaptureSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.perchPalette) private var palette
 
     @State private var showingMealInput = false
     @State private var showingQuickNote = false
@@ -316,11 +326,11 @@ struct CaptureSheet: View {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
                         Text("Create")
                             .font(PerchTheme.Font.title)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
 
                         Text("Fast capture from anywhere. Start with the two actions that actually matter.")
                             .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                     }
 
                     VStack(spacing: PerchTheme.Spacing.medium) {
@@ -336,12 +346,12 @@ struct CaptureSheet: View {
 
                     Text("More routes can hang off this later, but these two are now real instead of decorative.")
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                 }
                 .padding(PerchTheme.Spacing.large)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(PerchTheme.background.ignoresSafeArea())
+            .background(palette.bg.ignoresSafeArea())
             .navigationTitle("Create")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -349,7 +359,7 @@ struct CaptureSheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(PerchTheme.accent)
+                    .foregroundColor(palette.kinetic)
                 }
             }
         }
@@ -378,26 +388,27 @@ struct CaptureSheet: View {
 }
 
 private struct CaptureActionCard: View {
+    @Environment(\.perchPalette) private var palette
     let action: CaptureActionOption
 
     var body: some View {
         HStack(spacing: PerchTheme.Spacing.medium) {
             Image(systemName: action.systemImage)
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(action.accentColor)
+                .foregroundColor(palette.kinetic)
                 .frame(width: 44, height: 44)
-                .background(action.accentColor.opacity(0.12))
+                .background(palette.kinetic.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(action.title)
                     .font(PerchTheme.Font.body)
                     .fontWeight(.semibold)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
 
                 Text(action.subtitle)
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                     .multilineTextAlignment(.leading)
             }
 
@@ -405,16 +416,16 @@ private struct CaptureActionCard: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
         }
         .padding(PerchTheme.Spacing.medium)
         .background(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
-                .fill(PerchTheme.cardBackground)
+                .fill(palette.card)
         )
         .overlay(
             RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius, style: .continuous)
-                .stroke(PerchTheme.border, lineWidth: 1)
+                .stroke(palette.line, lineWidth: 1)
         )
     }
 }
@@ -451,6 +462,7 @@ private struct CaptureMealFlowSheet: View {
 private struct QuickNoteInputSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(DashboardViewModel.self) private var dashboardViewModel
+    @Environment(\.perchPalette) private var palette
 
     @State private var draft = QuickNoteDraft(body: "")
     @State private var isSaving = false
@@ -465,18 +477,18 @@ private struct QuickNoteInputSheet: View {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                     Text("Capture a thought before it evaporates.")
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
 
                     if let errorMessage {
                         Text(errorMessage)
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.error)
+                            .foregroundColor(palette.error)
                             .padding(PerchTheme.Spacing.medium)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(PerchTheme.error.opacity(0.1))
+                            .background(palette.error.opacity(0.1))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(PerchTheme.error.opacity(0.18), lineWidth: 1)
+                                    .stroke(palette.error.opacity(0.18), lineWidth: 1)
                             )
                             .cornerRadius(12)
                     }
@@ -484,26 +496,26 @@ private struct QuickNoteInputSheet: View {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
                         Text("Note")
                             .font(PerchTheme.Font.cardEyebrow)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
 
                         TextEditor(text: $draft.body)
                             .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                             .frame(minHeight: 220)
                             .padding(PerchTheme.Spacing.small)
                             .background(
                                 RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                                    .fill(PerchTheme.cardInnerBackground)
+                                    .fill(palette.chipBg)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: PerchTheme.Card.innerCornerRadius)
-                                    .stroke(PerchTheme.focusRing, lineWidth: 1)
+                                    .stroke(palette.kinetic.opacity(0.3), lineWidth: 1)
                             )
                     }
                 }
                 .padding(PerchTheme.Spacing.large)
             }
-            .background(PerchTheme.background.ignoresSafeArea())
+            .background(palette.bg.ignoresSafeArea())
             .navigationTitle("Quick Note")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -511,7 +523,7 @@ private struct QuickNoteInputSheet: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -522,13 +534,13 @@ private struct QuickNoteInputSheet: View {
                     } label: {
                         if isSaving {
                             ProgressView()
-                                .tint(PerchTheme.accent)
+                                .tint(palette.kinetic)
                         } else {
                             Text("Save")
                                 .fontWeight(.semibold)
                         }
                     }
-                    .foregroundColor(PerchTheme.accent)
+                    .foregroundColor(palette.kinetic)
                     .disabled(isSaving || draft.trimmedBody == nil)
                 }
             }

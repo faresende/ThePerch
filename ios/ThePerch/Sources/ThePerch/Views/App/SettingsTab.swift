@@ -221,19 +221,20 @@ struct SettingsTab: View {
 
 private struct IntegrationsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.perchPalette) private var palette
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.large) {
                 Text("Connected services and API keys are managed via environment variables and the OpenClaw gateway configuration.")
                     .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textSecondary)
+                    .foregroundColor(palette.muted)
                     .padding(.horizontal, PerchTheme.Spacing.large)
 
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                     Text("Health Sources")
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
 
                     CardContainer {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
@@ -247,7 +248,7 @@ private struct IntegrationsView: View {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                     Text("Data Integrations")
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
 
                     CardContainer {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
@@ -263,13 +264,13 @@ private struct IntegrationsView: View {
             }
             .padding(.top, PerchTheme.Spacing.large)
         }
-        .background(PerchTheme.background.ignoresSafeArea())
+        .background(palette.bg.ignoresSafeArea())
         .navigationTitle("Integrations")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Done") { dismiss() }
-                    .foregroundColor(PerchTheme.accent)
+                    .foregroundColor(palette.kinetic)
             }
         }
     }
@@ -278,17 +279,17 @@ private struct IntegrationsView: View {
         HStack {
             Text(name)
                 .font(PerchTheme.Font.body)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
 
             Spacer()
 
             HStack(spacing: 6) {
                 Circle()
-                    .fill(connected ? PerchTheme.success : PerchTheme.textTertiary)
+                    .fill(connected ? palette.kinetic : palette.faint)
                     .frame(width: 8, height: 8)
                 Text(connected ? "Connected" : "Not configured")
                     .font(PerchTheme.Font.caption)
-                    .foregroundColor(connected ? PerchTheme.success : PerchTheme.textTertiary)
+                    .foregroundColor(connected ? palette.kinetic : palette.faint)
             }
         }
         .padding(.vertical, PerchTheme.Spacing.xxSmall)
@@ -299,6 +300,7 @@ private struct IntegrationsView: View {
 
 private struct DebugAdminView: View {
     @Environment(DashboardViewModel.self) var dashboardViewModel
+    @Environment(\.perchPalette) private var palette
     @State private var viewModel = AdminViewModel()
     @State private var showRestartConfirmation = false
     @State private var showDoctorFixConfirmation = false
@@ -327,7 +329,7 @@ private struct DebugAdminView: View {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                         Text("Active Models")
                             .font(PerchTheme.Font.heading)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                         activeModelsCard(models: models)
                     }
                     .padding(.horizontal, PerchTheme.Spacing.large)
@@ -359,7 +361,7 @@ private struct DebugAdminView: View {
             }
             .padding(.top, PerchTheme.Spacing.medium)
         }
-        .background(PerchTheme.background.ignoresSafeArea())
+        .background(palette.bg.ignoresSafeArea())
         .navigationTitle("Debug & Advanced")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -392,7 +394,7 @@ private struct DebugAdminView: View {
                 Text("OpenClaw")
                     .font(PerchTheme.Font.body)
                     .fontWeight(.bold)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                 Spacer()
                 Circle()
                     .fill(viewModel.gatewayFreshness.color)
@@ -407,7 +409,7 @@ private struct DebugAdminView: View {
 
             Text(viewModel.gatewayFreshness.label)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
                 .lineLimit(2)
 
             if let actionLabel = gatewayRefreshActionLabel {
@@ -426,10 +428,10 @@ private struct DebugAdminView: View {
                             .font(PerchTheme.Font.caption)
                             .fontWeight(.semibold)
                     }
-                    .foregroundColor(PerchTheme.accent)
+                    .foregroundColor(palette.kinetic)
                     .padding(.horizontal, PerchTheme.Spacing.small)
                     .padding(.vertical, PerchTheme.Spacing.xSmall)
-                    .background(Capsule().fill(PerchTheme.accent.opacity(0.12)))
+                    .background(Capsule().fill(palette.kinetic.opacity(0.12)))
                 }
                 .buttonStyle(.plain)
                 .disabled(isRefreshingGatewayStatus)
@@ -444,7 +446,7 @@ private struct DebugAdminView: View {
                 Text("Heartbeat")
                     .font(PerchTheme.Font.body)
                     .fontWeight(.bold)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                 Spacer()
                 let heartbeatColor = heartbeatStatusColor
                 Circle()
@@ -458,16 +460,16 @@ private struct DebugAdminView: View {
             if let heartbeat = viewModel.latestHeartbeat {
                 Text(heartbeat.relativeTime)
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
             } else {
                 Text("No pulse")
                     .font(PerchTheme.Font.heading)
-                    .foregroundColor(PerchTheme.error)
+                    .foregroundColor(palette.error)
             }
 
             Text("Last check-in")
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
         }
         .padding(PerchTheme.Card.padding)
     }
@@ -476,7 +478,7 @@ private struct DebugAdminView: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
             Text("Remote Controls")
                 .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
 
             HStack(spacing: PerchTheme.Spacing.medium) {
                 commandButton(icon: "arrow.clockwise.circle.fill", label: "Restart Gateway", state: viewModel.restartState, isDestructive: true) {
@@ -497,14 +499,14 @@ private struct DebugAdminView: View {
                     Text("Rate limited — wait \(viewModel.rateLimitRemainingSeconds)s")
                         .font(PerchTheme.Font.micro)
                 }
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
             }
 
             if !viewModel.recentCommands.isEmpty {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.small) {
                     Text("Recent Commands")
                         .font(PerchTheme.Font.caption)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
 
                     ForEach(Array(viewModel.recentCommands.prefix(5))) { record in
                         if let cmd = record.asAdminCommand() {
@@ -539,7 +541,7 @@ private struct DebugAdminView: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
             Text("Agents")
                 .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
 
             if viewModel.agents.isEmpty {
                 EmptyStateView(
@@ -573,7 +575,7 @@ private struct DebugAdminView: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
             Text("Upcoming Crons")
                 .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Array(viewModel.cronRecords.prefix(5).enumerated()), id: \.offset) { _, record in
@@ -583,13 +585,13 @@ private struct DebugAdminView: View {
                                 Text(cron.name)
                                     .font(PerchTheme.Font.caption)
                                     .fontWeight(.semibold)
-                                    .foregroundColor(PerchTheme.textPrimary)
+                                    .foregroundColor(palette.ink)
                                     .lineLimit(1)
 
                                 if let model = cron.model {
                                     Text(model)
                                         .font(PerchTheme.Font.microMono)
-                                        .foregroundColor(PerchTheme.textTertiary)
+                                        .foregroundColor(palette.faint)
                                         .lineLimit(1)
                                 }
                             }
@@ -600,13 +602,13 @@ private struct DebugAdminView: View {
                                 Text(nextRun.relativeTime)
                                     .font(PerchTheme.Font.caption)
                                     .fontWeight(.medium)
-                                    .foregroundColor(PerchTheme.accent)
+                                    .foregroundColor(palette.kinetic)
                             }
                         }
 
                         if record.id != viewModel.cronRecords.prefix(5).last?.id {
                             Divider()
-                                .background(PerchTheme.border)
+                                .background(palette.line)
                         }
                     }
                 }
@@ -620,7 +622,7 @@ private struct DebugAdminView: View {
         VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
             Text("Today's Costs")
                 .font(PerchTheme.Font.heading)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
 
             let items = costData.breakdown.map { agentId, cost in
                 CostBreakdownCard.AgentCost(
@@ -656,11 +658,11 @@ private struct DebugAdminView: View {
                 VStack(alignment: .leading, spacing: PerchTheme.Spacing.medium) {
                     Text("About")
                         .font(PerchTheme.Font.heading)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
 
                     Text(agent.roleDescription)
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
 
                     detailRow(label: "Model", value: agent.model ?? "Not reported")
                     detailRow(label: "Last check-in", value: agent.lastHeartbeat?.relativeTime ?? "No recent check-in")
@@ -671,7 +673,7 @@ private struct DebugAdminView: View {
             }
             .padding(PerchTheme.Spacing.large)
         }
-        .background(PerchTheme.background.ignoresSafeArea())
+        .background(palette.bg.ignoresSafeArea())
         .navigationTitle(viewModel.displayNameForAgent(agent))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -680,12 +682,12 @@ private struct DebugAdminView: View {
         HStack(alignment: .top, spacing: PerchTheme.Spacing.small) {
             Text(label)
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
                 .frame(width: 96, alignment: .leading)
 
             Text(value)
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
 
             Spacer(minLength: 0)
         }
@@ -710,7 +712,7 @@ private struct DebugAdminView: View {
                     case .executing(let message):
                         VStack(spacing: 4) {
                             ProgressView()
-                                .tint(isDestructive ? PerchTheme.error : PerchTheme.accent)
+                                .tint(isDestructive ? palette.error : palette.kinetic)
                             Text(message)
                                 .font(PerchTheme.Font.micro)
                                 .lineLimit(1)
@@ -719,20 +721,20 @@ private struct DebugAdminView: View {
                         VStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(PerchTheme.success)
+                                .foregroundColor(palette.kinetic)
                             Text(message)
                                 .font(PerchTheme.Font.micro)
-                                .foregroundColor(PerchTheme.success)
+                                .foregroundColor(palette.kinetic)
                                 .lineLimit(2)
                         }
                     case .failed(let message):
                         VStack(spacing: 4) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(PerchTheme.error)
+                                .foregroundColor(palette.error)
                             Text(message)
                                 .font(PerchTheme.Font.micro)
-                                .foregroundColor(PerchTheme.error)
+                                .foregroundColor(palette.error)
                                 .lineLimit(2)
                         }
                     }
@@ -749,9 +751,9 @@ private struct DebugAdminView: View {
             .padding(PerchTheme.Spacing.medium)
             .background(
                 RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                    .fill(isDestructive ? PerchTheme.error.opacity(0.15) : PerchTheme.accent.opacity(0.15))
+                    .fill(isDestructive ? palette.error.opacity(0.15) : palette.kinetic.opacity(0.15))
             )
-            .foregroundColor(isDestructive ? PerchTheme.error : PerchTheme.accent)
+            .foregroundColor(isDestructive ? palette.error : palette.kinetic)
         }
         .disabled(isExecuting || !viewModel.canSendCommand)
         .opacity(isExecuting || !viewModel.canSendCommand ? 0.6 : 1.0)
@@ -762,17 +764,17 @@ private struct DebugAdminView: View {
         HStack {
             Image(systemName: command.command.icon)
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
 
             Text(command.command.displayName)
                 .font(PerchTheme.Font.caption)
-                .foregroundColor(PerchTheme.textPrimary)
+                .foregroundColor(palette.ink)
 
             Spacer()
 
             Text(record.relativeTime)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textTertiary)
+                .foregroundColor(palette.faint)
 
             commandStatusBadge(command.status)
         }
@@ -790,9 +792,9 @@ private struct DebugAdminView: View {
 
     private func commandStatusColor(_ status: AdminCommandData.CommandStatus) -> Color {
         switch status {
-        case .completed: return PerchTheme.success
-        case .failed: return PerchTheme.error
-        case .pending, .executing: return PerchTheme.warning
+        case .completed: return palette.kinetic
+        case .failed: return palette.error
+        case .pending, .executing: return palette.warn
         }
     }
 
@@ -805,7 +807,7 @@ private struct DebugAdminView: View {
                 HStack(spacing: 10) {
                     Text(model.modelId)
                         .font(PerchTheme.Font.captionMono)
-                        .foregroundColor(PerchTheme.textPrimary)
+                        .foregroundColor(palette.ink)
                         .lineLimit(1)
 
                     Spacer()
@@ -813,7 +815,7 @@ private struct DebugAdminView: View {
                     GeometryReader { geo in
                         let barWidth = max(geo.size.width * CGFloat(model.jobCount) / CGFloat(maxJobs), 4)
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(PerchTheme.accent)
+                            .fill(palette.kinetic)
                             .frame(width: barWidth, height: 14)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
@@ -826,11 +828,11 @@ private struct DebugAdminView: View {
     }
 
     private var heartbeatStatusColor: Color {
-        guard let heartbeat = viewModel.latestHeartbeat else { return PerchTheme.error }
+        guard let heartbeat = viewModel.latestHeartbeat else { return palette.error }
         let hours = Date.now.timeIntervalSince(heartbeat) / 3600
-        if hours < 2 { return PerchTheme.success }
-        if hours < 12 { return PerchTheme.warning }
-        return PerchTheme.error
+        if hours < 2 { return palette.kinetic }
+        if hours < 12 { return palette.warn }
+        return palette.error
     }
 
     private var gatewayStatusTitle: String {

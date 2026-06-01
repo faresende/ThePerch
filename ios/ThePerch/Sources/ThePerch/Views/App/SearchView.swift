@@ -31,6 +31,7 @@ struct SearchView: View {
     let deliveries: [DeliveryData]
 
     @State private var selectedCategory: RecordCategory?
+    @Environment(\.perchPalette) private var palette
 
     init(searchText: Binding<String>, records: [Record], deliveries: [DeliveryData] = []) {
         self._searchText = searchText
@@ -95,10 +96,10 @@ struct SearchView: View {
                         } label: {
                             Text("All")
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(selectedCategory == nil ? .black : PerchTheme.accent)
+                                .foregroundColor(selectedCategory == nil ? .white : palette.kinetic)
                                 .padding(.horizontal, PerchTheme.Spacing.small)
                                 .padding(.vertical, 6)
-                                .background(selectedCategory == nil ? PerchTheme.accent : PerchTheme.accentMuted)
+                                .background(selectedCategory == nil ? palette.kinetic : palette.kinetic.opacity(0.12))
                                 .cornerRadius(8)
                         }
 
@@ -108,10 +109,10 @@ struct SearchView: View {
                             } label: {
                                 Text(category.displayName)
                                     .font(PerchTheme.Font.caption)
-                                    .foregroundColor(selectedCategory == category ? .black : PerchTheme.accent)
+                                    .foregroundColor(selectedCategory == category ? .white : palette.kinetic)
                                     .padding(.horizontal, PerchTheme.Spacing.small)
                                     .padding(.vertical, 6)
-                                    .background(selectedCategory == category ? PerchTheme.accent : PerchTheme.accentMuted)
+                                    .background(selectedCategory == category ? palette.kinetic : palette.kinetic.opacity(0.12))
                                     .cornerRadius(8)
                             }
                         }
@@ -127,10 +128,10 @@ struct SearchView: View {
                 VStack(spacing: PerchTheme.Spacing.small) {
                     Image(systemName: "magnifyingglass")
                         .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                        .foregroundColor(PerchTheme.textTertiary)
+                        .foregroundColor(palette.faint)
                     Text("No results for \"\(searchText)\"")
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.textSecondary)
+                        .foregroundColor(palette.muted)
                 }
                 .frame(maxWidth: .infinity, minHeight: 150)
             } else {
@@ -153,27 +154,28 @@ struct SearchView: View {
 /// A condensed card for search results showing type icon, title, category, and metadata.
 private struct SearchResultRow: View {
     let item: SearchResultItem
+    @Environment(\.perchPalette) private var palette
 
     var body: some View {
         HStack(spacing: PerchTheme.Spacing.small) {
             RoundedRectangle(cornerRadius: 8)
-                .fill(PerchTheme.accentMuted)
+                .fill(palette.kinetic.opacity(0.12))
                 .frame(width: 32, height: 32)
                 .overlay(
                     Image(systemName: iconForItem)
                         .font(PerchTheme.Font.body)
-                        .foregroundColor(PerchTheme.accent)
+                        .foregroundColor(palette.kinetic)
                 )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayTitle)
                     .font(PerchTheme.Font.body)
-                    .foregroundColor(PerchTheme.textPrimary)
+                    .foregroundColor(palette.ink)
                     .lineLimit(1)
 
                 Text(subtitle)
                     .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
                     .lineLimit(1)
             }
 
@@ -181,21 +183,21 @@ private struct SearchResultRow: View {
 
             Text(item.category.displayName)
                 .font(PerchTheme.Font.micro)
-                .foregroundColor(PerchTheme.textSecondary)
+                .foregroundColor(palette.muted)
                 .padding(.horizontal, PerchTheme.Spacing.xSmall)
                 .padding(.vertical, 3)
-                .background(PerchTheme.cardInnerBackground)
+                .background(palette.chipBg)
                 .cornerRadius(6)
 
             if !metadataText.isEmpty {
                 Text(metadataText)
                     .font(PerchTheme.Font.micro)
-                    .foregroundColor(PerchTheme.textTertiary)
+                    .foregroundColor(palette.faint)
             }
         }
         .padding(.horizontal, PerchTheme.Spacing.medium)
         .padding(.vertical, PerchTheme.Spacing.small)
-        .background(PerchTheme.cardBackground)
+        .background(palette.card)
         .cornerRadius(12)
         .onTapGesture(perform: handleTap)
     }

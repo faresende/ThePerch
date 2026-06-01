@@ -32,6 +32,7 @@ struct ThePerchApp: App {
     }
 
     init() {
+        PerchFonts.registerAll()
         // Install crash handler before anything else
         CrashReporter.shared.installHandler()
         // Register background refresh tasks

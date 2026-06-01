@@ -9,8 +9,14 @@ struct AuthView: View {
     var body: some View {
         @Bindable var vm = authViewModel
 
+        // Pre-login root: no MainTabView wrapper injects the palette here, so
+        // AuthView sources its own time-of-day palette the same way MainTabView
+        // does, and publishes it to the environment for any descendants.
+        let resolvedTOD = PerchTimeOfDay.current
+        let palette = PerchPalette.forTimeOfDay(resolvedTOD)
+
         ZStack {
-            PerchTheme.background.ignoresSafeArea()
+            palette.bg.ignoresSafeArea()
 
             VStack(spacing: PerchTheme.Spacing.large) {
                 Spacer()
@@ -18,17 +24,17 @@ struct AuthView: View {
                 VStack(spacing: PerchTheme.Spacing.medium) {
                     Image(systemName: "bird.fill")
                         .font(PerchTheme.Font.icon(PerchTheme.Icon.xxLarge))
-                        .foregroundColor(PerchTheme.accent)
+                        .foregroundColor(palette.kinetic)
 
                     VStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text(screenTitle)
                             .font(PerchTheme.Font.display)
-                            .foregroundColor(PerchTheme.textPrimary)
+                            .foregroundColor(palette.ink)
                             .multilineTextAlignment(.center)
 
                         Text(screenSubtitle)
                             .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
                             .multilineTextAlignment(.center)
                     }
                 }
@@ -40,18 +46,18 @@ struct AuthView: View {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                             Text("Email")
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
 
                             TextField("you@example.com", text: $vm.email)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                                 .padding(PerchTheme.Spacing.small)
-                                .background(PerchTheme.cardBackground)
+                                .background(palette.card)
                                 .cornerRadius(PerchTheme.Card.cornerRadius)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                                        .stroke(PerchTheme.border, lineWidth: 1)
+                                        .stroke(palette.line, lineWidth: 1)
                                 )
                         }
                     }
@@ -60,15 +66,15 @@ struct AuthView: View {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                             Text("Display Name")
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
 
                             TextField("Your name", text: $vm.displayName)
                                 .padding(PerchTheme.Spacing.small)
-                                .background(PerchTheme.cardBackground)
+                                .background(palette.card)
                                 .cornerRadius(PerchTheme.Card.cornerRadius)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                                        .stroke(PerchTheme.border, lineWidth: 1)
+                                        .stroke(palette.line, lineWidth: 1)
                                 )
                         }
                     }
@@ -76,16 +82,16 @@ struct AuthView: View {
                     VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                         Text(passwordLabel)
                             .font(PerchTheme.Font.caption)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
 
                         SecureField(passwordPlaceholder, text: $vm.password)
                             .textContentType(authViewModel.isPasswordRecovery ? .newPassword : .password)
                             .padding(PerchTheme.Spacing.small)
-                            .background(PerchTheme.cardBackground)
+                            .background(palette.card)
                             .cornerRadius(PerchTheme.Card.cornerRadius)
                             .overlay(
                                 RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                                    .stroke(PerchTheme.border, lineWidth: 1)
+                                    .stroke(palette.line, lineWidth: 1)
                             )
                     }
 
@@ -93,16 +99,16 @@ struct AuthView: View {
                         VStack(alignment: .leading, spacing: PerchTheme.Spacing.xSmall) {
                             Text("Confirm New Password")
                                 .font(PerchTheme.Font.caption)
-                                .foregroundColor(PerchTheme.textSecondary)
+                                .foregroundColor(palette.muted)
 
                             SecureField("Repeat your new password", text: $vm.confirmPassword)
                                 .textContentType(.newPassword)
                                 .padding(PerchTheme.Spacing.small)
-                                .background(PerchTheme.cardBackground)
+                                .background(palette.card)
                                 .cornerRadius(PerchTheme.Card.cornerRadius)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                                        .stroke(PerchTheme.border, lineWidth: 1)
+                                        .stroke(palette.line, lineWidth: 1)
                                 )
                         }
                     }
@@ -129,9 +135,9 @@ struct AuthView: View {
                                 .font(PerchTheme.Font.caption)
                             Spacer()
                         }
-                        .foregroundColor(PerchTheme.error)
+                        .foregroundColor(palette.error)
                         .padding(PerchTheme.Spacing.small)
-                        .background(PerchTheme.error.opacity(0.1))
+                        .background(palette.error.opacity(0.1))
                         .cornerRadius(PerchTheme.Card.cornerRadius)
                     }
                 }
@@ -139,18 +145,18 @@ struct AuthView: View {
                 Button(action: handlePrimaryAction) {
                     ZStack {
                         RoundedRectangle(cornerRadius: PerchTheme.Card.cornerRadius)
-                            .fill(PerchTheme.accent)
+                            .fill(palette.kinetic)
 
                         HStack(spacing: PerchTheme.Spacing.small) {
                             if authViewModel.isLoading {
                                 ProgressView()
-                                    .tint(PerchTheme.accentForeground)
+                                    .tint(.white)
                             }
 
                             Text(primaryButtonTitle)
                                 .font(PerchTheme.Font.heading)
                                 .fontWeight(.bold)
-                                .foregroundColor(PerchTheme.accentForeground)
+                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -163,7 +169,7 @@ struct AuthView: View {
                         Text("Cancel Recovery")
                             .font(PerchTheme.Font.body)
                             .fontWeight(.semibold)
-                            .foregroundColor(PerchTheme.accent)
+                            .foregroundColor(palette.kinetic)
                     }
                 } else {
                     if !isSignUp {
@@ -171,7 +177,7 @@ struct AuthView: View {
                             Text("Forgot password?")
                                 .font(PerchTheme.Font.body)
                                 .fontWeight(.semibold)
-                                .foregroundColor(PerchTheme.accent)
+                                .foregroundColor(palette.kinetic)
                         }
                         .disabled(authViewModel.isLoading || authViewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .opacity(authViewModel.isLoading || authViewModel.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
@@ -180,7 +186,7 @@ struct AuthView: View {
                     HStack(spacing: PerchTheme.Spacing.xSmall) {
                         Text(isSignUp ? "Already have an account?" : "Don't have an account?")
                             .font(PerchTheme.Font.body)
-                            .foregroundColor(PerchTheme.textSecondary)
+                            .foregroundColor(palette.muted)
 
                         Button(action: {
                             isSignUp.toggle()
@@ -190,7 +196,7 @@ struct AuthView: View {
                             Text(isSignUp ? "Sign In" : "Create Account")
                                 .font(PerchTheme.Font.body)
                                 .fontWeight(.semibold)
-                                .foregroundColor(PerchTheme.accent)
+                                .foregroundColor(palette.kinetic)
                         }
                     }
                 }
@@ -199,6 +205,10 @@ struct AuthView: View {
             }
             .padding(PerchTheme.Spacing.large)
         }
+        .tint(palette.kinetic)
+        .environment(\.perchPalette, palette)
+        .environment(\.perchTimeOfDay, resolvedTOD)
+        .preferredColorScheme(resolvedTOD.colorScheme)
     }
 
     private var screenTitle: String {

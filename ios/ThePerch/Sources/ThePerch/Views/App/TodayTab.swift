@@ -3,7 +3,7 @@ import AVKit
 
 /// Today tab — The Perch's editorial front page (Linen / Variant A).
 /// Full-bleed time-of-day hero at the top (video for morning, static illustration
-/// for other times), then card stack with 22pt gap and 18pt horizontal padding,
+/// for other times), then card stack with 12pt gap and 14pt horizontal padding,
 /// closing on an `— end of today —` signoff.
 /// Reads all records from DashboardViewModel (single-fetch architecture).
 struct TodayTab: View {
@@ -59,7 +59,7 @@ struct TodayTab: View {
                 )
 
                 // 2. Padded feed column.
-                LazyVStack(alignment: .leading, spacing: PerchTheme.Spacing.cardStack) {
+                LazyVStack(alignment: .leading, spacing: 12) {
                     // Error banner (when present).
                     if let loadError = viewModel.loadError ?? dashboardViewModel.error?.errorDescription {
                         ErrorBanner(
@@ -116,12 +116,10 @@ struct TodayTab: View {
 
                     }
                 }
-                .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
-                // Pull the card stack a touch up into the hero's lower
-                // seam zone. At y=308–320 the V1 gradient is 100%
-                // palette.bg, so the overlap reads as the same surface —
-                // just tightens the hero-to-feed transition visually.
-                .padding(.top, -12)
+                .padding(.horizontal, 14)
+                // Pull the card stack up into the hero's lower seam zone
+                // so content scrolls visibly over the faded strip edge.
+                .padding(.top, -28)
 
                 // Bottom padding for tab bar.
                 Color.clear.frame(height: PerchTheme.TabBar.shellContentInsetHeight)
@@ -248,10 +246,10 @@ struct TodayTab: View {
 
 // MARK: - Full-bleed Today hero (video or still + overlaid greeting)
 
-/// Full-bleed hero. 320pt tall, fixed height. V1 seam gradient fades the
-/// illustration into the page bg so the hero dissolves into the feed with
-/// no hard edge — palette-driven scrimDark (NOT pure black) + the active
-/// palette's bg at the bottom of the stack. Greeting overlaid bottom-left,
+/// Full-bleed hero. 188pt strip (grows to 212pt when the greeting wraps to
+/// two lines). The seam gradient fades the bottom ~35% into the active
+/// palette's bg so the hero dissolves into the feed with no hard edge, and
+/// the feed scrolls up over that faded edge. Greeting overlaid bottom-left,
 /// avatar floats top-right.
 struct TodayHero: View {
     let timeOfDay: PerchTimeOfDay
@@ -262,38 +260,32 @@ struct TodayHero: View {
     @Environment(\.perchPalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var greetingLines = 1
+    private var stripHeight: CGFloat { greetingLines >= 2 ? 212 : 188 }
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Layer 1 — looping video (morning) or static illustration.
             heroBackground
-                .frame(height: 320)
+                .frame(height: stripHeight)
                 .frame(maxWidth: .infinity)
                 .clipped()
 
-            // Layer 2 — V1 seam gradient. Fades top→bottom from transparent
-            // (untouched image) through scrimDark at 0.15 (for greeting
-            // legibility) into the page bg (so the illustration dissolves
-            // into the feed seamlessly). Per handoff, stops are fixed;
-            // only scrimDark + bg change per palette.
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0.00),
-                    .init(color: .clear, location: 0.35),
-                    .init(color: palette.scrimDark.opacity(0.15), location: 0.55),
-                    .init(color: palette.bg.opacity(0.35),        location: 0.72),
-                    .init(color: palette.bg.opacity(0.75),        location: 0.88),
-                    .init(color: palette.bg,                       location: 1.00),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-            .allowsHitTesting(false)
+            // Layer 2 — seam gradient. Fades the bottom ~35% of the strip
+            // into the page bg so the hero dissolves into the feed.
+            LinearGradient(stops: [
+                .init(color: .clear, location: 0.0),
+                .init(color: .clear, location: 0.55),
+                .init(color: palette.bg.opacity(0.4), location: 0.78),
+                .init(color: palette.bg, location: 1.0),
+            ], startPoint: .top, endPoint: .bottom).allowsHitTesting(false)
 
             // Layer 3 — greeting, bottom-left.
             //
-            // Aligned to 18pt (PerchTheme.Spacing.screenHorizontal) so the
-            // greeting's left edge sits on the same vertical line as every
-            // card below. At 34pt Fraunces-italic, "Afternoon, [name]."
-            // fits on a single line within the full column width.
+            // Aligned to 14pt so the greeting's left edge sits on the same
+            // vertical line as every card below. At 32pt Fraunces-italic
+            // (28pt when wrapped), "Afternoon, [name]." fits the column;
+            // longer names wrap to a second line (lineLimit 2 → 212pt strip).
             //
             // The cached-data spinner trails the greeting when stale data
             // is being shown — small, non-blocking, disappears once fresh
@@ -301,24 +293,16 @@ struct TodayHero: View {
             // greeting alone is enough.
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(greeting)
-                    .font(PerchTheme.Font.greeting)
-                    .foregroundColor(palette.heroText)
-                    .tracking(-0.5)
-                    .lineSpacing(-8) // → effective 1.02 line-height at 34pt
-                    // Palette-tinted shadow: the greeting now carries the
-                    // same wellness accent used elsewhere on the page
-                    // (calorie ring, now chip, health eyebrows). The glow
-                    // shifts with the time-of-day palette — plum on
-                    // midday, lavender on sunrise, teal on dusk, sage on
-                    // night — so the hero text visually threads into the
-                    // rest of the feed's accent language.
-                    //
-                    // Two stacks: wide outer halo for the coloured glow
-                    // + tight high-opacity inner for edge legibility,
-                    // which a light tint alone can't deliver on bright
-                    // illustration zones.
-                    .shadow(color: palette.wellness.opacity(0.95), radius: 16, x: 0, y: 3)
-                    .shadow(color: palette.wellness.opacity(0.85), radius: 4, x: 0, y: 1)
+                    .font(.frauncesItalic(greetingLines >= 2 ? 28 : 32))
+                    .foregroundColor(palette.ink)
+                    .tracking(-0.6).lineSpacing(-6)
+                    .lineLimit(2)
+                    .background(GeometryReader { g in Color.clear
+                        .onAppear { greetingLines = g.size.height > 44 ? 2 : 1 }
+                        .onChange(of: greeting) { _, _ in greetingLines = g.size.height > 44 ? 2 : 1 } })
+                    .shadow(color: (timeOfDay == .night ? Color.black.opacity(0.5)
+                                                        : Color.white.opacity(0.3)),
+                            radius: 8, x: 0, y: 1)
 
                 if isShowingCached {
                     ProgressView()
@@ -329,7 +313,7 @@ struct TodayHero: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, PerchTheme.Spacing.screenHorizontal)
+            .padding(.horizontal, 14)
             .padding(.bottom, 34)
 
             // Layer 4 — avatar, top-right.
@@ -338,7 +322,7 @@ struct TodayHero: View {
                 .padding(.top, 54) // clears the status bar
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
-        .frame(height: 320)
+        .frame(height: stripHeight)
         .frame(maxWidth: .infinity)
         .clipped()
         .accessibilityLabel(timeOfDay.accessibilityLabel)
@@ -617,8 +601,8 @@ struct TodayEyebrow: View {
                 .fill(accent)
                 .frame(width: 6, height: 6)
             Text(label)
-                .font(PerchTheme.Font.cardEyebrow)
-                .tracking(1.2)
+                .font(.archivoKicker(10.5))
+                .tracking(1.47)
                 .textCase(.uppercase)
                 .foregroundColor(palette.muted)
                 .lineLimit(1)
@@ -627,7 +611,7 @@ struct TodayEyebrow: View {
 
             if let freshness {
                 Text(freshness)
-                    .font(PerchTheme.Font.freshness)
+                    .font(.jbMono(11))
                     .tracking(0.3)
                     .foregroundColor(palette.muted.opacity(0.55))
             }
